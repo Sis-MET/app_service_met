@@ -666,9 +666,9 @@ class AppDatabase {
       )
       ''');
 
-      debugPrint('✅ Tabla registros_calibracion creada exitosamente');
+      debugPrint('Tabla registros_calibracion creada exitosamente');
     } catch (e) {
-      debugPrint('❌ Error creando tabla: $e');
+      debugPrint('Error creando tabla: $e');
       rethrow;
     }
   }
