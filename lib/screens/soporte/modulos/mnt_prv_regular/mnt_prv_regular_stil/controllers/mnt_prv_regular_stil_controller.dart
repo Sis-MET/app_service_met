@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import '../../../../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
@@ -12,25 +11,24 @@ class MntPrvRegularStilController {
   final MntPrvRegularStilModel model;
   final Map<String, List<File>> _fieldPhotos = {};
 
-
   MntPrvRegularStilController({required this.model});
 
   void copiarPruebasInicialesAFinales() {
     model.copiarPruebasInicialesAFinales();
   }
 
+  // ✅ OPTIMIZADO: Obtener d1 sin múltiples consultas
   Future<double> getD1FromDatabase() async {
     try {
-      // ✅ USAR DatabaseHelperSop en lugar de abrir BD manualmente
       final dbHelper = DatabaseHelperMntPrvRegularStil();
       final db = await dbHelper.database;
 
-      // Consultar d1 desde inf_cliente_balanza usando session_id y cod_metrica
       final results = await db.query(
-        'inf_cliente_balanza',
+        'mnt_prv_regular_stil',
         columns: ['d1'],
         where: 'session_id = ? AND cod_metrica = ?',
         whereArgs: [model.sessionId, model.codMetrica],
+        limit: 1,
       );
 
       if (results.isNotEmpty && results.first['d1'] != null) {
@@ -44,61 +42,103 @@ class MntPrvRegularStilController {
         }
       }
 
-      // Si no encuentra d1, intentar obtenerlo de la balanza del provider
-      try {
-        // Esto requiere que el contexto esté disponible, así que lo manejamos con un try/catch separado
-        // En la práctica, esta parte se manejará en el widget que llama a esta función
-        return 0.1; // Valor por defecto
-      } catch (e) {
-        return 0.1; // Valor por defecto
-      }
-
+      return 0.1;
     } catch (e) {
       debugPrint('Error al obtener d1: $e');
-      return 0.1; // Valor por defecto
+      return 0.1;
     }
   }
 
-  // Método para guardar datos
+  // ✅ NUEVO: Método para guardar solo en BD (sin fotos)
+  Future<void> saveDataToDatabase(BuildContext context, {bool showMessage = true}) async {
+    try {
+      final dbHelper = DatabaseHelperMntPrvRegularStil();
+      final Map<String, dynamic> mntPrvData = _prepareDataForSave();
+
+      mntPrvData['session_id'] = model.sessionId;
+      mntPrvData['otst'] = model.secaValue;
+
+      await dbHelper.upsertRegistroRelevamiento(mntPrvData);
+
+      if (showMessage && context.mounted) {
+        _showSnackBar(
+          context,
+          'Datos guardados exitosamente',
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error al guardar en BD: $e');
+      if (showMessage && context.mounted) {
+        _showSnackBar(
+          context,
+          'Error al guardar: ${e.toString()}',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+      rethrow;
+    }
+  }
+
+  // ✅ Método completo: guardar datos + fotos
   Future<void> saveData(BuildContext context) async {
     try {
       // Primero guardar fotos si existen
       await _savePhotos(context);
 
       // Luego guardar datos en la base de datos
-      await _saveToDatabase(context);
-
-      // Mostrar mensaje de éxito
-      _showSnackBar(context, 'Datos guardados exitosamente',
-          backgroundColor: Colors.green, textColor: Colors.white);
+      await saveDataToDatabase(context, showMessage: true);
 
     } catch (e) {
-      _showSnackBar(context, 'Error al guardar los datos: ${e.toString()}',
-          backgroundColor: Colors.red, textColor: Colors.white);
+      if (context.mounted) {
+        _showSnackBar(
+          context,
+          'Error al guardar los datos: ${e.toString()}',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
     }
   }
 
-  // Método privado para guardar fotos
+  // ✅ MEJORADO: Guardar fotos con compresión
   Future<void> _savePhotos(BuildContext context) async {
     bool hasPhotos = _fieldPhotos.values.any((photos) => photos.isNotEmpty);
 
     if (hasPhotos) {
       final archive = Archive();
+      int totalSize = 0;
+
       _fieldPhotos.forEach((label, photos) {
         for (var i = 0; i < photos.length; i++) {
           final file = photos[i];
-          final fileName = '${label}_${i + 1}.jpg';
+          final fileSize = file.lengthSync();
+          totalSize += fileSize;
+
+          // ⚠️ Advertir si el archivo es muy grande (> 5MB)
+          if (fileSize > 5 * 1024 * 1024) {
+            debugPrint('⚠️ Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
+          }
+
+          final fileName = '${_sanitizeFileName(label)}_${i + 1}.jpg';
           archive.addFile(ArchiveFile(
-              fileName, file.lengthSync(), file.readAsBytesSync()));
+            fileName,
+            file.lengthSync(),
+            file.readAsBytesSync(),
+          ));
         }
       });
+
+      debugPrint('📦 Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
       final zipEncoder = ZipEncoder();
       final zipData = zipEncoder.encode(archive);
 
       final uint8ListData = Uint8List.fromList(zipData!);
       final zipFileName =
-          '${model.secaValue}_${model.codMetrica}_relevamiento_de_datos_fotos.zip';
+          '${model.secaValue}_${model.codMetrica}_fotos_${DateTime.now().millisecondsSinceEpoch}.zip';
 
       final params = SaveFileDialogParams(
         data: uint8ListData,
@@ -108,25 +148,39 @@ class MntPrvRegularStilController {
 
       try {
         final filePath = await FlutterFileDialog.saveFile(params: params);
-        if (filePath != null) {
+        if (filePath != null && context.mounted) {
           _showSnackBar(context, 'Fotos guardadas en $filePath');
-        } else {
+        } else if (context.mounted) {
           _showSnackBar(context, 'No se seleccionó ninguna carpeta');
         }
       } catch (e) {
-        _showSnackBar(context, 'Error al guardar el archivo: $e');
+        if (context.mounted) {
+          _showSnackBar(context, 'Error al guardar el archivo: $e');
+        }
       }
     }
   }
 
+  // ✅ Sanitizar nombres de archivo
+  String _sanitizeFileName(String name) {
+    return name
+        .replaceAll(' ', '_')
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll(RegExp(r'[^\w\-]'), '');
+  }
+
+  // ✅ MEJORADO: Preparar datos con validación
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
-      // ✅ AGREGAR campos de identificación
+      'estado_balanza': 'Balanza Realizada',
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-
-      // Campos básicos
       'tipo_servicio': 'mnt prv regular stil',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
@@ -137,230 +191,175 @@ class MntPrvRegularStilController {
       'estado_metrologico': model.estadoMetrologico,
     };
 
-    // Agregar datos de campos de estado
     _addCamposEstadoData(data);
-
-    // Agregar datos de pruebas metrológicas
     _addPruebasMetrologicasData(data);
 
     return data;
   }
 
-  // ✅ NUEVO: Agregar datos de campos de estado
+  // ✅ REFACTORIZADO: Agregar datos de campos de estado
   void _addCamposEstadoData(Map<String, dynamic> data) {
-    // Función auxiliar para obtener datos de un campo
-    void addCampoData(String key, CampoEstado campo) {
-      data['${key}_estado'] = campo.initialValue;
-      data['${key}_solucion'] = campo.solutionValue;
-      data['${key}_comentario'] = campo.comentario;
-      data['${key}_foto'] = campo.fotos.map((f) => f.path.split('/').last).join(',');
+    // Función auxiliar simplificada
+    void addCampo(String dbKey, String modelKey) {
+      final campo = model.camposEstado[modelKey];
+      if (campo != null) {
+        data['${dbKey}_estado'] = campo.initialValue;
+        data['${dbKey}_solucion'] = campo.solutionValue;
+        data['${dbKey}_comentario'] = campo.comentario;
+        data['${dbKey}_foto'] = campo.fotos.isNotEmpty
+            ? campo.fotos.map((f) => f.path.split('/').last).join(',')
+            : '';
+      }
     }
 
-    // Entorno de instalación
-    addCampoData('vibracion', model.camposEstado['Vibración']!);
-    addCampoData('polvo', model.camposEstado['Polvo']!);
-    addCampoData('temperatura', model.camposEstado['Temperatura']!);
-    addCampoData('humedad', model.camposEstado['Humedad']!);
-    addCampoData('mesada', model.camposEstado['Mesada']!);
-    addCampoData('iluminacion', model.camposEstado['Iluminación']!);
-    addCampoData('limpieza_fosa', model.camposEstado['Limpieza de Fosa']!);
-    addCampoData('estado_drenaje', model.camposEstado['Estado de Drenaje']!);
+    // Mapeo de campos (DB key -> Model key)
+    final camposMap = {
+      // Entorno
+      'vibracion': 'Vibración',
+      'polvo': 'Polvo',
+      'temperatura': 'Temperatura',
+      'humedad': 'Humedad',
+      'mesada': 'Mesada',
+      'iluminacion': 'Iluminación',
+      'limpieza_fosa': 'Limpieza de Fosa',
+      'estado_drenaje': 'Estado de Drenaje',
 
-    // Terminal de pesaje
-    addCampoData('carcasa', model.camposEstado['Carcasa']!);
-    addCampoData('teclado_fisico', model.camposEstado['Teclado Fisico']!);
-    addCampoData('display_fisico', model.camposEstado['Display Fisico']!);
-    addCampoData('fuente_poder', model.camposEstado['Fuente de poder']!);
-    addCampoData('bateria_operacional', model.camposEstado['Bateria operacional']!);
-    addCampoData('bracket', model.camposEstado['Bracket']!);
-    addCampoData('teclado_operativo', model.camposEstado['Teclado Operativo']!);
-    addCampoData('display_operativo', model.camposEstado['Display Operativo']!);
-    addCampoData('conector_celda', model.camposEstado['Contector de celda']!);
-    addCampoData('bateria_memoria', model.camposEstado['Bateria de memoria']!);
+      // Terminal
+      'carcasa': 'Carcasa',
+      'teclado_fisico': 'Teclado Fisico',
+      'display_fisico': 'Display Fisico',
+      'fuente_poder': 'Fuente de poder',
+      'bateria_operacional': 'Bateria operacional',
+      'bracket': 'Bracket',
+      'teclado_operativo': 'Teclado Operativo',
+      'display_operativo': 'Display Operativo',
+      'conector_celda': 'Contector de celda',
+      'bateria_memoria': 'Bateria de memoria',
 
-    // Estado general de la balanza
-    addCampoData('limpieza_general', model.camposEstado['Limpieza general']!);
-    addCampoData('golpes_terminal', model.camposEstado['Golpes al terminal']!);
-    addCampoData('nivelacion', model.camposEstado['Nivelacion']!);
-    addCampoData('limpieza_receptor', model.camposEstado['Limpieza receptor']!);
-    addCampoData('golpes_receptor', model.camposEstado['Golpes al receptor de carga']!);
-    addCampoData('encendido', model.camposEstado['Encendido']!);
+      // Balanza
+      'limpieza_general': 'Limpieza general',
+      'golpes_terminal': 'Golpes al terminal',
+      'nivelacion': 'Nivelacion',
+      'limpieza_receptor': 'Limpieza receptor',
+      'golpes_receptor': 'Golpes al receptor de carga',
+      'encendido': 'Encendido',
 
-    // Balanza/Plataforma
-    addCampoData('limitador_movimiento', model.camposEstado['Limitador de movimiento']!);
-    addCampoData('suspension', model.camposEstado['Suspensión']!);
-    addCampoData('limitador_carga', model.camposEstado['Limitador de carga']!);
-    addCampoData('celda_carga', model.camposEstado['Celda de carga']!);
+      // Plataforma
+      'limitador_movimiento': 'Limitador de movimiento',
+      'suspension': 'Suspensión',
+      'limitador_carga': 'Limitador de carga',
+      'celda_carga': 'Celda de carga',
 
-    // Caja sumadora
-    addCampoData('tapa_caja', model.camposEstado['Tapa de caja sumadora']!);
-    addCampoData('humedad_interna', model.camposEstado['Humedad Interna']!);
-    addCampoData('estado_prensacables', model.camposEstado['Estado de prensacables']!);
-    addCampoData('estado_borneas', model.camposEstado['Estado de borneas']!);
+      // Caja sumadora
+      'tapa_caja': 'Tapa de caja sumadora',
+      'humedad_interna': 'Humedad Interna',
+      'estado_prensacables': 'Estado de prensacables',
+      'estado_borneas': 'Estado de borneas',
+    };
+
+    camposMap.forEach((dbKey, modelKey) => addCampo(dbKey, modelKey));
   }
 
-  // ✅ NUEVO: Agregar datos de pruebas metrológicas
+  // ✅ MEJORADO: Agregar pruebas metrológicas con null-safety
   void _addPruebasMetrologicasData(Map<String, dynamic> data) {
-    // Retorno a cero inicial
-    data['retorno_cero_inicial'] = model.pruebasIniciales.retornoCero.estado;
-    data['carga_retorno_cero_inicial'] = model.pruebasIniciales.retornoCero.valor;
-    data['unidad_retorno_cero_inicial'] = model.pruebasIniciales.retornoCero.unidad;
 
     // Excentricidad inicial
-    if (model.pruebasIniciales.excentricidad?.activo ?? false) {
-      final exc = model.pruebasIniciales.excentricidad!;
-      data['tipo_plataforma_inicial'] = exc.tipoPlataforma ?? '';
-      data['puntos_ind_inicial'] = exc.puntosIndicador ?? '';
-      data['carga_exc_inicial'] = exc.carga;
-
-      for (int i = 0; i < exc.posiciones.length; i++) {
-        final posicion = exc.posiciones[i];
-        final positionNum = i + 1;
-        data['posicion_inicial_$positionNum'] = posicion.posicion;
-        data['indicacion_inicial_$positionNum'] = posicion.indicacion;
-        data['retorno_inicial_$positionNum'] = posicion.retorno;
-      }
-    }
+    _addExcentricidadData(data, model.pruebasIniciales.excentricidad, 'inicial');
 
     // Repetibilidad inicial
-    if (model.pruebasIniciales.repetibilidad?.activo ?? false) {
-      final rep = model.pruebasIniciales.repetibilidad!;
-
-      for (int i = 0; i < rep.cargas.length; i++) {
-        final carga = rep.cargas[i];
-        final cargaNum = i + 1;
-        data['repetibilidad${cargaNum}_inicial'] = carga.valor;
-
-        for (int j = 0; j < carga.pruebas.length; j++) {
-          final prueba = carga.pruebas[j];
-          final testNum = j + 1;
-          data['indicacion${cargaNum}_inicial_$testNum'] = prueba.indicacion;
-          data['retorno${cargaNum}_inicial_$testNum'] = prueba.retorno;
-        }
-      }
-    }
+    _addRepetibilidadData(data, model.pruebasIniciales.repetibilidad, 'inicial');
 
     // Linealidad inicial
-    if (model.pruebasIniciales.linealidad?.activo ?? false) {
-      final lin = model.pruebasIniciales.linealidad!;
-      for (int i = 0; i < lin.puntos.length; i++) {
-        final punto = lin.puntos[i];
-        final pointNum = i + 1;
-        data['lin_inicial_$pointNum'] = punto.lt;
-        data['ind_inicial_$pointNum'] = punto.indicacion;
-        data['retorno_lin_inicial_$pointNum'] = punto.retorno;
-      }
-    }
-
-    // Retorno a cero final
-    data['retorno_cero_final'] = model.pruebasFinales.retornoCero.estado;
-    data['carga_retorno_cero_final'] = model.pruebasFinales.retornoCero.valor;
-    data['unidad_retorno_cero_final'] = model.pruebasFinales.retornoCero.unidad;
+    _addLinealidadData(data, model.pruebasIniciales.linealidad, 'inicial');
 
     // Excentricidad final
-    if (model.pruebasFinales.excentricidad?.activo ?? false) {
-      final exc = model.pruebasFinales.excentricidad!;
-      data['tipo_plataforma_final'] = exc.tipoPlataforma ?? '';
-      data['puntos_ind_final'] = exc.puntosIndicador ?? '';
-      data['carga_exc_final'] = exc.carga;
-
-      for (int i = 0; i < exc.posiciones.length; i++) {
-        final posicion = exc.posiciones[i];
-        final positionNum = i + 1;
-        data['posicion_final_$positionNum'] = posicion.posicion;
-        data['indicacion_final_$positionNum'] = posicion.indicacion;
-        data['retorno_final_$positionNum'] = posicion.retorno;
-      }
-    }
+    _addExcentricidadData(data, model.pruebasFinales.excentricidad, 'final');
 
     // Repetibilidad final
-    if (model.pruebasFinales.repetibilidad?.activo ?? false) {
-      final rep = model.pruebasFinales.repetibilidad!;
+    _addRepetibilidadData(data, model.pruebasFinales.repetibilidad, 'final');
 
-      for (int i = 0; i < rep.cargas.length; i++) {
+    // Linealidad final
+    _addLinealidadData(data, model.pruebasFinales.linealidad, 'final');
+  }
+
+  void _addExcentricidadData(Map<String, dynamic> data, Excentricidad? exc, String tipo) {
+    if (exc?.activo ?? false) {
+      data['tipo_plataforma_$tipo'] = exc!.tipoPlataforma ?? '';
+      data['puntos_ind_$tipo'] = exc.puntosIndicador ?? '';
+      data['carga_exc_$tipo'] = exc.carga;
+
+      for (int i = 0; i < exc.posiciones.length; i++) {
+        final pos = exc.posiciones[i];
+        final num = i + 1;
+        data['posicion_${tipo}_$num'] = pos.posicion;
+        data['indicacion_${tipo}_$num'] = pos.indicacion;
+        data['retorno_${tipo}_$num'] = pos.retorno;
+      }
+    }
+  }
+
+  void _addRepetibilidadData(Map<String, dynamic> data, Repetibilidad? rep, String tipo) {
+    if (rep?.activo ?? false) {
+      for (int i = 0; i < rep!.cargas.length; i++) {
         final carga = rep.cargas[i];
         final cargaNum = i + 1;
-        data['repetibilidad${cargaNum}_final'] = carga.valor;
+        data['repetibilidad${cargaNum}_$tipo'] = carga.valor;
 
         for (int j = 0; j < carga.pruebas.length; j++) {
           final prueba = carga.pruebas[j];
           final testNum = j + 1;
-          data['indicacion${cargaNum}_final_$testNum'] = prueba.indicacion;
-          data['retorno${cargaNum}_final_$testNum'] = prueba.retorno;
+          data['indicacion${cargaNum}_${tipo}_$testNum'] = prueba.indicacion;
+          data['retorno${cargaNum}_${tipo}_$testNum'] = prueba.retorno;
         }
       }
     }
+  }
 
-    // Linealidad final
-    if (model.pruebasFinales.linealidad?.activo ?? false) {
-      final lin = model.pruebasFinales.linealidad!;
-      for (int i = 0; i < lin.puntos.length; i++) {
+  void _addLinealidadData(Map<String, dynamic> data, Linealidad? lin, String tipo) {
+    if (lin?.activo ?? false) {
+      for (int i = 0; i < lin!.puntos.length; i++) {
         final punto = lin.puntos[i];
-        final pointNum = i + 1;
-        data['lin_final_$pointNum'] = punto.lt;
-        data['ind_final_$pointNum'] = punto.indicacion;
-        data['retorno_lin_final_$pointNum'] = punto.retorno;
+        final num = i + 1;
+        data['lin_${tipo}_$num'] = punto.lt;
+        data['ind_${tipo}_$num'] = punto.indicacion;
+        data['retorno_lin_${tipo}_$num'] = punto.retorno;
       }
     }
   }
 
-  // Método privado para guardar en base de datos
-  Future<void> _saveToDatabase(BuildContext context) async {
-    if (model.comentarioGeneral.isEmpty) {
-      _showSnackBar(
-        context,
-        'Por favor complete el campo "Comentario General"',
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-      return;
-    }
-
-    try {
-      // ✅ USAR DatabaseHelperSop
-      final dbHelper = DatabaseHelperMntPrvRegularStil();
-
-      // Preparar datos
-      final Map<String, dynamic> mntPrvData = _prepareDataForSave();
-
-      // ✅ AGREGAR session_id y cod_metrica del modelo
-      mntPrvData['session_id'] = model.sessionId;
-      mntPrvData['otst'] = model.secaValue;
-
-      // ✅ USAR upsertRegistro del helper
-      await dbHelper.upsertRegistroRelevamiento(mntPrvData);
-
-    } catch (e) {
-      debugPrint('Error al guardar en la base de datos: $e');
-      throw e;
-    }
-  }
-
-
-  // Método para mostrar snackbar
   void _showSnackBar(BuildContext context, String message,
       {Color? backgroundColor, Color? textColor}) {
+    if (!context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           message,
-          style: TextStyle(color: textColor ?? Colors.black),
+          style: TextStyle(color: textColor ?? Colors.white),
         ),
-        backgroundColor: backgroundColor ?? Colors.grey,
+        backgroundColor: backgroundColor ?? Colors.grey[700],
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  // Método para agregar foto a un campo
+  // Métodos de gestión de fotos
   void agregarFoto(String campo, File foto) {
     if (!_fieldPhotos.containsKey(campo)) {
       _fieldPhotos[campo] = [];
     }
+
+    // ✅ Limitar a 5 fotos por campo
+    if (_fieldPhotos[campo]!.length >= 5) {
+      debugPrint('⚠️ Límite de 5 fotos alcanzado para: $campo');
+      return;
+    }
+
     _fieldPhotos[campo]!.add(foto);
     model.camposEstado[campo]?.agregarFoto(foto);
   }
 
-  // Método para eliminar foto de un campo
   void eliminarFoto(String campo, int index) {
     if (_fieldPhotos.containsKey(campo) && index < _fieldPhotos[campo]!.length) {
       _fieldPhotos[campo]!.removeAt(index);
@@ -368,7 +367,6 @@ class MntPrvRegularStilController {
     }
   }
 
-  // Método para limpiar todas las fotos
   void limpiarFotos() {
     _fieldPhotos.clear();
     model.camposEstado.forEach((key, value) {

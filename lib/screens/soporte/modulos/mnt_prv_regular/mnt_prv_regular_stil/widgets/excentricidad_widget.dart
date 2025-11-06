@@ -166,6 +166,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SizedBox(height: 10),
           // Posición como texto
           Text(
             'Posición ${index + 1}',
