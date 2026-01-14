@@ -1,5 +1,5 @@
 // precarga_controller.dart
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, equal_keys_in_map
 
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';

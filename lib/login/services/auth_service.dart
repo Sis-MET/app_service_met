@@ -1,6 +1,6 @@
 // lib/login/services/auth_service.dart
 
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, depend_on_referenced_packages
 
 import 'dart:convert';
 import 'package:meta/meta.dart';
@@ -208,8 +208,7 @@ class AuthService {
       );
     }
 
-    final userData =
-        UserModel.fromMap(Map<String, dynamic>.from(result.first));
+    final userData = UserModel.fromMap(Map<String, dynamic>.from(result.first));
 
     // VALIDACIÓN ACCESO APP
     // CAMBIO: Ahora validamos que sea ESTRICTAMENTE '1'. Cualquier otro valor (0, null, vacío) deniega acceso.

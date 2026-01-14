@@ -1,5 +1,7 @@
 // lib/login/services/database_service.dart
 
+// ignore_for_file: avoid_print
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/material.dart';
@@ -55,8 +57,8 @@ class DatabaseService {
 
     await db.execute('''
       CREATE TABLE inf (
-        cod_interno TEXT PRIMARY KEY,
-        cod_metrica TEXT,
+        cod_interno TEXT,
+        cod_metrica TEXT PRIMARY KEY,
         instrumento TEXT,
         tipo_instrumento TEXT,
         marca TEXT,
@@ -230,7 +232,7 @@ class DatabaseService {
 
     return await openDatabase(
       usersDbPath,
-      version: 2, // Sincronizado con AuthService
+      version: 4, // Sincronizado con AuthService
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE usuarios (

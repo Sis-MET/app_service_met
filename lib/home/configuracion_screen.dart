@@ -15,7 +15,7 @@ class ConfiguracionScreen extends StatefulWidget {
 }
 
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
-  String appVersion = '13.3.260901';
+  String appVersion = '13.5.260901.1';
   String appName = 'METRICA LTDA';
 
   @override

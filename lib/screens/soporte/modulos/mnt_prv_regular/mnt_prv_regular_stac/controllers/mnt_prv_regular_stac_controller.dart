@@ -18,7 +18,7 @@ class MntPrvRegularStacController {
     model.copiarPruebasInicialesAFinales();
   }
 
-  // ✅ OPTIMIZADO: Obtener d1 sin múltiples consultas
+  // OPTIMIZADO: Obtener d1 sin múltiples consultas
   Future<double> getD1FromDatabase() async {
     try {
       final dbHelper = DatabaseHelperMntPrvRegularStac();
@@ -50,7 +50,7 @@ class MntPrvRegularStacController {
     }
   }
 
-  // ✅ NUEVO: Lógica de decimales
+  // NUEVO: Lógica de decimales
   Future<double> getDForCarga(double carga) async {
     try {
       final dbHelper = DatabaseHelperMntPrvRegularStac();
@@ -113,7 +113,7 @@ class MntPrvRegularStacController {
     });
   }
 
-  // ✅ NUEVO: Método para guardar solo en BD (sin fotos)
+  // NUEVO: Método para guardar solo en BD (sin fotos)
   Future<void> saveDataToDatabase(BuildContext context,
       {bool showMessage = true}) async {
     try {
@@ -147,7 +147,7 @@ class MntPrvRegularStacController {
     }
   }
 
-  // ✅ Método completo: guardar datos + fotos
+  // Método completo: guardar datos + fotos
   Future<void> saveData(BuildContext context) async {
     try {
       // Primero guardar fotos si existen
@@ -167,7 +167,7 @@ class MntPrvRegularStacController {
     }
   }
 
-  // ✅ MEJORADO: Guardar fotos con compresión
+  // MEJORADO: Guardar fotos con compresión
   Future<void> _savePhotos(BuildContext context) async {
     bool hasPhotos = _fieldPhotos.values.any((photos) => photos.isNotEmpty);
 
@@ -181,10 +181,10 @@ class MntPrvRegularStacController {
           final fileSize = file.lengthSync();
           totalSize += fileSize;
 
-          // ⚠️ Advertir si el archivo es muy grande (> 5MB)
+          // Advertir si el archivo es muy grande (> 5MB)
           if (fileSize > 5 * 1024 * 1024) {
             debugPrint(
-                '⚠️ Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
+                'Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
           }
 
           final fileName = '${_sanitizeFileName(label)}_${i + 1}.jpg';
@@ -197,7 +197,7 @@ class MntPrvRegularStacController {
       });
 
       debugPrint(
-          '📦 Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+          'Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
       final zipEncoder = ZipEncoder();
       final zipData = zipEncoder.encode(archive);
@@ -227,7 +227,7 @@ class MntPrvRegularStacController {
     }
   }
 
-  // ✅ Sanitizar nombres de archivo
+  // Sanitizar nombres de archivo
   String _sanitizeFileName(String name) {
     return name
         .replaceAll(' ', '_')
@@ -240,7 +240,7 @@ class MntPrvRegularStacController {
         .replaceAll(RegExp(r'[^\w\-]'), '');
   }
 
-  // ✅ MEJORADO: Preparar datos con validación
+  // MEJORADO: Preparar datos con validación
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
       'estado_servicio': 'Completo',
@@ -451,9 +451,9 @@ class MntPrvRegularStacController {
       _fieldPhotos[campo] = [];
     }
 
-    // ✅ Limitar a 5 fotos por campo
+    // Limitar a 5 fotos por campo
     if (_fieldPhotos[campo]!.length >= 5) {
-      debugPrint('⚠️ Límite de 5 fotos alcanzado para: $campo');
+      debugPrint('Límite de 5 fotos alcanzado para: $campo');
       return;
     }
 

@@ -108,7 +108,7 @@ class SetupService {
 
     try {
       final query = '''
-        SELECT nombre1, apellido1, apellido2, pass, usuario, titulo_abr, estado 
+        SELECT nombre1, apellido1, apellido2, pass, usuario, titulo_abr, estado, acceso_app 
         FROM data_users 
         WHERE usuario = '$usuario' AND pass = '$pass'
       ''';
@@ -135,6 +135,15 @@ class SetupService {
 
       final userData =
           UserModel.fromMap(Map<String, dynamic>.from(result.first));
+
+      // VALIDACIÓN ACCESO APP
+      if (userData.accesoApp != '1') {
+        return UserValidationResult(
+          success: false,
+          message:
+              '[ACCESO_DENEGADO] Tu usuario no tiene permisos para acceder a la aplicación móvil. Contacta al administrador.',
+        );
+      }
 
       if (!userData.isActive) {
         return UserValidationResult(

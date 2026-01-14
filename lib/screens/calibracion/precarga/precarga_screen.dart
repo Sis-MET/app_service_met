@@ -1,5 +1,5 @@
 // precarga_screen.dart
-// ignore_for_file: library_private_types_in_public_api, deprecated_member_use
+// ignore_for_file: library_private_types_in_public_api, deprecated_member_use, use_build_context_synchronously
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -642,17 +642,17 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(
-            'Advertencia de Datos',
+            'ADVERTENCIA',
             style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
                 color: Colors.orange[800],
-                fontSize: 16),
+                fontSize: 17),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.warning_amber_rounded,
-                  color: Colors.orange, size: 48),
+                  color: Colors.orange, size: 40),
               const SizedBox(height: 16),
               const Text(
                 'No has editado ningún campo de la balanza.',
@@ -666,15 +666,20 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
+                  border: Border.all(color: Colors.orange.shade200),
                 ),
-                child: const Text(
+                child: Text(
                   'Nota: Eres responsable de verificar que los datos coincidan con el equipo físico.',
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Colors.orange.shade900,
+                  ),
                 ),
               ),
             ],

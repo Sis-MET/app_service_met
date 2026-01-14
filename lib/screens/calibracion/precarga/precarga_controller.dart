@@ -682,7 +682,7 @@ class PrecargaController extends ChangeNotifier {
         'dir_planta': _selectedPlantaDir ?? 'No especificado',
         'dep_planta': _selectedPlantaDep ?? 'No especificado',
         'cod_planta': _selectedPlantaCodigo ?? 'No especificado',
-        'inf_bal_actualizada': _hiddenEditedFields, // GUARDAR CAMPOS EDITADOS
+        'inf_bal': _hiddenEditedFields, // GUARDAR CAMPOS EDITADOS
       };
 
       // Guardar Termohigrómetros en slots 6 y 7
@@ -719,80 +719,95 @@ class PrecargaController extends ChangeNotifier {
       String path = join(await getDatabasesPath(), 'precarga_database.db');
       final db = await openDatabase(path);
 
-      final List<Map<String, dynamic>> balanzasList = await db.query(
-        'balanzas',
-        where: 'cod_metrica LIKE ?',
-        whereArgs: ['$plantaCodigo%'],
+      // CAMBIO: Consulta optimizada con LEFT JOIN y ORDER BY
+      // Se usa TRIM y COLLATE NOCASE para asegurar que se encuentren coincidencias
+      // a pesar de diferencias de espacios o mayúsculas.
+      final String query = '''
+        SELECT 
+          b.*, 
+          i.cod_interno as i_cod_interno, 
+          i.marca as i_marca, 
+          i.modelo as i_modelo, 
+          i.serie as i_serie, 
+          i.ubicacion as i_ubicacion, 
+          i.estado as i_estado, 
+          i.instrumento as i_instrumento, 
+          i.tipo_instrumento as i_tipo_instrumento,
+          i.detalles as i_detalles
+        FROM balanzas b
+        LEFT JOIN inf i ON TRIM(b.cod_metrica) = TRIM(i.cod_metrica) COLLATE NOCASE
+        WHERE b.cod_metrica LIKE ?
+        ORDER BY b.cod_metrica ASC
+      ''';
+
+      final List<Map<String, dynamic>> rawResults = await db.rawQuery(
+        query,
+        ['$plantaCodigo%'],
       );
 
       List<Map<String, dynamic>> processedBalanzas = [];
 
-      for (var balanza in balanzasList) {
-        final codMetrica = balanza['cod_metrica'].toString();
+      for (var result in rawResults) {
+        final codMetrica = result['cod_metrica'].toString();
 
-        final List<Map<String, dynamic>> infDetails = await db.query(
-          'inf',
-          where: 'cod_metrica = ?',
-          whereArgs: [codMetrica],
-        );
-
+        // Mantener verificación de estado (aunque sigue siendo N+1, es más seguro mantener la lógica existente por ahora)
         final estadoCalibacion = await _verificarEstadoCalibacion(codMetrica);
 
-        // 1. Datos base desde BALANZAS (Metrología - Prioridad EXPLICITA)
+        // Construir mapa base
         Map<String, dynamic> balanzaCompleta = {
           // Datos base de tabla BALANZAS
-          'cod_metrica': balanza['cod_metrica'],
-          'categoria': balanza['categoria'],
-          'tecnologia': balanza['tecnologia'],
-          'clase': balanza['clase'],
-          'tipo': balanza['tipo'],
-          'rango': balanza['rango'],
-          'unidad': balanza['unidad'],
-          'n_celdas': balanza['n_celdas'],
+          'cod_metrica': result['cod_metrica'],
+          'categoria': result['categoria'],
+          'tecnologia': result['tecnologia'],
+          'clase': result['clase'],
+          // 'tipo': result['tipo'], // Se sobreescribe abajo
+          'rango': result['rango'],
+          'unidad': result['unidad'],
+          'n_celdas': result['n_celdas'],
 
           // Rango 1
-          'cap_max1': balanza['cap_max1'],
-          'd1': balanza['d1'],
-          'e1': balanza['e1'],
-          'dec1': balanza['dec1'],
+          'cap_max1': result['cap_max1'],
+          'd1': result['d1'],
+          'e1': result['e1'],
+          'dec1': result['dec1'],
 
           // Rango 2
-          'cap_max2': balanza['cap_max2'],
-          'd2': balanza['d2'],
-          'e2': balanza['e2'],
-          'dec2': balanza['dec2'],
+          'cap_max2': result['cap_max2'],
+          'd2': result['d2'],
+          'e2': result['e2'],
+          'dec2': result['dec2'],
 
           // Rango 3
-          'cap_max3': balanza['cap_max3'],
-          'd3': balanza['d3'],
-          'e3': balanza['e3'],
-          'dec3': balanza['dec3'],
+          'cap_max3': result['cap_max3'],
+          'd3': result['d3'],
+          'e3': result['e3'],
+          'dec3': result['dec3'],
+
+          // Datos de INF (usando alias para evitar conflictos)
+          'cod_interno': result['i_cod_interno'],
+          'marca': result['i_marca'],
+          'modelo': result['i_modelo'],
+          'serie': result['i_serie'],
+          'ubicacion': result['i_ubicacion'],
+          'estado': result['i_estado'],
+          'instrumento': result['i_instrumento'],
+
+          // Datos calculados de calibración (NUEVO: Agregar lo que faltaba)
+          'estado_calibracion': estadoCalibacion['estado'],
+          'tiene_registro': estadoCalibacion['tiene_registro'],
         };
 
-        if (infDetails.isNotEmpty) {
-          final infData = infDetails.first;
+        // Lógica de tipo/instrumento
+        // Formato: "instrumento - tipo"
+        final instrumento = result['i_instrumento']?.toString() ?? '';
+        final tipo = result['tipo']?.toString() ?? '';
 
-          // 2. Datos desde INF (Identificación - Mapeo Explícito)
-          balanzaCompleta['cod_interno'] = infData['cod_interno'];
-          balanzaCompleta['marca'] = infData['marca'];
-          balanzaCompleta['modelo'] = infData['modelo'];
-          balanzaCompleta['serie'] = infData['serie'];
-          balanzaCompleta['ubicacion'] = infData['ubicacion'];
-          balanzaCompleta['estado'] = infData['estado'];
-          balanzaCompleta['instrumento'] = infData['instrumento'];
-
-          // Concatenar instrumento + tipo para mostrar en UI
-          // Formato: "instrumento - tipo"
-          final instrumento = infData['instrumento']?.toString() ?? '';
-          final tipo = balanza['tipo']?.toString() ?? '';
-
-          if (instrumento.isNotEmpty && tipo.isNotEmpty) {
-            balanzaCompleta['tipo'] = '$instrumento - $tipo';
-          } else if (instrumento.isNotEmpty) {
-            balanzaCompleta['tipo'] = instrumento;
-          } else {
-            balanzaCompleta['tipo'] = tipo;
-          }
+        if (instrumento.isNotEmpty && tipo.isNotEmpty) {
+          balanzaCompleta['tipo'] = '$instrumento - $tipo';
+        } else if (instrumento.isNotEmpty) {
+          balanzaCompleta['tipo'] = instrumento;
+        } else {
+          balanzaCompleta['tipo'] = tipo;
         }
 
         processedBalanzas.add(balanzaCompleta);
