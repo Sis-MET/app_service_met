@@ -225,12 +225,25 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
                                               [pruebaIndex]
                                           .text) ??
                                   0.0;
+
+                              // Calcular decimales basados en d1
+                              int decimals = 0;
+                              if (d1 % 1 != 0) {
+                                String d1Str = d1.toString();
+                                if (d1Str.contains('.')) {
+                                  decimals = d1Str.split('.')[1].length;
+                                } else {
+                                  decimals = 1; // Fallback
+                                }
+                              }
+
                               return List.generate(11, (index) {
                                 final multiplier = index - 5;
                                 final value = baseValue + (multiplier * d1);
+                                final txt = value.toStringAsFixed(decimals);
                                 return PopupMenuItem<String>(
-                                  value: value.toStringAsFixed(1),
-                                  child: Text(value.toStringAsFixed(1)),
+                                  value: txt,
+                                  child: Text(txt),
                                 );
                               });
                             },

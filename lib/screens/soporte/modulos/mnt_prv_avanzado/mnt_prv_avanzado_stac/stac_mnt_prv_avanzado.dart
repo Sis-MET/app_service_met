@@ -149,15 +149,18 @@ class _StacMntPrvAvanzadoStacScreenState
   // ✅ Cargar d1 una sola vez
   Future<void> _loadD1Value() async {
     try {
+      // Intentar obtener de BD (ahora retorna nullable)
       _cachedD1 = await _controller.getD1FromDatabase();
-    } catch (e) {
-      try {
+
+      // Si es null, buscar en Provider
+      if (_cachedD1 == null) {
         final balanza = Provider.of<BalanzaProvider>(context, listen: false)
             .selectedBalanza;
         _cachedD1 = balanza?.d1 ?? 0.1;
-      } catch (e) {
-        _cachedD1 = 0.1;
       }
+    } catch (e) {
+      debugPrint('Error loading D1: $e');
+      _cachedD1 = 0.1;
     }
     setState(() {});
   }

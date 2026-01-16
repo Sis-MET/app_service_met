@@ -93,7 +93,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       'modelo': TextEditingController(),
       'serie': TextEditingController(),
       'unidades': TextEditingController(),
-      'num_celdas': TextEditingController(),
+      'n_celdas': TextEditingController(),
       'ubicacion': TextEditingController(),
       'cap_max1': TextEditingController(),
       'd1': TextEditingController(),
@@ -281,8 +281,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
                       icon: Icons.confirmation_number_outlined,
                     ),
                     StepData(
-                      title: 'Balanza',
-                      subtitle: 'Datos del equipo',
+                      title: 'Instrumento',
+                      subtitle: 'Datos del instrumento',
                       icon: Icons.scale_outlined,
                     ),
                     StepData(
@@ -774,55 +774,43 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(
-            'Advertencia de Datos',
+            'CONFIRMAR',
             style: GoogleFonts.poppins(
                 fontWeight: FontWeight.bold,
-                color: Colors.orange[800],
+                color: const Color.fromARGB(255, 255, 255, 255),
                 fontSize: 16),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.orange, size: 48),
+              const Icon(Icons.check_circle_outline,
+                  color: Color.fromARGB(255, 240, 194, 67), size: 48),
               const SizedBox(height: 16),
               const Text(
-                'No has editado ningún campo de la balanza.',
+                'VERIFIQUE QUE LOS DATOS ESTEN ACTUALIZADOS',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Si la información mostrada es correcta, puedes continuar. De lo contrario, marca las casillas para editar los datos incorrectos.',
+                '¿Estás seguro de que los datos de la balanza son correctos?',
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange[200]!),
-                ),
-                child: const Text(
-                  'Nota: Eres responsable de verificar que los datos coincidan con el equipo físico.',
-                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                ),
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Revisar Datos'),
+              child: const Text('Revisar'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[800],
+                backgroundColor: const Color.fromARGB(255, 240, 194, 67),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Continuar de todos modos'),
+              child: const Text('Confirmar'),
             ),
           ],
         ),

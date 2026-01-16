@@ -110,7 +110,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.excentricidad != null)
           ExcentricidadWidget(
             excentricidad: widget.pruebas.excentricidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 
@@ -136,7 +136,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.repetibilidad != null)
           RepetibilidadWidget(
             repetibilidad: widget.pruebas.repetibilidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 

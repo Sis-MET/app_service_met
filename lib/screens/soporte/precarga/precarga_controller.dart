@@ -1085,6 +1085,7 @@ class PrecargaControllerSop extends ChangeNotifier {
       dataToSave.remove('tecnologia');
       dataToSave.remove('clase');
       dataToSave.remove('rango');
+      dataToSave.remove('n_celdas'); // NO GUARDAR n_celdas
 
       final registro = {
         'session_id': _generatedSessionId!,

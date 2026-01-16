@@ -64,8 +64,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
         balanza['unidad']?.toString() ?? '';
     widget.balanzaControllers['ubicacion']?.text =
         balanza['ubicacion']?.toString() ?? '';
-    widget.balanzaControllers['num_celdas']?.text =
-        balanza['num_celdas']?.toString() ?? '';
+    widget.balanzaControllers['n_celdas']?.text =
+        balanza['n_celdas']?.toString() ?? '';
 
     // Datos de rangos
     widget.balanzaControllers['cap_max1']?.text =
@@ -136,23 +136,33 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
+  // Allowed keys for checkboxes
+  static const Set<String> _allowedCheckKeys = {
+    'categoria_balanza',
+    'cod_int',
+    'tipo_equipo',
+    'marca',
+    'modelo',
+    'serie',
+    'unidades',
+    'ubicacion',
+  };
+
   // NUEVO: Wrapper para desbloqueo/edición
   Widget _buildValidatedField(
     PrecargaControllerSop controller,
     String validationKey,
     Widget child,
   ) {
-    // Si no existe la clave en el mapa de unlock, devolvemos solo el hijo
-    if (!controller.isFieldUnlock(validationKey) &&
-        !controller.balanzas.any((b) => b.containsKey(validationKey))) {
-      // Fallback simple si no estamos seguros, aunque isFieldUnlock maneja false por defecto
+    // Si es nueva balanza, no mostrar checks
+    if (controller.isNewBalanza) {
+      return child;
     }
 
-    // Nota: isFieldUnlock devuelve false si no existe la key, lo cual significa "bloqueado" (readOnly)
-    // Pero aquí queremos saber si mostrar el checkbox.
-    // Mostramos checkbox para todos los campos definidos en _initializeBalanzaUnlockState.
-    // Como no tenemos acceso directo a la lista de keysKeys, asumimos que si llamamos a este método
-    // es porque queremos validación.
+    // Si no es una de las keys permitidas, no mostrar check
+    if (!_allowedCheckKeys.contains(validationKey)) {
+      return child;
+    }
 
     final isUnlocked = controller.isFieldUnlock(validationKey);
 
@@ -227,7 +237,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   void _initializeNewBalanzaFields(PrecargaControllerSop controller) {
     // Inicializar campos para nueva balanza
-    widget.balanzaControllers['num_celdas']?.text = '';
+    widget.balanzaControllers['n_celdas']?.text = '';
     widget.balanzaControllers['cod_metrica']?.text =
         controller.selectedBalanza?['cod_metrica'] ?? '';
     widget.balanzaControllers['cap_max2']?.text = '0';
@@ -270,6 +280,33 @@ class _BalanzaStepState extends State<BalanzaStep> {
             ),
           ),
 
+          if (!controller.isNewBalanza) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 20, color: Colors.blue[700]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Habilite la casilla solo para corregir un dato. Si la información es correcta, no es necesario habilitar la casilla.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: const Color.fromARGB(255, 255, 255, 255),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: 20),
 
           // Código métrica
@@ -279,8 +316,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
             _buildTextField(
               controller: widget.balanzaControllers['cod_metrica']!,
               label: 'Código Métrica',
-              readOnly: !controller
-                  .isFieldUnlock('cod_metrica'), // Bloqueado por defecto
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('cod_metrica'),
               prefixIcon: Icons.qr_code,
             ),
           ),
@@ -292,7 +329,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
             controller,
             'categoria_balanza',
             _buildCategoriaField(
-                enabled: controller.isFieldUnlock('categoria_balanza')),
+                enabled: controller.isNewBalanza ||
+                    controller.isFieldUnlock('categoria_balanza')),
           ),
 
           const SizedBox(height: 16),
@@ -305,7 +343,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['tecnologia']!,
               label: 'Tecnología',
               prefixIcon: Icons.memory,
-              readOnly: !controller.isFieldUnlock('tecnologia'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('tecnologia'),
             ),
           ),
 
@@ -319,7 +358,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['clase']!,
               label: 'Clase',
               prefixIcon: Icons.class_,
-              readOnly: !controller.isFieldUnlock('clase'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('clase'),
             ),
           ),
 
@@ -333,7 +373,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['cod_int']!,
               label: 'Código Interno',
               prefixIcon: Icons.tag,
-              readOnly: !controller.isFieldUnlock('cod_int'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('cod_int'),
             ),
           ),
 
@@ -343,7 +384,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _buildValidatedField(
             controller,
             'tipo_equipo',
-            _buildTipoEquipoField(controller),
+            _buildTipoEquipoField(controller,
+                enabled: controller.isNewBalanza ||
+                    controller.isFieldUnlock('tipo_equipo')),
           ),
 
           const SizedBox(height: 16),
@@ -352,7 +395,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _buildValidatedField(
             controller,
             'marca',
-            _buildMarcaField(controller),
+            _buildMarcaField(controller,
+                enabled: controller.isNewBalanza ||
+                    controller.isFieldUnlock('marca')),
           ),
 
           const SizedBox(height: 16),
@@ -365,7 +410,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['modelo']!,
               label: 'Modelo',
               prefixIcon: Icons.precision_manufacturing,
-              readOnly: !controller.isFieldUnlock('modelo'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('modelo'),
             ),
           ),
 
@@ -379,7 +425,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['serie']!,
               label: 'Serie',
               prefixIcon: Icons.confirmation_number,
-              readOnly: !controller.isFieldUnlock('serie'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('serie'),
             ),
           ),
 
@@ -389,7 +436,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _buildValidatedField(
             controller,
             'unidades',
-            _buildUnidadField(controller),
+            _buildUnidadField(controller,
+                enabled: controller.isNewBalanza ||
+                    controller.isFieldUnlock('unidades')),
           ),
 
           const SizedBox(height: 16),
@@ -402,7 +451,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['ubicacion']!,
               label: 'Ubicación',
               prefixIcon: Icons.location_on,
-              readOnly: !controller.isFieldUnlock('ubicacion'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('ubicacion'),
             ),
           ),
 
@@ -416,16 +466,18 @@ class _BalanzaStepState extends State<BalanzaStep> {
               controller: widget.balanzaControllers['rango']!,
               label: 'Rango',
               prefixIcon: Icons.linear_scale,
-              readOnly: !controller.isFieldUnlock('rango'),
+              readOnly: !controller.isNewBalanza &&
+                  !controller.isFieldUnlock('rango'),
             ),
           ),
 
           const SizedBox(height: 16),
 
           _buildTextField(
-            controller: widget.balanzaControllers['num_celdas']!,
+            controller: widget.balanzaControllers['n_celdas']!,
             label: 'Número de Celdas',
             prefixIcon: Icons.grid_3x3,
+            readOnly: !controller.isNewBalanza, // Solo editable si es nueva
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly, // Solo números enteros
@@ -465,7 +517,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _buildTipoEquipoField(PrecargaControllerSop controller) {
+  Widget _buildTipoEquipoField(PrecargaControllerSop controller,
+      {bool enabled = true}) {
     return TypeAheadField<String>(
       // Opcional: usa tu propio controller (el mismo que ya tienes)
       controller: widget.balanzaControllers['tipo_equipo']!,
@@ -480,6 +533,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
         return TextField(
           controller: textController, // ¡usar SIEMPRE el que te pasan!
           focusNode: focusNode,
+          enabled: enabled,
           decoration: InputDecoration(
             labelText: 'Tipo de Equipo',
             prefixIcon: const Icon(Icons.scale),
@@ -507,18 +561,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _buildMarcaField(PrecargaControllerSop controller) {
-    // Si es balanza existente, mostrar campo de solo lectura
-    if (!controller.isNewBalanza) {
-      return _buildTextField(
-        controller: widget.balanzaControllers['marca']!,
-        label: 'Marca',
-        readOnly: true,
-        prefixIcon: Icons.business,
-      );
-    }
-
-    // Si es balanza nueva, mostrar TypeAheadField
+  Widget _buildMarcaField(PrecargaControllerSop controller,
+      {bool enabled = true}) {
     return TypeAheadField<String>(
       controller: widget.balanzaControllers['marca']!,
       suggestionsCallback: (pattern) async {
@@ -531,6 +575,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
         return TextField(
           controller: textController,
           focusNode: focusNode,
+          enabled: enabled,
           decoration: InputDecoration(
             labelText: 'Marca',
             prefixIcon: const Icon(Icons.business),
@@ -557,23 +602,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _buildUnidadField(PrecargaControllerSop controller) {
-    // Si es balanza existente, mostrar campo de solo lectura
-    if (!controller.isNewBalanza) {
-      return _buildTextField(
-        controller: widget.balanzaControllers['unidades']!,
-        label: 'Unidad',
-        readOnly: true,
-        prefixIcon: Icons.straighten,
-      );
-    }
-
-    // Si es balanza nueva, mostrar dropdown
+  Widget _buildUnidadField(PrecargaControllerSop controller,
+      {bool enabled = true}) {
     return DropdownButtonFormField<String>(
       initialValue: widget.balanzaControllers['unidades']!.text.isNotEmpty
           ? widget.balanzaControllers['unidades']!.text
           : null,
       decoration: InputDecoration(
+        enabled: enabled,
         labelText: 'Unidad',
         prefixIcon: const Icon(Icons.straighten),
         border: OutlineInputBorder(

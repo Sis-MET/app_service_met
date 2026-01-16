@@ -335,6 +335,18 @@ class DatabaseHelperMntPrvRegularStac {
         posicion_inicial_6 TEXT DEFAULT '',
         indicacion_inicial_6 TEXT DEFAULT '',
         retorno_inicial_6 TEXT DEFAULT '',
+        indicacion_inicial_7 TEXT DEFAULT '',
+        retorno_inicial_7 TEXT DEFAULT '',
+        indicacion_inicial_8 TEXT DEFAULT '',
+        retorno_inicial_8 TEXT DEFAULT '',
+        indicacion_inicial_9 TEXT DEFAULT '',
+        retorno_inicial_9 TEXT DEFAULT '',
+        indicacion_inicial_10 TEXT DEFAULT '',
+        retorno_inicial_10 TEXT DEFAULT '',
+        indicacion_inicial_11 TEXT DEFAULT '',
+        retorno_inicial_11 TEXT DEFAULT '',
+        indicacion_inicial_12 TEXT DEFAULT '',
+        retorno_inicial_12 TEXT DEFAULT '',
 
         -- Excentricidad Final
 
@@ -359,7 +371,18 @@ class DatabaseHelperMntPrvRegularStac {
         posicion_final_6 TEXT DEFAULT '',
         indicacion_final_6 TEXT DEFAULT '',
         retorno_final_6 TEXT DEFAULT '',
-
+        indicacion_final_7 TEXT DEFAULT '',
+        retorno_final_7 TEXT DEFAULT '',
+        indicacion_final_8 TEXT DEFAULT '',
+        retorno_final_8 TEXT DEFAULT '',
+        indicacion_final_9 TEXT DEFAULT '',
+        retorno_final_9 TEXT DEFAULT '',
+        indicacion_final_10 TEXT DEFAULT '',
+        retorno_final_10 TEXT DEFAULT '',
+        indicacion_final_11 TEXT DEFAULT '',
+        retorno_final_11 TEXT DEFAULT '',
+        indicacion_final_12 TEXT DEFAULT '',
+        retorno_final_12 TEXT DEFAULT '',
 
         -- REPETIBILIDAD INICIAL
 

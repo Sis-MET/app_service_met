@@ -133,7 +133,8 @@ class PrecargaController extends ChangeNotifier {
       'ubicacion',
       'tecnologia',
       'clase',
-      'rango_balanza'
+      'rango_balanza',
+      'n_celdas' // NUEVO
     ];
 
     for (var field in fieldsToUnlock) {
@@ -1102,7 +1103,8 @@ class PrecargaController extends ChangeNotifier {
       final dataToSave = Map<String, String>.from(balanzaData);
       dataToSave.remove('tecnologia');
       dataToSave.remove('clase');
-      dataToSave.remove('rango');
+      dataToSave.remove('rango'); // REMOVIDO
+      dataToSave.remove('n_celdas'); // REMOVIDO
 
       final registro = {
         'seca': _generatedSeca!,
@@ -1115,7 +1117,6 @@ class PrecargaController extends ChangeNotifier {
         'dir_planta': _selectedPlantaDir ?? 'No especificado',
         'dep_planta': _selectedPlantaDep ?? 'No especificado',
         'cod_planta': _selectedPlantaCodigo ?? 'No especificado',
-        'foto_balanza': _fotosTomadas ? 1 : 0,
         'n_reca': nReca,
         'sticker': sticker,
         'inf_bal': _hiddenEditedFields, // GUARDAR CAMPOS EDITADOS

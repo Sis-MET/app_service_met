@@ -79,6 +79,7 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
       'tecnologia': TextEditingController(),
       'clase': TextEditingController(),
       'rango': TextEditingController(),
+      'n_celdas': TextEditingController(), // NUEVO
     };
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -111,6 +112,12 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
           dec3: _parseDouble(balanzaData['dec3']),
           n_celdas: balanzaData['n_celdas']?.toString() ?? '',
           exc: _parseDouble(balanzaData['exc']),
+          // Asignar campos adicionales
+          categoria: balanzaData['categoria']?.toString() ?? '',
+          tecnologia: balanzaData['tecnologia']?.toString() ?? '',
+          clase: balanzaData['clase']?.toString() ?? '',
+          tipo: balanzaData['tipo']?.toString() ?? '',
+          rango: balanzaData['rango']?.toString() ?? '',
         );
 
         // Actualizar provider con la balanza
@@ -642,60 +649,43 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
         context: context,
         builder: (context) => AlertDialog(
           title: Text(
-            'ADVERTENCIA',
+            'CONFIRMAR',
             style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w900,
-                color: Colors.orange[800],
-                fontSize: 17),
+                fontWeight: FontWeight.bold,
+                color: const Color.fromARGB(255, 255, 255, 255),
+                fontSize: 16),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.orange, size: 40),
+              const Icon(Icons.check_circle_outline,
+                  color: Color.fromARGB(255, 245, 161, 52), size: 48),
               const SizedBox(height: 16),
               const Text(
-                'No has editado ningún campo de la balanza.',
+                'VERIFIQUE QUE LOS DATOS ESTEN ACTUALIZADOS',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Si la información mostrada es correcta, puedes continuar. De lo contrario, marca las casillas para editar los datos incorrectos.',
+                '¿Estás seguro de que los datos de la balanza son correctos?',
                 textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.shade200),
-                ),
-                child: Text(
-                  'Nota: Eres responsable de verificar que los datos coincidan con el equipo físico.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Colors.orange.shade900,
-                  ),
-                ),
+                style: TextStyle(fontWeight: FontWeight.w500),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Revisar Datos'),
+              child: const Text('Revisar'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[800],
+                backgroundColor: const Color.fromARGB(255, 245, 161, 52),
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Continuar de todos modos'),
+              child: const Text('Confirmar'),
             ),
           ],
         ),
@@ -746,6 +736,13 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
         dec3: _parseDouble(balanzaData['dec3']),
         n_celdas: balanzaData['n_celdas']?.toString() ?? '',
         exc: _parseDouble(balanzaData['exc']),
+        // Asignar campos adicionales
+        categoria: balanzaData['categoria_balanza']?.toString() ??
+            '', // Nota: key differ
+        tecnologia: balanzaData['tecnologia']?.toString() ?? '',
+        clase: balanzaData['clase']?.toString() ?? '',
+        tipo: balanzaData['tipo_equipo']?.toString() ?? '', // Nota: key differ
+        rango: balanzaData['rango']?.toString() ?? '',
       );
 
       // Establecer en provider (isNew ya fue determinado por controller)

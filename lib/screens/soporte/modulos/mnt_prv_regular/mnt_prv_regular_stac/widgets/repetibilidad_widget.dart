@@ -5,13 +5,13 @@ import '../models/mnt_prv_regular_stac_model.dart';
 
 class RepetibilidadWidget extends StatefulWidget {
   final Repetibilidad repetibilidad;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
+  final Future<double> Function() getD1FromDatabase;
   final Function onChanged;
 
   const RepetibilidadWidget({
     super.key,
     required this.repetibilidad,
-    required this.getIndicationSuggestions,
+    required this.getD1FromDatabase,
     required this.onChanged,
   });
 
@@ -114,7 +114,9 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
-          initialValue: widget.repetibilidad.cantidadCargas,
+          value: widget.repetibilidad.cantidadCargas > 0
+              ? widget.repetibilidad.cantidadCargas
+              : 1,
           items: [1, 2, 3]
               .map((int value) => DropdownMenuItem<int>(
                     value: value,
@@ -133,7 +135,9 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
-          initialValue: widget.repetibilidad.cantidadPruebas,
+          value: widget.repetibilidad.cantidadPruebas > 0
+              ? widget.repetibilidad.cantidadPruebas
+              : 3,
           items: [3, 5, 10]
               .map((int value) => DropdownMenuItem<int>(
                     value: value,
@@ -169,6 +173,7 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 10),
         TextFormField(
+          initialValue: widget.repetibilidad.cargas[cargaIndex].valor,
           onChanged: (value) {
             widget.repetibilidad.cargas[cargaIndex].valor = value;
             _updateIndicacionValues(cargaIndex, value);
@@ -197,12 +202,11 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
             Row(
               children: [
                 Expanded(
-                  child: FutureBuilder<List<String>>(
-                    future: widget.getIndicationSuggestions(
-                        widget.repetibilidad.cargas[cargaIndex].valor,
-                        _indicacionControllers[cargaIndex][pruebaIndex].text),
+                  child: FutureBuilder<double>(
+                    future: widget.getD1FromDatabase(),
                     builder: (context, snapshot) {
-                      final suggestions = snapshot.data ?? [];
+                      final d1 = snapshot.data ?? 0.1;
+
                       return TextFormField(
                         controller: _indicacionControllers[cargaIndex]
                             [pruebaIndex],
@@ -221,12 +225,34 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
                               });
                             },
                             itemBuilder: (BuildContext context) {
-                              return suggestions.map((String value) {
+                              final baseValue = double.tryParse(
+                                      _indicacionControllers[cargaIndex]
+                                              [pruebaIndex]
+                                          .text) ??
+                                  double.tryParse(widget.repetibilidad
+                                      .cargas[cargaIndex].valor) ??
+                                  0.0;
+
+                              // Calcular decimales basados en d1
+                              int decimals = 0;
+                              if (d1 % 1 != 0) {
+                                String d1Str = d1.toString();
+                                if (d1Str.contains('.')) {
+                                  decimals = d1Str.split('.')[1].length;
+                                } else {
+                                  decimals = 1; // Fallback
+                                }
+                              }
+
+                              return List.generate(11, (index) {
+                                final multiplier = index - 5;
+                                final value = baseValue + (multiplier * d1);
+                                final txt = value.toStringAsFixed(decimals);
                                 return PopupMenuItem<String>(
-                                  value: value,
-                                  child: Text(value),
+                                  value: txt,
+                                  child: Text(txt),
                                 );
-                              }).toList();
+                              });
                             },
                           ),
                         ),

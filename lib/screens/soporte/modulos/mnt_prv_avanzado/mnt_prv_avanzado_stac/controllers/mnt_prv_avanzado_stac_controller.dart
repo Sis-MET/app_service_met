@@ -18,14 +18,15 @@ class MntPrvAvanzadoStacController {
     model.copiarPruebasInicialesAFinales();
   }
 
-  // ✅ OPTIMIZADO: Obtener d1 sin múltiples consultas
-  Future<double> getD1FromDatabase() async {
+  // OPTIMIZADO: Obtener d1 de la tabla correcta
+  Future<double?> getD1FromDatabase() async {
     try {
       final dbHelper = DatabaseHelperMntPrvAvanzadoStac();
       final db = await dbHelper.database;
 
+      // Verificar si la columna d1 existe y tiene datos
       final results = await db.query(
-        'mnt_prv_regular_stac',
+        'mnt_prv_avanzado_stac', // CORREGIDO: Tabla correcta
         columns: ['d1'],
         where: 'session_id = ? AND cod_metrica = ?',
         whereArgs: [model.sessionId, model.codMetrica],
@@ -34,23 +35,27 @@ class MntPrvAvanzadoStacController {
 
       if (results.isNotEmpty && results.first['d1'] != null) {
         final d1Value = results.first['d1'];
+        debugPrint('D1 encontrado en BD: $d1Value');
+
         if (d1Value is double) {
           return d1Value;
         } else if (d1Value is int) {
           return d1Value.toDouble();
         } else if (d1Value is String) {
-          return double.tryParse(d1Value) ?? 0.1;
+          if (d1Value.isNotEmpty) {
+            return double.tryParse(d1Value);
+          }
         }
       }
 
-      return 0.1;
+      return null; // Retornar null para usar fallback en la vista
     } catch (e) {
       debugPrint('Error al obtener d1: $e');
-      return 0.1;
+      return null;
     }
   }
 
-  // ✅ NUEVO: Método para guardar solo en BD (sin fotos)
+  // NUEVO: Método para guardar solo en BD (sin fotos)
   Future<void> saveDataToDatabase(BuildContext context,
       {bool showMessage = true}) async {
     try {
@@ -84,7 +89,7 @@ class MntPrvAvanzadoStacController {
     }
   }
 
-  // ✅ Método completo: guardar datos + fotos
+  // Método completo: guardar datos + fotos
   Future<void> saveData(BuildContext context) async {
     try {
       // Primero guardar fotos si existen
@@ -104,7 +109,7 @@ class MntPrvAvanzadoStacController {
     }
   }
 
-  // ✅ MEJORADO: Guardar fotos con compresión
+  // MEJORADO: Guardar fotos con compresión
   Future<void> _savePhotos(BuildContext context) async {
     bool hasPhotos = _fieldPhotos.values.any((photos) => photos.isNotEmpty);
 
@@ -118,10 +123,10 @@ class MntPrvAvanzadoStacController {
           final fileSize = file.lengthSync();
           totalSize += fileSize;
 
-          // ⚠️ Advertir si el archivo es muy grande (> 5MB)
+          // Advertir si el archivo es muy grande (> 5MB)
           if (fileSize > 5 * 1024 * 1024) {
             debugPrint(
-                '⚠️ Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
+                'Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
           }
 
           final fileName = '${_sanitizeFileName(label)}_${i + 1}.jpg';
@@ -134,7 +139,7 @@ class MntPrvAvanzadoStacController {
       });
 
       debugPrint(
-          '📦 Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
+          'Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
 
       final zipEncoder = ZipEncoder();
       final zipData = zipEncoder.encode(archive);
@@ -164,7 +169,7 @@ class MntPrvAvanzadoStacController {
     }
   }
 
-  // ✅ Sanitizar nombres de archivo
+  // Sanitizar nombres de archivo
   String _sanitizeFileName(String name) {
     return name
         .replaceAll(' ', '_')
@@ -177,7 +182,7 @@ class MntPrvAvanzadoStacController {
         .replaceAll(RegExp(r'[^\w\-]'), '');
   }
 
-  // ✅ MEJORADO: Preparar datos con validación
+  // MEJORADO: Preparar datos con validación
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
       'estado_servicio': 'Completo',
@@ -333,9 +338,17 @@ class MntPrvAvanzadoStacController {
       for (int i = 0; i < exc.posiciones.length; i++) {
         final pos = exc.posiciones[i];
         final num = i + 1;
-        data['posicion_${tipo}_$num'] = pos.posicion;
-        data['indicacion_${tipo}_$num'] = pos.indicacion;
-        data['retorno_${tipo}_$num'] = pos.retorno;
+
+        // La base de datos solo soporta hasta 6 etiquetas de posición
+        if (num <= 6) {
+          data['posicion_${tipo}_$num'] = pos.posicion;
+        }
+
+        // La base de datos soporta hasta 12 puntos de indicación y retorno
+        if (num <= 12) {
+          data['indicacion_${tipo}_$num'] = pos.indicacion;
+          data['retorno_${tipo}_$num'] = pos.retorno;
+        }
       }
     }
   }
@@ -394,9 +407,9 @@ class MntPrvAvanzadoStacController {
       _fieldPhotos[campo] = [];
     }
 
-    // ✅ Limitar a 5 fotos por campo
+    // Limitar a 5 fotos por campo
     if (_fieldPhotos[campo]!.length >= 5) {
-      debugPrint('⚠️ Límite de 5 fotos alcanzado para: $campo');
+      debugPrint('Límite de 5 fotos alcanzado para: $campo');
       return;
     }
 

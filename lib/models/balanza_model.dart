@@ -4,6 +4,7 @@
 class Balanza {
   final String cod_metrica;
   final String n_celdas;
+  final String categoria;
   final String unidad;
   final String cap_max1;
   final double d1;
@@ -18,6 +19,10 @@ class Balanza {
   final double e3;
   final double dec3;
   double exc;
+  final String tecnologia;
+  final String clase;
+  final String tipo;
+  final String rango;
 
   Balanza({
     required this.cod_metrica,
@@ -36,6 +41,11 @@ class Balanza {
     required this.e3,
     required this.dec3,
     required this.exc,
+    this.categoria = '',
+    this.tecnologia = '',
+    this.clase = '',
+    this.tipo = '',
+    this.rango = '',
   });
 
   Null get tipo_equipo => null;

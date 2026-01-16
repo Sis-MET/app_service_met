@@ -214,7 +214,7 @@ class _PlantaStepState extends State<PlantaStep> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'El código de planta se utilizará para generar el código SECA automáticamente.',
+                  'El código de planta se utilizará para generar el código de la OTST automáticamente.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: Colors.amber[800],
@@ -458,7 +458,7 @@ class _PlantaStepState extends State<PlantaStep> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Código SECA se generará automáticamente usando: ${controller.selectedPlantaCodigo}',
+                    'Código de la OTST se generará automáticamente usando: ${controller.selectedPlantaCodigo}',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: Colors.blue[700],

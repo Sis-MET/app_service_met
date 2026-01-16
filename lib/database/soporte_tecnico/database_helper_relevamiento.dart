@@ -572,9 +572,6 @@ class DatabaseHelperRelevamiento {
         retorno3_10 TEXT DEFAULT '',
         
         --LINEALIDAD
-        linealidad_comentario TEXT DEFAULT '',
-        metodo TEXT DEFAULT '',
-        metodo_carga TEXT DEFAULT '',
         lin1 TEXT DEFAULT '',
         ind1 TEXT DEFAULT '',
         retorno_lin1 TEXT DEFAULT '',

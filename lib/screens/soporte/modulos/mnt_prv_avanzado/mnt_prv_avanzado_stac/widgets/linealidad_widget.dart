@@ -606,18 +606,16 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                             ) ??
                             0.0;
 
-                        int decimals = 1;
-                        if (_d1 > 0) {
-                          if (_d1 % 1 == 0) {
-                            decimals = 0;
+                        // Calcular decimales basados en _d1
+                        int decimals = 0;
+                        if (_d1 % 1 != 0) {
+                          String d1Str = _d1.toString();
+                          if (d1Str.contains('.')) {
+                            decimals = d1Str.split('.')[1].length;
                           } else {
-                            final d1Str = _d1.toString();
-                            if (d1Str.contains('.')) {
-                              decimals = d1Str.split('.')[1].length;
-                            }
+                            decimals = 1; // Fallback
                           }
                         }
-                        if (decimals > 4) decimals = 4;
 
                         return List.generate(11, (i) {
                           final value = baseValue + ((i - 5) * _d1);
@@ -654,6 +652,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
               ),
             ],
           ),
+          const SizedBox(height: 12.0),
           const Divider(),
         ],
       ),
