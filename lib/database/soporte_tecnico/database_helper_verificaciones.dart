@@ -229,8 +229,14 @@ class DatabaseHelperVerificaciones {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 1,
+        version: 2,
         onCreate: _onCreate,
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            await db.execute('DROP TABLE IF EXISTS verificaciones_internas');
+            await _onCreate(db, newVersion);
+          }
+        },
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -303,16 +309,13 @@ class DatabaseHelperVerificaciones {
         repetibilidad_estado_general TEXT DEFAULT '',
         linealidad_estado_general TEXT DEFAULT '',
 
-        comentario_1 TEXT DEFAULT '',
-        comentario_2 TEXT DEFAULT '',
-        comentario_3 TEXT DEFAULT '',
-        comentario_4 TEXT DEFAULT '',
-        comentario_5 TEXT DEFAULT '',
-        comentario_6 TEXT DEFAULT '',
-        comentario_7 TEXT DEFAULT '',
-        comentario_8 TEXT DEFAULT '',
-        comentario_9 TEXT DEFAULT '',
-        comentario_10 TEXT DEFAULT '',
+        -- Inspección Visual Detallada (NUEVOS CAMPOS)
+        comentario_general TEXT DEFAULT '',
+        recomendacion TEXT DEFAULT '',
+        fisico TEXT DEFAULT '',
+        operacional TEXT DEFAULT '',
+        metrologico TEXT DEFAULT '',
+        fecha_prox_servicio TEXT DEFAULT '',
 
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
@@ -328,6 +331,8 @@ class DatabaseHelperVerificaciones {
         excentricidad_inicial_carga TEXT DEFAULT '',
         excentricidad_inicial_ruta_imagen TEXT DEFAULT '',
         excentricidad_inicial_cantidad_posiciones TEXT DEFAULT '',
+        
+        -- Posiciones Excentricidad Inicial (Mapeo directo y extendido)
         excentricidad_inicial_pos1_numero TEXT DEFAULT '',
         excentricidad_inicial_pos1_indicacion TEXT DEFAULT '',
         excentricidad_inicial_pos1_retorno TEXT DEFAULT '',
@@ -353,108 +358,41 @@ class DatabaseHelperVerificaciones {
         excentricidad_inicial_pos6_retorno TEXT DEFAULT '',
         excentricidad_inicial_pos6_error TEXT DEFAULT '',
         
+        -- Excentricidad Final
+        excentricidad_final_tipo_plataforma TEXT DEFAULT '',
+        excentricidad_final_opcion_prueba TEXT DEFAULT '',
+        excentricidad_final_carga TEXT DEFAULT '',
+        excentricidad_final_ruta_imagen TEXT DEFAULT '',
+        excentricidad_final_cantidad_posiciones TEXT DEFAULT '',
+        
+        excentricidad_final_pos1_numero TEXT DEFAULT '',
+        excentricidad_final_pos1_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos1_retorno TEXT DEFAULT '',
+        excentricidad_final_pos1_error TEXT DEFAULT '',
+        excentricidad_final_pos2_numero TEXT DEFAULT '',
+        excentricidad_final_pos2_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos2_retorno TEXT DEFAULT '',
+        excentricidad_final_pos2_error TEXT DEFAULT '',
+        excentricidad_final_pos3_numero TEXT DEFAULT '',
+        excentricidad_final_pos3_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos3_retorno TEXT DEFAULT '',
+        excentricidad_final_pos3_error TEXT DEFAULT '',
+        excentricidad_final_pos4_numero TEXT DEFAULT '',
+        excentricidad_final_pos4_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos4_retorno TEXT DEFAULT '',
+        excentricidad_final_pos4_error TEXT DEFAULT '',
+        excentricidad_final_pos5_numero TEXT DEFAULT '',
+        excentricidad_final_pos5_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos5_retorno TEXT DEFAULT '',
+        excentricidad_final_pos5_error TEXT DEFAULT '',
+        excentricidad_final_pos6_numero TEXT DEFAULT '',
+        excentricidad_final_pos6_indicacion TEXT DEFAULT '',
+        excentricidad_final_pos6_retorno TEXT DEFAULT '',
+        excentricidad_final_pos6_error TEXT DEFAULT '',
+
+        -- Repetibilidad Inicial
         repetibilidad_inicial_cantidad_cargas TEXT DEFAULT '',
         repetibilidad_inicial_cantidad_pruebas TEXT DEFAULT '',
-
-        -- IDA
-        excentricidad_inicial_punto1_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto1_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto1_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto2_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto2_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto2_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto3_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto3_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto3_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto4_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto4_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto4_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto5_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto5_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto5_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto6_ida_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto6_ida_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto6_ida_retorno TEXT DEFAULT '',
-
-        -- VUELTA
-        excentricidad_inicial_punto7_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto7_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto7_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto8_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto8_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto8_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto9_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto9_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto9_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto10_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto10_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto10_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto11_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto11_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto11_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_inicial_punto12_vuelta_numero TEXT DEFAULT '',
-        excentricidad_inicial_punto12_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_inicial_punto12_vuelta_retorno TEXT DEFAULT '',
-
-        -- IDA
-        excentricidad_final_punto1_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto1_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto1_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto2_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto2_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto2_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto3_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto3_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto3_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto4_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto4_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto4_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto5_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto5_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto5_ida_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto6_ida_numero TEXT DEFAULT '',
-        excentricidad_final_punto6_ida_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto6_ida_retorno TEXT DEFAULT '',
-
-        -- VUELTA
-        excentricidad_final_punto7_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto7_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto7_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto8_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto8_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto8_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto9_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto9_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto9_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto10_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto10_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto10_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto11_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto11_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto11_vuelta_retorno TEXT DEFAULT '',
-
-        excentricidad_final_punto12_vuelta_numero TEXT DEFAULT '',
-        excentricidad_final_punto12_vuelta_indicacion TEXT DEFAULT '',
-        excentricidad_final_punto12_vuelta_retorno TEXT DEFAULT '',
         
         -- Carga 1
         repetibilidad_inicial_carga1_valor TEXT DEFAULT '',
@@ -525,6 +463,79 @@ class DatabaseHelperVerificaciones {
         repetibilidad_inicial_carga3_prueba10_indicacion TEXT DEFAULT '',
         repetibilidad_inicial_carga3_prueba10_retorno TEXT DEFAULT '',
         
+        -- Repetibilidad Final
+        repetibilidad_final_cantidad_cargas TEXT DEFAULT '',
+        repetibilidad_final_cantidad_pruebas TEXT DEFAULT '',
+        
+        -- Carga 1 (Final)
+        repetibilidad_final_carga1_valor TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba1_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba1_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba2_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba2_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba3_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba3_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba4_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba4_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba5_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba5_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba6_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba6_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba7_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba7_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba8_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba8_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba9_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba9_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba10_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga1_prueba10_retorno TEXT DEFAULT '',
+
+        -- Carga 2 (Final)
+        repetibilidad_final_carga2_valor TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba1_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba1_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba2_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba2_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba3_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba3_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba4_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba4_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba5_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba5_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba6_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba6_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba7_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba7_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba8_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba8_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba9_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba9_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba10_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga2_prueba10_retorno TEXT DEFAULT '',
+
+        -- Carga 3 (Final)
+        repetibilidad_final_carga3_valor TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba1_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba1_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba2_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba2_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba3_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba3_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba4_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba4_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba5_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba5_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba6_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba6_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba7_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba7_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba8_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba8_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba9_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba9_retorno TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba10_indicacion TEXT DEFAULT '',
+        repetibilidad_final_carga3_prueba10_retorno TEXT DEFAULT '',
+
         -- Linealidad Inicial
         linealidad_inicial_cantidad_puntos INTEGER DEFAULT '',
         linealidad_inicial_punto1_lt TEXT DEFAULT '',
@@ -575,6 +586,265 @@ class DatabaseHelperVerificaciones {
         linealidad_inicial_punto12_indicacion TEXT DEFAULT '',
         linealidad_inicial_punto12_retorno TEXT DEFAULT '',
         linealidad_inicial_punto12_error TEXT DEFAULT '',
+
+        -- Linealidad Final
+        linealidad_final_cantidad_puntos INTEGER DEFAULT '',
+        linealidad_final_punto1_lt TEXT DEFAULT '',
+        linealidad_final_punto1_indicacion TEXT DEFAULT '',
+        linealidad_final_punto1_retorno TEXT DEFAULT '',
+        linealidad_final_punto1_error TEXT DEFAULT '',
+        linealidad_final_punto2_lt TEXT DEFAULT '',
+        linealidad_final_punto2_indicacion TEXT DEFAULT '',
+        linealidad_final_punto2_retorno TEXT DEFAULT '',
+        linealidad_final_punto2_error TEXT DEFAULT '',
+        linealidad_final_punto3_lt TEXT DEFAULT '',
+        linealidad_final_punto3_indicacion TEXT DEFAULT '',
+        linealidad_final_punto3_retorno TEXT DEFAULT '',
+        linealidad_final_punto3_error TEXT DEFAULT '',
+        linealidad_final_punto4_lt TEXT DEFAULT '',
+        linealidad_final_punto4_indicacion TEXT DEFAULT '',
+        linealidad_final_punto4_retorno TEXT DEFAULT '',
+        linealidad_final_punto4_error TEXT DEFAULT '',
+        linealidad_final_punto5_lt TEXT DEFAULT '',
+        linealidad_final_punto5_indicacion TEXT DEFAULT '',
+        linealidad_final_punto5_retorno TEXT DEFAULT '',
+        linealidad_final_punto5_error TEXT DEFAULT '',
+        linealidad_final_punto6_lt TEXT DEFAULT '',
+        linealidad_final_punto6_indicacion TEXT DEFAULT '',
+        linealidad_final_punto6_retorno TEXT DEFAULT '',
+        linealidad_final_punto6_error TEXT DEFAULT '',
+        linealidad_final_punto7_lt TEXT DEFAULT '',
+        linealidad_final_punto7_indicacion TEXT DEFAULT '',
+        linealidad_final_punto7_retorno TEXT DEFAULT '',
+        linealidad_final_punto7_error TEXT DEFAULT '',
+        linealidad_final_punto8_lt TEXT DEFAULT '',
+        linealidad_final_punto8_indicacion TEXT DEFAULT '',
+        linealidad_final_punto8_retorno TEXT DEFAULT '',
+        linealidad_final_punto8_error TEXT DEFAULT '',
+        linealidad_final_punto9_lt TEXT DEFAULT '',
+        linealidad_final_punto9_indicacion TEXT DEFAULT '',
+        linealidad_final_punto9_retorno TEXT DEFAULT '',
+        linealidad_final_punto9_error TEXT DEFAULT '',
+        linealidad_final_punto10_lt TEXT DEFAULT '',
+        linealidad_final_punto10_indicacion TEXT DEFAULT '',
+        linealidad_final_punto10_retorno TEXT DEFAULT '',
+        linealidad_final_punto10_error TEXT DEFAULT '',
+        linealidad_final_punto11_lt TEXT DEFAULT '',
+        linealidad_final_punto11_indicacion TEXT DEFAULT '',
+        linealidad_final_punto11_retorno TEXT DEFAULT '',
+        linealidad_final_punto11_error TEXT DEFAULT '',
+        linealidad_final_punto12_lt TEXT DEFAULT '',
+        linealidad_final_punto12_indicacion TEXT DEFAULT '',
+        linealidad_final_punto12_retorno TEXT DEFAULT '',
+        linealidad_final_punto12_error TEXT DEFAULT '',
+        
+        -- CAMPOS DE MANTENIMIENTO (NUEVOS)
+        
+        -- losas
+        losas_aproximacion_estado TEXT DEFAULT '',
+        losas_aproximacion_solucion TEXT DEFAULT '',
+        losas_aproximacion_foto TEXT DEFAULT '',
+        
+        -- Fundaciones
+        fundaciones_estado TEXT DEFAULT '',
+        fundaciones_solucion TEXT DEFAULT '',
+        fundaciones_foto TEXT DEFAULT '',
+        
+        -- Limpieza del Perímetro
+        limpieza_perimetro_estado TEXT DEFAULT '',
+        limpieza_perimetro_solucion TEXT DEFAULT '',
+        limpieza_perimetro_foto TEXT DEFAULT '',
+        
+        -- Humedad en Fosa
+        fosa_humedad_estado TEXT DEFAULT '',
+        fosa_humedad_solucion TEXT DEFAULT '',
+        fosa_humedad_foto TEXT DEFAULT '',
+        
+        -- Drenaje Libre
+        drenaje_libre_estado TEXT DEFAULT '',
+        drenaje_libre_solucion TEXT DEFAULT '',
+        drenaje_libre_foto TEXT DEFAULT '',
+        
+        -- Bomba de Sumidero
+        bomba_sumidero_estado TEXT DEFAULT '',
+        bomba_sumidero_solucion TEXT DEFAULT '',
+        bomba_sumidero_foto TEXT DEFAULT '',
+        
+        -- Corrosión
+        corrosion_estado TEXT DEFAULT '',
+        corrosion_solucion TEXT DEFAULT '',
+        corrosion_foto TEXT DEFAULT '',
+        
+        -- Grietas (Puente de pesaje)
+        puente_grietas_estado TEXT DEFAULT '',
+        puente_grietas_solucion TEXT DEFAULT '',
+        puente_grietas_foto TEXT DEFAULT '',
+        
+        -- Topes y Pernos
+        tapas_pernos_estado TEXT DEFAULT '',
+        tapas_pernos_solucion TEXT DEFAULT '',
+        tapas_pernos_foto TEXT DEFAULT '',
+        
+        -- Desgaste o Estrés
+        desgaste_estres_estado TEXT DEFAULT '',
+        desgaste_estres_solucion TEXT DEFAULT '',
+        desgaste_estres_foto TEXT DEFAULT '',
+        
+        -- Limpieza por debajo del puente
+        limpieza_puente_estado TEXT DEFAULT '',
+        limpieza_puente_solucion TEXT DEFAULT '',
+        limpieza_puente_foto TEXT DEFAULT '',
+        
+        -- Estado Rieles Laterales
+        estado_rieles_estado TEXT DEFAULT '',
+        estado_rieles_solucion TEXT DEFAULT '',
+        estado_rieles_foto TEXT DEFAULT '',
+        
+        -- Limitadores Longitudinales
+        limitadores_long_estado TEXT DEFAULT '',
+        limitadores_long_solucion TEXT DEFAULT '',
+        limitadores_long_foto TEXT DEFAULT '',
+        
+        -- Limitadores Transversales
+        limitadores_trans_estado TEXT DEFAULT '',
+        limitadores_trans_solucion TEXT DEFAULT '',
+        limitadores_trans_foto TEXT DEFAULT '',
+        
+        -- Cable Homerun
+        cable_homerun_estado TEXT DEFAULT '',
+        cable_homerun_solucion TEXT DEFAULT '',
+        cable_homerun_foto TEXT DEFAULT '',
+        
+        -- Conexión CeldaCable
+        conexion_celda_cable_estado TEXT DEFAULT '',
+        conexion_celda_cable_solucion TEXT DEFAULT '',
+        conexion_celda_cable_foto TEXT DEFAULT '',
+        
+        -- Cables de Celdas
+        cables_celdas_estado TEXT DEFAULT '',
+        cables_celdas_solucion TEXT DEFAULT '',
+        cables_celdas_foto TEXT DEFAULT '',
+        
+        -- Caja de Unión o Sumadora
+        caja_union_estado TEXT DEFAULT '',
+        caja_union_solucion TEXT DEFAULT '',
+        caja_union_foto TEXT DEFAULT '',
+        
+        -- Conectores de Celdas
+        conectores_celdas_estado TEXT DEFAULT '',
+        conectores_celdas_solucion TEXT DEFAULT '',
+        conectores_celdas_foto TEXT DEFAULT '',
+        
+        -- Conector y Terminación
+        conector_terminacion_estado TEXT DEFAULT '',
+        conector_terminacion_solucion TEXT DEFAULT '',
+        conector_terminacion_foto TEXT DEFAULT '',
+        
+        -- Sistema Protección Rayos
+        sistema_proteccion_rayos_estado TEXT DEFAULT '',
+        sistema_proteccion_rayos_solucion TEXT DEFAULT '',
+        sistema_proteccion_rayos_foto TEXT DEFAULT '',
+        
+        -- Conexión a Tierra
+        sistema_tierra_estado TEXT DEFAULT '',
+        sistema_tierra_solucion TEXT DEFAULT '',
+        sistema_tierra_foto TEXT DEFAULT '',
+        
+        -- Conexion Malla Tierra
+        conexion_malla_tierra_estado TEXT DEFAULT '',
+        conexion_malla_tierra_solucion TEXT DEFAULT '',
+        conexion_malla_tierra_foto TEXT DEFAULT '',
+        
+        -- Tensión entre Neutro y Tierra
+        tension_neutro_tierra_estado TEXT DEFAULT '',
+        tension_neutro_tierra_solucion TEXT DEFAULT '',
+        tension_neutro_tierra_foto TEXT DEFAULT '',
+        
+        -- Estado Strike Shield
+        estado_strike_shield_estado TEXT DEFAULT '',
+        estado_strike_shield_solucion TEXT DEFAULT '',
+        estado_strike_shield_foto TEXT DEFAULT '',
+        
+        -- Carcasa
+        carcasa_estado TEXT DEFAULT '',
+        carcasa_solucion TEXT DEFAULT '',
+        carcasa_foto TEXT DEFAULT '',
+        
+        -- Voltaje Pila
+        voltaje_pila_estado TEXT DEFAULT '',
+        voltaje_pila_solucion TEXT DEFAULT '',
+        voltaje_pila_foto TEXT DEFAULT '',
+        
+        -- Estado Teclado
+        estado_teclado_estado TEXT DEFAULT '',
+        estado_teclado_solucion TEXT DEFAULT '',
+        estado_teclado_foto TEXT DEFAULT '',
+        
+        -- Estado Display
+        estado_display_estado TEXT DEFAULT '',
+        estado_display_solucion TEXT DEFAULT '',
+        estado_display_foto TEXT DEFAULT '',
+        
+        -- Registros Predictivo
+        registros_predictivo_estado TEXT DEFAULT '',
+        registros_predictivo_solucion TEXT DEFAULT '',
+        registros_predictivo_foto TEXT DEFAULT '',
+        
+        -- Alertas Servicio
+        alertas_servicio_estado TEXT DEFAULT '',
+        alertas_servicio_solucion TEXT DEFAULT '',
+        alertas_servicio_foto TEXT DEFAULT '',
+        
+        -- Estado Prensacables
+        estado_prensacables_estado TEXT DEFAULT '',
+        estado_prensacables_solucion TEXT DEFAULT '',
+        estado_prensacables_foto TEXT DEFAULT '',
+        
+        -- Backup InSite (si aplica)
+        backup_insite_estado TEXT DEFAULT '',
+        backup_insite_solucion TEXT DEFAULT '',
+        backup_insite_foto TEXT DEFAULT '',
+        
+        -- Comunicacion PC
+        comunicacion_pc_estado TEXT DEFAULT '',
+        comunicacion_pc_solucion TEXT DEFAULT '',
+        comunicacion_pc_foto TEXT DEFAULT '',
+        
+        -- Limpieza Conectores
+        limpieza_conectores_estado TEXT DEFAULT '',
+        limpieza_conectores_solucion TEXT DEFAULT '',
+        limpieza_conectores_foto TEXT DEFAULT '',
+        
+        limpieza_estructura_estado TEXT DEFAULT '',
+        limpieza_estructura_solucion TEXT DEFAULT '',
+        limpieza_estructura_foto TEXT DEFAULT '',
+        
+        bearing_cups_estado TEXT DEFAULT '',
+        bearing_cups_solucion TEXT DEFAULT '',
+        bearing_cups_foto TEXT DEFAULT '',
+        
+        celdas_carga_estado TEXT DEFAULT '',
+        celdas_carga_solucion TEXT DEFAULT '',
+        celdas_carga_foto TEXT DEFAULT '',
+        
+        lubricacion_celdas_estado TEXT DEFAULT '',
+        lubricacion_celdas_solucion TEXT DEFAULT '',
+        lubricacion_celdas_foto TEXT DEFAULT '',
+        
+        lubricacion_bearing_estado TEXT DEFAULT '',
+        lubricacion_bearing_solucion TEXT DEFAULT '',
+        lubricacion_bearing_foto TEXT DEFAULT '',
+        
+        protector_goma_estado TEXT DEFAULT '',
+        protector_goma_solucion TEXT DEFAULT '',
+        protector_goma_foto TEXT DEFAULT '',
+        
+        -- Balanza Apta
+        balanza_apta_estado TEXT DEFAULT '',
+        balanza_apta_solucion TEXT DEFAULT '',
+        balanza_apta_foto TEXT DEFAULT '',
+        
+        otros TEXT DEFAULT '',
         estado_servicio TEXT DEFAULT ''
       )
       ''');

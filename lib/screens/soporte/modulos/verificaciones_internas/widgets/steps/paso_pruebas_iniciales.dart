@@ -6,7 +6,6 @@ import '../pruebas_metrologicas_widget.dart';
 class PasoPruebasIniciales extends StatelessWidget {
   final VerificacionesInternasModel model;
   final VerificacionesInternasController controller;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
   final Future<double> Function() getD1FromDatabase;
   final VoidCallback onChanged;
 
@@ -14,7 +13,6 @@ class PasoPruebasIniciales extends StatelessWidget {
     super.key,
     required this.model,
     required this.controller,
-    required this.getIndicationSuggestions,
     required this.getD1FromDatabase,
     required this.onChanged,
   });
@@ -50,7 +48,6 @@ class PasoPruebasIniciales extends StatelessWidget {
             pruebas: model.pruebasIniciales,
             isInicial: true,
             onChanged: onChanged,
-            getIndicationSuggestions: getIndicationSuggestions,
             getD1FromDatabase: getD1FromDatabase,
           ),
         ],

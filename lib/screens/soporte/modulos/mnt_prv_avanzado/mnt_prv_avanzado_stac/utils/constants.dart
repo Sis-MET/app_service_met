@@ -88,54 +88,54 @@ class AppStacAvanzadoConstants {
 
   static const List<String> chequeoCampos = [
     'Corrosión',
-    'Grietas',
+    'Puente de pesaje (grietas)',
     'Tapas superiores y pernos',
     'Desgaste y estrés',
-    'Acumulación de escombros o materiales externos',
-    'Verificación de rieles laterales',
-    'Verificación de paragolpes longitudinales',
-    'Verificación de paragolpes transversales',
+    'Limpieza por debajo del puente',
+    'Estado rieles laterales',
+    'Limitadores Longitudinales',
+    'Limitadores Transversales',
   ];
 
   static const List<String> verificacionesElectricasCampos = [
-    'Condición de cable de Home Run',
-    'Condición de cable de célula a célula',
-    'Conexión segura a celdas de carga',
-    'Funda de goma y conector ajustados',
-    'Conector de terminación ajustado',
-    'Cables conectados correctamente',
+    'Cable home run',
+    'Cables de celdas de carga',
+    'Conexión entre celda de carga y cable',
+    'Conectores de celdas de carga',
+    'Conector de terminación',
+    'Caja de unión o Sumadora',
   ];
 
   static const List<String> proteccionRayosCampos = [
-    'Sistema de protección contra rayos conectado a tierra',
-    'Conexión de la correa de tierra del Strike shield',
+    'Sistema de Protección contra Rayos',
+    'Conexión de Malla de Tierra',
     'Tensión entre neutro y tierra adecuada',
-    'Impresora conectada al mismo Strike Shield',
+    'Estado strike shield',
   ];
 
   static const List<String> verificacionesCeldasCampos = [
-    'Elevado del puente de pesaje y retirado de las celdas de carga',
+    'Limpieza e inspección conectores',
     'Limpieza e inspección de superficies de acoplamiento de la estructura',
     'Limpieza e inspección de bearing cups',
     'Limpieza e inspección de celdas de carga',
-    'Lubricación de cabezas de celdas de carga',
-    'Engrasado de bearing cups',
-    'Lainas, botas de goma colocadas',
+    'Lubricacion celdas de carga',
+    'Lubricación bearing cups',
+    'Protector de goma para celdas',
   ];
 
   static const List<String> terminalCampos = [
-    'Carcasa, lente y el teclado estan limpios, sin daños y sellados',
-    'Voltaje de la batería es adecuado',
-    'Teclado operativo correctamente',
-    'Brillo de pantalla adecuado',
-    'Registros de rendimiento de cambio PDX OK',
-    'Pantallas de servicio de MT indican operación normal',
-    'Archivos de configuración respaldados con InSite',
-    'Terminal devuelto a la disponibilidad operativo',
+    'Carcasa',
+    'Voltaje pila de Boton',
+    'Estado del teclado',
+    'Estado del display',
+    'Registros Predictivo solo PDX',
+    'Alertas de servicio MT',
+    'Estado prensacables:',
+    'Comunicación con PC',
   ];
 
   static const List<String> calibracionCampos = [
-    'Calibración de balanza realiza y dentro de tolerancia',
+    'Balanza apta para Verificación Dentro tolerancias NB23001',
   ];
 
   //Lista completa de todos los campos (para inicialización)

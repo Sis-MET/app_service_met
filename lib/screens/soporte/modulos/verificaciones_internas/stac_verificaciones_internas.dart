@@ -1,17 +1,21 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, deprecated_member_use
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:service_met/provider/balanza_provider.dart';
 
 // Modelos y Controladores propios
 import 'models/verificaciones_internas_model.dart';
 import 'controllers/verificaciones_internas_controller.dart';
+import 'utils/constants.dart';
 
 // Widgets de pasos
 import 'widgets/steps/paso_pruebas_iniciales.dart';
-import 'widgets/steps/paso_reporte_evaluacion.dart';
-import 'widgets/steps/paso_comentarios.dart';
 import 'widgets/steps/paso_pruebas_finales.dart';
 import 'widgets/steps/paso_estado_final.dart';
+import 'widgets/steps/paso_generico.dart';
 
 // Pantalla final
 import 'fin_servicio_vinternas.dart';
@@ -48,34 +52,9 @@ class _StacVerificacionesInternasScreenState
   int _currentStep = 0;
   bool _isSaving = false;
   DateTime? _lastPressedTime;
+  double? _cachedD1; // Cachear d1
 
-  final List<StepData> _steps = [
-    StepData(
-      title: 'Pruebas Iniciales',
-      subtitle: 'Excentricidad, Repetibilidad, Linealidad',
-      icon: Icons.science_outlined,
-    ),
-    StepData(
-      title: 'Reporte y Evaluación',
-      subtitle: 'Descripción del trabajo y estados',
-      icon: Icons.article_outlined,
-    ),
-    StepData(
-      title: 'Comentarios',
-      subtitle: 'Observaciones y fotos',
-      icon: Icons.comment_outlined,
-    ),
-    StepData(
-      title: 'Pruebas Finales',
-      subtitle: 'Verificación post-mantenimiento',
-      icon: Icons.task_alt_outlined,
-    ),
-    StepData(
-      title: 'Finalizar',
-      subtitle: 'Resumen y cierre de servicio',
-      icon: Icons.check_circle_outline,
-    ),
-  ];
+  final List<StepData> _steps = [];
 
   @override
   void initState() {
@@ -83,35 +62,140 @@ class _StacVerificacionesInternasScreenState
     _initializeModel();
     _controller = VerificacionesInternasController(model: _model);
     _actualizarHora();
+    _loadD1Value();
+    _initializeSteps();
+  }
+
+  void _initializeSteps() {
+    _steps.addAll([
+      StepData(
+        title: 'Pruebas Iniciales',
+        subtitle: 'Excentricidad, Repetibilidad, Linealidad',
+        icon: Icons.science_outlined,
+      ),
+      StepData(
+        title: 'Lozas y Fundaciones',
+        subtitle: '2 campos de inspección',
+        icon: Icons.foundation_outlined,
+      ),
+      StepData(
+        title: 'Limpieza y Drenaje',
+        subtitle: '4 campos de inspección',
+        icon: Icons.cleaning_services_outlined,
+      ),
+      StepData(
+        title: 'Chequeo General',
+        subtitle: '8 campos de inspección',
+        icon: Icons.checklist_outlined,
+      ),
+      StepData(
+        title: 'Verificaciones Eléctricas',
+        subtitle: '8 campos de inspección',
+        icon: Icons.electrical_services_outlined,
+      ),
+      StepData(
+        title: 'Protección contra Rayos',
+        subtitle: '4 campos de inspección',
+        icon: Icons.flash_on_outlined,
+      ),
+      StepData(
+        title: 'Verificaciones de Células',
+        subtitle: '7 campos de inspección',
+        icon: Icons.grain_outlined,
+      ),
+      StepData(
+        title: 'Terminal',
+        subtitle: '8 campos de inspección',
+        icon: Icons.computer_outlined,
+      ),
+      StepData(
+        title: 'Calibración',
+        subtitle: '1 campo de inspección',
+        icon: Icons.tune_outlined,
+      ),
+      StepData(
+        title: 'Pruebas Finales',
+        subtitle: 'Verificación post-mantenimiento',
+        icon: Icons.task_alt_outlined,
+      ),
+      StepData(
+        title: 'Estado Final',
+        subtitle: 'Conclusión del servicio',
+        icon: Icons.assignment_turned_in_outlined,
+      ),
+    ]);
   }
 
   void _initializeModel() {
+    final camposEstado = <String, CampoEstado>{};
+
+    // Inicializar TODOS los campos usando constantes
+    for (final campo in AppVerificacionesInternasConstants.getAllCampos()) {
+      camposEstado[campo] = CampoEstado();
+    }
+
     _model = VerificacionesInternasModel(
       codMetrica: widget.codMetrica,
       sessionId: widget.sessionId,
       secaValue: widget.otst,
       horaInicio: DateFormat('HH:mm').format(DateTime.now()),
+      camposEstado: camposEstado,
     );
   }
 
   void _actualizarHora() {
     if (mounted) {
       setState(() {
-        _model.horaFin = DateFormat('HH:mm').format(DateTime.now());
+        // Solo actualizar si la hora de inicio está vacía (aunque se inicializa en constructor)
+        // o si queremos forzar actualización de hora fin en navegación
       });
     }
   }
 
+  // Cargar d1 una sola vez
+  Future<void> _loadD1Value() async {
+    try {
+      _cachedD1 = await _controller.getD1FromDatabase();
+      if (_cachedD1 == null) {
+        // Intentar obtener del provider si existe
+        if (mounted) {
+          try {
+            final balanza = Provider.of<BalanzaProvider>(context, listen: false)
+                .selectedBalanza;
+            _cachedD1 = balanza?.d1 ?? 0.1;
+          } catch (_) {
+            _cachedD1 = 0.1;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading D1: $e');
+      _cachedD1 = 0.1;
+    }
+    setState(() {});
+  }
+
+  Future<double> _getD1FromCache() async {
+    return _cachedD1 ?? 0.1;
+  }
+
   Future<void> _saveCurrentStep() async {
+    if (_isSaving) return;
+
     setState(() {
       _isSaving = true;
     });
 
     try {
-      _actualizarHora();
+      // Actualizar hora fin solo al guardar estado final o finalizar
+      if (_currentStep == _steps.length - 1) {
+        _model.horaFin = DateFormat('HH:mm:ss').format(DateTime.now());
+      }
+
       await _controller.saveDataToDatabase(context, showMessage: false);
     } catch (e) {
       debugPrint('Error saving step: $e');
+      _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -122,8 +206,91 @@ class _StacVerificacionesInternasScreenState
   }
 
   bool _validateCurrentStep() {
-    // Implementar validaciones específicas si es necesario
-    return true;
+    switch (_currentStep) {
+      case 0: // Pruebas Iniciales
+        return true;
+
+      case 1: // Lozas
+      case 2: // Limpieza
+      case 3: // Chequeo
+      case 4: // Electricas
+      case 5: // Rayos
+      case 6: // Celulas
+      case 7: // Terminal
+      case 8: // Calibracion
+        final camposDelPaso = _getCamposDelPaso(_currentStep);
+        for (var campo in camposDelPaso) {
+          if (_model.camposEstado[campo]?.initialValue == null ||
+              _model.camposEstado[campo]!.initialValue.isEmpty) {
+            _showSnackBar(
+              'Por favor complete todos los campos del estado en: $campo',
+              isError: true,
+            );
+            return false;
+          }
+        }
+        return true;
+
+      case 9: // Pruebas Finales
+        return true;
+
+      case 10: // Estado Final
+        if (_model.comentarioGeneral.isEmpty) {
+          _showSnackBar('Por favor complete el Comentario General',
+              isError: true);
+          return false;
+        }
+        if (_model.recomendacion.isEmpty) {
+          _showSnackBar('Por favor seleccione una Recomendación',
+              isError: true);
+          return false;
+        }
+        if (_model.fechaProxServicio.isEmpty) {
+          _showSnackBar('Por favor seleccione la fecha del próximo servicio',
+              isError: true);
+          return false;
+        }
+        if (_model.estadoFisico.isEmpty ||
+            _model.estadoOperacional.isEmpty ||
+            _model.estadoMetrologico.isEmpty) {
+          _showSnackBar('Por favor complete todos los estados finales',
+              isError: true);
+          return false;
+        }
+        if (_model.horaFin.isEmpty) {
+          _showSnackBar('Por favor registre la hora final del servicio',
+              isError: true);
+          return false;
+        }
+        return true;
+
+      default:
+        return true;
+    }
+  }
+
+  List<String> _getCamposDelPaso(int paso) {
+    switch (paso) {
+      case 1:
+        return AppVerificacionesInternasConstants.lozasYFundacionesCampos;
+      case 2:
+        return AppVerificacionesInternasConstants.limpiezaYDrenajeCampos;
+      case 3:
+        return AppVerificacionesInternasConstants.chequeoCampos;
+      case 4:
+        return AppVerificacionesInternasConstants
+            .verificacionesElectricasCampos;
+      case 5:
+        return AppVerificacionesInternasConstants.proteccionRayosCampos;
+      case 6:
+        return AppVerificacionesInternasConstants.verificacionesCeldasCampos;
+      case 7:
+        return AppVerificacionesInternasConstants.terminalCampos;
+      case 8:
+        return AppVerificacionesInternasConstants.calibracionCampos;
+      default:
+        return [];
+    }
   }
 
   Future<void> _goToStep(int step) async {
@@ -136,11 +303,6 @@ class _StacVerificacionesInternasScreenState
     setState(() {
       _currentStep = step;
     });
-
-    // Si llegamos al paso final, asegurar actualizar hora fin
-    if (step == _steps.length - 1) {
-      _actualizarHora();
-    }
   }
 
   Future<bool> _onWillPop() async {
@@ -159,6 +321,18 @@ class _StacVerificacionesInternasScreenState
       return false;
     }
     return true;
+  }
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: isError ? 3 : 2),
+      ),
+    );
   }
 
   @override
@@ -315,32 +489,109 @@ class _StacVerificacionesInternasScreenState
         return PasoPruebasIniciales(
           model: _model,
           controller: _controller,
-          getIndicationSuggestions: _controller.getIndicationSuggestions,
-          getD1FromDatabase: _controller.getD1FromDatabase,
+          getD1FromDatabase: _getD1FromCache,
           onChanged: () => setState(() {}),
         );
       case 1:
-        return PasoReporteEvaluacion(
+        return PasoGenerico(
           model: _model,
+          controller: _controller,
           onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.lozasYFundacionesCampos,
+          titulo: 'LOZAS Y FUNDACIONES',
+          subtitulo: 'Inspeccione el estado de lozas y fundaciones',
+          icono: Icons.foundation_outlined,
+          color: Colors.brown,
         );
       case 2:
-        return PasoComentarios(
+        return PasoGenerico(
           model: _model,
+          controller: _controller,
           onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.limpiezaYDrenajeCampos,
+          titulo: 'LIMPIEZA Y DRENAJE',
+          subtitulo: 'Inspeccione limpieza y sistema de drenaje',
+          icono: Icons.cleaning_services_outlined,
+          color: Colors.lightBlue,
         );
       case 3:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.chequeoCampos,
+          titulo: 'CHEQUEO GENERAL',
+          subtitulo: 'Inspeccione el estado general del equipo',
+          icono: Icons.checklist_outlined,
+          color: Colors.teal,
+        );
+      case 4:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos:
+              AppVerificacionesInternasConstants.verificacionesElectricasCampos,
+          titulo: 'VERIFICACIONES ELÉCTRICAS',
+          subtitulo: 'Inspeccione conexiones y cableado',
+          icono: Icons.electrical_services_outlined,
+          color: Colors.amber,
+        );
+      case 5:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.proteccionRayosCampos,
+          titulo: 'PROTECCIÓN CONTRA RAYOS',
+          subtitulo: 'Verifique sistema de protección eléctrica',
+          icono: Icons.flash_on_outlined,
+          color: Colors.orange,
+        );
+      case 6:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.verificacionesCeldasCampos,
+          titulo: 'VERIFICACIONES DE CÉLULAS DE CARGA',
+          subtitulo: 'Inspeccione células y componentes de pesaje',
+          icono: Icons.grain_outlined,
+          color: Colors.indigo,
+        );
+      case 7:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.terminalCampos,
+          titulo: 'TERMINAL',
+          subtitulo: 'Inspeccione el terminal de pesaje',
+          icono: Icons.computer_outlined,
+          color: Colors.purple,
+        );
+      case 8:
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.calibracionCampos,
+          titulo: 'CALIBRACIÓN',
+          subtitulo: 'Verifique la calibración',
+          icono: Icons.tune_outlined,
+          color: Colors.green,
+        );
+      case 9:
         return PasoPruebasFinales(
           model: _model,
           controller: _controller,
-          getIndicationSuggestions: _controller.getIndicationSuggestions,
-          getD1FromDatabase: _controller.getD1FromDatabase,
+          getD1FromDatabase: _getD1FromCache,
           onChanged: () => setState(() {}),
         );
-      case 4:
+      case 10:
         return PasoEstadoFinal(
           model: _model,
-          controller: _controller,
+          onChanged: () => setState(() {}),
         );
       default:
         return const Center(child: Text('Paso no encontrado'));
@@ -388,24 +639,26 @@ class _StacVerificacionesInternasScreenState
                         await _goToStep(_currentStep + 1);
                       } else {
                         // Último paso: finalizar
-                        await _saveCurrentStep();
-                        if (!mounted) return;
+                        if (_validateCurrentStep()) {
+                          await _saveCurrentStep();
+                          if (!mounted) return;
 
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FinServicioVinternasScreen(
-                              sessionId: widget.sessionId,
-                              secaValue: widget.otst,
-                              codMetrica: widget.codMetrica,
-                              nReca: widget.nReca,
-                              userName: widget.userName,
-                              clienteId: widget.clienteId.toString(),
-                              plantaCodigo: widget.plantaCodigo,
-                              tableName: 'verificaciones_internas',
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => FinServicioVinternasScreen(
+                                sessionId: widget.sessionId,
+                                secaValue: widget.otst,
+                                codMetrica: widget.codMetrica,
+                                nReca: widget.nReca,
+                                userName: widget.userName,
+                                clienteId: widget.clienteId.toString(),
+                                plantaCodigo: widget.plantaCodigo,
+                                tableName: 'verificaciones_internas',
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       }
                     },
               icon: Icon(

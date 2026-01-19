@@ -67,7 +67,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     widget.balanzaControllers['n_celdas']?.text =
         balanza['n_celdas']?.toString() ?? '';
 
-    // Datos de rangos
+    //  rangos
     widget.balanzaControllers['cap_max1']?.text =
         balanza['cap_max1']?.toString() ?? '';
     widget.balanzaControllers['d1']?.text = balanza['d1']?.toString() ?? '';

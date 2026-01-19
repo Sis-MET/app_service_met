@@ -10,7 +10,6 @@ class PruebasMetrologicasWidget extends StatefulWidget {
   final PruebasMetrologicas pruebas;
   final bool isInicial;
   final Function onChanged;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
   final Future<double> Function() getD1FromDatabase;
 
   const PruebasMetrologicasWidget({
@@ -18,7 +17,6 @@ class PruebasMetrologicasWidget extends StatefulWidget {
     required this.pruebas,
     required this.isInicial,
     required this.onChanged,
-    required this.getIndicationSuggestions,
     required this.getD1FromDatabase,
   });
 
@@ -71,6 +69,10 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         ),
         const SizedBox(height: 20.0),
 
+        // Carga Retorno a Cero (Nuevo campo opcional, si deseamos persistir alguna carga específica aquí, aunque la UI de Advanced no lo muestra)
+        // Revisando Advanced, usa 'valor' en Repetibilidad, y 'carga' en Linealidad.
+        // Retorno Cero en Advanced solo tiene Estado y Estabilidad en UI.
+
         // Estabilidad
         DropdownButtonFormField<String>(
           initialValue: widget.pruebas.retornoCero.estabilidad,
@@ -110,7 +112,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.excentricidad != null)
           ExcentricidadWidget(
             excentricidad: widget.pruebas.excentricidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 
@@ -136,7 +138,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.repetibilidad != null)
           RepetibilidadWidget(
             repetibilidad: widget.pruebas.repetibilidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 

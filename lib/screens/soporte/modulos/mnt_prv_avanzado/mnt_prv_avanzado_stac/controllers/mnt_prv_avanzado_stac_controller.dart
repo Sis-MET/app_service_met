@@ -214,7 +214,6 @@ class MntPrvAvanzadoStacController {
       if (campo != null) {
         data['${dbKey}_estado'] = campo.initialValue;
         data['${dbKey}_solucion'] = campo.solutionValue;
-        data['${dbKey}_comentario'] = campo.comentario;
         data['${dbKey}_foto'] = campo.fotos.isNotEmpty
             ? campo.fotos.map((f) => f.path.split('/').last).join(',')
             : '';
@@ -235,57 +234,51 @@ class MntPrvAvanzadoStacController {
 
       // Chequeo
       'corrosion': 'Corrosión',
-      'grietas': 'Grietas',
+      'puente_grietas': 'Puente de pesaje (grietas)',
       'tapas_pernos': 'Tapas superiores y pernos',
       'desgaste_estres': 'Desgaste y estrés',
-      'acumulacion_escombros': 'Acumulación de escombros o materiales externos',
-      'verificacion_rieles': 'Verificación de rieles laterales',
-      'paragolpes_longitudinales': 'Verificación de paragolpes longitudinales',
-      'paragolpes_transversales': 'Verificación de paragolpes transversales',
+      'limpieza_puente': 'Limpieza por debajo del puente',
+      'estado_rieles': 'Estado rieles laterales',
+      'limitadores_long': 'Limitadores Longitudinales',
+      'limitadores_trans': 'Limitadores Transversales',
 
       // Verificaciones Eléctricas (CORREGIDO)
-      'cable_homerun': 'Condición de cable de Home Run',
-      'cable_celda_celda': 'Condición de cable de célula a célula',
-      'conexion_celdas': 'Conexión segura a celdas de carga',
-      'funda_conector': 'Funda de goma y conector ajustados',
-      'conector_terminacion': 'Conector de terminación ajustado',
-      'cables_conectados': 'Cables conectados correctamente',
+      'cable_homerun': 'Cable home run',
+      'cables_celdas': 'Cables de celdas de carga',
+      'conexion_celda_cable': 'Conexión entre celda de carga y cable',
+      'conectores_celdas': 'Conectores de celdas de carga',
+      'conector_terminacion': 'Conector de terminación',
+      'caja_union': 'Caja de unión o Sumadora',
 
       // Protección contra Rayos
-      'sistema_tierra': 'Sistema de protección contra rayos conectado a tierra',
-      'conexion_strike_shield':
-          'Conexión de la correa de tierra del Strike shield',
+      'sistema_proteccion_rayos': 'Sistema de Protección contra Rayos',
+      'conexion_malla_tierra': 'Conexión de Malla de Tierra',
       'tension_neutro_tierra': 'Tensión entre neutro y tierra adecuada',
-      'impresora_strike_shield': 'Impresora conectada al mismo Strike Shield',
+      'estado_strike_shield': 'Estado strike shield',
 
       //Verificaciones de Células de Carga (nombres exactos de BD)
-      'elevado_puente':
-          'Elevado del puente de pesaje y retirado de las celdas de carga',
+      'limpieza_conectores': 'Limpieza e inspección conectores',
       'limpieza_estructura':
           'Limpieza e inspección de superficies de acoplamiento de la estructura',
       'bearing_cups': 'Limpieza e inspección de bearing cups',
       'celdas_carga': 'Limpieza e inspección de celdas de carga',
-      'lubricacion_cabezas': 'Lubricación de cabezas de celdas de carga',
-      'engrasado_bearing': 'Engrasado de bearing cups',
-      'lainas_botas': 'Lainas, botas de goma colocadas',
+      'lubricacion_celdas': 'Lubricacion celdas de carga',
+      'lubricacion_bearing': 'Lubricación bearing cups',
+      'protector_goma': 'Protector de goma para celdas',
 
       // Terminal
-      'carcasa_lente_teclado':
-          'Carcasa, lente y el teclado estan limpios, sin daños y sellados',
-      'voltaje_bateria': 'Voltaje de la batería es adecuado',
-      'teclado_operativo': 'Teclado operativo correctamente',
-      'brillo_pantalla': 'Brillo de pantalla adecuado',
-      'registros_pdx': 'Registros de rendimiento de cambio PDX OK',
-      'pantallas_servicio':
-          'Pantallas de servicio de MT indican operación normal',
-      'archivos_respaldados':
-          'Archivos de configuración respaldados con InSite',
-      'terminal_disponibilidad':
-          'Terminal devuelto a la disponibilidad operativo',
+      'carcasa': 'Carcasa',
+      'voltaje_pila': 'Voltaje pila de Boton',
+      'estado_teclado': 'Estado del teclado',
+      'estado_display': 'Estado del display',
+      'registros_predictivo': 'Registros Predictivo solo PDX',
+      'alertas_servicio': 'Alertas de servicio MT',
+      'estado_prensacables': 'Estado prensacables:',
+      'comunicacion_pc': 'Comunicación con PC',
 
       // Calibración
-      'calibracion_balanza':
-          'Calibración de balanza realiza y dentro de tolerancia',
+      'balanza_apta':
+          'Balanza apta para Verificación Dentro tolerancias NB23001',
     };
 
     camposMap.forEach((dbKey, modelKey) => addCampo(dbKey, modelKey));

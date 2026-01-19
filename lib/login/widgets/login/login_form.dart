@@ -45,7 +45,7 @@ class LoginForm extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ LÓGICA SIMPLIFICADA
+    // LÓGICA SIMPLIFICADA
     final hasUsers = savedUser != null && savedUser!.isNotEmpty;
 
     return SingleChildScrollView(
@@ -113,7 +113,7 @@ class LoginForm extends StatelessWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // ✅ CAMPO USUARIO (solo si está agregando O no hay usuarios)
+                  // CAMPO USUARIO (solo si está agregando O no hay usuarios)
                   if (isAddingNewUser || !hasUsers) ...[
                     Text(
                       'Usuario',
@@ -164,7 +164,7 @@ class LoginForm extends StatelessWidget {
                     const SizedBox(height: 24),
                   ],
 
-                  // ✅ USUARIO GUARDADO (solo si hay usuarios Y no está agregando)
+                  // USUARIO GUARDADO (solo si hay usuarios Y no está agregando)
                   if (hasUsers && !isAddingNewUser) ...[
                     UserCard(
                       isDark: isDark,
@@ -230,7 +230,7 @@ class LoginForm extends StatelessWidget {
                     ),
                   ),
 
-                  // ✅ Botón cancelar (solo si está agregando Y hay usuarios guardados)
+                  // Botón cancelar (solo si está agregando Y hay usuarios guardados)
                   if (isAddingNewUser && hasUsers) ...[
                     const SizedBox(height: 12),
                     SizedBox(
@@ -254,7 +254,7 @@ class LoginForm extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // ✅ Botón Agregar nuevo usuario (solo si NO está agregando Y hay usuarios)
+          // Botón Agregar nuevo usuario (solo si NO está agregando Y hay usuarios)
           if (!isAddingNewUser && hasUsers) ...[
             TextButton.icon(
               onPressed: loading ? null : onStartAddingUser,
@@ -345,7 +345,7 @@ class LoginForm extends StatelessWidget {
           Column(
             children: [
               Text(
-                'versión 13.5.260901.1',
+                'versión 4.5.1',
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   color: isDark ? Colors.white38 : Colors.black38,

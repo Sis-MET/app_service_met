@@ -12,8 +12,6 @@ import '../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import '../../../database/soporte_tecnico/database_helper_instalacion.dart';
 import '../../../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.dart';
-import '../../../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stil.dart';
-import '../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stac.dart';
 import '../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import '../../../database/soporte_tecnico/database_helper_relevamiento.dart';
 import '../../../database/soporte_tecnico/database_helper_verificaciones.dart';
@@ -395,14 +393,10 @@ class PrecargaControllerSop extends ChangeNotifier {
         return DatabaseHelperAjustes();
       case 'diagnostico':
         return DatabaseHelperDiagnosticoCorrectivo();
-      case 'mnt_prv_regular_stac':
-        return DatabaseHelperMntPrvRegularStac();
       case 'mnt_prv_regular_stil':
         return DatabaseHelperMntPrvRegularStil();
       case 'mnt_prv_avanzado_stac':
         return DatabaseHelperMntPrvAvanzadoStac();
-      case 'mnt_prv_avanzado_stil':
-        return DatabaseHelperMntPrvAvanzadoStil();
       case 'mnt_correctivo':
         return DatabaseHelperDiagnosticoCorrectivo();
       case 'instalacion':
@@ -432,17 +426,11 @@ class PrecargaControllerSop extends ChangeNotifier {
       case 'diagnostico':
         label = 'Diagnóstico';
         break;
-      case 'mnt_prv_regular_stac':
-        label = 'Mantenimiento Preventivo Regular - STAC';
-        break;
       case 'mnt_prv_regular_stil':
-        label = 'Mantenimiento Preventivo Regular - STIL';
+        label = 'Mantenimiento Preventivo Regular';
         break;
       case 'mnt_prv_avanzado_stac':
-        label = 'Mantenimiento Preventivo Avanzado - STAC';
-        break;
-      case 'mnt_prv_avanzado_stil':
-        label = 'Mantenimiento Preventivo Avanzado - STIL';
+        label = 'Mantenimiento Preventivo Avanzado';
         break;
       case 'mnt_correctivo':
         label = 'Mantenimiento Correctivo';

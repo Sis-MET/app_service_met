@@ -9,14 +9,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/home/home_screen.dart';
-import 'package:service_met/screens/soporte/modulos/mnt_prv_regular/mnt_prv_regular_stac/stac_mnt_prv_regular.dart'
-    hide StepData;
 import '../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import '../../../database/soporte_tecnico/database_helper_instalacion.dart';
 import '../../../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.dart';
-import '../../../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stil.dart';
-import '../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stac.dart';
 import '../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import '../../../database/soporte_tecnico/database_helper_relevamiento.dart';
 import '../../../database/soporte_tecnico/database_helper_verificaciones.dart';
@@ -26,8 +22,6 @@ import '../modulos/diagnostico/stac_diagnostico.dart';
 import '../modulos/instalacion/stac_instalacion.dart';
 import '../modulos/mnt_correctivo/stac_mnt_correctivo.dart';
 import '../modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/stac_mnt_prv_avanzado.dart'
-    hide StepData;
-import '../modulos/mnt_prv_avanzado/mnt_prv_avanzado_stil/stil_mnt_prv_avanzado.dart'
     hide StepData;
 import '../modulos/mnt_prv_regular/mnt_prv_regular_stil/stil_mnt_prv_regular.dart'
     hide StepData;
@@ -149,17 +143,11 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         case 'diagnostico':
           dbHelper = DatabaseHelperDiagnosticoCorrectivo();
           break;
-        case 'mnt_prv_regular_stac':
-          dbHelper = DatabaseHelperMntPrvRegularStac();
-          break;
         case 'mnt_prv_regular_stil':
           dbHelper = DatabaseHelperMntPrvRegularStil();
           break;
         case 'mnt_prv_avanzado_stac':
           dbHelper = DatabaseHelperMntPrvAvanzadoStac();
-          break;
-        case 'mnt_prv_avanzado_stil':
-          dbHelper = DatabaseHelperMntPrvAvanzadoStil();
           break;
         case 'mnt_correctivo':
           dbHelper = DatabaseHelperDiagnosticoCorrectivo();
@@ -943,28 +931,6 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
 
       case 'mnt_prv_avanzado_stac':
         return StacMntPrvAvanzadoStacScreen(
-          userName: widget.userName,
-          clienteId: controller.selectedClienteId ?? '',
-          plantaCodigo: controller.selectedPlantaCodigo ?? '',
-          codMetrica: codMetrica,
-          nReca: nReca,
-          secaValue: secaValue,
-          sessionId: sessionId,
-        );
-
-      case 'mnt_prv_avanzado_stil':
-        return MntPrvAvanzadoStilScreen(
-          userName: widget.userName,
-          clienteId: controller.selectedClienteId ?? '',
-          plantaCodigo: controller.selectedPlantaCodigo ?? '',
-          codMetrica: codMetrica,
-          nReca: nReca,
-          secaValue: secaValue,
-          sessionId: sessionId,
-        );
-
-      case 'mnt_prv_regular_stac':
-        return StacMntPrvRegularStacScreen(
           userName: widget.userName,
           clienteId: controller.selectedClienteId ?? '',
           plantaCodigo: controller.selectedPlantaCodigo ?? '',

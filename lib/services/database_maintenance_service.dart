@@ -9,8 +9,6 @@ import '../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import '../database/soporte_tecnico/database_helper_instalacion.dart';
 import '../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.dart';
-import '../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stil.dart';
-import '../database/soporte_tecnico/database_helper_mnt_prv_regular_stac.dart';
 import '../database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import '../database/soporte_tecnico/database_helper_verificaciones.dart';
 
@@ -26,7 +24,7 @@ class DatabaseMaintenanceService {
   /// 4. Re-inicializar la base de datos (lo que activará _onCreate con el nuevo esquema).
   /// 5. Insertar los registros guardados.
   static Future<void> migrateAllDatabases() async {
-    debugPrint('🔄 Iniciando mantenimiento de bases de datos...');
+    debugPrint('Iniciando mantenimiento de bases de datos...');
 
     // 0. Usuarios (AuthService) - IMPORTANTE: Recrear estructura nueva
     await _migrateUsuarios();
@@ -49,29 +47,23 @@ class DatabaseMaintenanceService {
     // 6. Mantenimiento Preventivo Avanzado STAC
     await _migrateMntPrvAvanzadoStac();
 
-    // 7. Mantenimiento Preventivo Avanzado STIL
-    await _migrateMntPrvAvanzadoStil();
-
-    // 8. Mantenimiento Preventivo Regular STAC
-    await _migrateMntPrvRegularStac();
-
-    // 9. Mantenimiento Preventivo Regular STIL
+    // 7. Mantenimiento Preventivo Regular STIL
     await _migrateMntPrvRegularStil();
 
-    // 10. Verificaciones
+    // 8. Verificaciones
     await _migrateVerificaciones();
 
-    debugPrint('✅ Mantenimiento de bases de datos completado.');
+    debugPrint('Mantenimiento de bases de datos completado.');
   }
 
   static Future<void> _migrateAppDatabase() async {
     try {
       final db = AppDatabase();
-      debugPrint('📦 Migrando AppDatabase...');
+      debugPrint('Migrando AppDatabase...');
 
       // 1. Backup
       final data = await db.getAllRegistrosCalibracion();
-      debugPrint('   - Registros respaldados: ${data.length}');
+      debugPrint('Registros respaldados: ${data.length}');
 
       // 2. Close
       await db.close();
@@ -94,16 +86,16 @@ class DatabaseMaintenanceService {
         await db.insertRegistroCalibracion(row);
         restored++;
       }
-      debugPrint('   - Registros restaurados: $restored');
+      debugPrint('Registros restaurados: $restored');
     } catch (e) {
-      debugPrint('❌ Error migrando AppDatabase: $e');
+      debugPrint('Error migrando AppDatabase: $e');
     }
   }
 
   static Future<void> _migrateRelevamiento() async {
     try {
       final db = DatabaseHelperRelevamiento();
-      debugPrint('📦 Migrando Relevamiento...');
+      debugPrint('Migrando Relevamiento...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'relevamiento_de_datos.db');
@@ -112,16 +104,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Relevamiento: $e');
+      debugPrint('Error migrando Relevamiento: $e');
     }
   }
 
   static Future<void> _migrateAjustes() async {
     try {
       final db = DatabaseHelperAjustes();
-      debugPrint('📦 Migrando Ajustes...');
+      debugPrint('Migrando Ajustes...');
       final data = await db
           .getAllRegistrosRelevamiento(); // Nombre del método puede variar
       await db.close();
@@ -131,16 +123,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Ajustes: $e');
+      debugPrint('Error migrando Ajustes: $e');
     }
   }
 
   static Future<void> _migrateDiagnosticoCorrectivo() async {
     try {
       final db = DatabaseHelperDiagnosticoCorrectivo();
-      debugPrint('📦 Migrando Diagnóstico Correctivo...');
+      debugPrint('Migrando Diagnóstico Correctivo...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'diagnostico_correctivo.db');
@@ -149,16 +141,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Diagnóstico Correctivo: $e');
+      debugPrint('Error migrando Diagnóstico Correctivo: $e');
     }
   }
 
   static Future<void> _migrateInstalacion() async {
     try {
       final db = DatabaseHelperInstalacion();
-      debugPrint('📦 Migrando Instalación...');
+      debugPrint('Migrando Instalación...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'instalacion.db');
@@ -167,16 +159,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Instalación: $e');
+      debugPrint('Error migrando Instalación: $e');
     }
   }
 
   static Future<void> _migrateMntPrvAvanzadoStac() async {
     try {
       final db = DatabaseHelperMntPrvAvanzadoStac();
-      debugPrint('📦 Migrando Mnt Prv Avanzado STAC...');
+      debugPrint('Migrando Mnt Prv Avanzado STAC...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'mnt_prv_avanzado_stac.db');
@@ -185,52 +177,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Mnt Prv Avanzado STAC: $e');
-    }
-  }
-
-  static Future<void> _migrateMntPrvAvanzadoStil() async {
-    try {
-      final db = DatabaseHelperMntPrvAvanzadoStil();
-      debugPrint('📦 Migrando Mnt Prv Avanzado STIL...');
-      final data = await db.getAllRegistrosRelevamiento();
-      await db.close();
-      final path = join(await getDatabasesPath(), 'mnt_prv_avanzado_stil.db');
-      await _deleteDbFile(path);
-
-      for (var row in data) {
-        await db.insertRegistroRelevamiento(row);
-      }
-      debugPrint('   - Registros restaurados: ${data.length}');
-    } catch (e) {
-      debugPrint('❌ Error migrando Mnt Prv Avanzado STIL: $e');
-    }
-  }
-
-  static Future<void> _migrateMntPrvRegularStac() async {
-    try {
-      final db = DatabaseHelperMntPrvRegularStac();
-      debugPrint('📦 Migrando Mnt Prv Regular STAC...');
-      final data = await db.getAllRegistrosRelevamiento();
-      await db.close();
-      final path = join(await getDatabasesPath(), 'mnt_prv_regular_stac.db');
-      await _deleteDbFile(path);
-
-      for (var row in data) {
-        await db.insertRegistroRelevamiento(row);
-      }
-      debugPrint('   - Registros restaurados: ${data.length}');
-    } catch (e) {
-      debugPrint('❌ Error migrando Mnt Prv Regular STAC: $e');
+      debugPrint('Error migrando Mnt Prv Avanzado STAC: $e');
     }
   }
 
   static Future<void> _migrateMntPrvRegularStil() async {
     try {
       final db = DatabaseHelperMntPrvRegularStil();
-      debugPrint('📦 Migrando Mnt Prv Regular STIL...');
+      debugPrint('Migrando Mnt Prv Regular STIL...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'mnt_prv_regular_stil.db');
@@ -239,16 +195,16 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Mnt Prv Regular STIL: $e');
+      debugPrint('Error migrando Mnt Prv Regular STIL: $e');
     }
   }
 
   static Future<void> _migrateVerificaciones() async {
     try {
       final db = DatabaseHelperVerificaciones();
-      debugPrint('📦 Migrando Verificaciones...');
+      debugPrint('Migrando Verificaciones...');
       final data = await db.getAllRegistrosRelevamiento();
       await db.close();
       final path = join(await getDatabasesPath(), 'verificaciones.db');
@@ -257,20 +213,20 @@ class DatabaseMaintenanceService {
       for (var row in data) {
         await db.insertRegistroRelevamiento(row);
       }
-      debugPrint('   - Registros restaurados: ${data.length}');
+      debugPrint('Registros restaurados: ${data.length}');
     } catch (e) {
-      debugPrint('❌ Error migrando Verificaciones: $e');
+      debugPrint('Error migrando Verificaciones: $e');
     }
   }
 
   static Future<void> _migrateUsuarios() async {
     try {
       final authService = AuthService();
-      debugPrint('📦 Migrando Usuarios...');
+      debugPrint('Migrando Usuarios...');
 
       // 1. Backup
       final users = await authService.getSavedUsers();
-      debugPrint('   - Usuarios respaldados: ${users.length}');
+      debugPrint('Usuarios respaldados: ${users.length}');
 
       // 2. Delete
       // Nota: AuthService cierra la conexión en cada operación, así que no es necesario un close() explicito aquí
@@ -287,9 +243,9 @@ class DatabaseMaintenanceService {
         await authService.saveUserToDatabase(user);
         restored++;
       }
-      debugPrint('   - Usuarios restaurados: $restored');
+      debugPrint('Usuarios restaurados: $restored');
     } catch (e) {
-      debugPrint('❌ Error migrando Usuarios: $e');
+      debugPrint('Error migrando Usuarios: $e');
     }
   }
 

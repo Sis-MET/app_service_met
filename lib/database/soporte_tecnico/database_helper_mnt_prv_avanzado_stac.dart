@@ -615,248 +615,206 @@ class DatabaseHelperMntPrvAvanzadoStac {
         -- losas
         losas_aproximacion_estado TEXT DEFAULT '',
         losas_aproximacion_solucion TEXT DEFAULT '',
-        losas_aproximacion_comentario TEXT DEFAULT '',
         losas_aproximacion_foto TEXT DEFAULT '',
         
         -- Fundaciones
         fundaciones_estado TEXT DEFAULT '',
         fundaciones_solucion TEXT DEFAULT '',
-        fundaciones_comentario TEXT DEFAULT '',
         fundaciones_foto TEXT DEFAULT '',
         
         -- Limpieza del Perímetro
         limpieza_perimetro_estado TEXT DEFAULT '',
         limpieza_perimetro_solucion TEXT DEFAULT '',
-        limpieza_perimetro_comentario TEXT DEFAULT '',
         limpieza_perimetro_foto TEXT DEFAULT '',
         
         -- Humedad en Fosa
         fosa_humedad_estado TEXT DEFAULT '',
         fosa_humedad_solucion TEXT DEFAULT '',
-        fosa_humedad_comentario TEXT DEFAULT '',
         fosa_humedad_foto TEXT DEFAULT '',
         
         -- Drenaje Libre
         drenaje_libre_estado TEXT DEFAULT '',
         drenaje_libre_solucion TEXT DEFAULT '',
-        drenaje_libre_comentario TEXT DEFAULT '',
         drenaje_libre_foto TEXT DEFAULT '',
         
         -- Bomba de Sumidero
         bomba_sumidero_estado TEXT DEFAULT '',
         bomba_sumidero_solucion TEXT DEFAULT '',
-        bomba_sumidero_comentario TEXT DEFAULT '',
         bomba_sumidero_foto TEXT DEFAULT '',
         
         -- Corrosión
         corrosion_estado TEXT DEFAULT '',
         corrosion_solucion TEXT DEFAULT '',
-        corrosion_comentario TEXT DEFAULT '',
         corrosion_foto TEXT DEFAULT '',
         
-        -- Grietas
-        grietas_estado TEXT DEFAULT '',
-        grietas_solucion TEXT DEFAULT '',
-        grietas_comentario TEXT DEFAULT '',
-        grietas_foto TEXT DEFAULT '',
+        -- Grietas (Puente de pesaje)
+        puente_grietas_estado TEXT DEFAULT '',
+        puente_grietas_solucion TEXT DEFAULT '',
+        puente_grietas_foto TEXT DEFAULT '',
         
         -- Topes y Pernos
         tapas_pernos_estado TEXT DEFAULT '',
         tapas_pernos_solucion TEXT DEFAULT '',
-        tapas_pernos_comentario TEXT DEFAULT '',
         tapas_pernos_foto TEXT DEFAULT '',
         
         -- Desgaste o Estrés
         desgaste_estres_estado TEXT DEFAULT '',
         desgaste_estres_solucion TEXT DEFAULT '',
-        desgaste_estres_comentario TEXT DEFAULT '',
         desgaste_estres_foto TEXT DEFAULT '',
         
-        -- Acumulacion
-        acumulacion_escombros_estado TEXT DEFAULT '',
-        acumulacion_escombros_solucion TEXT DEFAULT '',
-        acumulacion_escombros_comentario TEXT DEFAULT '',
-        acumulacion_escombros_foto TEXT DEFAULT '',
+        -- Limpieza por debajo del puente
+        limpieza_puente_estado TEXT DEFAULT '',
+        limpieza_puente_solucion TEXT DEFAULT '',
+        limpieza_puente_foto TEXT DEFAULT '',
         
-        -- Rieles Laterales
-        verificacion_rieles_estado TEXT DEFAULT '',
-        verificacion_rieles_solucion TEXT DEFAULT '',
-        verificacion_rieles_comentario TEXT DEFAULT '',
-        verificacion_rieles_foto TEXT DEFAULT '',
+        -- Estado Rieles Laterales
+        estado_rieles_estado TEXT DEFAULT '',
+        estado_rieles_solucion TEXT DEFAULT '',
+        estado_rieles_foto TEXT DEFAULT '',
         
-        -- Paragolpes Longitudinales
-        paragolpes_longitudinales_estado TEXT DEFAULT '',
-        paragolpes_longitudinales_solucion TEXT DEFAULT '',
-        paragolpes_longitudinales_comentario TEXT DEFAULT '',
-        paragolpes_longitudinales_foto TEXT DEFAULT '',
+        -- Limitadores Longitudinales
+        limitadores_long_estado TEXT DEFAULT '',
+        limitadores_long_solucion TEXT DEFAULT '',
+        limitadores_long_foto TEXT DEFAULT '',
         
-        -- Paragolpes Transversales
-        paragolpes_transversales_estado TEXT DEFAULT '',
-        paragolpes_transversales_solucion TEXT DEFAULT '',
-        paragolpes_transversales_comentario TEXT DEFAULT '',
-        paragolpes_transversales_foto TEXT DEFAULT '',
+        -- Limitadores Transversales
+        limitadores_trans_estado TEXT DEFAULT '',
+        limitadores_trans_solucion TEXT DEFAULT '',
+        limitadores_trans_foto TEXT DEFAULT '',
         
         -- Cable Homerun
         cable_homerun_estado TEXT DEFAULT '',
         cable_homerun_solucion TEXT DEFAULT '',
-        cable_homerun_comentario TEXT DEFAULT '',
         cable_homerun_foto TEXT DEFAULT '',
         
-        -- Cable Celda a Terminal
-        conexion_celdas_estado TEXT DEFAULT '',
-        conexion_celdas_solucion TEXT DEFAULT '',
-        conexion_celdas_comentario TEXT DEFAULT '',
-        conexion_celdas_foto TEXT DEFAULT '',
+        -- Conexión CeldaCable
+        conexion_celda_cable_estado TEXT DEFAULT '',
+        conexion_celda_cable_solucion TEXT DEFAULT '',
+        conexion_celda_cable_foto TEXT DEFAULT '',
         
-        -- Cable Celda a Celda
-        cable_celda_celda_estado TEXT DEFAULT '',
-        cable_celda_celda_solucion TEXT DEFAULT '',
-        cable_celda_celda_comentario TEXT DEFAULT '',
-        cable_celda_celda_foto TEXT DEFAULT '',
+        -- Cables de Celdas
+        cables_celdas_estado TEXT DEFAULT '',
+        cables_celdas_solucion TEXT DEFAULT '',
+        cables_celdas_foto TEXT DEFAULT '',
         
-        -- Cables Correctamente Conectados y Asegurados
-        cables_conectados_estado TEXT DEFAULT '',
-        cables_conectados_solucion TEXT DEFAULT '',
-        cables_conectados_comentario TEXT DEFAULT '',
-        cables_conectados_foto TEXT DEFAULT '',
+        -- Caja de Unión o Sumadora
+        caja_union_estado TEXT DEFAULT '',
+        caja_union_solucion TEXT DEFAULT '',
+        caja_union_foto TEXT DEFAULT '',
         
-        -- Funda de Conector
-        funda_conector_estado TEXT DEFAULT '',
-        funda_conector_solucion TEXT DEFAULT '',
-        funda_conector_comentario TEXT DEFAULT '',
-        funda_conector_foto TEXT DEFAULT '',
+        -- Conectores de Celdas
+        conectores_celdas_estado TEXT DEFAULT '',
+        conectores_celdas_solucion TEXT DEFAULT '',
+        conectores_celdas_foto TEXT DEFAULT '',
         
         -- Conector y Terminación
         conector_terminacion_estado TEXT DEFAULT '',
         conector_terminacion_solucion TEXT DEFAULT '',
-        conector_terminacion_comentario TEXT DEFAULT '',
         conector_terminacion_foto TEXT DEFAULT '',
         
-        -- Protección contra Rayos
-        proteccion_rayos_estado TEXT DEFAULT '',
-        proteccion_rayos_solucion TEXT DEFAULT '',
-        proteccion_rayos_comentario TEXT DEFAULT '',
-        proteccion_rayos_foto TEXT DEFAULT '',
+        -- Sistema Protección Rayos
+        sistema_proteccion_rayos_estado TEXT DEFAULT '',
+        sistema_proteccion_rayos_solucion TEXT DEFAULT '',
+        sistema_proteccion_rayos_foto TEXT DEFAULT '',
         
         -- Conexión a Tierra
         sistema_tierra_estado TEXT DEFAULT '',
         sistema_tierra_solucion TEXT DEFAULT '',
-        sistema_tierra_comentario TEXT DEFAULT '',
         sistema_tierra_foto TEXT DEFAULT '',
         
-        -- Conexion Strike
-        conexion_strike_shield_estado TEXT DEFAULT '',
-        conexion_strike_shield_solucion TEXT DEFAULT '',
-        conexion_strike_shield_comentario TEXT DEFAULT '',
-        conexion_strike_shield_foto TEXT DEFAULT '',
+        -- Conexion Malla Tierra
+        conexion_malla_tierra_estado TEXT DEFAULT '',
+        conexion_malla_tierra_solucion TEXT DEFAULT '',
+        conexion_malla_tierra_foto TEXT DEFAULT '',
         
         -- Tensión entre Neutro y Tierra
         tension_neutro_tierra_estado TEXT DEFAULT '',
         tension_neutro_tierra_solucion TEXT DEFAULT '',
-        tension_neutro_tierra_comentario TEXT DEFAULT '',
         tension_neutro_tierra_foto TEXT DEFAULT '',
         
-        -- Impresión Conectada
-        impresora_strike_shield_estado TEXT DEFAULT '',
-        impresora_strike_shield_solucion TEXT DEFAULT '',
-        impresora_strike_shield_comentario TEXT DEFAULT '',
-        impresora_strike_shield_foto TEXT DEFAULT '',
+        -- Estado Strike Shield
+        estado_strike_shield_estado TEXT DEFAULT '',
+        estado_strike_shield_solucion TEXT DEFAULT '',
+        estado_strike_shield_foto TEXT DEFAULT '',
         
-        -- Carcasa Limpia
-        carcasa_lente_teclado_estado TEXT DEFAULT '',
-        carcasa_lente_teclado_solucion TEXT DEFAULT '',
-        carcasa_lente_teclado_comentario TEXT DEFAULT '',
-        carcasa_lente_teclado_foto TEXT DEFAULT '',
+        -- Carcasa
+        carcasa_estado TEXT DEFAULT '',
+        carcasa_solucion TEXT DEFAULT '',
+        carcasa_foto TEXT DEFAULT '',
         
-        -- Voltaje de Batería (si aplica)
-        voltaje_bateria_estado TEXT DEFAULT '',
-        voltaje_bateria_solucion TEXT DEFAULT '',
-        voltaje_bateria_comentario TEXT DEFAULT '',
-        voltaje_bateria_foto TEXT DEFAULT '',
+        -- Voltaje Pila
+        voltaje_pila_estado TEXT DEFAULT '',
+        voltaje_pila_solucion TEXT DEFAULT '',
+        voltaje_pila_foto TEXT DEFAULT '',
         
-        -- Teclado Funcional
-        teclado_operativo_estado TEXT DEFAULT '',
-        teclado_operativo_solucion TEXT DEFAULT '',
-        teclado_operativo_comentario TEXT DEFAULT '',
-        teclado_operativo_foto TEXT DEFAULT '',
+        -- Estado Teclado
+        estado_teclado_estado TEXT DEFAULT '',
+        estado_teclado_solucion TEXT DEFAULT '',
+        estado_teclado_foto TEXT DEFAULT '',
         
-        -- Brillo de Pantalla
-        brillo_pantalla_estado TEXT DEFAULT '',
-        brillo_pantalla_solucion TEXT DEFAULT '',
-        brillo_pantalla_comentario TEXT DEFAULT '',
-        brillo_pantalla_foto TEXT DEFAULT '',
+        -- Estado Display
+        estado_display_estado TEXT DEFAULT '',
+        estado_display_solucion TEXT DEFAULT '',
+        estado_display_foto TEXT DEFAULT '',
         
-        -- Registro de Rendimiento
-        registros_pdx_estado TEXT DEFAULT '',
-        registros_pdx_solucion TEXT DEFAULT '',
-        registros_pdx_comentario TEXT DEFAULT '',
-        registros_pdx_foto TEXT DEFAULT '',
+        -- Registros Predictivo
+        registros_predictivo_estado TEXT DEFAULT '',
+        registros_predictivo_solucion TEXT DEFAULT '',
+        registros_predictivo_foto TEXT DEFAULT '',
         
-        -- Pantallas MT (si aplica)
-        pantallas_servicio_estado TEXT DEFAULT '',
-        pantallas_servicio_solucion TEXT DEFAULT '',
-        pantallas_servicio_comentario TEXT DEFAULT '',
-        pantallas_servicio_foto TEXT DEFAULT '',
+        -- Alertas Servicio
+        alertas_servicio_estado TEXT DEFAULT '',
+        alertas_servicio_solucion TEXT DEFAULT '',
+        alertas_servicio_foto TEXT DEFAULT '',
         
-        -- Archivos Respaldos
-        archivos_respaldados_estado TEXT DEFAULT '',
-        archivos_respaldados_solucion TEXT DEFAULT '',
-        archivos_respaldados_comentario TEXT DEFAULT '',
-        archivos_respaldados_foto TEXT DEFAULT '',
+        -- Estado Prensacables
+        estado_prensacables_estado TEXT DEFAULT '',
+        estado_prensacables_solucion TEXT DEFAULT '',
+        estado_prensacables_foto TEXT DEFAULT '',
         
         -- Backup InSite (si aplica)
         backup_insite_estado TEXT DEFAULT '',
         backup_insite_solucion TEXT DEFAULT '',
-        backup_insite_comentario TEXT DEFAULT '',
         backup_insite_foto TEXT DEFAULT '',
         
-        -- Terminal Operativo
-        terminal_disponibilidad_estado TEXT DEFAULT '',
-        terminal_disponibilidad_solucion TEXT DEFAULT '',
-        terminal_disponibilidad_comentario TEXT DEFAULT '',
-        terminal_disponibilidad_foto TEXT '',
+        -- Comunicacion PC
+        comunicacion_pc_estado TEXT DEFAULT '',
+        comunicacion_pc_solucion TEXT DEFAULT '',
+        comunicacion_pc_foto TEXT DEFAULT '',
         
-        -- Nuevo
-        elevado_puente_estado TEXT DEFAULT '',
-        elevado_puente_solucion TEXT DEFAULT '',
-        elevado_puente_comentario TEXT DEFAULT '',
-        elevado_puente_foto TEXT DEFAULT '',
+        -- Limpieza Conectores
+        limpieza_conectores_estado TEXT DEFAULT '',
+        limpieza_conectores_solucion TEXT DEFAULT '',
+        limpieza_conectores_foto TEXT DEFAULT '',
         
         limpieza_estructura_estado TEXT DEFAULT '',
         limpieza_estructura_solucion TEXT DEFAULT '',
-        limpieza_estructura_comentario TEXT DEFAULT '',
         limpieza_estructura_foto TEXT DEFAULT '',
         
         bearing_cups_estado TEXT DEFAULT '',
         bearing_cups_solucion TEXT DEFAULT '',
-        bearing_cups_comentario TEXT DEFAULT '',
         bearing_cups_foto TEXT DEFAULT '',
         
         celdas_carga_estado TEXT DEFAULT '',
         celdas_carga_solucion TEXT DEFAULT '',
-        celdas_carga_comentario TEXT DEFAULT '',
         celdas_carga_foto TEXT DEFAULT '',
         
-        lubricacion_cabezas_estado TEXT DEFAULT '',
-        lubricacion_cabezas_solucion TEXT DEFAULT '',
-        lubricacion_cabezas_comentario TEXT DEFAULT '',
-        lubricacion_cabezas_foto TEXT DEFAULT '',
+        lubricacion_celdas_estado TEXT DEFAULT '',
+        lubricacion_celdas_solucion TEXT DEFAULT '',
+        lubricacion_celdas_foto TEXT DEFAULT '',
         
-        engrasado_bearing_estado TEXT DEFAULT '',
-        engrasado_bearing_solucion TEXT DEFAULT '',
-        engrasado_bearing_comentario TEXT DEFAULT '',
-        engrasado_bearing_foto TEXT DEFAULT '',
+        lubricacion_bearing_estado TEXT DEFAULT '',
+        lubricacion_bearing_solucion TEXT DEFAULT '',
+        lubricacion_bearing_foto TEXT DEFAULT '',
         
-        lainas_botas_estado TEXT DEFAULT '',
-        lainas_botas_solucion TEXT DEFAULT '',
-        lainas_botas_comentario TEXT DEFAULT '',
-        lainas_botas_foto TEXT DEFAULT '',
+        protector_goma_estado TEXT DEFAULT '',
+        protector_goma_solucion TEXT DEFAULT '',
+        protector_goma_foto TEXT DEFAULT '',
         
-        -- Calibracion
-        calibracion_balanza_estado TEXT DEFAULT '',
-        calibracion_balanza_solucion TEXT DEFAULT '',
-        calibracion_balanza_comentario TEXT DEFAULT '',
-        calibracion_balanza_foto TEXT DEFAULT '',
+        -- Balanza Apta
+        balanza_apta_estado TEXT DEFAULT '',
+        balanza_apta_solucion TEXT DEFAULT '',
+        balanza_apta_foto TEXT DEFAULT '',
         
         otros TEXT DEFAULT '',
         otros_foto TEXT DEFAULT '',

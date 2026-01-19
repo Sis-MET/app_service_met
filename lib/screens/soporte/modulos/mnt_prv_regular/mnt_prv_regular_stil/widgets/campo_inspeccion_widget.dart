@@ -140,29 +140,6 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                   _buildDropdownSolucion(),
                   const SizedBox(height: 16),
 
-                  // Campo de comentario
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Comentario',
-                      hintText: 'Agregue observaciones...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      prefixIcon: const Icon(Icons.comment_outlined),
-                    ),
-                    maxLines: 3,
-                    onChanged: (value) {
-                      widget.campo.comentario = value;
-                      widget.onChanged();
-                    },
-                    controller:
-                        TextEditingController(text: widget.campo.comentario)
-                          ..selection = TextSelection.collapsed(
-                            offset: widget.campo.comentario.length,
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-
                   // Sección de fotos
                   _buildFotosSection(),
                 ],

@@ -3,13 +3,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../controllers/mnt_prv_regular_stac_controller.dart';
-import '../models/mnt_prv_regular_stac_model.dart';
+import '../models/verificaciones_internas_model.dart';
+import '../controllers/verificaciones_internas_controller.dart';
 
 class CampoInspeccionWidget extends StatefulWidget {
   final String label;
   final CampoEstado campo;
-  final MntPrvRegularStacController controller;
+  final VerificacionesInternasController controller;
   final VoidCallback onChanged;
 
   const CampoInspeccionWidget({
@@ -31,14 +31,14 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   // Mapeo de estados a colores e iconos
   static const Map<String, IconData> _iconMap = {
     '1 Bueno': Icons.check_circle,
-    '2 Aceptable': Icons.warning,
+    '2 Regular': Icons.warning,
     '3 Malo': Icons.error,
     '4 No aplica': Icons.block,
   };
 
   static const Map<String, Color> _colorMap = {
     '1 Bueno': Colors.green,
-    '2 Aceptable': Colors.orange,
+    '2 Regular': Colors.orange,
     '3 Malo': Colors.red,
     '4 No aplica': Colors.grey,
   };
@@ -140,29 +140,6 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                   _buildDropdownSolucion(),
                   const SizedBox(height: 16),
 
-                  // Campo de comentario
-                  TextField(
-                    decoration: InputDecoration(
-                      labelText: 'Comentario',
-                      hintText: 'Agregue observaciones...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      prefixIcon: const Icon(Icons.comment_outlined),
-                    ),
-                    maxLines: 3,
-                    onChanged: (value) {
-                      widget.campo.comentario = value;
-                      widget.onChanged();
-                    },
-                    controller:
-                        TextEditingController(text: widget.campo.comentario)
-                          ..selection = TextSelection.collapsed(
-                            offset: widget.campo.comentario.length,
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-
                   // Sección de fotos
                   _buildFotosSection(),
                 ],
@@ -175,12 +152,11 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   }
 
   Widget _buildDropdownEstado() {
-    final opciones = ['1 Bueno', '2 Aceptable', '3 Malo', '4 No aplica'];
+    final opciones = ['1 Bueno', '2 Regular', '3 Malo', '4 No aplica'];
 
     return DropdownButtonFormField<String>(
-      initialValue: widget.campo.initialValue.isEmpty
-          ? '4 No aplica'
-          : widget.campo.initialValue,
+      value:
+          widget.campo.initialValue.isEmpty ? null : widget.campo.initialValue,
       decoration: InputDecoration(
         labelText: 'Estado',
         border: OutlineInputBorder(
@@ -213,6 +189,10 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
         if (newValue != null) {
           setState(() {
             widget.campo.initialValue = newValue;
+            // Auto-set solution if state is 'No aplica' or 'Bueno'
+            if (newValue.startsWith('1') || newValue.startsWith('4')) {
+              widget.campo.solutionValue = 'No aplica';
+            }
             widget.onChanged();
           });
         }
@@ -221,22 +201,37 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   }
 
   Widget _buildDropdownSolucion() {
-    final opciones = ['Sí', 'Se intentó', 'No', 'No aplica'];
+    final opciones = [
+      'No aplica',
+      'Se ajusta',
+      'Se repara',
+      'Se cambia',
+      'Limpieza',
+      'Lubricación'
+    ];
+
+    // Mostrar solo si no es "No aplica" y no es "Bueno", o dejar disponible siempre pero con lógica visual?
+    // En el avanzado se muestra siempre pero los valores por defecto ayudan.
+
     final iconos = {
-      'Sí': Icons.check_circle_outline,
-      'Se intentó': Icons.build_circle_outlined,
-      'No': Icons.cancel_rounded,
       'No aplica': Icons.block_outlined,
+      'Se ajusta': Icons.build_circle_outlined,
+      'Se repara': Icons.handyman_outlined,
+      'Se cambia': Icons.cached_outlined,
+      'Limpieza': Icons.cleaning_services_outlined,
+      'Lubricación': Icons.water_drop_outlined,
     };
     final colores = {
-      'Sí': Colors.green,
-      'Se intentó': Colors.orange,
-      'No': Colors.red,
       'No aplica': Colors.grey,
+      'Se ajusta': Colors.orange,
+      'Se repara': Colors.red,
+      'Se cambia': Colors.blue,
+      'Limpieza': Colors.lightBlue,
+      'Lubricación': Colors.teal,
     };
 
     return DropdownButtonFormField<String>(
-      initialValue: widget.campo.solutionValue.isEmpty
+      value: widget.campo.solutionValue.isEmpty
           ? 'No aplica'
           : widget.campo.solutionValue,
       decoration: InputDecoration(
@@ -250,8 +245,8 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
         ),
       ),
       items: opciones.map((String value) {
-        final color = colores[value]!;
-        final icon = iconos[value]!;
+        final color = colores[value] ?? Colors.black;
+        final icon = iconos[value] ?? Icons.circle;
 
         return DropdownMenuItem<String>(
           value: value,

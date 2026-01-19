@@ -1,12 +1,13 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
-import '../../models/verificaciones_internas_model.dart';
 import '../../controllers/verificaciones_internas_controller.dart';
+import '../../models/verificaciones_internas_model.dart';
 import '../pruebas_metrologicas_widget.dart';
 
 class PasoPruebasFinales extends StatelessWidget {
   final VerificacionesInternasModel model;
   final VerificacionesInternasController controller;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
   final Future<double> Function() getD1FromDatabase;
   final VoidCallback onChanged;
 
@@ -14,7 +15,6 @@ class PasoPruebasFinales extends StatelessWidget {
     super.key,
     required this.model,
     required this.controller,
-    required this.getIndicationSuggestions,
     required this.getD1FromDatabase,
     required this.onChanged,
   });
@@ -40,7 +40,6 @@ class PasoPruebasFinales extends StatelessWidget {
             pruebas: model.pruebasFinales,
             isInicial: false,
             onChanged: onChanged,
-            getIndicationSuggestions: getIndicationSuggestions,
             getD1FromDatabase: getD1FromDatabase,
           ),
         ],

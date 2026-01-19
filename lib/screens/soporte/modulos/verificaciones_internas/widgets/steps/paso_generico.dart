@@ -1,53 +1,61 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import '../../../mnt_prv_avanzado_stil/widgets/campo_inspeccion_widget.dart';
-import '../../controllers/mnt_prv_avanzado_stil_controller.dart';
-import '../../models/mnt_prv_avanzado_stil_model.dart';
+import '../../controllers/verificaciones_internas_controller.dart';
+import '../../models/verificaciones_internas_model.dart';
+import '../campo_inspeccion_widget.dart';
 
-class PasoEntorno extends StatefulWidget {
-  final MntPrvAvanzadoStilModel model;
-  final MntPrvAvanzadoStilController controller;
+class PasoGenerico extends StatefulWidget {
+  final VerificacionesInternasModel model;
+  final VerificacionesInternasController controller;
   final VoidCallback onChanged;
+  final List<String> campos;
+  final String titulo;
+  final String subtitulo;
+  final IconData icono;
+  final Color color;
 
-  const PasoEntorno({
+  const PasoGenerico({
     super.key,
     required this.model,
     required this.controller,
     required this.onChanged,
+    required this.campos,
+    required this.titulo,
+    required this.subtitulo,
+    required this.icono,
+    required this.color,
   });
 
   @override
-  State<PasoEntorno> createState() => _PasoEntornoState();
+  State<PasoGenerico> createState() => _PasoGenericoState();
 }
 
-class _PasoEntornoState extends State<PasoEntorno> {
+class _PasoGenericoState extends State<PasoGenerico> {
   bool _isAllGood = false;
 
   @override
-  Widget build(BuildContext context) {
-    final campos = [
-      'Vibración',
-      'Polvo',
-      'Temperatura',
-      'Humedad',
-      'Mesada',
-      'Iluminación',
-      'Limpieza de Fosa',
-      'Estado de Drenaje',
-    ];
+  void didUpdateWidget(PasoGenerico oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Resetear el checkbox cuando cambian los campos (cambio de paso)
+    if (oldWidget.campos != widget.campos) {
+      _isAllGood = false;
+    }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          _buildAllGoodCheckbox(campos),
+          _buildAllGoodCheckbox(widget.campos),
           const SizedBox(height: 24),
 
           // Lista de campos
-          ...campos.map((campo) {
+          ...widget.campos.map((campo) {
             return CampoInspeccionWidget(
               label: campo,
               campo: widget.model.camposEstado[campo]!,
@@ -128,19 +136,19 @@ class _PasoEntornoState extends State<PasoEntorno> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDarkMode
-            ? Colors.blue.withOpacity(0.1)
-            : Colors.blue.withOpacity(0.05),
+            ? widget.color.withOpacity(0.1)
+            : widget.color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.blue.withOpacity(0.3),
+          color: widget.color.withOpacity(0.3),
           width: 1,
         ),
       ),
       child: Row(
         children: [
           Icon(
-            Icons.domain_outlined,
-            color: Colors.blue,
+            widget.icono,
+            color: widget.color,
             size: 32,
           ),
           const SizedBox(width: 16),
@@ -148,16 +156,16 @@ class _PasoEntornoState extends State<PasoEntorno> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'ENTORNO DE INSTALACIÓN',
-                  style: TextStyle(
+                Text(
+                  widget.titulo,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Inspeccione las condiciones ambientales y de instalación',
+                  widget.subtitulo,
                   style: TextStyle(
                     fontSize: 13,
                     color: isDarkMode ? Colors.white70 : Colors.black54,

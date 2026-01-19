@@ -10,8 +10,6 @@ import 'database/app_database.dart';
 import 'database/soporte_tecnico/database_helper_ajustes.dart';
 import 'database/soporte_tecnico/database_helper_instalacion.dart';
 import 'database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.dart';
-import 'database/soporte_tecnico/database_helper_mnt_prv_avanzado_stil.dart';
-import 'database/soporte_tecnico/database_helper_mnt_prv_regular_stac.dart';
 import 'database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import 'database/soporte_tecnico/database_helper_relevamiento.dart';
 import 'database/soporte_tecnico/database_helper_verificaciones.dart';
@@ -39,8 +37,6 @@ void main() async {
       DatabaseHelperAjustes().database,
       DatabaseHelperInstalacion().database,
       DatabaseHelperMntPrvAvanzadoStac().database,
-      DatabaseHelperMntPrvAvanzadoStil().database,
-      DatabaseHelperMntPrvRegularStac().database,
       DatabaseHelperMntPrvRegularStil().database,
       DatabaseHelperRelevamiento().database,
       DatabaseHelperVerificaciones().database,

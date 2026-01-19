@@ -2,17 +2,16 @@
 
 import 'package:flutter/material.dart';
 import '../models/verificaciones_internas_model.dart';
-import 'package:service_met/screens/soporte/modulos/mnt_prv_regular/mnt_prv_regular_stil/utils/constants.dart';
 
 class ExcentricidadWidget extends StatefulWidget {
   final Excentricidad excentricidad;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
+  final Future<double> Function() getD1FromDatabase;
   final Function onChanged;
 
   const ExcentricidadWidget({
     super.key,
     required this.excentricidad,
-    required this.getIndicationSuggestions,
+    required this.getD1FromDatabase,
     required this.onChanged,
   });
 
@@ -25,10 +24,18 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
   final List<TextEditingController> _indicationControllers = [];
   final List<TextEditingController> _returnControllers = [];
 
+  // Opciones de cantidad de puntos solicitadas
+  final List<int> _puntosOptions = [2, 4, 6, 8, 10, 12];
+
   @override
   void initState() {
     super.initState();
     _initializeControllers();
+
+    // Asegurar que el tipo de plataforma sea correcto por defecto
+    if (widget.excentricidad.tipoPlataforma != 'Báscula de camión') {
+      widget.excentricidad.tipoPlataforma = 'Báscula de camión';
+    }
   }
 
   void _initializeControllers() {
@@ -44,40 +51,39 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
     }
   }
 
-  void _updatePositions() {
-    if (widget.excentricidad.puntosIndicador == null) return;
-
-    int numberOfPositions =
-        _getNumberOfPositions(widget.excentricidad.puntosIndicador!);
-
+  void _updatePositions(int totalPuntos) {
+    widget.excentricidad.puntosIndicador = totalPuntos.toString();
     widget.excentricidad.posiciones.clear();
     _initializeControllers();
 
-    for (int i = 0; i < numberOfPositions; i++) {
-      widget.excentricidad.posiciones.add(PosicionExcentricidad(
-        posicion: (i + 1).toString(),
-        indicacion: widget.excentricidad.carga,
-        retorno: '0',
-      ));
+    // Calcular puntos por lado (Ida y Vuelta)
+    int puntosPorLado = totalPuntos ~/ 2;
 
-      _positionControllers.add(TextEditingController(text: (i + 1).toString()));
-      _indicationControllers
-          .add(TextEditingController(text: widget.excentricidad.carga));
-      _returnControllers.add(TextEditingController(text: '0'));
+    // Generar puntos de IDA
+    for (int i = 1; i <= puntosPorLado; i++) {
+      _addPosition('Ida $i');
+    }
+
+    // Generar puntos de VUELTA
+    for (int i = 1; i <= puntosPorLado; i++) {
+      _addPosition('Vuelta $i');
     }
 
     widget.onChanged();
     setState(() {});
   }
 
-  int _getNumberOfPositions(String platform) {
-    if (platform == 'Báscula de camión') return 6;
-    if (platform.contains('3')) return 3;
-    if (platform.contains('4')) return 4;
-    if (platform.contains('5')) return 5;
-    if (platform.startsWith('Cuadrada')) return 5;
-    if (platform.startsWith('Triangular')) return 4;
-    return 0;
+  void _addPosition(String nombrePosicion) {
+    widget.excentricidad.posiciones.add(PosicionExcentricidad(
+      posicion: nombrePosicion,
+      indicacion: widget.excentricidad.carga,
+      retorno: '0',
+    ));
+
+    _positionControllers.add(TextEditingController(text: nombrePosicion));
+    _indicationControllers
+        .add(TextEditingController(text: widget.excentricidad.carga));
+    _returnControllers.add(TextEditingController(text: '0'));
   }
 
   InputDecoration _buildInputDecoration(String labelText,
@@ -91,60 +97,50 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Obtener valor actual de puntos para el dropdown
+    int? currentPuntos;
+    if (widget.excentricidad.puntosIndicador != null &&
+        widget.excentricidad.puntosIndicador!.isNotEmpty) {
+      currentPuntos = int.tryParse(widget.excentricidad.puntosIndicador!);
+    }
+
     return Column(
       children: [
         const SizedBox(height: 20),
         const Text(
-          'INFORMACIÓN DE PLATAFORMA',
+          'PRUEBA DE EXCENTRICIDAD',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 20),
-        DropdownButtonFormField<String>(
-          initialValue: widget.excentricidad.tipoPlataforma,
-          decoration: _buildInputDecoration('Tipo de Plataforma'),
-          items: AppConstants.platformOptions.keys.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              widget.excentricidad.tipoPlataforma = newValue;
-              widget.excentricidad.puntosIndicador = null;
-              widget.excentricidad.imagenPath = null;
-              _updatePositions();
-            });
-          },
+        const SizedBox(height: 8),
+        const Text(
+          'Báscula de camión',
+          style: TextStyle(fontSize: 14, color: Colors.grey),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 20),
-        if (widget.excentricidad.tipoPlataforma != null)
-          DropdownButtonFormField<String>(
-            initialValue: widget.excentricidad.puntosIndicador,
-            decoration: _buildInputDecoration('Puntos e Indicador'),
-            items: AppConstants
-                .platformOptions[widget.excentricidad.tipoPlataforma]!
-                .map((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-            onChanged: (String? newValue) {
+
+        // Selección de Cantidad de Puntos
+        DropdownButtonFormField<int>(
+          value: _puntosOptions.contains(currentPuntos) ? currentPuntos : null,
+          decoration: _buildInputDecoration('Cantidad de Puntos'),
+          hint: const Text('Seleccione cantidad de puntos'),
+          items: _puntosOptions.map((int value) {
+            return DropdownMenuItem<int>(
+              value: value,
+              child: Text(
+                  '$value puntos (${value ~/ 2} Ida / ${value ~/ 2} Vuelta)'),
+            );
+          }).toList(),
+          onChanged: (int? newValue) {
+            if (newValue != null) {
               setState(() {
-                widget.excentricidad.puntosIndicador = newValue;
-                widget.excentricidad.imagenPath =
-                    AppConstants.optionImages[newValue!];
-                _updatePositions();
+                _updatePositions(newValue);
               });
-            },
-          ),
-        const SizedBox(height: 20),
-        if (widget.excentricidad.imagenPath != null)
-          // Asumiendo que las imágenes son accesibles globalmente, si no, habría que moverlas o referenciarlas bien
-          // AppConstants usa strings como 'images/opcion1.png', así que debería funcionar si están en assets.
-          Image.asset(widget.excentricidad.imagenPath!),
+            }
+          },
+        ),
+
         const SizedBox(height: 20),
         TextFormField(
           onChanged: (value) {
@@ -156,34 +152,63 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
             }
             widget.onChanged();
           },
-          decoration: _buildInputDecoration('Carga'),
+          initialValue: widget.excentricidad.carga,
+          decoration: _buildInputDecoration('Carga aplicada'),
           keyboardType: TextInputType.number,
         ),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: widget.excentricidad.posiciones.length,
-          itemBuilder: (context, index) {
-            return _buildPositionRow(index);
-          },
-        ),
+
+        const SizedBox(height: 20),
+
+        // Diagrama Visual de la Báscula
+        if (currentPuntos != null && currentPuntos > 0)
+          _buildVisualDiagram(currentPuntos),
+
+        const SizedBox(height: 10),
+
+        if (widget.excentricidad.posiciones.isNotEmpty)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: widget.excentricidad.posiciones.length,
+            itemBuilder: (context, index) {
+              return _buildPositionRow(index);
+            },
+          ),
       ],
     );
   }
 
   Widget _buildPositionRow(int index) {
+    // Determinar etiqueta segura
+    String label = widget.excentricidad.posiciones[index].posicion;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 10),
-          // Posición como texto
-          Text(
-            'Posición ${index + 1}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
+          // Posición como texto (read-only)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.location_on_outlined,
+                    size: 18, color: Colors.blue[700]),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: Colors.blue[900],
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -194,12 +219,32 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                   controller: _indicationControllers[index],
                   decoration: _buildInputDecoration(
                     'Indicación',
-                    suffixIcon: FutureBuilder<List<String>>(
-                      future: widget.getIndicationSuggestions(
-                          widget.excentricidad.carga,
-                          _indicationControllers[index].text),
+                    suffixIcon: FutureBuilder<double>(
+                      future: widget.getD1FromDatabase(),
                       builder: (context, snapshot) {
-                        final suggestions = snapshot.data ?? [];
+                        // Mostrar loader mientras carga
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        // Manejar errores
+                        if (snapshot.hasError) {
+                          return const Tooltip(
+                            message: 'Error al cargar d1',
+                            child: Icon(Icons.error_outline, color: Colors.red),
+                          );
+                        }
+                        // Obtener d1 o usar valor por defecto
+                        final d1 = snapshot.data ?? 0.1;
+
                         return PopupMenuButton<String>(
                           icon: const Icon(Icons.arrow_drop_down),
                           onSelected: (String newValue) {
@@ -211,12 +256,39 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                             });
                           },
                           itemBuilder: (BuildContext context) {
-                            return suggestions.map((String value) {
+                            final currentText =
+                                _indicationControllers[index].text.trim();
+
+                            // Si está vacío, usa la carga como base
+                            final baseValue = double.tryParse(
+                                  (currentText.isEmpty
+                                          ? widget.excentricidad.carga
+                                          : currentText)
+                                      .replaceAll(',', '.'),
+                                ) ??
+                                0.0;
+
+                            // Generar 11 opciones (5 abajo, actual, 5 arriba)
+                            return List.generate(11, (i) {
+                              final value = baseValue + ((i - 5) * d1);
+
+                              // Calcular decimales basados en d1
+                              int decimals = 0;
+                              if (d1 % 1 != 0) {
+                                String d1Str = d1.toString();
+                                if (d1Str.contains('.')) {
+                                  decimals = d1Str.split('.')[1].length;
+                                } else {
+                                  decimals = 1; // Fallback
+                                }
+                              }
+
+                              final txt = value.toStringAsFixed(decimals);
                               return PopupMenuItem<String>(
-                                value: value,
-                                child: Text(value),
+                                value: txt,
+                                child: Text(txt),
                               );
-                            }).toList();
+                            });
                           },
                         );
                       },
@@ -246,6 +318,94 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVisualDiagram(int totalPuntos) {
+    int puntosIda = totalPuntos ~/ 2;
+    // int puntosVuelta = totalPuntos ~/ 2;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        border: Border.all(color: Colors.grey[600]!, width: 2),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'ESQUEMA DE PLATAFORMA',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                color: Colors.black54),
+          ),
+          const SizedBox(height: 16),
+
+          // Fila de IDA
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const Text('IDA ➡',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.indigo,
+                      fontSize: 12)),
+              ...List.generate(puntosIda, (index) {
+                return _buildDot(index + 1, Colors.indigo);
+              }),
+            ],
+          ),
+
+          // Divisor central (centro de plataforma)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            height: 2,
+            color: Colors.grey[400],
+          ),
+
+          // Fila de VUELTA
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const Text('⬅ VUELTA',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      fontSize: 12)),
+              ...List.generate(puntosIda, (index) {
+                // Invertimos el orden visual para que "Vuelta 1" esté alineado lógicamente si se desea,
+                // o mantenemos 1..N. Generalmente Ida va en un sentido y Vuelta regresa.
+                // Para simplificar visualización, mostraremos 1..N también.
+                return _buildDot(index + 1, Colors.green);
+              }),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDot(int number, Color color) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.2),
+        shape: BoxShape.circle,
+        border: Border.all(color: color, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$number',
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

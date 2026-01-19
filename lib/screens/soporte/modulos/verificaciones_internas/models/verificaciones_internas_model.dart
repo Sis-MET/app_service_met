@@ -5,41 +5,42 @@ class VerificacionesInternasModel {
   final String sessionId;
   final String secaValue;
 
+  // Campos de estado general
+  Map<String, CampoEstado> camposEstado;
+
   // Pruebas metrológicas
   PruebasMetrologicas pruebasIniciales;
   PruebasMetrologicas pruebasFinales;
 
-  // Reporte y Evaluación
-  String reporteFalla;
-  String evaluacion;
-  String excentricidadEstadoGeneral;
-  String repetibilidadEstadoGeneral;
-  String linealidadEstadoGeneral;
-
-  // Comentarios (Lista de 10)
-  List<ComentarioData> comentarios;
-
   // Estado general
+  String comentarioGeneral;
+  String recomendacion;
+  String estadoFisico;
+  String estadoOperacional;
+  String estadoMetrologico;
   String horaInicio;
   String horaFin;
+
+  // Fecha proximo servicio
+  String fechaProxServicio;
 
   VerificacionesInternasModel({
     required this.codMetrica,
     required this.sessionId,
     required this.secaValue,
+    required this.camposEstado,
     PruebasMetrologicas? pruebasIniciales,
     PruebasMetrologicas? pruebasFinales,
-    this.reporteFalla = '',
-    this.evaluacion = '',
-    this.excentricidadEstadoGeneral = 'Cumple',
-    this.repetibilidadEstadoGeneral = 'Cumple',
-    this.linealidadEstadoGeneral = 'Cumple',
-    List<ComentarioData>? comentarios,
+    this.comentarioGeneral = '',
+    this.recomendacion = '',
+    this.estadoFisico = '',
+    this.estadoOperacional = '',
+    this.estadoMetrologico = '',
     this.horaInicio = '',
     this.horaFin = '',
+    this.fechaProxServicio = '',
   })  : pruebasIniciales = pruebasIniciales ?? PruebasMetrologicas(),
-        pruebasFinales = pruebasFinales ?? PruebasMetrologicas(),
-        comentarios = comentarios ?? [];
+        pruebasFinales = pruebasFinales ?? PruebasMetrologicas();
 
   // Método para copiar pruebas iniciales a finales
   void copiarPruebasInicialesAFinales() {
@@ -48,27 +49,56 @@ class VerificacionesInternasModel {
 
   // Método para resetear el modelo
   void reset() {
+    camposEstado.forEach((key, value) {
+      value.initialValue = '4 No aplica';
+      value.solutionValue = 'No aplica';
+      value.comentario = 'Sin comentario';
+      value.fotos.clear();
+    });
+
     pruebasIniciales = PruebasMetrologicas();
     pruebasFinales = PruebasMetrologicas();
-    reporteFalla = '';
-    evaluacion = '';
-    excentricidadEstadoGeneral = 'Cumple';
-    repetibilidadEstadoGeneral = 'Cumple';
-    linealidadEstadoGeneral = 'Cumple';
-    comentarios.clear();
+
+    comentarioGeneral = '';
+    recomendacion = '';
+    estadoFisico = '';
+    estadoOperacional = '';
+    estadoMetrologico = '';
     horaInicio = '';
     horaFin = '';
+    fechaProxServicio = '';
   }
 }
 
-class ComentarioData {
+class CampoEstado {
+  String initialValue;
+  String solutionValue;
   String comentario;
   List<File> fotos;
 
-  ComentarioData({
-    this.comentario = '',
+  CampoEstado({
+    this.initialValue = '4 No aplica',
+    this.solutionValue = 'No aplica',
+    this.comentario = 'Sin comentario',
     List<File>? fotos,
   }) : fotos = fotos ?? [];
+
+  // Método para agregar foto
+  void agregarFoto(File foto) {
+    fotos.add(foto);
+  }
+
+  // Método para eliminar foto
+  void eliminarFoto(int index) {
+    if (index >= 0 && index < fotos.length) {
+      fotos.removeAt(index);
+    }
+  }
+
+  // Método para limpiar fotos
+  void limpiarFotos() {
+    fotos.clear();
+  }
 }
 
 class PruebasMetrologicas {

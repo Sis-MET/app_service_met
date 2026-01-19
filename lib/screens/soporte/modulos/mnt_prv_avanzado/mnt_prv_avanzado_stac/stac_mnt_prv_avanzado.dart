@@ -47,9 +47,9 @@ class _StacMntPrvAvanzadoStacScreenState
   int _currentStep = 0;
   bool _isSaving = false;
   DateTime? _lastPressedTime;
-  double? _cachedD1; // ✅ Cachear d1 para evitar múltiples consultas
+  double? _cachedD1; // Cachear d1 para evitar múltiples consultas
 
-  // ✅ Definición de pasos
+  // Definición de pasos
   final List<StepData> _steps = [];
 
   @override
@@ -146,7 +146,7 @@ class _StacMntPrvAvanzadoStacScreenState
     _model.horaInicio = horaFormateada;
   }
 
-  // ✅ Cargar d1 una sola vez
+  // Cargar d1 una sola vez
   Future<void> _loadD1Value() async {
     try {
       // Intentar obtener de BD (ahora retorna nullable)
@@ -169,7 +169,7 @@ class _StacMntPrvAvanzadoStacScreenState
     return _cachedD1 ?? 0.1;
   }
 
-  // ✅ Guardar automáticamente al cambiar de paso
+  // Guardar automáticamente al cambiar de paso
   Future<void> _saveCurrentStep() async {
     if (_isSaving) return;
 
@@ -177,16 +177,16 @@ class _StacMntPrvAvanzadoStacScreenState
 
     try {
       await _controller.saveDataToDatabase(context, showMessage: false);
-      debugPrint('✅ Paso $_currentStep guardado automáticamente');
+      debugPrint('Paso $_currentStep guardado automáticamente');
     } catch (e) {
-      debugPrint('❌ Error al guardar paso $_currentStep: $e');
+      debugPrint('Error al guardar paso $_currentStep: $e');
       _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
       setState(() => _isSaving = false);
     }
   }
 
-  // ✅ Validar paso actual antes de avanzar
+  // Validar paso actual antes de avanzar
   bool _validateCurrentStep() {
     switch (_currentStep) {
       case 0: // Pruebas Iniciales
@@ -322,7 +322,6 @@ class _StacMntPrvAvanzadoStacScreenState
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final balanza = Provider.of<BalanzaProvider>(context).selectedBalanza;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -363,7 +362,7 @@ class _StacMntPrvAvanzadoStacScreenState
               : null,
           centerTitle: true,
           actions: [
-            // ✅ Indicador de guardado automático
+            // Indicador de guardado automático
             if (_isSaving)
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -377,19 +376,18 @@ class _StacMntPrvAvanzadoStacScreenState
         ),
         body: Column(
           children: [
-            // ✅ Barra de progreso mejorada
+            // Barra de progreso mejorada
             _buildProgressBar(isDarkMode),
 
-            // ✅ Contenido del paso actual
+            // Contenido del paso actual
             Expanded(
               child: _buildStepContent(),
             ),
 
-            // ✅ Botones de navegación
+            // Botones de navegación
             _buildNavigationButtons(isDarkMode),
           ],
         ),
-        floatingActionButton: _buildFloatingActionButton(balanza),
       ),
     );
   }
@@ -679,72 +677,9 @@ class _StacMntPrvAvanzadoStacScreenState
       ),
     );
   }
-
-  Widget _buildFloatingActionButton(dynamic balanza) {
-    return FloatingActionButton(
-      backgroundColor: const Color(0xFFF9E300),
-      child: const Icon(Icons.info_outline, color: Colors.black87),
-      onPressed: () => _showBalanzaInfo(context, balanza),
-    );
-  }
-
-  void _showBalanzaInfo(BuildContext context, dynamic balanza) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Información de la Balanza',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const Divider(height: 24),
-                if (balanza != null) ...[
-                  _buildInfoRow('Código Métrica', balanza.cod_metrica),
-                  _buildInfoRow('Unidades', balanza.unidad.toString()),
-                  _buildInfoRow('Cap. Máx 1', balanza.cap_max1),
-                  _buildInfoRow('d1', balanza.d1.toString()),
-                  _buildInfoRow('e1', balanza.e1.toString()),
-                  _buildInfoRow('Decimales 1', balanza.dec1.toString()),
-                  if (balanza.cap_max2 != null &&
-                      balanza.cap_max2.isNotEmpty) ...[
-                    const Divider(),
-                    _buildInfoRow('Cap. Máx 2', balanza.cap_max2),
-                    _buildInfoRow('d2', balanza.d2.toString()),
-                    _buildInfoRow('e2', balanza.e2.toString()),
-                  ],
-                ] else
-                  const Text('No hay información de balanza disponible'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(value),
-        ],
-      ),
-    );
-  }
 }
 
-// ✅ Clase auxiliar para datos de pasos
+// Clase auxiliar para datos de pasos
 class StepData {
   final String title;
   final String subtitle;

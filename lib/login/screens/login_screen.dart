@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      // ✅ NUEVO: Manejo de Acceso Denegado
+      // Manejo de Acceso Denegado
       if (result.message.contains('[ACCESO_DENEGADO]')) {
         // Limpiamos el prefijo para mostrar el mensaje limpio
         final cleanMessage =
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // ✅ SIMPLIFICADO: Mostrar lista de usuarios
+  // Mostrar lista de usuarios
   Future<void> _showUserSelector(BuildContext context) async {
     final users = await _authService.getSavedUsers();
 
@@ -295,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen>
             // To be safe with the logic flow:
             if (!mounted) return;
 
-            // ✅ Si eliminó el usuario actual, limpiar
+            // Si eliminó el usuario actual, limpiar
             if (user.usuario == _savedUser) {
               await _clearSavedUser();
               if (mounted) {
@@ -308,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen>
 
             if (mounted) {
               _showSnackBar(context, 'Usuario eliminado', Colors.green);
-              // ✅ Recargar para verificar si quedan usuarios
+              // Recargar para verificar si quedan usuarios
               await _loadPrefsAndCheckAutoLogin();
             }
           } else {
@@ -321,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (selectedUser != null) {
-      // ✅ Seleccionar usuario de la lista
+      // Seleccionar usuario de la lista
       setState(() {
         _savedUser = selectedUser.usuario;
         _savedUserFullName = selectedUser.fullName;
@@ -336,7 +336,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // ✅ SIMPLIFICADO: Modo agregar nuevo usuario
+  // Modo agregar nuevo usuario
   void _startAddingNewUser() {
     setState(() {
       _isAddingNewUser = true;
@@ -345,7 +345,7 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  // ✅ SIMPLIFICADO: Cancelar agregar usuario
+  // Cancelar agregar usuario
   void _cancelAddingUser() {
     setState(() {
       _isAddingNewUser = false;
@@ -354,7 +354,7 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  // ✅ NUEVO: Limpiar usuario guardado en SharedPreferences
+  // NUEVO: Limpiar usuario guardado en SharedPreferences
   Future<void> _clearSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('logged_user');
@@ -370,13 +370,19 @@ class _LoginScreenState extends State<LoginScreen>
         title: Row(
           children: [
             Icon(Icons.system_update_alt, color: Colors.blue[700]),
-            const SizedBox(width: 12),
-            const Text('Actualizar Bases de Datos'),
+            const SizedBox(width: 10),
+            Text(
+              'ACTUALIZAR BASES DE DATOS',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ],
         ),
-        content: const Text(
+        content: Text(
           'Esta operación actualizará la estructura de las bases de datos preservando su información.\n\n'
-          '⚠️ Se realizará una copia de seguridad temporal, se recrearán las tablas y se restaurarán los datos.\n'
+          'Se realizará una copia de seguridad temporal, se recrearán las tablas y se restaurarán los datos.\n'
           '¿Desea continuar?',
         ),
         actions: [
@@ -405,12 +411,12 @@ class _LoginScreenState extends State<LoginScreen>
       try {
         await DatabaseMaintenanceService.migrateAllDatabases();
         if (mounted) {
-          _showSnackBar(context, '✅ Bases de datos actualizadas correctamente',
+          _showSnackBar(context, 'Bases de datos actualizadas correctamente',
               Colors.green);
         }
       } catch (e) {
         if (mounted) {
-          _showSnackBar(context, '❌ Error al actualizar: $e', Colors.red);
+          _showSnackBar(context, 'Error al actualizar: $e', Colors.red);
         }
       } finally {
         if (mounted) {

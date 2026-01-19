@@ -305,176 +305,142 @@ class DatabaseHelperMntPrvRegularStil {
         -- Entorno de instalación
         vibracion_estado TEXT DEFAULT '',
         vibracion_solucion TEXT DEFAULT '',
-        vibracion_comentario TEXT DEFAULT '',
         vibracion_foto TEXT DEFAULT '',
         
         polvo_estado TEXT DEFAULT '',
         polvo_solucion TEXT DEFAULT '',
-        polvo_comentario TEXT DEFAULT '',
         polvo_foto TEXT DEFAULT '',
         
         temperatura_estado TEXT DEFAULT '',
         temperatura_solucion TEXT DEFAULT '',
-        temperatura_comentario TEXT DEFAULT '',
         temperatura_foto TEXT DEFAULT '',
         
         humedad_estado TEXT DEFAULT '',
         humedad_solucion TEXT DEFAULT '',
-        humedad_comentario TEXT DEFAULT '',
         humedad_foto TEXT DEFAULT '',
         
         mesada_estado TEXT DEFAULT '',
         mesada_solucion TEXT DEFAULT '',
-        mesada_comentario TEXT DEFAULT '',
         mesada_foto TEXT DEFAULT '',
         
         iluminacion_estado TEXT DEFAULT '',
         iluminacion_solucion TEXT DEFAULT '',
-        iluminacion_comentario TEXT DEFAULT '',
         iluminacion_foto TEXT DEFAULT '',
         
         limpieza_fosa_estado TEXT DEFAULT '',
         limpieza_fosa_solucion TEXT DEFAULT '',
-        limpieza_fosa_comentario TEXT DEFAULT '',
         limpieza_fosa_foto TEXT DEFAULT '',
         
         estado_drenaje_estado TEXT DEFAULT '',
         estado_drenaje_solucion TEXT DEFAULT '',
-        estado_drenaje_comentario TEXT DEFAULT '',
         estado_drenaje_foto TEXT DEFAULT '',
         
         -- Terminal de pesaje
         carcasa_estado TEXT DEFAULT '',
         carcasa_solucion TEXT DEFAULT '',
-        carcasa_comentario TEXT DEFAULT '',
         carcasa_foto TEXT DEFAULT '',
         
         teclado_fisico_estado TEXT DEFAULT '',
         teclado_fisico_solucion TEXT DEFAULT '',
-        teclado_fisico_comentario TEXT DEFAULT '',
         teclado_fisico_foto TEXT DEFAULT '',
         
         display_fisico_estado TEXT DEFAULT '',
         display_fisico_solucion TEXT DEFAULT '',
-        display_fisico_comentario TEXT DEFAULT '',
         display_fisico_foto TEXT DEFAULT '',
         
         fuente_poder_estado TEXT DEFAULT '',
         fuente_poder_solucion TEXT DEFAULT '',
-        fuente_poder_comentario TEXT DEFAULT '',
         fuente_poder_foto TEXT DEFAULT '',
         
         bateria_operacional_estado TEXT DEFAULT '',
         bateria_operacional_solucion TEXT DEFAULT '',
-        bateria_operacional_comentario TEXT DEFAULT '',
         bateria_operacional_foto TEXT DEFAULT '',
         
         bracket_estado TEXT DEFAULT '',
         bracket_solucion TEXT DEFAULT '',
-        bracket_comentario TEXT DEFAULT '',
         bracket_foto TEXT DEFAULT '',
         
         teclado_operativo_estado TEXT DEFAULT '',
         teclado_operativo_solucion TEXT DEFAULT '',
-        teclado_operativo_comentario TEXT DEFAULT '',
         teclado_operativo_foto TEXT DEFAULT '',
         
         display_operativo_estado TEXT DEFAULT '',
         display_operativo_solucion TEXT DEFAULT '',
-        display_operativo_comentario TEXT DEFAULT '',
         display_operativo_foto TEXT DEFAULT '',
         
         conector_celda_estado TEXT DEFAULT '',
         conector_celda_solucion TEXT DEFAULT '',
-        conector_celda_comentario TEXT DEFAULT '',
         conector_celda_foto TEXT DEFAULT '',
         
         bateria_memoria_estado TEXT DEFAULT '',
         bateria_memoria_solucion TEXT DEFAULT '',
-        bateria_memoria_comentario TEXT DEFAULT '',
         bateria_memoria_foto TEXT DEFAULT '',
         
         -- Estado general de la balanza
         limpieza_general_estado TEXT DEFAULT '',
         limpieza_general_solucion TEXT DEFAULT '',
-        limpieza_general_comentario TEXT DEFAULT '',
         limpieza_general_foto TEXT DEFAULT '',
         
         golpes_terminal_estado TEXT DEFAULT '',
         golpes_terminal_solucion TEXT DEFAULT '',
-        golpes_terminal_comentario TEXT DEFAULT '',
         golpes_terminal_foto TEXT DEFAULT '',
         
         nivelacion_estado TEXT DEFAULT '',
         nivelacion_solucion TEXT DEFAULT '',
-        nivelacion_comentario TEXT DEFAULT '',
         nivelacion_foto TEXT DEFAULT '',
         
         limpieza_receptor_estado TEXT DEFAULT '',
         limpieza_receptor_solucion TEXT DEFAULT '',
-        limpieza_receptor_comentario TEXT DEFAULT '',
         limpieza_receptor_foto TEXT DEFAULT '',
         
         golpes_receptor_estado TEXT DEFAULT '',
         golpes_receptor_solucion TEXT DEFAULT '',
-        golpes_receptor_comentario TEXT DEFAULT '',
         golpes_receptor_foto TEXT DEFAULT '',
         
         encendido_estado TEXT DEFAULT '',
         encendido_solucion TEXT DEFAULT '',
-        encendido_comentario TEXT DEFAULT '',
         encendido_foto TEXT DEFAULT '',
         
         -- Balanza/Plataforma
         limitador_movimiento_estado TEXT DEFAULT '',
         limitador_movimiento_solucion TEXT DEFAULT '',
-        limitador_movimiento_comentario TEXT DEFAULT '',
         limitador_movimiento_foto TEXT DEFAULT '',
         
         suspension_estado TEXT DEFAULT '',
         suspension_solucion TEXT DEFAULT '',
-        suspension_comentario TEXT DEFAULT '',
         suspension_foto TEXT DEFAULT '',
         
         limitador_carga_estado TEXT DEFAULT '',
         limitador_carga_solucion TEXT DEFAULT '',
-        limitador_carga_comentario TEXT DEFAULT '',
         limitador_carga_foto TEXT DEFAULT '',
         
         celda_carga_estado TEXT DEFAULT '',
         celda_carga_solucion TEXT DEFAULT '',
-        celda_carga_comentario TEXT DEFAULT '',
         celda_carga_foto TEXT DEFAULT '',
         
         -- Caja sumadora
         tapa_caja_estado TEXT DEFAULT '',
         tapa_caja_solucion TEXT DEFAULT '',
-        tapa_caja_comentario TEXT DEFAULT '',
         tapa_caja_foto TEXT DEFAULT '',
         
         humedad_interna_estado TEXT DEFAULT '',
         humedad_interna_solucion TEXT DEFAULT '',
-        humedad_interna_comentario TEXT DEFAULT '',
         humedad_interna_foto TEXT DEFAULT '',
         
         estado_prensacables_estado TEXT DEFAULT '',
         estado_prensacables_solucion TEXT DEFAULT '',
-        estado_prensacables_comentario TEXT DEFAULT '',
         estado_prensacables_foto TEXT DEFAULT '',
         
         estado_borneas_estado TEXT DEFAULT '',
         estado_borneas_solucion TEXT DEFAULT '',
-        estado_borneas_comentario TEXT DEFAULT '',
         estado_borneas_foto TEXT DEFAULT '',
         
         pintado_estado TEXT DEFAULT '',
         pintado_solucion TEXT DEFAULT '',
-        pintado_comentario TEXT DEFAULT '',
         pintado_foto TEXT DEFAULT '',
         
         limpieza_profunda_estado TEXT DEFAULT '',
         limpieza_profunda_solucion TEXT DEFAULT '',
-        limpieza_profunda_comentario TEXT DEFAULT '',
         limpieza_profunda_foto TEXT DEFAULT '',
         
         -- PRUEBAS METROLÓGICAS INICIALES
@@ -482,12 +448,12 @@ class DatabaseHelperMntPrvRegularStil {
         estabilizacion_inicial TEXT DEFAULT '',
         unidad_retorno_cero_inicial TEXT DEFAULT '',
         
+
+        -- Pruebas de Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',
         puntos_ind_inicial TEXT DEFAULT '',
         carga_exc_inicial TEXT DEFAULT '',
         
-        -- Posiciones de excentricidad inicial (hasta 6 posiciones)
-        -- Posiciones de excentricidad inicial (hasta 6 posiciones)
         posicion_inicial_1 TEXT DEFAULT '',
         indicacion_inicial_1 TEXT DEFAULT '',
         retorno_inicial_1 TEXT DEFAULT '',
@@ -633,11 +599,11 @@ class DatabaseHelperMntPrvRegularStil {
         estabilizacion_final TEXT DEFAULT '',
         unidad_retorno_cero_final TEXT DEFAULT '',
         
+        -- Pruebas de Excentricidad Final
         tipo_plataforma_final TEXT DEFAULT '',
         puntos_ind_final TEXT DEFAULT '',
         carga_exc_final TEXT DEFAULT '',
         
-        -- Posiciones de excentricidad final (hasta 6 posiciones)
         posicion_final_1 TEXT DEFAULT '',
         indicacion_final_1 TEXT DEFAULT '',
         retorno_final_1 TEXT DEFAULT '',
