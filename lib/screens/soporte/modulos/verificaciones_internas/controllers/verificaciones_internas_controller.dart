@@ -292,22 +292,23 @@ class VerificacionesInternasController {
   void _addExcentricidadData(
       Map<String, dynamic> data, Excentricidad? exc, String tipo) {
     if (exc?.activo ?? false) {
-      data['excentricidad_${tipo}_tipo_plataforma'] = exc!.tipoPlataforma ?? '';
-      data['excentricidad_${tipo}_opcion_prueba'] = exc.puntosIndicador ?? '';
-      data['excentricidad_${tipo}_carga'] = double.tryParse(exc.carga) ?? 0.0;
-      data['excentricidad_${tipo}_ruta_imagen'] = exc.imagenPath ?? '';
-      data['excentricidad_${tipo}_cantidad_posiciones'] =
-          exc.posiciones.length.toString();
+      data['tipo_plataforma_$tipo'] = exc!.tipoPlataforma ?? '';
+      data['puntos_ind_$tipo'] = exc.puntosIndicador ?? '';
+      data['carga_exc_$tipo'] = exc.carga;
 
       for (int i = 0; i < exc.posiciones.length; i++) {
         final pos = exc.posiciones[i];
         final num = i + 1;
 
+        // La base de datos solo soporta hasta 6 etiquetas de posición
         if (num <= 6) {
-          data['excentricidad_${tipo}_pos${num}_numero'] = pos.posicion;
-          data['excentricidad_${tipo}_pos${num}_indicacion'] = pos.indicacion;
-          data['excentricidad_${tipo}_pos${num}_retorno'] = pos.retorno;
-          // data['excentricidad_${tipo}_pos${num}_error'] = ...;
+          data['posicion_${tipo}_$num'] = pos.posicion;
+        }
+
+        // La base de datos soporta hasta 12 puntos de indicación y retorno
+        if (num <= 12) {
+          data['indicacion_${tipo}_$num'] = pos.indicacion;
+          data['retorno_${tipo}_$num'] = pos.retorno;
         }
       }
     }
@@ -316,23 +317,16 @@ class VerificacionesInternasController {
   void _addRepetibilidadData(
       Map<String, dynamic> data, Repetibilidad? rep, String tipo) {
     if (rep?.activo ?? false) {
-      data['repetibilidad_${tipo}_cantidad_cargas'] =
-          rep!.cantidadCargas.toString();
-      data['repetibilidad_${tipo}_cantidad_pruebas'] =
-          rep.cantidadPruebas.toString();
-
-      for (int i = 0; i < rep.cargas.length; i++) {
+      for (int i = 0; i < rep!.cargas.length; i++) {
         final carga = rep.cargas[i];
         final cargaNum = i + 1;
-        data['repetibilidad_${tipo}_carga${cargaNum}_valor'] = carga.valor;
+        data['repetibilidad${cargaNum}_$tipo'] = carga.valor;
 
         for (int j = 0; j < carga.pruebas.length; j++) {
           final prueba = carga.pruebas[j];
           final testNum = j + 1;
-          data['repetibilidad_${tipo}_carga${cargaNum}_prueba${testNum}_indicacion'] =
-              prueba.indicacion;
-          data['repetibilidad_${tipo}_carga${cargaNum}_prueba${testNum}_retorno'] =
-              prueba.retorno;
+          data['indicacion${cargaNum}_${tipo}_$testNum'] = prueba.indicacion;
+          data['retorno${cargaNum}_${tipo}_$testNum'] = prueba.retorno;
         }
       }
     }
@@ -341,15 +335,12 @@ class VerificacionesInternasController {
   void _addLinealidadData(
       Map<String, dynamic> data, Linealidad? lin, String tipo) {
     if (lin?.activo ?? false) {
-      data['linealidad_${tipo}_cantidad_puntos'] = lin!.puntos.length;
-
-      for (int i = 0; i < lin.puntos.length; i++) {
+      for (int i = 0; i < lin!.puntos.length; i++) {
         final punto = lin.puntos[i];
         final num = i + 1;
-        data['linealidad_${tipo}_punto${num}_lt'] = punto.lt;
-        data['linealidad_${tipo}_punto${num}_indicacion'] = punto.indicacion;
-        data['linealidad_${tipo}_punto${num}_retorno'] = punto.retorno;
-        // data['linealidad_${tipo}_punto${num}_error'] = ...
+        data['lin_${tipo}_$num'] = punto.lt;
+        data['ind_${tipo}_$num'] = punto.indicacion;
+        data['retorno_lin_${tipo}_$num'] = punto.retorno;
       }
     }
   }

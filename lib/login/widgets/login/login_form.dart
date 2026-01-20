@@ -363,7 +363,7 @@ class LoginForm extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '© 2025 METRICA LTDA',
+                '© 2026 METRICA LTDA',
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   color: isDark ? Colors.white30 : Colors.black26,
