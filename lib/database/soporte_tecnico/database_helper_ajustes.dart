@@ -228,8 +228,9 @@ class DatabaseHelperAjustes {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 1,
+        version: 2, // Versión 2: Nuevas columnas Inspección y Estado Final
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -305,6 +306,21 @@ class DatabaseHelperAjustes {
         comentario_8 TEXT DEFAULT '',
         comentario_9 TEXT DEFAULT '',
         comentario_10 TEXT DEFAULT '',
+
+        -- Estado Final y Recomendaciones (V2)
+        comentario_general TEXT DEFAULT '',
+        recomendacion TEXT DEFAULT '',
+        fecha_prox_servicio TEXT DEFAULT '',
+        fisico TEXT DEFAULT '',
+        operacional TEXT DEFAULT '',
+        metrologico TEXT DEFAULT '',
+
+        -- Inspección Visual / Verificaciones (V2)
+        superficie_apoyo TEXT DEFAULT '',
+        tension_red TEXT DEFAULT '',
+        sistema_tierra TEXT DEFAULT '',
+        comunicacion_pc TEXT DEFAULT '',
+        vibracion_externa TEXT DEFAULT '',
         
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
@@ -731,6 +747,42 @@ class DatabaseHelperAjustes {
     } catch (e) {
       debugPrint('Error creando tabla: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    try {
+      if (oldVersion < 2) {
+        debugPrint('Actualizando base de datos Ajustes a versión 2...');
+
+        // Campos de Estado Final y Recomendaciones
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN comentario_general TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN recomendacion TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN fecha_prox_servicio TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN fisico TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN operacional TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN metrologico TEXT DEFAULT ''");
+
+        // Nuevos campos de Inspección Visual / Verificaciones
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN superficie_apoyo TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN tension_red TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN sistema_tierra TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN comunicacion_pc TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE ajustes_metrologicos ADD COLUMN vibracion_externa TEXT DEFAULT ''");
+      }
+    } catch (e) {
+      debugPrint('Error en migración Ajustes: $e');
     }
   }
 

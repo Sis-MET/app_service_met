@@ -19,6 +19,14 @@ class InstalacionModel {
   String horaFin;
   String estadoServicio;
 
+  // NUEVOS CAMPOS (V3)
+  String comentarioGeneral;
+  String recomendacion;
+  String fechaProxServicio;
+  String estadoFisico;
+  String estadoOperacional;
+  String estadoMetrologico;
+
   InstalacionModel({
     required this.codMetrica,
     required this.sessionId,
@@ -29,6 +37,12 @@ class InstalacionModel {
     this.horaInicio = '',
     this.horaFin = '',
     this.estadoServicio = 'Completo',
+    this.comentarioGeneral = '',
+    this.recomendacion = '',
+    this.fechaProxServicio = '',
+    this.estadoFisico = '',
+    this.estadoOperacional = '',
+    this.estadoMetrologico = '',
   })  : pruebasIniciales = pruebasIniciales ?? PruebasMetrologicas(),
         comentariosAdicionales =
             comentariosAdicionales ?? List.filled(10, null);
@@ -47,6 +61,13 @@ class InstalacionModel {
 
     horaInicio = '';
     horaFin = '';
+
+    comentarioGeneral = '';
+    recomendacion = '';
+    fechaProxServicio = '';
+    estadoFisico = '';
+    estadoOperacional = '';
+    estadoMetrologico = '';
   }
 }
 

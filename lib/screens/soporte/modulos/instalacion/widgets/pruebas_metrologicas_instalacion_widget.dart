@@ -104,6 +104,30 @@ class _PruebasMetrologicasInstalacionWidgetState
         ),
         const SizedBox(height: 20.0),
 
+        // Estabilidad
+        DropdownButtonFormField<String>(
+          initialValue: widget.pruebas.retornoCero.estabilidad,
+          decoration: _buildInputDecoration('Estabilidad'),
+          items: ['1 Bueno', '2 Regular', '3 Malo', '4 No aplica']
+              .map((String value) {
+            final color =
+                _colorMap[value.split(' ').first == '4' ? '1 Bueno' : value] ??
+                    Colors.grey;
+            // Simplificación para iconos/colores
+            return DropdownMenuItem<String>(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              widget.pruebas.retornoCero.estabilidad = value;
+              widget.onChanged();
+            }
+          },
+        ),
+        const SizedBox(height: 20.0),
+
         // Excentricidad
         SwitchListTile(
           title: const Text('PRUEBAS DE EXCENTRICIDAD INICIAL',

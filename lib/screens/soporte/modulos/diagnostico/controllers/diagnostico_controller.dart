@@ -195,102 +195,19 @@ class DiagnosticoController {
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'reporte': model.reporteFalla,
-      'evaluacion': model.evaluacion,
+      // 'evaluacion': model.evaluacion, // Ya no se usa, reemplazado por comentario_general
+
+      // Nuevos campos de Estado Final
+      'comentario_general': model.comentarioGeneral,
+      'recomendacion': model.recomendacion,
+      'fecha_prox_servicio': model.fechaProxServicio,
+      'fisico': model.estadoFisico,
+      'operacional': model.estadoOperacional,
+      'metrologico': model.estadoMetrologico,
     };
-
-    // Comentarios
-    for (int i = 0; i < model.comentarios.length; i++) {
-      if (model.comentarios[i] != null && model.comentarios[i]!.isNotEmpty) {
-        data['comentario_${i + 1}'] = model.comentarios[i];
-      }
-    }
-
-    // Pruebas Metrológicas (Iniciales)
-    _addPruebasMetrologicasData(data, model.pruebasIniciales, 'inicial');
 
     return data;
   }
 
-  void _addPruebasMetrologicasData(
-      Map<String, dynamic> data, PruebasMetrologicas pruebas, String tipo) {
-    // Retorno a Cero
-    data['retorno_cero_${tipo}_valoracion'] = pruebas.retornoCero.estado;
-    data['retorno_cero_${tipo}_carga'] =
-        pruebas.retornoCero.estabilidad; // Priorizar estabilidad
-    data['retorno_cero_${tipo}_unidad'] = pruebas.retornoCero.unidad;
-
-    // Excentricidad
-    if (pruebas.excentricidad != null && pruebas.excentricidad!.activo) {
-      final exc = pruebas.excentricidad!;
-      data['excentricidad_${tipo}_tipo_plataforma'] = exc.tipoPlataforma ?? '';
-      data['excentricidad_${tipo}_opcion_prueba'] = exc.puntosIndicador ?? '';
-      data['excentricidad_${tipo}_carga'] = exc.carga;
-
-      // Fotos se manejan aparte en el ZIP, pero guadamos path si aplica
-      data['excentricidad_${tipo}_ruta_imagen'] = exc.imagenPath ?? '';
-
-      data['excentricidad_${tipo}_cantidad_posiciones'] =
-          exc.posiciones.length.toString();
-
-      for (int i = 0; i < exc.posiciones.length && i < 6; i++) {
-        final pos = exc.posiciones[i];
-        final num = i + 1;
-        data['excentricidad_${tipo}_pos${num}_numero'] = pos.posicion;
-        data['excentricidad_${tipo}_pos${num}_indicacion'] = pos.indicacion;
-        data['excentricidad_${tipo}_pos${num}_retorno'] = pos.retorno;
-        // Error calculado en DB helper o aqui? En stac_diagnostico se calculaba: indicacion - posicion
-        double ind = double.tryParse(pos.indicacion) ?? 0;
-        double p = double.tryParse(pos.posicion) ?? 0;
-        data['excentricidad_${tipo}_pos${num}_error'] =
-            (ind - p).toStringAsFixed(2);
-      }
-    }
-
-    // Repetibilidad
-    if (pruebas.repetibilidad != null && pruebas.repetibilidad!.activo) {
-      final rep = pruebas.repetibilidad!;
-      data['repetibilidad_${tipo}_cantidad_cargas'] =
-          rep.cantidadCargas.toString();
-      data['repetibilidad_${tipo}_cantidad_pruebas'] =
-          rep.cantidadPruebas.toString();
-
-      for (int i = 0; i < rep.cargas.length; i++) {
-        final carga = rep.cargas[i];
-        final cNum = i + 1;
-        data['repetibilidad_${tipo}_carga${cNum}_valor'] = carga.valor;
-
-        for (int j = 0; j < carga.pruebas.length; j++) {
-          final prueba = carga.pruebas[j];
-          final pNum = j + 1;
-          data['repetibilidad_${tipo}_carga${cNum}_prueba${pNum}_indicacion'] =
-              prueba.indicacion;
-          data['repetibilidad_${tipo}_carga${cNum}_prueba${pNum}_retorno'] =
-              prueba.retorno;
-        }
-      }
-    }
-
-    // Linealidad
-    if (pruebas.linealidad != null && pruebas.linealidad!.activo) {
-      final lin = pruebas.linealidad!;
-      data['linealidad_${tipo}_cantidad_puntos'] = lin.puntos.length.toString();
-
-      for (int i = 0; i < lin.puntos.length; i++) {
-        final pNum = i + 1;
-        // Db espera puntos 1..12
-        if (pNum > 12) break;
-
-        final punto = lin.puntos[i];
-        data['linealidad_${tipo}_punto${pNum}_lt'] = punto.lt;
-        data['linealidad_${tipo}_punto${pNum}_indicacion'] = punto.indicacion;
-        data['linealidad_${tipo}_punto${pNum}_retorno'] = punto.retorno;
-
-        // Error
-        double l = double.tryParse(punto.lt) ?? 0;
-        double ind = double.tryParse(punto.indicacion) ?? 0;
-        data['linealidad_${tipo}_punto${pNum}_error'] =
-            (ind - l).toStringAsFixed(2);
-      }
-    }
-  }
+  // Método eliminado: _addPruebasMetrologicasData (Ya no aplican pruebas en diagnóstico)
 }

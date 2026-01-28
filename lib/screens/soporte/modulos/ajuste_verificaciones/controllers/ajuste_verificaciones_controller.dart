@@ -274,6 +274,16 @@ class AjusteVerificacionesController {
       'otst': model.secaValue,
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
+
+      // V2: Inspección Visual / Verificaciones
+
+      // V2: Estado Final
+      'comentario_general': model.comentarioGeneral,
+      'recomendacion': model.recomendacion,
+      'fecha_prox_servicio': model.fechaProxServicio,
+      'fisico': model.estadoFisico,
+      'operacional': model.estadoOperacional,
+      'metrologico': model.estadoMetrologico,
     };
 
     // Comentarios

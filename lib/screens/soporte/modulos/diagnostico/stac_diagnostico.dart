@@ -9,8 +9,7 @@ import 'package:service_met/provider/balanza_provider.dart';
 import 'models/diagnostico_model.dart';
 import 'controllers/diagnostico_controller.dart';
 import 'widgets/paso_informacion_general.dart';
-import 'widgets/paso_pruebas_iniciales.dart';
-import 'widgets/paso_comentarios_cierre.dart';
+import 'widgets/paso_estado_final_diagnostico.dart';
 import 'fin_servicio_diagnostico.dart';
 
 class StacDiagnosticoScreen extends StatefulWidget {
@@ -66,12 +65,7 @@ class _StacDiagnosticoScreenState extends State<StacDiagnosticoScreen> {
         icon: Icons.info_outlined,
       ),
       DiagnosticoStepData(
-        title: 'Pruebas Iniciales',
-        subtitle: 'Excentricidad, Repetibilidad y Linealidad',
-        icon: Icons.science_outlined,
-      ),
-      DiagnosticoStepData(
-        title: 'Comentarios y Cierre',
+        title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
         icon: Icons.assignment_turned_in_outlined,
       ),
@@ -124,12 +118,11 @@ class _StacDiagnosticoScreenState extends State<StacDiagnosticoScreen> {
         }
         return true;
 
-      case 1: // Pruebas Iniciales
-        return true; // Permitir continuar
-
-      case 2: // Comentarios y Cierre
-        if (_model.evaluacion.isEmpty) {
-          _showSnackBar('Por favor complete la evaluación', isError: true);
+      case 1: // Estado Final
+        if (_model.comentarioGeneral.isEmpty || _model.horaFin.isEmpty) {
+          _showSnackBar(
+              'Por favor complete los campos obligatorios del estado final',
+              isError: true);
           return false;
         }
         return true;
@@ -349,9 +342,10 @@ class _StacDiagnosticoScreenState extends State<StacDiagnosticoScreen> {
       case 0:
         return PasoInformacionGeneral(model: _model);
       case 1:
-        return PasoPruebasIniciales(model: _model, controller: _controller);
-      case 2:
-        return PasoComentariosCierre(model: _model, controller: _controller);
+        return PasoEstadoFinalDiagnostico(
+          model: _model,
+          onChanged: () => setState(() {}),
+        );
       default:
         return const Center(child: Text('Paso no encontrado'));
     }

@@ -9,7 +9,7 @@ import 'controllers/instalacion_controller.dart';
 import 'models/instalacion_model.dart';
 import 'widgets/steps/paso_condiciones_instalacion.dart';
 import 'widgets/steps/paso_pruebas_instalacion.dart';
-import 'widgets/steps/paso_comentarios_adicionales.dart';
+import 'widgets/steps/paso_estado_final_instalacion.dart';
 
 class StacInstalacionScreen extends StatefulWidget {
   final String sessionId;
@@ -54,9 +54,9 @@ class _StacInstalacionScreenState extends State<StacInstalacionScreen> {
       icon: Icons.science_outlined,
     ),
     InstalacionStepData(
-      title: 'Comentarios',
-      subtitle: 'Observaciones extra',
-      icon: Icons.comment_outlined,
+      title: 'Estado Final',
+      subtitle: 'Cierre de servicio',
+      icon: Icons.assignment_turned_in_outlined,
     ),
   ];
 
@@ -71,8 +71,12 @@ class _StacInstalacionScreenState extends State<StacInstalacionScreen> {
   void _initializeModel() {
     final camposCondiciones = {
       'Entorno': CampoEstado(),
-      'Nivelación': CampoEstado(),
+      'Superficie de Apoyo': CampoEstado(),
+      'Tensión de Red': CampoEstado(),
+      'Sistema de Tierra': CampoEstado(),
+      'Comunicación PC/Impresora': CampoEstado(),
       'Movilización': CampoEstado(),
+      'Vibración Externa': CampoEstado(),
       'Flujo de Pesadas': CampoEstado(),
     };
 
@@ -275,8 +279,9 @@ class _StacInstalacionScreenState extends State<StacInstalacionScreen> {
           onChanged: () => setState(() {}),
         );
       case 2:
-        return PasoComentariosAdicionales(
+        return PasoEstadoFinalInstalacion(
           model: _model,
+          controller: _controller,
           onChanged: () => setState(() {}),
         );
       default:

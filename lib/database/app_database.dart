@@ -214,9 +214,8 @@ class AppDatabase {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 2,
+        version: 1,
         onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -224,7 +223,7 @@ class AppDatabase {
 
       return database;
     } catch (e) {
-      debugPrint('❌ Error inicializando base de datos: $e');
+      debugPrint('Error inicializando base de datos: $e');
       rethrow;
     } finally {
       _isInitializing = false;
@@ -678,16 +677,6 @@ class AppDatabase {
     } catch (e) {
       debugPrint('Error creando tabla: $e');
       rethrow;
-    }
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      debugPrint('Migrando base de datos a versión 2...');
-      await db.execute(
-          "ALTER TABLE registros_calibracion ADD COLUMN n_celdas TEXT DEFAULT ''");
-      await db.execute(
-          "ALTER TABLE registros_calibracion ADD COLUMN rango TEXT DEFAULT ''");
     }
   }
 

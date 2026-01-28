@@ -138,17 +138,18 @@ class AppVerificacionesInternasConstants {
     'Balanza apta para Verificación Dentro tolerancias NB23001',
   ];
 
+  // NUEVOS CAMPOS - Inspección Visual Simplificada
+  static const List<String> inspeccionVisualCampos = [
+    'Espaciamiento topes longitudinales',
+    'Espaciamiento topes frontales',
+    'Limpieza del puente de pesaje',
+    'Limpieza debajo del puente',
+  ];
+
   //Lista completa de todos los campos (para inicialización)
   static List<String> getAllCampos() {
     return [
-      ...lozasYFundacionesCampos,
-      ...limpiezaYDrenajeCampos,
-      ...chequeoCampos,
-      ...verificacionesElectricasCampos,
-      ...proteccionRayosCampos,
-      ...verificacionesCeldasCampos,
-      ...terminalCampos,
-      ...calibracionCampos,
+      ...inspeccionVisualCampos,
     ];
   }
 }

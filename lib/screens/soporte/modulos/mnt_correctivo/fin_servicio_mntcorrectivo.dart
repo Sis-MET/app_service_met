@@ -44,7 +44,7 @@ class _FinServicioMntcorrectivoScreenState
   String? errorMessage;
   bool _isExporting = false;
 
-  // ✅ NUEVOS CONTROLADORES PARA DATOS ADICIONALES
+  // NUEVOS CONTROLADORES PARA DATOS ADICIONALES
   String? _selectedEmp23001;
   final TextEditingController _indicarController = TextEditingController();
   final TextEditingController _factorSeguridadController =
@@ -75,13 +75,13 @@ class _FinServicioMntcorrectivoScreenState
     );
   }
 
-  // ✅ NUEVO: Función principal de confirmación y exportación
+  // Función principal de confirmación y exportación
   Future<void> _confirmarYExportar(BuildContext context) async {
     try {
       final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
       final db = await dbHelper.database;
 
-      // ✅ CAMBIO: Usar otst y estado_balanza = 'Balanza Realizada'
+      // Usar otst y estado_balanza = 'Balanza Realizada'
       final rows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
         where: 'otst = ? AND estado_servicio = ? AND tipo_servicio = ?',

@@ -20,6 +20,14 @@ class DiagnosticoModel {
   // Comentarios
   List<String?> comentarios = List.filled(10, null);
 
+  // Estado Final (Nuevos Campos)
+  String comentarioGeneral = '';
+  String recomendacion = '';
+  String fechaProxServicio = '';
+  String estadoFisico = '';
+  String estadoOperacional = '';
+  String estadoMetrologico = '';
+
   // Pruebas Metrológicas (Solo Iniciales para Diagnóstico)
   PruebasMetrologicas pruebasIniciales = PruebasMetrologicas();
 

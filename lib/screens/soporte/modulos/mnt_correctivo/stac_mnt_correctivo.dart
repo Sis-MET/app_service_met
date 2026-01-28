@@ -9,10 +9,9 @@ import 'package:service_met/provider/balanza_provider.dart';
 import 'models/mnt_correctivo_model.dart';
 import 'controllers/mnt_correctivo_controller.dart';
 import 'widgets/paso_informacion_general.dart';
-import 'widgets/paso_inspeccion_visual.dart';
-import 'widgets/paso_pruebas_iniciales.dart';
 import 'widgets/paso_pruebas_finales.dart';
-import 'widgets/paso_comentarios_cierre.dart';
+import 'widgets/paso_estado_final_mnt_correctivo.dart';
+import 'fin_servicio_mntcorrectivo.dart';
 
 class StacMntCorrectivoScreen extends StatefulWidget {
   final String sessionId;
@@ -77,22 +76,12 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
         icon: Icons.info_outlined,
       ),
       MntCorrectivoStepData(
-        title: 'Inspección Visual',
-        subtitle: 'Revisión de componentes',
-        icon: Icons.remove_red_eye_outlined,
-      ),
-      MntCorrectivoStepData(
-        title: 'Pruebas Iniciales',
-        subtitle: 'Excentricidad y Repetibilidad',
-        icon: Icons.science_outlined,
-      ),
-      MntCorrectivoStepData(
         title: 'Pruebas Finales',
         subtitle: 'Verificación final',
         icon: Icons.task_alt_outlined,
       ),
       MntCorrectivoStepData(
-        title: 'Comentarios y Cierre',
+        title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
         icon: Icons.assignment_turned_in_outlined,
       ),
@@ -107,9 +96,9 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
 
     try {
       await _controller.saveData(context);
-      debugPrint('✅ Paso $_currentStep guardado automáticamente');
+      debugPrint('Paso $_currentStep guardado automáticamente');
     } catch (e) {
-      debugPrint('❌ Error al guardar paso $_currentStep: $e');
+      debugPrint('Error al guardar paso $_currentStep: $e');
       _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
       setState(() => _isSaving = false);
@@ -127,14 +116,20 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
         }
         return true;
 
-      case 1: // Inspección Visual
-      case 2: // Pruebas Iniciales
-      case 3: // Pruebas Finales
+      case 1: // Pruebas Finales
         return true; // Permitir continuar
 
-      case 4: // Comentarios y Cierre
-        if (_model.evaluacion.isEmpty) {
-          _showSnackBar('Por favor complete la evaluación', isError: true);
+      case 2: // Estado Final
+        if (_model.comentarioGeneral.isEmpty ||
+            _model.recomendacion.isEmpty ||
+            _model.fechaProxServicio.isEmpty ||
+            _model.estadoFisico.isEmpty ||
+            _model.estadoOperacional.isEmpty ||
+            _model.estadoMetrologico.isEmpty ||
+            _model.horaFin.isEmpty) {
+          _showSnackBar(
+              'Por favor complete todos los campos obligatorios del estado final',
+              isError: true);
           return false;
         }
         return true;
@@ -361,13 +356,12 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
           onUpdate: () => setState(() {}),
         );
       case 1:
-        return PasoInspeccionVisual(model: _model, controller: _controller);
-      case 2:
-        return PasoPruebasIniciales(model: _model, controller: _controller);
-      case 3:
         return PasoPruebasFinales(model: _model, controller: _controller);
-      case 4:
-        return PasoComentariosCierre(model: _model, controller: _controller);
+      case 2:
+        return PasoEstadoFinalMntCorrectivo(
+          model: _model,
+          onChanged: () => setState(() {}),
+        );
       default:
         return const Center(child: Text('Paso no encontrado'));
     }
@@ -414,6 +408,29 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
                   : () async {
                       if (_currentStep < _steps.length - 1) {
                         await _goToStep(_currentStep + 1);
+                      } else {
+                        // Finalizar servicio
+                        if (_validateCurrentStep()) {
+                          await _saveCurrentStep();
+                          if (mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    FinServicioMntcorrectivoScreen(
+                                  sessionId: widget.sessionId,
+                                  secaValue: widget.secaValue, // SECA/OTST
+                                  nReca: widget.nReca,
+                                  codMetrica: widget.codMetrica,
+                                  userName: widget.userName,
+                                  clienteId: widget.clienteId,
+                                  plantaCodigo: widget.plantaCodigo,
+                                  tableName: 'diagnostico_correctivo',
+                                ),
+                              ),
+                            );
+                          }
+                        }
                       }
                     },
               icon: Icon(
@@ -422,9 +439,7 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
                     : Icons.check_circle,
               ),
               label: Text(
-                _currentStep < _steps.length - 1
-                    ? 'SIGUIENTE'
-                    : 'EN PASO FINAL',
+                _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF195375),

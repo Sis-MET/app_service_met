@@ -145,11 +145,14 @@ class InstalacionController {
     };
 
     // Mapeo de Condiciones de Instalación
-    // Nota: El DB Helper espera claves como 'entorno_valor', 'entorno_comentario'
     final mapKeys = {
       'Entorno': 'entorno',
-      'Nivelación': 'nivelacion',
+      'Superficie de Apoyo': 'superficie_apoyo',
+      'Tensión de Red': 'tension_red',
+      'Sistema de Tierra': 'sistema_tierra',
+      'Comunicación PC/Impresora': 'comunicacion_pc',
       'Movilización': 'movilizacion',
+      'Vibración Externa': 'vibracion_externa',
       'Flujo de Pesadas': 'flujo_pesadas',
     };
 
@@ -158,18 +161,23 @@ class InstalacionController {
       if (campo != null) {
         data['${dbPrefix}_valor'] = campo.initialValue;
         data['${dbPrefix}_comentario'] = campo.comentario;
-        // Aunque no hay columna de foto explícita en DB, guardamos referencia por si acaso
-        // o para consistencia si se agregan en el futuro.
       }
     });
 
-    // Comentarios Adicionales
+    // Comentarios Adicionales (Compatibilidad legacy)
     for (int i = 0; i < model.comentariosAdicionales.length; i++) {
       if (i < 10) {
-        // DB soporta comentario_1 ... comentario_10
         data['comentario_${i + 1}'] = model.comentariosAdicionales[i] ?? '';
       }
     }
+
+    // NUEVOS CAMPOS (V3)
+    data['comentario_general'] = model.comentarioGeneral;
+    data['recomendacion'] = model.recomendacion;
+    data['fecha_prox_servicio'] = model.fechaProxServicio;
+    data['estado_fisico'] = model.estadoFisico;
+    data['estado_operacional'] = model.estadoOperacional;
+    data['estado_metrologico'] = model.estadoMetrologico;
 
     // Pruebas Metrológicas (Iniciales)
     _addPruebasMetrologicasData(data);
@@ -185,6 +193,8 @@ class InstalacionController {
         model.pruebasIniciales.retornoCero.valor;
     data['retorno_cero_inicial_unidad'] =
         model.pruebasIniciales.retornoCero.unidad;
+    data['retorno_cero_inicial_estabilidad'] =
+        model.pruebasIniciales.retornoCero.estabilidad; // NUEVO (V3)
 
     // TODO: La tabla instalacion NO tiene columna 'estabilizacion_inicial' según Schema.
     // Ignoramos ese campo o lo guardamos en otro lado si fuera critico.

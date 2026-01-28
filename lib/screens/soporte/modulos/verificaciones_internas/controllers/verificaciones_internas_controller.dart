@@ -199,63 +199,11 @@ class VerificacionesInternasController {
     }
 
     final camposMap = {
-      // Lozas y Fundaciones
-      'losas_aproximacion': 'Losas de aproximación (daños o grietas)',
-      'fundaciones': 'Fundaciones (daños o grietas)',
-
-      // Limpieza y Drenaje
-      'limpieza_perimetro': 'Limpieza de perímetro de balanza',
-      'fosa_humedad': 'Fosa libre de humedad',
-      'drenaje_libre': 'Drenaje libre',
-      'bomba_sumidero': 'Bomba de sumidero funcional',
-
-      // Chequeo
-      'corrosion': 'Corrosión',
-      'puente_grietas': 'Puente de pesaje (grietas)',
-      'tapas_pernos': 'Tapas superiores y pernos',
-      'desgaste_estres': 'Desgaste y estrés',
-      'limpieza_puente': 'Limpieza por debajo del puente',
-      'estado_rieles': 'Estado rieles laterales',
-      'limitadores_long': 'Limitadores Longitudinales',
-      'limitadores_trans': 'Limitadores Transversales',
-
-      // Verificaciones Eléctricas
-      'cable_homerun': 'Cable home run',
-      'cables_celdas': 'Cables de celdas de carga',
-      'conexion_celda_cable': 'Conexión entre celda de carga y cable',
-      'conectores_celdas': 'Conectores de celdas de carga',
-      'conector_terminacion': 'Conector de terminación',
-      'caja_union': 'Caja de unión o Sumadora',
-
-      // Protección contra Rayos
-      'sistema_proteccion_rayos': 'Sistema de Protección contra Rayos',
-      'conexion_malla_tierra': 'Conexión de Malla de Tierra',
-      'tension_neutro_tierra': 'Tensión entre neutro y tierra adecuada',
-      'estado_strike_shield': 'Estado strike shield',
-
-      // Verificaciones Celdas
-      'limpieza_conectores': 'Limpieza e inspección conectores',
-      'limpieza_estructura':
-          'Limpieza e inspección de superficies de acoplamiento de la estructura',
-      'bearing_cups': 'Limpieza e inspección de bearing cups',
-      'celdas_carga': 'Limpieza e inspección de celdas de carga',
-      'lubricacion_celdas': 'Lubricacion celdas de carga',
-      'lubricacion_bearing': 'Lubricación bearing cups',
-      'protector_goma': 'Protector de goma para celdas',
-
-      // Terminal
-      'carcasa': 'Carcasa',
-      'voltaje_pila': 'Voltaje pila de Boton',
-      'estado_teclado': 'Estado del teclado',
-      'estado_display': 'Estado del display',
-      'registros_predictivo': 'Registros Predictivo solo PDX',
-      'alertas_servicio': 'Alertas de servicio MT',
-      'estado_prensacables': 'Estado prensacables:',
-      'comunicacion_pc': 'Comunicación con PC',
-
-      // Calibración
-      'balanza_apta':
-          'Balanza apta para Verificación Dentro tolerancias NB23001',
+      // Inspección Visual (NUEVOS CAMPOS SIMPLIFICADOS)
+      'espaciamiento_topes_long': 'Espaciamiento topes longitudinales',
+      'espaciamiento_topes_front': 'Espaciamiento topes frontales',
+      'limpieza_puente': 'Limpieza del puente de pesaje',
+      'limpieza_debajo_puente': 'Limpieza debajo del puente',
     };
 
     camposMap.forEach((dbKey, modelKey) => addCampo(dbKey, modelKey));
@@ -270,23 +218,12 @@ class VerificacionesInternasController {
     data['retorno_cero_inicial_unidad'] =
         model.pruebasIniciales.retornoCero.unidad;
 
-    // Retorno a Cero Final
-    data['retorno_cero_final_valoracion'] =
-        model.pruebasFinales.retornoCero.estado;
-    data['retorno_cero_final_carga'] = model.pruebasFinales.retornoCero.valor;
-    data['retorno_cero_final_unidad'] = model.pruebasFinales.retornoCero.unidad;
-
     // Pruebas Iniciales
     _addExcentricidadData(
         data, model.pruebasIniciales.excentricidad, 'inicial');
     _addRepetibilidadData(
         data, model.pruebasIniciales.repetibilidad, 'inicial');
     _addLinealidadData(data, model.pruebasIniciales.linealidad, 'inicial');
-
-    // Pruebas Finales
-    _addExcentricidadData(data, model.pruebasFinales.excentricidad, 'final');
-    _addRepetibilidadData(data, model.pruebasFinales.repetibilidad, 'final');
-    _addLinealidadData(data, model.pruebasFinales.linealidad, 'final');
   }
 
   void _addExcentricidadData(

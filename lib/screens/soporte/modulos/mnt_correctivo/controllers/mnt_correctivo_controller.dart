@@ -160,213 +160,17 @@ class MntCorrectivoController {
     }
   }
 
-  // Mapa estático de etiquetas a claves de BD (compartido para import/export)
-  static const Map<String, String> labelToDbKey = {
-    'Vibración': 'vibracion',
-    'Polvo': 'polvo',
-    'Temperatura': 'temperatura',
-    'Humedad': 'humedad',
-    'Mesada': 'mesada',
-    'Iluminación': 'iluminacion',
-    'Limpieza de Fosa': 'limpieza_fosa',
-    'Estado de Drenaje': 'estado_drenaje',
-    'Carcasa': 'carcasa',
-    'Teclado Fisico': 'teclado_fisico',
-    'Display Fisico': 'display_fisico',
-    'Fuente de poder': 'fuente_poder',
-    'Bateria operacional': 'bateria_operacional',
-    'Bracket': 'bracket',
-    'Teclado Operativo': 'teclado_operativo',
-    'Display Operativo': 'display_operativo',
-    'Contector de celda': 'conector_celda',
-    'Bateria de memoria': 'bateria_memoria',
-    'Limpieza general': 'limpieza_general',
-    'Golpes al terminal': 'golpes_terminal',
-    'Nivelacion': 'nivelacion',
-    'Limpieza receptor': 'limpieza_receptor',
-    'Golpes al receptor de carga': 'golpes_receptor',
-    'Encendido': 'encendido',
-    'Limitador de movimiento': 'limitador_movimiento',
-    'Suspensión': 'suspension',
-    'Limitador de carga': 'limitador_carga',
-    'Celda de carga': 'celda_carga',
-    'Tapa de caja sumadora': 'tapa_caja',
-    'Humedad Interna': 'humedad_interna',
-    'Estado de prensacables': 'estado_prensacables',
-    'Estado de borneas': 'estado_borneas'
-  };
-
   void _populateModelFromCsv(Map<String, dynamic> data) {
     debugPrint("--- IMPORTING CSV DATA ---");
     // Helper para obtener string seguro y trim
     String getVal(String key) => data[key]?.toString().trim() ?? '';
 
-    // 1. General
+    // 1. General (Solo reporte y evaluación según requerimiento)
     if (data.containsKey('reporte')) {
       model.reporteFalla = getVal('reporte');
     }
     if (data.containsKey('evaluacion')) {
       model.evaluacion = getVal('evaluacion');
-    }
-
-    // 2. Inspección Visual
-    model.inspeccionItems.forEach((label, item) {
-      final key = labelToDbKey[label];
-      if (key != null) {
-        // Estado
-        if (data.containsKey('${key}_estado')) {
-          // Solo sobreescribir si el valor no está vacío en el CSV, o si queremos forzar lo del CSV
-          // Asumimos que queremos lo del CSV
-          final val = getVal('${key}_estado');
-          if (val.isNotEmpty) item.estado = val;
-        }
-        // Solución
-        if (data.containsKey('${key}_solucion')) {
-          final val = getVal('${key}_solucion');
-          if (val.isNotEmpty) item.solucion = val;
-        }
-        // Comentario
-        if (data.containsKey('${key}_comentario')) {
-          final val = getVal('${key}_comentario');
-          if (val.isNotEmpty) item.comentario = val;
-        }
-      }
-    });
-
-    // 3. Pruebas Iniciales
-    // Retorno Cero
-    if (data.containsKey('retorno_cero_inicial_valoracion') &&
-        getVal('retorno_cero_inicial_valoracion').isNotEmpty) {
-      model.pruebasIniciales.retornoCero.estado =
-          getVal('retorno_cero_inicial_valoracion');
-      model.pruebasIniciales.retornoCero.valor =
-          getVal('retorno_cero_inicial_carga');
-      // Si el CSV de diagnóstico exporta 'carga' como estabilidad, lo ponemos en estabilidad también
-      model.pruebasIniciales.retornoCero.estabilidad =
-          getVal('retorno_cero_inicial_carga');
-      model.pruebasIniciales.retornoCero.unidad =
-          getVal('retorno_cero_inicial_unidad');
-    }
-
-    // Excentricidad Inicial
-    // Lógica para detectar si es estándar (posiciones definidas) o rieles (ida/vuelta)
-    bool hasExcentricidadStandard =
-        data.containsKey('excentricidad_inicial_cantidad_posiciones') &&
-            getVal('excentricidad_inicial_cantidad_posiciones') != '0' &&
-            getVal('excentricidad_inicial_cantidad_posiciones').isNotEmpty;
-
-    bool hasExcentricidadRieles =
-        data.containsKey('excentricidad_inicial_punto1_ida_indicacion');
-
-    if (hasExcentricidadStandard || hasExcentricidadRieles) {
-      model.pruebasIniciales.excentricidad = Excentricidad(activo: true);
-      var exc = model.pruebasIniciales.excentricidad!;
-      exc.tipoPlataforma = getVal('excentricidad_inicial_tipo_plataforma');
-      exc.puntosIndicador = getVal('excentricidad_inicial_opcion_prueba');
-      exc.carga = getVal('excentricidad_inicial_carga'); // Corrección carga
-
-      exc.posiciones.clear();
-
-      if (hasExcentricidadStandard) {
-        // Lógica Estándar
-        int count =
-            int.tryParse(getVal('excentricidad_inicial_cantidad_posiciones')) ??
-                0;
-        for (int i = 1; i <= count; i++) {
-          exc.posiciones.add(PosicionExcentricidad(
-            posicion: getVal('excentricidad_inicial_pos${i}_numero'),
-            indicacion: getVal('excentricidad_inicial_pos${i}_indicacion'),
-            retorno: getVal('excentricidad_inicial_pos${i}_retorno'),
-          ));
-        }
-      } else if (hasExcentricidadRieles) {
-        // Lógica Rieles (Ida/Vuelta) -> Mapear a posiciones lineales 1-12
-        // Ida (Puntos 1-6)
-        for (int i = 1; i <= 6; i++) {
-          if (data.containsKey('excentricidad_inicial_punto${i}_ida_numero')) {
-            exc.posiciones.add(PosicionExcentricidad(
-              posicion: getVal('excentricidad_inicial_punto${i}_ida_numero'),
-              indicacion:
-                  getVal('excentricidad_inicial_punto${i}_ida_indicacion'),
-              retorno: getVal('excentricidad_inicial_punto${i}_ida_retorno'),
-            ));
-          }
-        }
-        // Vuelta (Puntos 7-12)
-        for (int i = 7; i <= 12; i++) {
-          if (data
-              .containsKey('excentricidad_inicial_punto${i}_vuelta_numero')) {
-            exc.posiciones.add(PosicionExcentricidad(
-              posicion: getVal('excentricidad_inicial_punto${i}_vuelta_numero'),
-              indicacion:
-                  getVal('excentricidad_inicial_punto${i}_vuelta_indicacion'),
-              retorno: getVal('excentricidad_inicial_punto${i}_vuelta_retorno'),
-            ));
-          }
-        }
-      }
-    }
-
-    // Repetibilidad Inicial
-    String repCantCargas = getVal('repetibilidad_inicial_cantidad_cargas');
-    if (repCantCargas.isNotEmpty && repCantCargas != '0') {
-      model.pruebasIniciales.repetibilidad = Repetibilidad(activo: true);
-      var rep = model.pruebasIniciales.repetibilidad!;
-      rep.cantidadCargas = int.tryParse(repCantCargas) ?? 1;
-      rep.cantidadPruebas =
-          int.tryParse(getVal('repetibilidad_inicial_cantidad_pruebas')) ?? 3;
-
-      rep.cargas.clear();
-      for (int i = 1; i <= rep.cantidadCargas; i++) {
-        var carga = CargaRepetibilidad();
-        carga.valor = getVal('repetibilidad_inicial_carga${i}_valor');
-        for (int j = 1; j <= rep.cantidadPruebas; j++) {
-          carga.pruebas.add(PruebaRepetibilidad(
-              indicacion: getVal(
-                  'repetibilidad_inicial_carga${i}_prueba${j}_indicacion'),
-              retorno: getVal(
-                  'repetibilidad_inicial_carga${i}_prueba${j}_retorno')));
-        }
-        rep.cargas.add(carga);
-      }
-    } else {
-      debugPrint("Repetibilidad: No se encontró cantidad de cargas o es 0.");
-    }
-
-    // Linealidad Inicial
-    String linCantPuntos = getVal('linealidad_inicial_cantidad_puntos');
-    if (linCantPuntos.isNotEmpty && linCantPuntos != '0') {
-      model.pruebasIniciales.linealidad = Linealidad(activo: true);
-      var lin = model.pruebasIniciales.linealidad!;
-      int cantidadPuntos = int.tryParse(linCantPuntos) ?? 0;
-      lin.puntos.clear();
-
-      for (int i = 1; i <= cantidadPuntos; i++) {
-        // Obtenemos los valores
-        String lt = getVal('linealidad_inicial_punto${i}_lt');
-        String ind = getVal('linealidad_inicial_punto${i}_indicacion');
-        String ret = getVal('linealidad_inicial_punto${i}_retorno');
-
-        // Solo agregamos si hay al menos un LT definidio o indicación, para evitar puntos vacíos fantasma
-        if (lt.isNotEmpty || ind.isNotEmpty) {
-          lin.puntos.add(PuntoLinealidad(
-            lt: lt,
-            indicacion: ind,
-            retorno: ret,
-          ));
-        }
-      }
-    } else {
-      debugPrint("Linealidad: No se encontró cantidad de puntos o es 0.");
-    }
-
-    // 4. Comentarios
-    for (int i = 1; i <= 10; i++) {
-      if (data.containsKey('comentario_$i')) {
-        if (i - 1 < model.comentarios.length) {
-          model.comentarios[i - 1] = getVal('comentario_$i');
-        }
-      }
     }
   }
 
@@ -405,100 +209,83 @@ class MntCorrectivoController {
       'hora_fin': model.horaFin,
       'reporte': model.reporteFalla,
       'evaluacion': model.evaluacion,
+      'trabajo_realizado': model.trabajoRealizado, // Nuevo campo
+
+      // Estado Final
+      'comentario_general': model.comentarioGeneral,
+      'recomendacion': model.recomendacion,
+      'fecha_prox_servicio': model.fechaProxServicio,
+      'fisico': model.estadoFisico,
+      'operacional': model.estadoOperacional,
+      'metrologico': model.estadoMetrologico,
+
+      // Pruebas metrológicas finales (Retorno Cero y Estabilidad)
+      'retorno_cero_final_valoracion': model.pruebasFinales.retornoCero.estado,
+      'estabilizacion_final': model.pruebasFinales.retornoCero.estabilidad,
     };
 
-    // Comentarios
-    for (int i = 0; i < model.comentarios.length; i++) {
-      if (model.comentarios[i] != null) {
-        data['comentario_${i + 1}'] = model.comentarios[i];
-      }
-    }
+    // Excentricidad final
+    _addExcentricidadData(data, model.pruebasFinales.excentricidad, 'final');
 
-    // Pruebas
-    _addPruebasData(data, model.pruebasIniciales, 'inicial');
-    _addPruebasData(data, model.pruebasFinales, 'final');
+    // Repetibilidad final
+    _addRepetibilidadData(data, model.pruebasFinales.repetibilidad, 'final');
 
-    // Inspección
-    model.inspeccionItems.forEach((label, item) {
-      final key = labelToDbKey[label];
-      if (key != null) {
-        data['${key}_estado'] = item.estado;
-        data['${key}_solucion'] = item.solucion ?? '';
-        data['${key}_comentario'] = item.comentario ?? '';
-        // Fotos?
-      }
-    });
+    // Linealidad final
+    _addLinealidadData(data, model.pruebasFinales.linealidad, 'final');
 
     return data;
   }
 
-  void _addPruebasData(
-      Map<String, dynamic> data, PruebasMetrologicas pruebas, String tipo) {
-    data['retorno_cero_${tipo}_valoracion'] = pruebas.retornoCero.estado;
-    // Guardar carga (estabilidad)
-    data['retorno_cero_${tipo}_carga'] = pruebas.retornoCero.estabilidad;
-    data['retorno_cero_${tipo}_unidad'] = pruebas.retornoCero.unidad;
+  void _addExcentricidadData(
+      Map<String, dynamic> data, Excentricidad? exc, String tipo) {
+    if (exc?.activo ?? false) {
+      data['tipo_plataforma_$tipo'] = exc!.tipoPlataforma ?? '';
+      data['puntos_ind_$tipo'] = exc.puntosIndicador ?? '';
+      data['carga_exc_$tipo'] = exc.carga;
 
-    if (pruebas.excentricidad?.activo == true) {
-      final exc = pruebas.excentricidad!;
-      data['excentricidad_${tipo}_tipo_plataforma'] = exc.tipoPlataforma ?? '';
-      data['excentricidad_${tipo}_opcion_prueba'] = exc.puntosIndicador ?? '';
-      data['excentricidad_${tipo}_carga'] = exc.carga;
-      data['excentricidad_${tipo}_ruta_imagen'] = exc.imagenPath ?? '';
-      data['excentricidad_${tipo}_cantidad_posiciones'] =
-          exc.posiciones.length.toString();
       for (int i = 0; i < exc.posiciones.length; i++) {
-        data['excentricidad_${tipo}_pos${i + 1}_numero'] =
-            exc.posiciones[i].posicion;
-        data['excentricidad_${tipo}_pos${i + 1}_indicacion'] =
-            exc.posiciones[i].indicacion;
-        data['excentricidad_${tipo}_pos${i + 1}_retorno'] =
-            exc.posiciones[i].retorno;
-        // Error
-        double ind = double.tryParse(exc.posiciones[i].indicacion) ?? 0;
-        double pos = double.tryParse(exc.posiciones[i].posicion) ?? 0;
-        data['excentricidad_${tipo}_pos${i + 1}_error'] =
-            (ind - pos).toStringAsFixed(2);
+        final pos = exc.posiciones[i];
+        final num = i + 1;
+        data['posicion_${tipo}_$num'] = pos.posicion;
+        data['indicacion_${tipo}_$num'] = pos.indicacion;
+        data['retorno_${tipo}_$num'] = pos.retorno;
       }
     }
+  }
 
-    if (pruebas.repetibilidad?.activo == true) {
-      final rep = pruebas.repetibilidad!;
-      data['repetibilidad_${tipo}_cantidad_cargas'] =
-          rep.cantidadCargas.toString();
-      data['repetibilidad_${tipo}_cantidad_pruebas'] =
-          rep.cantidadPruebas.toString();
+  void _addRepetibilidadData(
+      Map<String, dynamic> data, Repetibilidad? rep, String tipo) {
+    if (rep?.activo ?? false) {
+      // Guardar contadores para saber cuántas cargas/rows se usaron
+      data['repetibilidad_count_$tipo'] = rep!.cargas.length;
+      if (rep.cargas.isNotEmpty) {
+        data['repetibilidad_rows_$tipo'] = rep.cargas[0].pruebas.length;
+      }
+
       for (int i = 0; i < rep.cargas.length; i++) {
-        data['repetibilidad_${tipo}_carga${i + 1}_valor'] = rep.cargas[i].valor;
-        for (int j = 0; j < rep.cargas[i].pruebas.length; j++) {
-          data['repetibilidad_${tipo}_carga${i + 1}_prueba${j + 1}_indicacion'] =
-              rep.cargas[i].pruebas[j].indicacion;
-          data['repetibilidad_${tipo}_carga${i + 1}_prueba${j + 1}_retorno'] =
-              rep.cargas[i].pruebas[j].retorno;
+        final carga = rep.cargas[i];
+        final cargaNum = i + 1;
+        data['repetibilidad${cargaNum}_$tipo'] = carga.valor;
+
+        for (int j = 0; j < carga.pruebas.length; j++) {
+          final prueba = carga.pruebas[j];
+          final testNum = j + 1;
+          data['indicacion${cargaNum}_${tipo}_$testNum'] = prueba.indicacion;
+          data['retorno${cargaNum}_${tipo}_$testNum'] = prueba.retorno;
         }
       }
     }
+  }
 
-    // Linealidad
-    if (pruebas.linealidad?.activo == true) {
-      final lin = pruebas.linealidad!;
-      data['linealidad_${tipo}_cantidad_puntos'] = lin.puntos.length;
-
-      for (int i = 0; i < lin.puntos.length; i++) {
-        // Ajustar índice porque DB espera punto1...punto12
-        // Validar que no exceda 12
-        if (i >= 12) break;
-
-        data['linealidad_${tipo}_punto${i + 1}_lt'] = lin.puntos[i].lt;
-        data['linealidad_${tipo}_punto${i + 1}_indicacion'] =
-            lin.puntos[i].indicacion;
-        data['linealidad_${tipo}_punto${i + 1}_retorno'] =
-            lin.puntos[i].retorno;
-
-        double lt = double.tryParse(lin.puntos[i].lt) ?? 0;
-        double ind = double.tryParse(lin.puntos[i].indicacion) ?? 0;
-        data['linealidad_${tipo}_punto${i + 1}_error'] =
-            (ind - lt).toStringAsFixed(2);
+  void _addLinealidadData(
+      Map<String, dynamic> data, Linealidad? lin, String tipo) {
+    if (lin?.activo ?? false) {
+      for (int i = 0; i < lin!.puntos.length; i++) {
+        final punto = lin.puntos[i];
+        final num = i + 1;
+        data['lin_${tipo}_$num'] = punto.lt;
+        data['ind_${tipo}_$num'] = punto.indicacion;
+        data['retorno_lin_${tipo}_$num'] = punto.retorno;
       }
     }
   }

@@ -11,7 +11,8 @@ import 'controllers/ajuste_verificaciones_controller.dart';
 
 import 'widgets/paso_pruebas_iniciales.dart';
 import 'widgets/paso_pruebas_finales.dart';
-import 'widgets/paso_comentarios_final.dart';
+
+import 'widgets/paso_estado_final_ajuste.dart';
 
 class StacAjusteVerificacionesScreen extends StatefulWidget {
   final String sessionId;
@@ -60,9 +61,9 @@ class _StacAjusteVerificacionesScreenState
       icon: Icons.task_alt_outlined,
     ),
     StepData(
-      title: 'Comentarios',
-      subtitle: 'Observaciones y Cierre',
-      icon: Icons.comment_outlined,
+      title: 'Estado Final',
+      subtitle: 'Cierre de Servicio',
+      icon: Icons.checklist_rtl_sharp,
     ),
   ];
 
@@ -130,8 +131,10 @@ class _StacAjusteVerificacionesScreenState
     // Validaciones básicas si se requieren
     if (_currentStep == 2) {
       if (_model.horaFin.isEmpty) {
-        _showSnackBar('Por favor registre la hora final', isError: true);
-        return false;
+        _showSnackBar(
+            'Por favor registre la hora final (Se registrará al finalizar)',
+            isError: false);
+        // Permitimos continuar porque la hora fin se setea al guardar
       }
     }
     return true;
@@ -349,7 +352,7 @@ class _StacAjusteVerificacionesScreenState
           getD1FromDatabase: _getD1FromCache,
         );
       case 2:
-        return PasoComentariosFinal(
+        return PasoEstadoFinalAjuste(
           model: _model,
           onChanged: () => setState(() {}),
         );

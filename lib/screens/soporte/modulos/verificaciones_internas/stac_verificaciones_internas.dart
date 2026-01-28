@@ -13,7 +13,6 @@ import 'utils/constants.dart';
 
 // Widgets de pasos
 import 'widgets/steps/paso_pruebas_iniciales.dart';
-import 'widgets/steps/paso_pruebas_finales.dart';
 import 'widgets/steps/paso_estado_final.dart';
 import 'widgets/steps/paso_generico.dart';
 
@@ -69,54 +68,14 @@ class _StacVerificacionesInternasScreenState
   void _initializeSteps() {
     _steps.addAll([
       StepData(
-        title: 'Pruebas Iniciales',
+        title: 'Inspección Visual',
+        subtitle: '4 campos de inspección',
+        icon: Icons.visibility_outlined,
+      ),
+      StepData(
+        title: 'Pruebas Metrológicas',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
         icon: Icons.science_outlined,
-      ),
-      StepData(
-        title: 'Lozas y Fundaciones',
-        subtitle: '2 campos de inspección',
-        icon: Icons.foundation_outlined,
-      ),
-      StepData(
-        title: 'Limpieza y Drenaje',
-        subtitle: '4 campos de inspección',
-        icon: Icons.cleaning_services_outlined,
-      ),
-      StepData(
-        title: 'Chequeo General',
-        subtitle: '8 campos de inspección',
-        icon: Icons.checklist_outlined,
-      ),
-      StepData(
-        title: 'Verificaciones Eléctricas',
-        subtitle: '8 campos de inspección',
-        icon: Icons.electrical_services_outlined,
-      ),
-      StepData(
-        title: 'Protección contra Rayos',
-        subtitle: '4 campos de inspección',
-        icon: Icons.flash_on_outlined,
-      ),
-      StepData(
-        title: 'Verificaciones de Células',
-        subtitle: '7 campos de inspección',
-        icon: Icons.grain_outlined,
-      ),
-      StepData(
-        title: 'Terminal',
-        subtitle: '8 campos de inspección',
-        icon: Icons.computer_outlined,
-      ),
-      StepData(
-        title: 'Calibración',
-        subtitle: '1 campo de inspección',
-        icon: Icons.tune_outlined,
-      ),
-      StepData(
-        title: 'Pruebas Finales',
-        subtitle: 'Verificación post-mantenimiento',
-        icon: Icons.task_alt_outlined,
       ),
       StepData(
         title: 'Estado Final',
@@ -207,23 +166,14 @@ class _StacVerificacionesInternasScreenState
 
   bool _validateCurrentStep() {
     switch (_currentStep) {
-      case 0: // Pruebas Iniciales
-        return true;
-
-      case 1: // Lozas
-      case 2: // Limpieza
-      case 3: // Chequeo
-      case 4: // Electricas
-      case 5: // Rayos
-      case 6: // Celulas
-      case 7: // Terminal
-      case 8: // Calibracion
-        final camposDelPaso = _getCamposDelPaso(_currentStep);
+      case 0: // Inspección Visual
+        final camposDelPaso =
+            AppVerificacionesInternasConstants.inspeccionVisualCampos;
         for (var campo in camposDelPaso) {
           if (_model.camposEstado[campo]?.initialValue == null ||
               _model.camposEstado[campo]!.initialValue.isEmpty) {
             _showSnackBar(
-              'Por favor complete todos los campos del estado en: $campo',
+              'Por favor complete todos los campos de inspección',
               isError: true,
             );
             return false;
@@ -231,10 +181,10 @@ class _StacVerificacionesInternasScreenState
         }
         return true;
 
-      case 9: // Pruebas Finales
+      case 1: // Pruebas Metrológicas
         return true;
 
-      case 10: // Estado Final
+      case 2: // Estado Final
         if (_model.comentarioGeneral.isEmpty) {
           _showSnackBar('Por favor complete el Comentario General',
               isError: true);
@@ -266,30 +216,6 @@ class _StacVerificacionesInternasScreenState
 
       default:
         return true;
-    }
-  }
-
-  List<String> _getCamposDelPaso(int paso) {
-    switch (paso) {
-      case 1:
-        return AppVerificacionesInternasConstants.lozasYFundacionesCampos;
-      case 2:
-        return AppVerificacionesInternasConstants.limpiezaYDrenajeCampos;
-      case 3:
-        return AppVerificacionesInternasConstants.chequeoCampos;
-      case 4:
-        return AppVerificacionesInternasConstants
-            .verificacionesElectricasCampos;
-      case 5:
-        return AppVerificacionesInternasConstants.proteccionRayosCampos;
-      case 6:
-        return AppVerificacionesInternasConstants.verificacionesCeldasCampos;
-      case 7:
-        return AppVerificacionesInternasConstants.terminalCampos;
-      case 8:
-        return AppVerificacionesInternasConstants.calibracionCampos;
-      default:
-        return [];
     }
   }
 
@@ -485,114 +411,32 @@ class _StacVerificacionesInternasScreenState
 
   Widget _buildStepContent() {
     switch (_currentStep) {
-      case 0:
+      case 0: // Inspección Visual
+        return PasoGenerico(
+          model: _model,
+          controller: _controller,
+          onChanged: () => setState(() {}),
+          campos: AppVerificacionesInternasConstants.inspeccionVisualCampos,
+          titulo: 'INSPECCIÓN VISUAL',
+          subtitulo: 'Inspeccione el estado general del equipo',
+          icono: Icons.visibility_outlined,
+          color: Colors.blue,
+        );
+
+      case 1: // Pruebas Metrológicas
         return PasoPruebasIniciales(
           model: _model,
           controller: _controller,
           getD1FromDatabase: _getD1FromCache,
           onChanged: () => setState(() {}),
         );
-      case 1:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.lozasYFundacionesCampos,
-          titulo: 'LOZAS Y FUNDACIONES',
-          subtitulo: 'Inspeccione el estado de lozas y fundaciones',
-          icono: Icons.foundation_outlined,
-          color: Colors.brown,
-        );
-      case 2:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.limpiezaYDrenajeCampos,
-          titulo: 'LIMPIEZA Y DRENAJE',
-          subtitulo: 'Inspeccione limpieza y sistema de drenaje',
-          icono: Icons.cleaning_services_outlined,
-          color: Colors.lightBlue,
-        );
-      case 3:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.chequeoCampos,
-          titulo: 'CHEQUEO GENERAL',
-          subtitulo: 'Inspeccione el estado general del equipo',
-          icono: Icons.checklist_outlined,
-          color: Colors.teal,
-        );
-      case 4:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos:
-              AppVerificacionesInternasConstants.verificacionesElectricasCampos,
-          titulo: 'VERIFICACIONES ELÉCTRICAS',
-          subtitulo: 'Inspeccione conexiones y cableado',
-          icono: Icons.electrical_services_outlined,
-          color: Colors.amber,
-        );
-      case 5:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.proteccionRayosCampos,
-          titulo: 'PROTECCIÓN CONTRA RAYOS',
-          subtitulo: 'Verifique sistema de protección eléctrica',
-          icono: Icons.flash_on_outlined,
-          color: Colors.orange,
-        );
-      case 6:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.verificacionesCeldasCampos,
-          titulo: 'VERIFICACIONES DE CÉLULAS DE CARGA',
-          subtitulo: 'Inspeccione células y componentes de pesaje',
-          icono: Icons.grain_outlined,
-          color: Colors.indigo,
-        );
-      case 7:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.terminalCampos,
-          titulo: 'TERMINAL',
-          subtitulo: 'Inspeccione el terminal de pesaje',
-          icono: Icons.computer_outlined,
-          color: Colors.purple,
-        );
-      case 8:
-        return PasoGenerico(
-          model: _model,
-          controller: _controller,
-          onChanged: () => setState(() {}),
-          campos: AppVerificacionesInternasConstants.calibracionCampos,
-          titulo: 'CALIBRACIÓN',
-          subtitulo: 'Verifique la calibración',
-          icono: Icons.tune_outlined,
-          color: Colors.green,
-        );
-      case 9:
-        return PasoPruebasFinales(
-          model: _model,
-          controller: _controller,
-          getD1FromDatabase: _getD1FromCache,
-          onChanged: () => setState(() {}),
-        );
-      case 10:
+
+      case 2: // Estado Final
         return PasoEstadoFinal(
           model: _model,
           onChanged: () => setState(() {}),
         );
+
       default:
         return const Center(child: Text('Paso no encontrado'));
     }

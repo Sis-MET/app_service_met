@@ -50,18 +50,32 @@ class _PasoCondicionesInstalacionState
           ),
           const SizedBox(height: 8),
           _buildCampo(
-            'Nivelación',
-            [
-              'Irregular',
-              'Liso',
-              'Nivelación correcta',
-              'Nivelación deficiente'
-            ],
+            'Superficie de Apoyo', // Renombrado de Nivelación
+            ['Bueno', 'Malo', 'Aceptable'],
+          ),
+          const SizedBox(height: 8),
+          _buildCampo(
+            'Tensión de Red',
+            ['Estable', 'Inestable', 'Con picos', 'Fuera de rango'],
+          ),
+          const SizedBox(height: 8),
+          _buildCampo(
+            'Sistema de Tierra',
+            ['Correcto', 'Deficiente', 'Inexistente', 'No verificado'],
+          ),
+          _buildCampo(
+            'Comunicación PC/Impresora',
+            ['Correcta', 'Intermitente', 'Sin conexión', 'No aplica'],
           ),
           const SizedBox(height: 8),
           _buildCampo(
             'Movilización',
             ['Ninguna', 'Dentro el área', 'Fuera del área', 'Fuera del sector'],
+          ),
+          const SizedBox(height: 8),
+          _buildCampo(
+            'Vibración Externa',
+            ['Nula', 'Leve', 'Moderada', 'Alta'],
           ),
           const SizedBox(height: 8),
           _buildCampo(

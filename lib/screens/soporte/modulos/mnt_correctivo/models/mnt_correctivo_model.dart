@@ -30,8 +30,17 @@ class MntCorrectivoModel {
   // Información General
   String reporteFalla = '';
   String evaluacion = '';
+  String trabajoRealizado = ''; // Nuevo campo
 
-  // Comentarios Finales
+  // Estado Final (Nuevos Campos)
+  String comentarioGeneral = '';
+  String recomendacion = '';
+  String fechaProxServicio = '';
+  String estadoFisico = '';
+  String estadoOperacional = '';
+  String estadoMetrologico = '';
+
+  // Comentarios Finales (Obsoleto, pero mantenido para evitar break inmediato en controller si se usa)
   List<String?> comentarios = List.filled(10, null);
 
   // Pruebas Metrológicas

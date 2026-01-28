@@ -27,26 +27,6 @@ class _PasoPruebasFinalesState extends State<PasoPruebasFinales> {
       child: Column(
         children: [
           _buildHeader(context),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(8.0),
-            color: Colors.green.shade100,
-            child: const Row(
-              children: [
-                Icon(Icons.check_circle_outline, color: Colors.green),
-                SizedBox(width: 8),
-                Expanded(
-                    child: Text(
-                        'Estas pruebas se realizan DESPUÉS de los ajustes.')),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: _copiarDeIniciales,
-            icon: const Icon(Icons.copy),
-            label: const Text('COPIAR DE INICIALES'),
-          ),
           const SizedBox(height: 20),
           PruebasMetrologicasWidget(
             pruebas: widget.model.pruebasFinales,
@@ -63,15 +43,6 @@ class _PasoPruebasFinalesState extends State<PasoPruebasFinales> {
         ],
       ),
     );
-  }
-
-  void _copiarDeIniciales() {
-    // Lógica simplificada de copia
-    setState(() {
-      // Copia profunda idealmente, pero por ahora asignación manual de valores clave
-      widget.model.pruebasFinales =
-          PruebasMetrologicas.fromOther(widget.model.pruebasIniciales);
-    });
   }
 
   Widget _buildHeader(BuildContext context) {

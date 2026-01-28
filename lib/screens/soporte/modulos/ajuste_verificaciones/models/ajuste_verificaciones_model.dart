@@ -11,7 +11,17 @@ class AjusteVerificacionesModel {
   String horaInicio;
   String horaFin;
 
-  // Lista de hasta 10 comentarios
+  // Estado general
+  String comentarioGeneral;
+  String recomendacion;
+  String estadoFisico;
+  String estadoOperacional;
+  String estadoMetrologico;
+
+  // Fecha proximo servicio
+  String fechaProxServicio;
+
+  // Lista de hasta 10 comentarios (se mantendrá por compatibilidad o se usará en el nuevo flujo si es necesario)
   List<String?> comentarios;
 
   AjusteVerificacionesModel({
@@ -22,6 +32,12 @@ class AjusteVerificacionesModel {
     PruebasMetrologicas? pruebasFinales,
     this.horaInicio = '',
     this.horaFin = '',
+    this.comentarioGeneral = '',
+    this.recomendacion = '',
+    this.fechaProxServicio = '',
+    this.estadoFisico = '',
+    this.estadoOperacional = '',
+    this.estadoMetrologico = '',
     List<String?>? comentarios,
   })  : pruebasIniciales = pruebasIniciales ?? PruebasMetrologicas(),
         pruebasFinales = pruebasFinales ?? PruebasMetrologicas(),
@@ -32,6 +48,12 @@ class AjusteVerificacionesModel {
     pruebasFinales = PruebasMetrologicas();
     horaInicio = '';
     horaFin = '';
+    comentarioGeneral = '';
+    recomendacion = '';
+    fechaProxServicio = '';
+    estadoFisico = '';
+    estadoOperacional = '';
+    estadoMetrologico = '';
     comentarios = List.filled(10, null);
   }
 }

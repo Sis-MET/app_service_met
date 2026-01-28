@@ -155,65 +155,72 @@ class TipoServicioStep extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10), // Reducido de 12 a 10
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white
-                    : const Color(0xFF2E2E2E).withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 28, // Reducido de 32 a 28
-                color: isSelected ? const Color(0xFF2E2E2E) : color,
-              ),
-            ),
-            const SizedBox(height: 10), // Reducido de 12 a 10
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 12, // Reducido de 13 a 12
-                fontWeight: FontWeight.bold,
-                color: isSelected
-                    ? Colors.white
-                    : Colors.grey[800], // Texto blanco cuando está seleccionado
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (hasSubtypes)
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.all(10), // Reducido de 12 a 10
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? Colors.white.withOpacity(0.3)
-                      : const Color(0xFF317833).withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
+                      ? Colors.white
+                      : const Color(0xFF2E2E2E).withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  'STAC/STIL',
-                  style: GoogleFonts.inter(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : const Color(0xFF317833),
+                child: Icon(
+                  icon,
+                  size: 28, // Reducido de 32 a 28
+                  color: isSelected ? const Color(0xFF2E2E2E) : color,
+                ),
+              ),
+              const SizedBox(height: 10), // Reducido de 12 a 10
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 12, // Reducido de 13 a 12
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? Colors.white
+                      : Colors
+                          .grey[800], // Texto blanco cuando está seleccionado
+                ),
+                textAlign: TextAlign.center,
+              ),
+              if (hasSubtypes)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.white.withOpacity(0.3)
+                        : const Color(0xFF317833).withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'STAC/STIL',
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF317833),
+                    ),
                   ),
                 ),
-              ),
-            if (isSelected)
-              Container(
-                margin: const EdgeInsets.only(top: 6), // Reducido de 8 a 6
-                child: Icon(
-                  Icons.check_circle,
-                  color: Colors
-                      .white, // Icono blanco para contrastar con el fondo oscuro
-                  size: 18, // Reducido de 20 a 18
+              if (isSelected)
+                Container(
+                  margin: const EdgeInsets.only(top: 6), // Reducido de 8 a 6
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors
+                        .white, // Icono blanco para contrastar con el fondo oscuro
+                    size: 18, // Reducido de 20 a 18
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     ).animate(delay: (100 * _getCardIndex(value)).ms).fadeIn().scale();

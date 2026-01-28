@@ -23,6 +23,7 @@ class PasoInformacionGeneral extends StatefulWidget {
 class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
   late TextEditingController _reporteController;
   late TextEditingController _evaluacionController;
+  late TextEditingController _trabajoRealizadoController;
 
   @override
   void initState() {
@@ -30,6 +31,8 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
     _reporteController = TextEditingController(text: widget.model.reporteFalla);
     _evaluacionController =
         TextEditingController(text: widget.model.evaluacion);
+    _trabajoRealizadoController =
+        TextEditingController(text: widget.model.trabajoRealizado);
   }
 
   @override
@@ -41,12 +44,16 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
     if (oldWidget.model.evaluacion != widget.model.evaluacion) {
       _evaluacionController.text = widget.model.evaluacion;
     }
+    if (oldWidget.model.trabajoRealizado != widget.model.trabajoRealizado) {
+      _trabajoRealizadoController.text = widget.model.trabajoRealizado;
+    }
   }
 
   @override
   void dispose() {
     _reporteController.dispose();
     _evaluacionController.dispose();
+    _trabajoRealizadoController.dispose();
     super.dispose();
   }
 
@@ -104,6 +111,21 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
             maxLines: 8,
             minLines: 4,
             onChanged: (value) => widget.model.evaluacion = value,
+          ),
+          const SizedBox(height: 20),
+          TextFormField(
+            controller: _trabajoRealizadoController,
+            decoration: InputDecoration(
+              labelText: 'Trabajo Realizado:',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              alignLabelWithHint: true,
+            ),
+            maxLength: 800,
+            maxLines: 8,
+            minLines: 4,
+            onChanged: (value) => widget.model.trabajoRealizado = value,
           ),
         ],
       ),

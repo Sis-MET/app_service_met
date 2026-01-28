@@ -251,8 +251,9 @@ class DatabaseHelperInstalacion {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 1,
+        version: 3, // Versión 3: Nuevos campos Estado Final y Estabilidad
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -264,6 +265,64 @@ class DatabaseHelperInstalacion {
       rethrow;
     } finally {
       _isInitializing = false;
+    }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    try {
+      if (oldVersion < 2) {
+        debugPrint('Actualizando base de datos Instalación a versión 2...');
+
+        // Nuevos campos de Inspección (Condiciones)
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN superficie_apoyo_valor TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN superficie_apoyo_comentario TEXT DEFAULT ''");
+
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN tension_red_valor TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN tension_red_comentario TEXT DEFAULT ''");
+
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN sistema_tierra_valor TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN sistema_tierra_comentario TEXT DEFAULT ''");
+
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN comunicacion_pc_valor TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN comunicacion_pc_comentario TEXT DEFAULT ''");
+
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN vibracion_externa_valor TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN vibracion_externa_comentario TEXT DEFAULT ''");
+      }
+
+      if (oldVersion < 3) {
+        debugPrint('Actualizando base de datos Instalación a versión 3...');
+
+        // Campos de Estado Final (Paso 3)
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN comentario_general TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN recomendacion TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN fecha_prox_servicio TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN estado_fisico TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN estado_operacional TEXT DEFAULT ''");
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN estado_metrologico TEXT DEFAULT ''");
+
+        // Campo faltante en Pruebas Iniciales
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN retorno_cero_inicial_estabilidad TEXT DEFAULT ''");
+      }
+    } catch (e) {
+      debugPrint('Error en migración Instalación: $e');
     }
   }
 
@@ -338,13 +397,38 @@ class DatabaseHelperInstalacion {
         comentario_9 TEXT DEFAULT '',
         comentario_10 TEXT DEFAULT '',
 
+        -- NUEVOS CAMPOS (V3): ALINEACIÓN CON OTROS MÓDULOS
+        comentario_general TEXT DEFAULT '',
+        recomendacion TEXT DEFAULT '',
+        fecha_prox_servicio TEXT DEFAULT '',
+        estado_fisico TEXT DEFAULT '',
+        estado_operacional TEXT DEFAULT '',
+        estado_metrologico TEXT DEFAULT '',
+
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
         retorno_cero_inicial_carga TEXT DEFAULT '',
         retorno_cero_inicial_unidad TEXT DEFAULT '',
+        retorno_cero_inicial_estabilidad TEXT DEFAULT '', -- NUEVO (V3)
+        
         retorno_cero_final_valoracion TEXT DEFAULT '',
         retorno_cero_final_carga TEXT DEFAULT '',
         retorno_cero_final_unidad TEXT DEFAULT '',
+
+        -- NUEVOS CAMPOS INSPECCIÓN (V2)
+        -- 'Nivelación' se reemplaza conceptualmente por superficie_apoyo,
+        -- pero mantenemos 'nivelacion_valor'/'nivelacion_comentario' si ya existen para no romper datos antiguos,
+        -- o agregamos nuevos. En este caso agregamos nuevos para claridad.
+        superficie_apoyo_valor TEXT DEFAULT '',
+        superficie_apoyo_comentario TEXT DEFAULT '',
+        tension_red_valor TEXT DEFAULT '',
+        tension_red_comentario TEXT DEFAULT '',
+        sistema_tierra_valor TEXT DEFAULT '',
+        sistema_tierra_comentario TEXT DEFAULT '',
+        comunicacion_pc_valor TEXT DEFAULT '',
+        comunicacion_pc_comentario TEXT DEFAULT '',
+        vibracion_externa_valor TEXT DEFAULT '',
+        vibracion_externa_comentario TEXT DEFAULT '',
 
         -- Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',
