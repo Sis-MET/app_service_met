@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:290216580206:android:eaefad750f7991bce9c27f",
         "android_client_info": {
-          "package_name": "com.metrica.met_service"
+          "package_name": "bo.metrica.smet"
         }
       },
       "oauth_client": [],

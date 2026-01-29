@@ -1,4 +1,4 @@
-package com.metrica.met_service
+package bo.metrica.smet
 import android.os.Build
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity

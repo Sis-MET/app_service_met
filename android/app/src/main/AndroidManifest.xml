@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.metrica.met_service">
+    package="bo.metrica.smet">
 
     <!-- Permisos de almacenamiento -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

@@ -29,6 +29,15 @@ class _RepetibilidadInstalacionWidgetState
   @override
   void initState() {
     super.initState();
+    if (widget.repetibilidad.cantidadCargas != 1) {
+      widget.repetibilidad.cantidadCargas = 1;
+    }
+    while (widget.repetibilidad.cargas.length > 1) {
+      widget.repetibilidad.cargas.removeLast();
+    }
+    if (widget.repetibilidad.cargas.isEmpty) {
+      widget.repetibilidad.cargas.add(CargaRepetibilidad());
+    }
     _initializeControllers();
   }
 
@@ -49,22 +58,6 @@ class _RepetibilidadInstalacionWidgetState
       _indicacionControllers.add(indicacionControllers);
       _retornoControllers.add(retornoControllers);
     }
-  }
-
-  void _updateCantidadCargas(int newCount) {
-    if (newCount > widget.repetibilidad.cargas.length) {
-      // Agregar nuevas cargas
-      for (int i = widget.repetibilidad.cargas.length; i < newCount; i++) {
-        widget.repetibilidad.cargas.add(CargaRepetibilidad());
-      }
-    } else {
-      // Remover cargas excedentes
-      widget.repetibilidad.cargas =
-          widget.repetibilidad.cargas.sublist(0, newCount);
-    }
-    _initializeControllers();
-    widget.onChanged();
-    setState(() {});
   }
 
   void _updateCantidadPruebas(int newCount) {
@@ -114,25 +107,6 @@ class _RepetibilidadInstalacionWidgetState
           'PRUEBAS DE REPETIBILIDAD',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 20),
-        DropdownButtonFormField<int>(
-          initialValue: widget.repetibilidad.cantidadCargas,
-          items: [1, 2, 3]
-              .map((int value) => DropdownMenuItem<int>(
-                    value: value,
-                    child: Text(value.toString()),
-                  ))
-              .toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                widget.repetibilidad.cantidadCargas = value;
-                _updateCantidadCargas(value);
-              });
-            }
-          },
-          decoration: _buildInputDecoration('Cantidad de Cargas'),
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
