@@ -272,7 +272,6 @@ class MntPrvRegularStilController {
       if (campo != null) {
         data['${dbKey}_estado'] = campo.initialValue;
         data['${dbKey}_solucion'] = campo.solutionValue;
-        data['${dbKey}_comentario'] = campo.comentario;
         data['${dbKey}_foto'] = campo.fotos.isNotEmpty
             ? campo.fotos.map((f) => f.path.split('/').last).join(',')
             : '';

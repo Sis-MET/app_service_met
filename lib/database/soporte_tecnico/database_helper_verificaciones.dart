@@ -229,9 +229,8 @@ class DatabaseHelperVerificaciones {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 4, // Incrementado de 3 a 4 para simplificación de procesos
+        version: 1, // Reset to version 1
         onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -445,123 +444,6 @@ class DatabaseHelperVerificaciones {
       debugPrint('Tabla verificaciones_internas creada exitosamente');
     } catch (e) {
       debugPrint('Error creando tabla: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    try {
-      debugPrint(
-          'Actualizando base de datos de versión $oldVersion a $newVersion');
-
-      if (oldVersion < 2) {
-        // Migración de versión 1 a 2: Agregar columnas de Inspección Visual Detallada
-        debugPrint('Ejecutando migración a versión 2...');
-
-        // Verificar columnas existentes
-        final tableInfo =
-            await db.rawQuery('PRAGMA table_info(verificaciones_internas)');
-        final existingColumns =
-            tableInfo.map((col) => col['name'] as String).toSet();
-
-        // Función helper para agregar columna solo si no existe
-        Future<void> addColumnIfNotExists(String columnName) async {
-          if (!existingColumns.contains(columnName)) {
-            await db.execute(
-                'ALTER TABLE verificaciones_internas ADD COLUMN $columnName TEXT DEFAULT \'\'');
-            debugPrint('Columna $columnName agregada');
-          }
-        }
-
-        // Agregar todas las columnas de Inspección Visual Detallada
-        await addColumnIfNotExists('comentario_general');
-        await addColumnIfNotExists('recomendacion');
-        await addColumnIfNotExists('fisico');
-        await addColumnIfNotExists('operacional');
-        await addColumnIfNotExists('metrologico');
-        await addColumnIfNotExists('fecha_prox_servicio');
-
-        debugPrint('Migración a versión 2 completada');
-      }
-
-      if (oldVersion < 3) {
-        // Migración de versión 2 a 3: Agregar columnas faltantes
-        debugPrint('Ejecutando migración a versión 3...');
-
-        final tableInfo =
-            await db.rawQuery('PRAGMA table_info(verificaciones_internas)');
-        final existingColumns =
-            tableInfo.map((col) => col['name'] as String).toSet();
-
-        // Función helper para agregar columna solo si no existe
-        Future<void> addColumnIfNotExists(String columnName) async {
-          if (!existingColumns.contains(columnName)) {
-            await db.execute(
-                'ALTER TABLE verificaciones_internas ADD COLUMN $columnName TEXT DEFAULT \'\'');
-            debugPrint('Columna $columnName agregada');
-          }
-        }
-
-        // Agregar columnas de Verificaciones de Celdas
-        await addColumnIfNotExists('lubricacion_celdas_estado');
-        await addColumnIfNotExists('lubricacion_celdas_solucion');
-        await addColumnIfNotExists('lubricacion_celdas_foto');
-
-        await addColumnIfNotExists('lubricacion_bearing_estado');
-        await addColumnIfNotExists('lubricacion_bearing_solucion');
-        await addColumnIfNotExists('lubricacion_bearing_foto');
-
-        await addColumnIfNotExists('protector_goma_estado');
-        await addColumnIfNotExists('protector_goma_solucion');
-        await addColumnIfNotExists('protector_goma_foto');
-
-        // Agregar columnas de Terminal
-        await addColumnIfNotExists('comunicacion_pc_estado');
-        await addColumnIfNotExists('comunicacion_pc_solucion');
-        await addColumnIfNotExists('comunicacion_pc_foto');
-
-        // Agregar columnas de Calibración
-        await addColumnIfNotExists('balanza_apta_estado');
-        await addColumnIfNotExists('balanza_apta_solucion');
-        await addColumnIfNotExists('balanza_apta_foto');
-
-        debugPrint('Migración a versión 3 completada');
-      }
-
-      if (oldVersion < 4) {
-        // Migración de versión 3 a 4: Agregar columnas de Inspección Visual Simplificada
-        debugPrint('Ejecutando migración a versión 4...');
-
-        Future<void> addColumnIfNotExists(String columnName) async {
-          final tableInfo =
-              await db.rawQuery('PRAGMA table_info(verificaciones_internas)');
-          final existingColumns =
-              tableInfo.map((col) => col['name'] as String).toSet();
-          if (!existingColumns.contains(columnName)) {
-            await db.execute(
-                'ALTER TABLE verificaciones_internas ADD COLUMN $columnName TEXT DEFAULT \'\'');
-            debugPrint('Columna $columnName agregada');
-          }
-        }
-
-        await addColumnIfNotExists('espaciamiento_topes_long_estado');
-        await addColumnIfNotExists('espaciamiento_topes_long_solucion');
-        await addColumnIfNotExists('espaciamiento_topes_long_foto');
-
-        await addColumnIfNotExists('espaciamiento_topes_front_estado');
-        await addColumnIfNotExists('espaciamiento_topes_front_solucion');
-        await addColumnIfNotExists('espaciamiento_topes_front_foto');
-
-        await addColumnIfNotExists('limpieza_debajo_puente_estado');
-        await addColumnIfNotExists('limpieza_debajo_puente_solucion');
-        await addColumnIfNotExists('limpieza_debajo_puente_foto');
-
-        debugPrint('Migración a versión 4 completada');
-      }
-
-      debugPrint('Migración completada exitosamente');
-    } catch (e) {
-      debugPrint('Error en migración de base de datos: $e');
       rethrow;
     }
   }

@@ -251,9 +251,8 @@ class DatabaseHelperInstalacion {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 3, // Versión 3: Nuevos campos Estado Final y Estabilidad
+        version: 1, // Reset to version 1
         onCreate: _onCreate,
-        onUpgrade: _onUpgrade,
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -265,64 +264,6 @@ class DatabaseHelperInstalacion {
       rethrow;
     } finally {
       _isInitializing = false;
-    }
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    try {
-      if (oldVersion < 2) {
-        debugPrint('Actualizando base de datos Instalación a versión 2...');
-
-        // Nuevos campos de Inspección (Condiciones)
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN superficie_apoyo_valor TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN superficie_apoyo_comentario TEXT DEFAULT ''");
-
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN tension_red_valor TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN tension_red_comentario TEXT DEFAULT ''");
-
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN sistema_tierra_valor TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN sistema_tierra_comentario TEXT DEFAULT ''");
-
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN comunicacion_pc_valor TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN comunicacion_pc_comentario TEXT DEFAULT ''");
-
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN vibracion_externa_valor TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN vibracion_externa_comentario TEXT DEFAULT ''");
-      }
-
-      if (oldVersion < 3) {
-        debugPrint('Actualizando base de datos Instalación a versión 3...');
-
-        // Campos de Estado Final (Paso 3)
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN comentario_general TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN recomendacion TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN fecha_prox_servicio TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN estado_fisico TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN estado_operacional TEXT DEFAULT ''");
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN estado_metrologico TEXT DEFAULT ''");
-
-        // Campo faltante en Pruebas Iniciales
-        await db.execute(
-            "ALTER TABLE instalacion ADD COLUMN retorno_cero_inicial_estabilidad TEXT DEFAULT ''");
-      }
-    } catch (e) {
-      debugPrint('Error en migración Instalación: $e');
     }
   }
 

@@ -430,7 +430,6 @@ class _StilMntPrvRegularStacScreenState
             _buildNavigationButtons(isDarkMode),
           ],
         ),
-        floatingActionButton: _buildFloatingActionButton(balanza),
       ),
     );
   }
@@ -654,69 +653,6 @@ class _StilMntPrvRegularStacScreenState
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFloatingActionButton(dynamic balanza) {
-    return FloatingActionButton(
-      backgroundColor: const Color(0xFFF9E300),
-      child: const Icon(Icons.info_outline, color: Colors.black87),
-      onPressed: () => _showBalanzaInfo(context, balanza),
-    );
-  }
-
-  void _showBalanzaInfo(BuildContext context, dynamic balanza) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Información de la Balanza',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const Divider(height: 24),
-                if (balanza != null) ...[
-                  _buildInfoRow('Código Métrica', balanza.cod_metrica),
-                  _buildInfoRow('Unidades', balanza.unidad.toString()),
-                  _buildInfoRow('Cap. Máx 1', balanza.cap_max1),
-                  _buildInfoRow('d1', balanza.d1.toString()),
-                  _buildInfoRow('e1', balanza.e1.toString()),
-                  _buildInfoRow('Decimales 1', balanza.dec1.toString()),
-                  if (balanza.cap_max2 != null &&
-                      balanza.cap_max2.isNotEmpty) ...[
-                    const Divider(),
-                    _buildInfoRow('Cap. Máx 2', balanza.cap_max2),
-                    _buildInfoRow('d2', balanza.d2.toString()),
-                    _buildInfoRow('e2', balanza.e2.toString()),
-                  ],
-                ] else
-                  const Text('No hay información de balanza disponible'),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(value),
         ],
       ),
     );
