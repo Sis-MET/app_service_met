@@ -456,7 +456,16 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
             : () => _confirmSeca();
 
       case 3: // Balanza (Último paso ahora)
-        return controller.canProceedToStep(3) ? () => _saveAndNavigate() : null;
+        return controller.canProceedToStep(3)
+            ? () {
+                if (controller.selectedTermohigrometros.isEmpty) {
+                  _showSnackBar('Debe seleccionar al menos un termohigrómetro',
+                      isError: true);
+                  return;
+                }
+                _saveAndNavigate();
+              }
+            : null;
 
       default:
         return null;

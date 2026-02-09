@@ -32,6 +32,9 @@ class _PasoTerminalPlataformaCeldasState
     'CELDAS DE CARGA': false,
   };
 
+  // Mapa para respaldar los valores anteriores
+  final Map<String, Map<String, Map<String, String>>> _backupValues = {};
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -214,16 +217,42 @@ class _PasoTerminalPlataformaCeldasState
       }
 
       if (isGood) {
-        // Aplicar "1 Bueno" a todos los campos del sector
+        // Inicializar mapa de respaldo para el sector si no existe
+        if (!_backupValues.containsKey(sector)) {
+          _backupValues[sector] = {};
+        }
+
+        // Respaldar y aplicar "1 Bueno"
         for (final field in fields) {
           final campo = widget.model.camposEstado[field];
           if (campo != null) {
+            // Guardar valores actuales en el respaldo
+            _backupValues[sector]![field] = {
+              'initialValue': campo.initialValue,
+              'comentario': campo.comentario,
+            };
+
+            // Aplicar nuevo estado
             campo.initialValue = '1 Bueno';
             campo.comentario = 'En buen estado';
           }
         }
+      } else {
+        // Restaurar valores desde el respaldo
+        if (_backupValues.containsKey(sector)) {
+          for (final field in fields) {
+            final campo = widget.model.camposEstado[field];
+            final backup = _backupValues[sector]![field];
+
+            if (campo != null && backup != null) {
+              campo.initialValue = backup['initialValue'] ?? '4 No aplica';
+              campo.comentario = backup['comentario'] ?? 'Sin comentario';
+            }
+          }
+          // Limpiar respaldo del sector
+          _backupValues.remove(sector);
+        }
       }
-      // Si se desactiva, los campos mantienen sus valores actuales
 
       widget.onChanged();
     });

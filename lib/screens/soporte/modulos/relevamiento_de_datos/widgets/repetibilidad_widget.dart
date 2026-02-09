@@ -198,12 +198,28 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
                                               [pruebaIndex]
                                           .text) ??
                                   0.0;
+                              // Determinar decimales basados en d1
+                              int decimals = 1;
+                              if (d1 > 0) {
+                                if (d1 % 1 == 0) {
+                                  decimals = 0;
+                                } else {
+                                  final d1Str = d1.toString();
+                                  if (d1Str.contains('.')) {
+                                    decimals = d1Str.split('.')[1].length;
+                                  }
+                                }
+                              }
+                              // Limitar a 4 decimales por seguridad
+                              if (decimals > 4) decimals = 4;
+
                               return List.generate(11, (index) {
                                 final multiplier = index - 5;
                                 final value = baseValue + (multiplier * d1);
+                                final txt = value.toStringAsFixed(decimals);
                                 return PopupMenuItem<String>(
-                                  value: value.toStringAsFixed(1),
-                                  child: Text(value.toStringAsFixed(1)),
+                                  value: txt,
+                                  child: Text(txt),
                                 );
                               });
                             },

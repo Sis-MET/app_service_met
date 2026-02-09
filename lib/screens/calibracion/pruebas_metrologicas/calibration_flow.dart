@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/screens/calibracion/pruebas_metrologicas/excentricidad/excentricidad_form.dart';
 import 'package:service_met/screens/calibracion/pruebas_metrologicas/linealidad/linealidad_form.dart';
 import 'package:service_met/screens/calibracion/pruebas_metrologicas/repetibilidad/repetibilidad_form.dart';
+import 'package:service_met/screens/calibracion/pruebas_metrologicas/photo_capture/photo_capture_step.dart';
 import 'package:service_met/screens/calibracion/pruebas_metrologicas/pruebas_metrologicas_controller.dart';
 import 'package:service_met/screens/calibracion/fin_servicios/fin_servicios_screen.dart';
 import 'package:service_met/screens/calibracion/precarga/widgets/step_indicator.dart';
@@ -50,6 +51,11 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
       title: 'Linealidad',
       subtitle: 'Pruebas de Linealidad',
       icon: Icons.show_chart,
+    ),
+    StepData(
+      title: 'Foto Carga',
+      subtitle: 'Evidencia Fotográfica',
+      icon: Icons.camera_alt,
     ),
   ];
 
@@ -241,6 +247,8 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
             controller: controller.repetibilidadController);
       case 2:
         return LinealidadForm(controller: controller.linealidadController);
+      case 3:
+        return PhotoCaptureStep(controller: controller);
       default:
         return const Center(child: Text('Paso no disponible'));
     }
@@ -317,9 +325,13 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
                     )
                   : ElevatedButton.icon(
                       onPressed: () async {
-                        // Guardar último paso
-                        await controller.linealidadController
-                            .saveDataToDatabase();
+                        // Validar que se haya tomado la foto
+                        if (controller.cargaPhoto == null) {
+                          _showSnackBar(
+                              'Debe tomar una fotografía de la carga antes de finalizar.',
+                              isError: true);
+                          return;
+                        }
                         _showConfirmationDialog();
                       },
                       icon: const Icon(Icons.check_circle, size: 18),

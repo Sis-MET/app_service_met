@@ -241,10 +241,25 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                                 ) ??
                                 0.0;
 
+                            // Determinar decimales basados en d1
+                            int decimals = 1;
+                            if (d1 > 0) {
+                              if (d1 % 1 == 0) {
+                                decimals = 0;
+                              } else {
+                                final d1Str = d1.toString();
+                                if (d1Str.contains('.')) {
+                                  decimals = d1Str.split('.')[1].length;
+                                }
+                              }
+                            }
+                            // Limitar a 4 decimales por seguridad
+                            if (decimals > 4) decimals = 4;
+
                             // Generar 11 opciones (5 abajo, actual, 5 arriba)
                             return List.generate(11, (i) {
                               final value = baseValue + ((i - 5) * d1);
-                              final txt = value.toStringAsFixed(1); // 1 decimal
+                              final txt = value.toStringAsFixed(decimals);
                               return PopupMenuItem<String>(
                                 value: txt,
                                 child: Text(txt),

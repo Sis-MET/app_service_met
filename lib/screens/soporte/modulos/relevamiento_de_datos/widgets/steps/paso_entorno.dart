@@ -25,6 +25,9 @@ class PasoEntorno extends StatefulWidget {
 class _PasoEntornoState extends State<PasoEntorno> {
   bool _allGoodState = false;
 
+  // Mapa para respaldar los valores anteriores
+  final Map<String, Map<String, String>> _backupValues = {};
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -156,12 +159,31 @@ class _PasoEntornoState extends State<PasoEntorno> {
         for (final campo in AppConstants.entornoCampos.keys) {
           final campoEstado = widget.model.camposEstado[campo];
           if (campoEstado != null) {
+            // Guardar valores actuales en el respaldo
+            _backupValues[campo] = {
+              'initialValue': campoEstado.initialValue,
+              'comentario': campoEstado.comentario,
+            };
+
+            // Aplicar nuevo estado
             campoEstado.initialValue = '1 Bueno';
             campoEstado.comentario = 'En buen estado';
           }
         }
+      } else {
+        // Restaurar valores desde el respaldo
+        for (final campo in AppConstants.entornoCampos.keys) {
+          final campoEstado = widget.model.camposEstado[campo];
+          final backup = _backupValues[campo];
+
+          if (campoEstado != null && backup != null) {
+            campoEstado.initialValue = backup['initialValue'] ?? '4 No aplica';
+            campoEstado.comentario = backup['comentario'] ?? 'Sin comentario';
+          }
+        }
+        // Limpiar respaldo
+        _backupValues.clear();
       }
-      // Si se desactiva, los campos mantienen sus valores actuales
 
       widget.onChanged();
     });

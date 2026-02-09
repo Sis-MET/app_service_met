@@ -34,12 +34,16 @@ class PasoGenerico extends StatefulWidget {
 class _PasoGenericoState extends State<PasoGenerico> {
   bool _isAllGood = false;
 
+  // Mapa para respaldar los valores anteriores
+  final Map<String, Map<String, String>> _backupValues = {};
+
   @override
   void didUpdateWidget(PasoGenerico oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Resetear el checkbox cuando cambian los campos (cambio de paso)
     if (oldWidget.campos != widget.campos) {
       _isAllGood = false;
+      _backupValues.clear();
     }
   }
 
@@ -116,16 +120,37 @@ class _PasoGenericoState extends State<PasoGenerico> {
       _isAllGood = isGood;
 
       if (isGood) {
+        // Respaldar y aplicar "1 Bueno"
         for (final fieldName in campos) {
           final campo = widget.model.camposEstado[fieldName];
           if (campo != null) {
+            // Guardar valores actuales en el respaldo
+            _backupValues[fieldName] = {
+              'initialValue': campo.initialValue,
+              'comentario': campo.comentario,
+            };
+
+            // Aplicar nuevo estado
             campo.initialValue = '1 Bueno';
             campo.comentario = 'En buen estado';
             campo.solutionValue = 'No aplica';
           }
         }
-        widget.onChanged();
+      } else {
+        // Restaurar valores desde el respaldo
+        for (final fieldName in campos) {
+          final campo = widget.model.camposEstado[fieldName];
+          final backup = _backupValues[fieldName];
+
+          if (campo != null && backup != null) {
+            campo.initialValue = backup['initialValue'] ?? '4 No aplica';
+            campo.comentario = backup['comentario'] ?? 'Sin comentario';
+          }
+        }
+        // Limpiar respaldo
+        _backupValues.clear();
       }
+      widget.onChanged();
     });
   }
 
