@@ -165,12 +165,17 @@ class MntCorrectivoController {
     // Helper para obtener string seguro y trim
     String getVal(String key) => data[key]?.toString().trim() ?? '';
 
-    // 1. General (Solo reporte y evaluación según requerimiento)
+    // 1. General
     if (data.containsKey('reporte')) {
       model.reporteFalla = getVal('reporte');
     }
-    if (data.containsKey('evaluacion')) {
+
+    // Prioridad: 1. evaluacion, 2. comentario_general
+    if (data.containsKey('evaluacion') && getVal('evaluacion').isNotEmpty) {
       model.evaluacion = getVal('evaluacion');
+    } else if (data.containsKey('comentario_general')) {
+      // Fallback para CSVs antiguos o si está vacío
+      model.evaluacion = getVal('comentario_general');
     }
   }
 

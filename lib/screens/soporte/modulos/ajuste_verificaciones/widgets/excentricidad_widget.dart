@@ -21,6 +21,7 @@ class ExcentricidadWidget extends StatefulWidget {
 }
 
 class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
+  late TextEditingController _cargaController;
   final List<TextEditingController> _positionControllers = [];
   final List<TextEditingController> _indicationControllers = [];
   final List<TextEditingController> _returnControllers = [];
@@ -28,10 +29,20 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
   @override
   void initState() {
     super.initState();
+    _cargaController = TextEditingController();
     _initializeControllers();
   }
 
+  @override
+  void didUpdateWidget(ExcentricidadWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.excentricidad != oldWidget.excentricidad) {
+      _initializeControllers();
+    }
+  }
+
   void _initializeControllers() {
+    _cargaController.text = widget.excentricidad.carga;
     _positionControllers.clear();
     _indicationControllers.clear();
     _returnControllers.clear();
@@ -60,6 +71,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
         retorno: '0',
       ));
 
+      // Re-add controllers for new positions
       _positionControllers.add(TextEditingController(text: (i + 1).toString()));
       _indicationControllers
           .add(TextEditingController(text: widget.excentricidad.carga));
@@ -101,7 +113,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<String>(
-          initialValue: widget.excentricidad.tipoPlataforma,
+          value: widget.excentricidad.tipoPlataforma,
           decoration: _buildInputDecoration('Tipo de Plataforma'),
           items: AppConstants.platformOptions.keys.map((String value) {
             return DropdownMenuItem<String>(
@@ -121,7 +133,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
         const SizedBox(height: 20),
         if (widget.excentricidad.tipoPlataforma != null)
           DropdownButtonFormField<String>(
-            initialValue: widget.excentricidad.puntosIndicador,
+            value: widget.excentricidad.puntosIndicador,
             decoration: _buildInputDecoration('Puntos e Indicador'),
             items: AppConstants
                 .platformOptions[widget.excentricidad.tipoPlataforma]!
@@ -145,6 +157,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
           Image.asset(widget.excentricidad.imagenPath!),
         const SizedBox(height: 20),
         TextFormField(
+          controller: _cargaController,
           onChanged: (value) {
             widget.excentricidad.carga = value;
             // Actualizar indicaciones
@@ -170,6 +183,11 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
   }
 
   Widget _buildPositionRow(int index) {
+    if (index >= _indicationControllers.length ||
+        index >= _returnControllers.length) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -250,6 +268,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
 
   @override
   void dispose() {
+    _cargaController.dispose();
     for (var controller in _positionControllers) {
       controller.dispose();
     }

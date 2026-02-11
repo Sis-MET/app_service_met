@@ -158,7 +158,7 @@ class _PasoEstadoFinalState extends State<PasoEstadoFinal> {
                 ? null
                 : widget.model.recomendacion,
             decoration: InputDecoration(
-              labelText: 'Recomendación *',
+              labelText: 'Recomendación del Proximo Servicio *',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

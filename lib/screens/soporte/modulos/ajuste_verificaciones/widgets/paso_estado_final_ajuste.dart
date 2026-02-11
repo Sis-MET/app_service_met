@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/ajuste_verificaciones_model.dart';
 
-class PasoEstadoFinalAjuste extends StatelessWidget {
+class PasoEstadoFinalAjuste extends StatefulWidget {
   final AjusteVerificacionesModel model;
   final VoidCallback onChanged;
 
@@ -11,6 +11,34 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
     required this.model,
     required this.onChanged,
   });
+
+  @override
+  State<PasoEstadoFinalAjuste> createState() => _PasoEstadoFinalAjusteState();
+}
+
+class _PasoEstadoFinalAjusteState extends State<PasoEstadoFinalAjuste> {
+  late TextEditingController _comentarioController;
+
+  @override
+  void initState() {
+    super.initState();
+    _comentarioController =
+        TextEditingController(text: widget.model.comentarioGeneral);
+  }
+
+  @override
+  void didUpdateWidget(PasoEstadoFinalAjuste oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.model.comentarioGeneral != _comentarioController.text) {
+      _comentarioController.text = widget.model.comentarioGeneral;
+    }
+  }
+
+  @override
+  void dispose() {
+    _comentarioController.dispose();
+    super.dispose();
+  }
 
   // Función para calcular fecha futura
   String _calcularFechaFutura(int meses) {
@@ -70,8 +98,8 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    model.fechaProxServicio = fechaCalculada;
-                    onChanged();
+                    widget.model.fechaProxServicio = fechaCalculada;
+                    widget.onChanged();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -104,7 +132,7 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
           // Hora de inicio (solo lectura)
           _buildReadOnlyField(
             label: 'Hora de Inicio',
-            value: model.horaInicio,
+            value: widget.model.horaInicio,
             icon: Icons.access_time,
             context: context,
           ),
@@ -112,6 +140,7 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
 
           // Comentario General
           TextField(
+            controller: _comentarioController,
             decoration: InputDecoration(
               labelText: 'Comentario General *',
               hintText: 'Describa el estado general del servicio...',
@@ -123,21 +152,19 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
             ),
             maxLines: 4,
             onChanged: (value) {
-              model.comentarioGeneral = value;
-              onChanged();
+              widget.model.comentarioGeneral = value;
+              widget.onChanged();
             },
-            controller: TextEditingController(text: model.comentarioGeneral)
-              ..selection = TextSelection.collapsed(
-                offset: model.comentarioGeneral.length,
-              ),
           ),
           const SizedBox(height: 20),
 
           // Recomendación
           DropdownButtonFormField<String>(
-            value: model.recomendacion.isEmpty ? null : model.recomendacion,
+            value: widget.model.recomendacion.isEmpty
+                ? null
+                : widget.model.recomendacion,
             decoration: InputDecoration(
-              labelText: 'Recomendación *',
+              labelText: 'Recomendación de Próximo Servicio *',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -158,8 +185,8 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
               );
             }).toList(),
             onChanged: (String? newValue) {
-              model.recomendacion = newValue ?? '';
-              onChanged();
+              widget.model.recomendacion = newValue ?? '';
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 20),
@@ -181,7 +208,7 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
                   helperText: 'Seleccione 3, 6 o 12 meses',
                 ),
                 controller:
-                    TextEditingController(text: model.fechaProxServicio),
+                    TextEditingController(text: widget.model.fechaProxServicio),
               ),
             ),
           ),
@@ -200,12 +227,12 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
           // Estado Físico
           _buildEstadoDropdown(
             label: 'Estado Físico *',
-            value: model.estadoFisico,
+            value: widget.model.estadoFisico,
             icon: Icons.build_circle_outlined,
-            color: _getColorForEstado(model.estadoFisico),
+            color: _getColorForEstado(widget.model.estadoFisico),
             onChanged: (value) {
-              model.estadoFisico = value ?? '';
-              onChanged();
+              widget.model.estadoFisico = value ?? '';
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 16),
@@ -213,12 +240,12 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
           // Estado Operacional
           _buildEstadoDropdown(
             label: 'Estado Operacional *',
-            value: model.estadoOperacional,
+            value: widget.model.estadoOperacional,
             icon: Icons.settings_outlined,
-            color: _getColorForEstado(model.estadoOperacional),
+            color: _getColorForEstado(widget.model.estadoOperacional),
             onChanged: (value) {
-              model.estadoOperacional = value ?? '';
-              onChanged();
+              widget.model.estadoOperacional = value ?? '';
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 16),
@@ -226,12 +253,12 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
           // Estado Metrológico
           _buildEstadoDropdown(
             label: 'Estado Metrológico *',
-            value: model.estadoMetrologico,
+            value: widget.model.estadoMetrologico,
             icon: Icons.speed_outlined,
-            color: _getColorForEstado(model.estadoMetrologico),
+            color: _getColorForEstado(widget.model.estadoMetrologico),
             onChanged: (value) {
-              model.estadoMetrologico = value ?? '';
-              onChanged();
+              widget.model.estadoMetrologico = value ?? '';
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 24),
@@ -250,13 +277,13 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
                 onPressed: () {
                   final ahora = DateTime.now();
                   final horaFormateada = DateFormat('HH:mm:ss').format(ahora);
-                  model.horaFin = horaFormateada;
-                  onChanged();
+                  widget.model.horaFin = horaFormateada;
+                  widget.onChanged();
                 },
                 tooltip: 'Registrar hora actual',
               ),
             ),
-            controller: TextEditingController(text: model.horaFin),
+            controller: TextEditingController(text: widget.model.horaFin),
           ),
           const SizedBox(height: 12),
           _buildInfoBox(
@@ -362,18 +389,6 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
       ),
       items: ['1 Bueno', '2 Regular', '3 Malo', '4 No aplica']
           .map((String estado) {
-        // Mapear los valores viejos 'Bueno' -> '1 Bueno' si es necesario,
-        // pero el modelo usa '1 Bueno', '2 Regular' etc en el resto de la app
-        // Ajustamos la UI si es necesario. En verificaciones_internas usan 'Bueno', 'Aceptable', etc.
-        // Pero en ajuste_verificaciones_model definí campos STRING.
-        // Voy a usar los valores del standard de Ajuste que definí: '1 Bueno', '2 Regular', '3 Malo', '4 No Aplica'
-        // El widget de referencia usaba 'Bueno', 'Aceptable' etc. Voy a mantener mis valores de DB
-        // pero usar el estilo visual.
-
-        // Wait, verificaciones_internas uses 'Bueno', 'Aceptable'... My model implies '1 Bueno'...
-        // Let's stick to the values used in my current model update to avoid DB mapping issues:
-        // '1 Bueno', '2 Regular', '3 Malo', '4 No Aplica'
-
         final estadoColor = _getColorForEstado(estado);
         return DropdownMenuItem<String>(
           value: estado,
@@ -401,7 +416,6 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
   }
 
   Color _getColorForEstado(String estado) {
-    // Adaptar checkeo a startsWith para soportar '1 Bueno' etc
     if (estado.startsWith('1')) return Colors.green;
     if (estado.startsWith('2')) return Colors.orange;
     if (estado.startsWith('3')) return Colors.red;
@@ -446,13 +460,13 @@ class PasoEstadoFinalAjuste extends StatelessWidget {
   }
 
   Widget _buildResumenCard(BuildContext context, bool isDarkMode) {
-    final tieneComentario = model.comentarioGeneral.isNotEmpty;
-    final tieneRecomendacion = model.recomendacion.isNotEmpty;
-    final tieneFechaProxServicio = model.fechaProxServicio.isNotEmpty;
-    final tieneEstados = model.estadoFisico.isNotEmpty &&
-        model.estadoOperacional.isNotEmpty &&
-        model.estadoMetrologico.isNotEmpty;
-    final tieneHoraFinal = model.horaFin.isNotEmpty;
+    final tieneComentario = widget.model.comentarioGeneral.isNotEmpty;
+    final tieneRecomendacion = widget.model.recomendacion.isNotEmpty;
+    final tieneFechaProxServicio = widget.model.fechaProxServicio.isNotEmpty;
+    final tieneEstados = widget.model.estadoFisico.isNotEmpty &&
+        widget.model.estadoOperacional.isNotEmpty &&
+        widget.model.estadoMetrologico.isNotEmpty;
+    final tieneHoraFinal = widget.model.horaFin.isNotEmpty;
 
     final completado = tieneComentario &&
         tieneRecomendacion &&

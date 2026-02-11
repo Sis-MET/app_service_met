@@ -20,6 +20,7 @@ class RepetibilidadWidget extends StatefulWidget {
 }
 
 class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
+  final List<TextEditingController> _cargaControllers = [];
   final List<List<TextEditingController>> _indicacionControllers = [];
   final List<List<TextEditingController>> _retornoControllers = [];
 
@@ -38,11 +39,21 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
     _initializeControllers();
   }
 
+  @override
+  void didUpdateWidget(RepetibilidadWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.repetibilidad != oldWidget.repetibilidad) {
+      _initializeControllers();
+    }
+  }
+
   void _initializeControllers() {
+    _cargaControllers.clear();
     _indicacionControllers.clear();
     _retornoControllers.clear();
 
     for (var carga in widget.repetibilidad.cargas) {
+      _cargaControllers.add(TextEditingController(text: carga.valor));
       List<TextEditingController> indicacionControllers = [];
       List<TextEditingController> retornoControllers = [];
 
@@ -107,7 +118,7 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
-          initialValue: widget.repetibilidad.cantidadPruebas,
+          value: widget.repetibilidad.cantidadPruebas,
           items: [3, 5, 10]
               .map((int value) => DropdownMenuItem<int>(
                     value: value,
@@ -136,6 +147,8 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
     for (int cargaIndex = 0;
         cargaIndex < widget.repetibilidad.cargas.length;
         cargaIndex++) {
+      if (cargaIndex >= _cargaControllers.length) continue;
+
       widgets.addAll([
         Text(
           'CARGA ${cargaIndex + 1}',
@@ -143,6 +156,7 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 10),
         TextFormField(
+          controller: _cargaControllers[cargaIndex],
           onChanged: (value) {
             widget.repetibilidad.cargas[cargaIndex].valor = value;
             _updateIndicacionValues(cargaIndex, value);
@@ -162,9 +176,19 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
   List<Widget> _buildPruebas(int cargaIndex) {
     List<Widget> widgets = [];
 
+    if (cargaIndex >= _indicacionControllers.length ||
+        cargaIndex >= _retornoControllers.length) {
+      return widgets;
+    }
+
     for (int pruebaIndex = 0;
         pruebaIndex < widget.repetibilidad.cantidadPruebas;
         pruebaIndex++) {
+      if (pruebaIndex >= _indicacionControllers[cargaIndex].length ||
+          pruebaIndex >= _retornoControllers[cargaIndex].length) {
+        continue;
+      }
+
       widgets.add(
         Column(
           children: [
@@ -242,6 +266,9 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
 
   @override
   void dispose() {
+    for (var controller in _cargaControllers) {
+      controller.dispose();
+    }
     for (var controllers in _indicacionControllers) {
       for (var controller in controllers) {
         controller.dispose();

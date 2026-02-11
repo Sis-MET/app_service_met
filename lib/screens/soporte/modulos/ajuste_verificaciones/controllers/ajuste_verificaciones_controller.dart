@@ -16,8 +16,78 @@ class AjusteVerificacionesController {
   AjusteVerificacionesController({required this.model});
 
   void copiarPruebasInicialesAFinales() {
-    model.pruebasFinales =
-        PruebasMetrologicas.fromOther(model.pruebasIniciales);
+    // 1. Excentricidad
+    Excentricidad? excFinal;
+    if (model.pruebasIniciales.excentricidad != null) {
+      final initialExc = model.pruebasIniciales.excentricidad!;
+      excFinal = Excentricidad(
+        activo: initialExc.activo,
+        tipoPlataforma: initialExc.tipoPlataforma,
+        puntosIndicador: initialExc.puntosIndicador,
+        imagenPath: initialExc.imagenPath,
+        carga: initialExc.carga,
+        // Copiar posiciones pero limpiar resultados
+        posiciones: initialExc.posiciones
+            .map((pos) => PosicionExcentricidad(
+                  posicion: pos.posicion,
+                  indicacion: '',
+                  retorno: '0',
+                ))
+            .toList(),
+      );
+    }
+
+    // 2. Repetibilidad
+    Repetibilidad? repFinal;
+    if (model.pruebasIniciales.repetibilidad != null) {
+      final initialRep = model.pruebasIniciales.repetibilidad!;
+      repFinal = Repetibilidad(
+        activo: initialRep.activo,
+        cantidadCargas: initialRep.cantidadCargas,
+        cantidadPruebas: initialRep.cantidadPruebas,
+        // Copiar cargas pero limpiar pruebas
+        cargas: initialRep.cargas
+            .map((carga) => CargaRepetibilidad(
+                  valor: carga.valor,
+                  pruebas: List.generate(
+                    initialRep.cantidadPruebas,
+                    (_) => PruebaRepetibilidad(indicacion: '', retorno: '0'),
+                  ),
+                ))
+            .toList(),
+      );
+    }
+
+    // 3. Linealidad
+    Linealidad? linFinal;
+    if (model.pruebasIniciales.linealidad != null) {
+      final initialLin = model.pruebasIniciales.linealidad!;
+      linFinal = Linealidad(
+        activo: initialLin.activo,
+        ultimaCargaLt: initialLin.ultimaCargaLt,
+        carga: initialLin.carga,
+        incremento: initialLin.incremento,
+        iLsubn: initialLin.iLsubn,
+        lsubn: initialLin.lsubn,
+        io: initialLin.io,
+        ltn: initialLin.ltn,
+        // Copiar puntos (LT) pero limpiar indicación y retorno
+        puntos: initialLin.puntos
+            .map((punto) => PuntoLinealidad(
+                  lt: punto.lt,
+                  indicacion: '',
+                  retorno: '0',
+                ))
+            .toList(),
+      );
+    }
+
+    model.pruebasFinales = PruebasMetrologicas(
+      retornoCero: RetornoCero(), // Reiniciar Retorno Cero
+      excentricidad: excFinal,
+      repetibilidad: repFinal,
+      linealidad: linFinal,
+    );
   }
 
   Future<double> getD1FromDatabase() async {

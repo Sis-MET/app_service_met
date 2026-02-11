@@ -83,10 +83,11 @@ class _FinServicioDiagnosticoScreenState
       final db = await dbHelper.database;
 
       // ✅ CAMBIO: Usar otst y estado_balanza = 'Balanza Realizada'
+      // Consultar la tabla DIAGNOSTICO
       final rows = await db.query(
-        widget.tableName ?? 'diagnostico_correctivo',
-        where: 'otst = ? AND estado_servicio = ? AND tipo_servicio = ?',
-        whereArgs: [widget.secaValue, 'Completo', 'Diagnóstico'],
+        'diagnostico',
+        where: 'otst = ?',
+        whereArgs: [widget.secaValue],
       );
 
       final cantidad = rows.length;
@@ -102,7 +103,7 @@ class _FinServicioDiagnosticoScreenState
       final updatedRows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
         where: 'otst = ? AND estado_servicio = ? AND tipo_servicio = ?',
-        whereArgs: [widget.secaValue, 'Completo', 'Diagnóstico'],
+        whereArgs: [widget.secaValue, 'Completo', 'diagnostico'],
       );
 
       // 4. Mostrar pantalla de resumen
@@ -279,7 +280,7 @@ class _FinServicioDiagnosticoScreenState
       final List<Map<String, dynamic>> rows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
         where: 'otst = ? AND tipo_servicio = ?',
-        whereArgs: [widget.secaValue, 'Diagnóstico'],
+        whereArgs: [widget.secaValue, 'diagnostico'],
         orderBy: 'session_id DESC',
         limit: 1,
       );

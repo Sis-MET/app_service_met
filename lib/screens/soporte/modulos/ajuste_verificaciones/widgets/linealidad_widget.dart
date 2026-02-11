@@ -34,13 +34,18 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
   void initState() {
     super.initState();
     _initializeControllers();
-    _iLsubnController.text = widget.linealidad.iLsubn;
-    _lsubnController.text = widget.linealidad.lsubn;
-    _ioController.text = widget.linealidad.io;
-    _ltnController.text = widget.linealidad.ltn;
+  }
+
+  @override
+  void didUpdateWidget(LinealidadWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.linealidad != oldWidget.linealidad) {
+      _initializeControllers();
+    }
   }
 
   void _initializeControllers() {
+    // Controladores de lista
     _ltControllers.clear();
     _indicacionControllers.clear();
     _retornoControllers.clear();
@@ -50,6 +55,12 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
       _indicacionControllers.add(TextEditingController(text: punto.indicacion));
       _retornoControllers.add(TextEditingController(text: punto.retorno));
     }
+
+    // Controladores Método 2
+    _iLsubnController.text = widget.linealidad.iLsubn;
+    _lsubnController.text = widget.linealidad.lsubn;
+    _ioController.text = widget.linealidad.io;
+    _ltnController.text = widget.linealidad.ltn;
   }
 
   void _actualizarUltimaCarga() {

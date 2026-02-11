@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
+import 'package:intl/intl.dart';
 import '../models/diagnostico_model.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -166,14 +167,16 @@ class DiagnosticoController {
           DatabaseHelperDiagnosticoCorrectivo();
       final data = _prepareDataForSave();
 
-      await dbHelper.upsertRegistroRelevamiento(data);
+      await dbHelper.upsertRegistroDiagnostico(data);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Datos guardados exitosamente'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Datos guardados exitosamente'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error SAVE DATA: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -190,14 +193,12 @@ class DiagnosticoController {
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'estado_servicio': 'Completo',
-      'tipo_servicio': 'diagnostico',
+      'fecha_servicio':
+          DateFormat('yyyy-MM-dd').format(DateTime.now()), // Para ordenamiento
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'reporte': model.reporteFalla,
-      // 'evaluacion': model.evaluacion, // Ya no se usa, reemplazado por comentario_general
-
-      // Nuevos campos de Estado Final
+      'evaluacion': model.evaluacion,
       'comentario_general': model.comentarioGeneral,
       'recomendacion': model.recomendacion,
       'fecha_prox_servicio': model.fechaProxServicio,

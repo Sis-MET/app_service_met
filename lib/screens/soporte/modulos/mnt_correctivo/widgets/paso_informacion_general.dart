@@ -38,13 +38,14 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
   @override
   void didUpdateWidget(covariant PasoInformacionGeneral oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.model.reporteFalla != widget.model.reporteFalla) {
+    // Comparar contra el controlador actual para detectar cambios externos (importación)
+    if (_reporteController.text != widget.model.reporteFalla) {
       _reporteController.text = widget.model.reporteFalla;
     }
-    if (oldWidget.model.evaluacion != widget.model.evaluacion) {
+    if (_evaluacionController.text != widget.model.evaluacion) {
       _evaluacionController.text = widget.model.evaluacion;
     }
-    if (oldWidget.model.trabajoRealizado != widget.model.trabajoRealizado) {
+    if (_trabajoRealizadoController.text != widget.model.trabajoRealizado) {
       _trabajoRealizadoController.text = widget.model.trabajoRealizado;
     }
   }

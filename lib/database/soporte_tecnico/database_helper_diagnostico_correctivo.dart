@@ -179,7 +179,38 @@ class DatabaseHelperDiagnosticoCorrectivo {
             'NUEVO registro INSERTADO - OTST: ${registro['otst']}, Session: ${registro['session_id']}');
       }
     } catch (e) {
-      debugPrint('Error en upsertRegistroCalibracion: $e');
+      debugPrint('Error en upsertRegistroRelevamiento: $e');
+    }
+  }
+
+  // ✅ MÉTODO ESPECÍFICO PARA DIAGNOSTICO
+  Future<void> upsertRegistroDiagnostico(Map<String, dynamic> registro) async {
+    try {
+      final db = await database;
+
+      // Verificar si existe por OTST y SessionID
+      final existing = await db.query(
+        'diagnostico',
+        where: 'otst = ? AND session_id = ?',
+        whereArgs: [registro['otst'], registro['session_id']],
+      );
+
+      if (existing.isNotEmpty) {
+        await db.update(
+          'diagnostico',
+          registro,
+          where: 'otst = ? AND session_id = ?',
+          whereArgs: [registro['otst'], registro['session_id']],
+        );
+        debugPrint(
+            'Registro DIAGNOSTICO actualizado - OTST: ${registro['otst']}, Session: ${registro['session_id']}');
+      } else {
+        await db.insert('diagnostico', registro);
+        debugPrint(
+            'NUEVO registro DIAGNOSTICO insertado - OTST: ${registro['otst']}, Session: ${registro['session_id']}');
+      }
+    } catch (e) {
+      debugPrint('Error en upsertRegistroDiagnostico: $e');
       rethrow;
     }
   }
@@ -408,6 +439,30 @@ class DatabaseHelperDiagnosticoCorrectivo {
         fisico TEXT DEFAULT '',
         operacional TEXT DEFAULT '',
         metrologico TEXT DEFAULT ''
+      )
+      ''');
+
+      // ✅ NUEVA TABLA: DIAGNOSTICO (Separada)
+      await db.execute('''
+      CREATE TABLE diagnostico (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
+        otst TEXT,
+        cod_metrica TEXT,
+        tipo_servicio TEXT DEFAULT 'Diagnostico',
+        
+        -- Info Cliente/Personal
+        cliente TEXT,
+        planta TEXT,
+        personal TEXT,
+        fecha_servicio TEXT,
+        
+        -- Datos específicos
+        hora_inicio TEXT,
+        hora_fin TEXT,
+        reporte TEXT,       -- Reporte de falla
+        evaluacion TEXT,    -- Evaluación y análisis técnico
+        comentario_general TEXT
       )
       ''');
 
