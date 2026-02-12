@@ -101,7 +101,7 @@ class PruebasMetrologicasController extends ChangeNotifier {
 
       String? outputFile = await FilePicker.platform.saveFile(
         dialogTitle: 'Guardar Foto de Carga',
-        fileName: '${secaValue}_${codMetrica}.jpg',
+        fileName: '${secaValue}_$codMetrica.jpg',
         type: FileType.image,
         bytes: fileBytes, // Pasamos los bytes requeridos en Android/iOS
       );

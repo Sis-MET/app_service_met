@@ -141,7 +141,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           dbHelper = DatabaseHelperAjustes();
           break;
         case 'diagnostico':
-          dbHelper = DatabaseHelperDiagnosticoCorrectivo();
+          dbHelper = DatabaseHelperDiagnostico();
           break;
         case 'mnt_prv_regular_stil':
           dbHelper = DatabaseHelperMntPrvRegularStil();

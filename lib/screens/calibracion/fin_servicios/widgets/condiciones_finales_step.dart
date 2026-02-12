@@ -105,13 +105,18 @@ class CondicionesFinalesStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20.0),
-          const Text(
-            '1. INGRESE LAS CONDICIONES AMBIENTALES FINALES:',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.left,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '1. INGRESE LAS CONDICIONES\nAMBIENTALES FINALES:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.left,
+              ),
+            ],
           ),
           const SizedBox(height: 10.0),
           Padding(

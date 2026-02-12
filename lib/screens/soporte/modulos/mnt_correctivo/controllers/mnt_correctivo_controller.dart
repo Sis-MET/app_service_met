@@ -209,7 +209,7 @@ class MntCorrectivoController {
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
       'estado_servicio': 'Completo',
-      'tipo_servicio': 'correctivo',
+      'tipo_servicio': 'Mantenimiento Correctivo',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'reporte': model.reporteFalla,

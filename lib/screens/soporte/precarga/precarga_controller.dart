@@ -392,7 +392,7 @@ class PrecargaControllerSop extends ChangeNotifier {
       case 'ajustes_metrologicos':
         return DatabaseHelperAjustes();
       case 'diagnostico':
-        return DatabaseHelperDiagnosticoCorrectivo();
+        return DatabaseHelperDiagnostico();
       case 'mnt_prv_regular_stil':
         return DatabaseHelperMntPrvRegularStil();
       case 'mnt_prv_avanzado_stac':

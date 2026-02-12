@@ -200,13 +200,7 @@ class DiagnosticoController {
       'reporte': model.reporteFalla,
       'evaluacion': model.evaluacion,
       'comentario_general': model.comentarioGeneral,
-      'recomendacion': model.recomendacion,
-      'fecha_prox_servicio': model.fechaProxServicio,
-      'fisico': model.estadoFisico,
-      'operacional': model.estadoOperacional,
-      'metrologico': model.estadoMetrologico,
     };
-
     return data;
   }
 

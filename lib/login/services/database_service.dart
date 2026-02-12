@@ -260,4 +260,11 @@ class DatabaseService {
       },
     );
   }
+
+  // Obtener instancia de base de datos de precarga para consultas
+  Future<Database> getPrecargaDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final precargaDbPath = join(dbPath, 'precarga_database.db');
+    return await openDatabase(precargaDbPath);
+  }
 }

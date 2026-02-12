@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/screens/historial/ult_servicios.dart';
 import 'package:service_met/screens/precarga/descarga_de_datos.dart';
 
 class OtrosApartadosScreen extends StatelessWidget {
@@ -61,26 +60,6 @@ class OtrosApartadosScreen extends StatelessWidget {
               color: const Color(0xFFD6D4A7),
               delay: 400.ms,
             ),
-
-            // Historial de Servicios
-            _buildServiceCard(
-              context,
-              icon: FontAwesomeIcons.clockRotateLeft,
-              title: 'Últimos Servicios',
-              subtitle: 'Historial y registro de servicios realizados',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UltServiciosScreen(),
-                  ),
-                );
-              },
-              color: const Color(0xFF89B2CC),
-              delay: 500.ms,
-            ),
-
-            const SizedBox(height: 30),
 
             // Información adicional
             _buildInfoSection(context),
@@ -370,34 +349,6 @@ class OtrosApartadosScreen extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'Precarga',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF2C3E50),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF89B2CC).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      FontAwesomeIcons.clockRotateLeft,
-                      size: 12,
-                      color: Color(0xFF2C3E50),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Historial',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

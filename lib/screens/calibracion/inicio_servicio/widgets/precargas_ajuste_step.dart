@@ -105,9 +105,13 @@ class PrecargasAjusteStep extends StatelessWidget {
             const SizedBox(height: 20.0),
 
             // Condiciones Ambientales
-            const Text(
-              'Condiciones Ambientales:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const Text(
+                  'Condiciones Ambientales:',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
             const SizedBox(height: 10.0),
             Column(

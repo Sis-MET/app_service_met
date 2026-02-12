@@ -99,11 +99,11 @@ class _FinServicioDiagnosticoScreenState
         return;
       }
 
-      // 3. Obtener rows actualizados
+      // 3. Obtener rows actualizados desde la tabla DIAGNOSTICO
       final updatedRows = await db.query(
-        widget.tableName ?? 'diagnostico_correctivo',
-        where: 'otst = ? AND estado_servicio = ? AND tipo_servicio = ?',
-        whereArgs: [widget.secaValue, 'Completo', 'diagnostico'],
+        'diagnostico', // FORZAR uso de tabla diagnostico
+        where: 'otst = ?', // Simplificar filtro: solo OTST
+        whereArgs: [widget.secaValue],
       );
 
       // 4. Mostrar pantalla de resumen
@@ -278,9 +278,9 @@ class _FinServicioDiagnosticoScreenState
       final db = await dbHelper.database;
 
       final List<Map<String, dynamic>> rows = await db.query(
-        widget.tableName ?? 'diagnostico_correctivo',
-        where: 'otst = ? AND tipo_servicio = ?',
-        whereArgs: [widget.secaValue, 'diagnostico'],
+        'diagnostico', // FORZAR uso de tabla diagnostico
+        where: 'otst = ?', // Simplificar filtro: solo OTST
+        whereArgs: [widget.secaValue],
         orderBy: 'session_id DESC',
         limit: 1,
       );

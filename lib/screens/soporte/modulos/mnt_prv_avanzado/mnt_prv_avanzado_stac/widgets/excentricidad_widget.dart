@@ -64,8 +64,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
       _addPosition('Ida $i');
     }
 
-    // Generar puntos de VUELTA
-    for (int i = 1; i <= puntosPorLado; i++) {
+    // Generar puntos de VUELTA (Inverso: 3, 2, 1...)
+    for (int i = puntosPorLado; i >= 1; i--) {
       _addPosition('Vuelta $i');
     }
 
@@ -381,7 +381,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                 // Invertimos el orden visual para que "Vuelta 1" esté alineado lógicamente si se desea,
                 // o mantenemos 1..N. Generalmente Ida va en un sentido y Vuelta regresa.
                 // Para simplificar visualización, mostraremos 1..N también.
-                return _buildDot(index + 1, Colors.green);
+                // CORRECCION: Mostrar en orden inverso (3, 2, 1...)
+                return _buildDot(puntosIda - index, Colors.green);
               }),
             ],
           ),

@@ -19,6 +19,7 @@ import 'package:service_met/providers/settings_provider.dart';
 import 'login/screens/initial_setup_screen.dart';
 import 'login/screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,16 @@ void main() async {
     debugPrint('Error crítico durante la inicialización: $e');
     debugPrint(stack.toString());
     // Aquí se podría reportar a Crashlytics si estuviera configurado
+  }
+
+  // Inicializar Notificaciones
+  try {
+    final notificationService = NotificationService();
+    await notificationService.init();
+    await notificationService.scheduleDailyUpdateReminder();
+    await notificationService.checkAndScheduleCalibrationAlerts();
+  } catch (e) {
+    debugPrint('Error inicializando notificaciones: $e');
   }
 
   // NUEVO: Verificar si se completó el setup inicial

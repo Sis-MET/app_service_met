@@ -24,7 +24,16 @@ class DatabaseHelperDiagnosticoCorrectivo {
   }
 
   Future<void> upsertRegistro(Map<String, dynamic> registro) async {
-    await upsertRegistroRelevamiento(registro);
+    // Detectar si es Diagnóstico para guardar en la tabla correcta
+    final tipoServicio =
+        registro['tipo_servicio']?.toString().toLowerCase() ?? '';
+
+    // Si viene desde Precarga con la etiqueta 'Diagnóstico' o desde el controlador
+    if (tipoServicio.contains('diagn') || tipoServicio.contains('diag')) {
+      await upsertRegistroDiagnostico(registro);
+    } else {
+      await upsertRegistroRelevamiento(registro);
+    }
   }
 
   Future<Map<String, dynamic>?> getRegistroByCodMetrica(
@@ -446,23 +455,52 @@ class DatabaseHelperDiagnosticoCorrectivo {
       await db.execute('''
       CREATE TABLE diagnostico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        otst TEXT,
-        cod_metrica TEXT,
-        tipo_servicio TEXT DEFAULT 'Diagnostico',
+        tipo_servicio TEXT DEFAULT '',   
+        cliente TEXT DEFAULT '',
+        razon_social TEXT DEFAULT '',
+        planta TEXT DEFAULT '',
+        dir_planta TEXT DEFAULT '',
+        dep_planta TEXT DEFAULT '',
+        cod_planta TEXT DEFAULT '',
+        personal TEXT DEFAULT '',
+        otst TEXT DEFAULT '',
+        session_id TEXT DEFAULT '',
+        inf_bal TEXT DEFAULT '',
         
-        -- Info Cliente/Personal
-        cliente TEXT,
-        planta TEXT,
-        personal TEXT,
-        fecha_servicio TEXT,
+        --INF BALANZA
+        foto_balanza TEXT DEFAULT '',
+        categoria_balanza TEXT DEFAULT '',
+        cod_metrica TEXT DEFAULT '',
+        cod_int TEXT DEFAULT '',
+        tipo_equipo TEXT DEFAULT '',
+        marca TEXT DEFAULT '',
+        modelo TEXT DEFAULT '',
+        serie TEXT DEFAULT '',
+        unidades TEXT DEFAULT '',
+        num_celdas TEXT DEFAULT '',
+        ubicacion TEXT DEFAULT '',
+        cap_max1 TEXT DEFAULT '',
+        d1 TEXT DEFAULT '',
+        e1 TEXT DEFAULT '',
+        dec1 TEXT DEFAULT '',
+        cap_max2 TEXT DEFAULT '',
+        d2 TEXT DEFAULT '',
+        e2 TEXT DEFAULT '',
+        dec2 TEXT DEFAULT '',
+        cap_max3 TEXT DEFAULT '',
+        d3 TEXT DEFAULT '',
+        e3 TEXT DEFAULT '',
+        dec3 TEXT DEFAULT '',
+        
+        --DATOS DE SERVICIO
+        fecha_servicio TEXT DEFAULT '',
+        hora_inicio TEXT DEFAULT '',
+        hora_fin TEXT DEFAULT '',
         
         -- Datos específicos
-        hora_inicio TEXT,
-        hora_fin TEXT,
-        reporte TEXT,       -- Reporte de falla
-        evaluacion TEXT,    -- Evaluación y análisis técnico
-        comentario_general TEXT
+        reporte TEXT DEFAULT '',       -- Reporte de falla
+        evaluacion TEXT DEFAULT '',    -- Evaluación y análisis técnico
+        comentario_general TEXT DEFAULT ''
       )
       ''');
 
@@ -525,5 +563,25 @@ class DatabaseHelperDiagnosticoCorrectivo {
       await _database!.close();
       _database = null;
     }
+  }
+}
+
+// ==========================================
+// HELPER ESPECÍFICO PARA DIAGNÓSTICO
+// ==========================================
+class DatabaseHelperDiagnostico extends DatabaseHelperDiagnosticoCorrectivo {
+  static final DatabaseHelperDiagnostico _instance =
+      DatabaseHelperDiagnostico._internal();
+
+  factory DatabaseHelperDiagnostico() => _instance;
+
+  DatabaseHelperDiagnostico._internal() : super._internal();
+
+  @override
+  String get tableName => 'diagnostico';
+
+  @override
+  Future<void> upsertRegistro(Map<String, dynamic> registro) async {
+    await upsertRegistroDiagnostico(registro);
   }
 }
