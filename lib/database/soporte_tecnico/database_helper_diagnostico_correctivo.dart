@@ -451,7 +451,6 @@ class DatabaseHelperDiagnosticoCorrectivo {
       )
       ''');
 
-      // ✅ NUEVA TABLA: DIAGNOSTICO (Separada)
       await db.execute('''
       CREATE TABLE diagnostico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
