@@ -3,8 +3,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 import 'models/diagnostico_model.dart';
 import 'controllers/diagnostico_controller.dart';
@@ -182,7 +182,6 @@ class _StacDiagnosticoScreenState extends State<StacDiagnosticoScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final balanza = Provider.of<BalanzaProvider>(context).selectedBalanza;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -249,6 +248,8 @@ class _StacDiagnosticoScreenState extends State<StacDiagnosticoScreen> {
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

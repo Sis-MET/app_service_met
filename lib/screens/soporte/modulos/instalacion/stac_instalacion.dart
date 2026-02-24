@@ -10,6 +10,7 @@ import 'models/instalacion_model.dart';
 import 'widgets/steps/paso_condiciones_instalacion.dart';
 import 'widgets/steps/paso_pruebas_instalacion.dart';
 import 'widgets/steps/paso_estado_final_instalacion.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 class StacInstalacionScreen extends StatefulWidget {
   final String sessionId;
@@ -179,6 +180,8 @@ class _StacInstalacionScreenState extends State<StacInstalacionScreen> {
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

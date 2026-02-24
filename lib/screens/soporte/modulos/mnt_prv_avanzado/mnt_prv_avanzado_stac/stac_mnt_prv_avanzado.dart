@@ -12,6 +12,7 @@ import 'package:service_met/screens/soporte/modulos/mnt_prv_avanzado/mnt_prv_ava
 import 'package:service_met/screens/soporte/modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/widgets/steps/paso_pruebas_iniciales_finales.dart';
 
 import 'controllers/mnt_prv_avanzado_stac_controller.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 import 'fin_servicio_stac.dart';
 
 class StacMntPrvAvanzadoStacScreen extends StatefulWidget {
@@ -388,6 +389,8 @@ class _StacMntPrvAvanzadoStacScreenState
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

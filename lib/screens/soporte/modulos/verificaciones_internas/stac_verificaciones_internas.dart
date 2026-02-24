@@ -18,6 +18,7 @@ import 'widgets/steps/paso_generico.dart';
 
 // Pantalla final
 import 'fin_servicio_vinternas.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 class StacVerificacionesInternasScreen extends StatefulWidget {
   final String otst;
@@ -324,6 +325,8 @@ class _StacVerificacionesInternasScreenState
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

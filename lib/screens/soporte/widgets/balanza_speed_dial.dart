@@ -1,0 +1,355 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:service_met/provider/balanza_provider.dart';
+
+class BalanzaSpeedDial extends StatelessWidget {
+  const BalanzaSpeedDial({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: SpeedDial(
+        icon: Icons.menu,
+        activeIcon: Icons.close,
+        spacing: 12,
+        spaceBetweenChildren: 12,
+        iconTheme: const IconThemeData(color: Colors.black87, size: 24),
+        backgroundColor: const Color(0xFFF9E300),
+        foregroundColor: Colors.black87,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.5,
+        elevation: 8,
+        animationCurve: Curves.easeInOut,
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.info_outline, size: 24),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            label: 'Info de la balanza',
+            labelStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            labelBackgroundColor: Colors.blue,
+            onTap: () => _showBalanzaInfo(context),
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.history, size: 24),
+            backgroundColor: Colors.orange,
+            foregroundColor: Colors.white,
+            label: 'Último servicio',
+            labelStyle: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+            labelBackgroundColor: Colors.orange,
+            onTap: () => _showLastServiceData(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBalanzaInfo(BuildContext context) {
+    final balanza =
+        Provider.of<BalanzaProvider>(context, listen: false).selectedBalanza;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.scale, color: Colors.blue, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Información de la Balanza',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, color: Colors.grey[300]),
+                  const SizedBox(height: 8),
+                  // Content
+                  Expanded(
+                    child: balanza != null
+                        ? ListView(
+                            controller: scrollController,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 8),
+                            children: [
+                              _buildDetailContainer(context, 'Código Métrica',
+                                  balanza.cod_metrica),
+                              _buildDetailContainer(context, 'Unidades',
+                                  balanza.unidad.toString()),
+                              _buildSectionHeader('Rango 1'),
+                              _buildDetailContainer(
+                                  context, 'pmax1', balanza.cap_max1),
+                              _buildDetailContainer(
+                                  context, 'd1', balanza.d1.toString()),
+                              _buildDetailContainer(
+                                  context, 'e1', balanza.e1.toString()),
+                              _buildDetailContainer(
+                                  context, 'dec1', balanza.dec1.toString()),
+                              _buildSectionHeader('Rango 2'),
+                              _buildDetailContainer(
+                                  context, 'pmax2', balanza.cap_max2),
+                              _buildDetailContainer(
+                                  context, 'd2', balanza.d2.toString()),
+                              _buildDetailContainer(
+                                  context, 'e2', balanza.e2.toString()),
+                              _buildDetailContainer(
+                                  context, 'dec2', balanza.dec2.toString()),
+                              _buildSectionHeader('Rango 3'),
+                              _buildDetailContainer(
+                                  context, 'pmax3', balanza.cap_max3),
+                              _buildDetailContainer(
+                                  context, 'd3', balanza.d3.toString()),
+                              _buildDetailContainer(
+                                  context, 'e3', balanza.e3.toString()),
+                              _buildDetailContainer(
+                                  context, 'dec3', balanza.dec3.toString()),
+                              const SizedBox(height: 20),
+                            ],
+                          )
+                        : Center(
+                            child: Text(
+                              'No hay información disponible',
+                              style: GoogleFonts.inter(fontSize: 15),
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showLastServiceData(BuildContext context) {
+    final lastServiceData =
+        Provider.of<BalanzaProvider>(context, listen: false).lastServiceData;
+
+    if (lastServiceData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay datos de servicio disponibles'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final Map<String, String> fieldLabels = {
+      'reg_fecha': 'Fecha del Último Servicio',
+      'reg_usuario': 'Técnico Responsable',
+      'seca': 'Último SECA',
+      'exc': 'Excentricidad',
+    };
+
+    for (int i = 1; i <= 30; i++) {
+      fieldLabels['rep$i'] = 'Repetibilidad $i';
+    }
+
+    for (int i = 1; i <= 60; i++) {
+      fieldLabels['lin$i'] = 'Linealidad $i';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  // Header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.history,
+                            color: Colors.orange, size: 28),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Último Servicio',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, color: Colors.grey[300]),
+                  const SizedBox(height: 8),
+                  // Content
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      children: [
+                        ...lastServiceData.entries
+                            .where((entry) =>
+                                entry.value != null &&
+                                fieldLabels.containsKey(entry.key))
+                            .map((entry) => _buildDetailContainer(
+                                context,
+                                fieldLabels[entry.key]!,
+                                entry.key == 'reg_fecha'
+                                    ? DateFormat('dd/MM/yyyy')
+                                        .format(DateTime.parse(entry.value))
+                                    : entry.value.toString())),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Text(
+        title,
+        style: GoogleFonts.poppins(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF667EEA),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailContainer(
+      BuildContext context, String label, String value) {
+    final textColor =
+        Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final borderColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.1)
+        : Colors.grey.withOpacity(0.2);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.white.withOpacity(0.03)
+            : Colors.grey.withOpacity(0.03),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: textColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 1,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: textColor.withOpacity(0.8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

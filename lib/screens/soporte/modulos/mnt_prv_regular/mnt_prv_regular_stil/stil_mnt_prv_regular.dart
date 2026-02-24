@@ -12,6 +12,7 @@ import 'package:service_met/screens/soporte/modulos/mnt_prv_regular/mnt_prv_regu
 import 'package:service_met/screens/soporte/modulos/mnt_prv_regular/mnt_prv_regular_stil/widgets/steps/paso_terminal_balanza_caja.dart';
 import 'controllers/mnt_prv_regular_stil_controller.dart';
 import 'models/mnt_prv_regular_stil_model.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 class StilMntPrvRegularStacScreen extends StatefulWidget {
   final String sessionId;
@@ -363,7 +364,6 @@ class _StilMntPrvRegularStacScreenState
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final balanza = Provider.of<BalanzaProvider>(context).selectedBalanza;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -430,6 +430,8 @@ class _StilMntPrvRegularStacScreenState
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

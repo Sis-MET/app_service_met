@@ -3,14 +3,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
-import 'package:service_met/provider/balanza_provider.dart';
 
 import 'models/mnt_correctivo_model.dart';
 import 'controllers/mnt_correctivo_controller.dart';
 import 'widgets/paso_informacion_general.dart';
 import 'widgets/paso_pruebas_finales.dart';
 import 'widgets/paso_estado_final_mnt_correctivo.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 import 'fin_servicio_mntcorrectivo.dart';
 
 class StacMntCorrectivoScreen extends StatefulWidget {
@@ -189,7 +188,6 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final balanza = Provider.of<BalanzaProvider>(context).selectedBalanza;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -258,6 +256,8 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
               _buildNavigationButtons(isDarkMode),
             ],
           ),
+          floatingActionButton: const BalanzaSpeedDial(),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
         ),
       ),
     );

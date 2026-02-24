@@ -3,6 +3,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 import 'package:service_met/screens/soporte/modulos/relevamiento_de_datos/fin_servicio.dart';
 import 'package:service_met/screens/soporte/modulos/relevamiento_de_datos/widgets/steps/paso_entorno.dart';
 import 'package:service_met/screens/soporte/modulos/relevamiento_de_datos/widgets/steps/paso_estado_final.dart';
@@ -313,6 +314,8 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }

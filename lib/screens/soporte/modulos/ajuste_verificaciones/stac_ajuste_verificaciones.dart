@@ -11,8 +11,8 @@ import 'controllers/ajuste_verificaciones_controller.dart';
 
 import 'widgets/paso_pruebas_iniciales.dart';
 import 'widgets/paso_pruebas_finales.dart';
-
 import 'widgets/paso_estado_final_ajuste.dart';
+import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 class StacAjusteVerificacionesScreen extends StatefulWidget {
   final String sessionId;
@@ -187,7 +187,6 @@ class _StacAjusteVerificacionesScreenState
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final balanza = Provider.of<BalanzaProvider>(context).selectedBalanza;
 
     return WillPopScope(
       onWillPop: _onWillPop,
@@ -248,6 +247,8 @@ class _StacAjusteVerificacionesScreenState
             _buildNavigationButtons(isDarkMode),
           ],
         ),
+        floatingActionButton: const BalanzaSpeedDial(),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
     );
   }
