@@ -138,7 +138,7 @@ class InstalacionController {
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'tipo_servicio': 'instalacion',
+      'tipo_servicio': 'INS.BL',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'estado_servicio': 'Completo',
@@ -163,13 +163,6 @@ class InstalacionController {
         data['${dbPrefix}_comentario'] = campo.comentario;
       }
     });
-
-    // Comentarios Adicionales (Compatibilidad legacy)
-    for (int i = 0; i < model.comentariosAdicionales.length; i++) {
-      if (i < 10) {
-        data['comentario_${i + 1}'] = model.comentariosAdicionales[i] ?? '';
-      }
-    }
 
     // NUEVOS CAMPOS (V3)
     data['comentario_general'] = model.comentarioGeneral;

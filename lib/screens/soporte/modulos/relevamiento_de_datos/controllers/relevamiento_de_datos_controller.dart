@@ -180,7 +180,7 @@ class RelevamientoDeDatosController {
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'tipo_servicio': 'relevamiento de datos',
+      'tipo_servicio': 'REL.BL',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'comentario_general': model.comentarioGeneral,

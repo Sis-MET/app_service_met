@@ -167,7 +167,7 @@ class VerificacionesInternasController {
   // Preparar mapa de datos para BD
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
-      'tipo_servicio': 'verificaciones internas',
+      'tipo_servicio': 'VIN.SP',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'comentario_general': model.comentarioGeneral,

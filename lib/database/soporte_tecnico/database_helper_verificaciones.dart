@@ -313,11 +313,9 @@ class DatabaseHelperVerificaciones {
 
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
-        retorno_cero_inicial_carga TEXT DEFAULT '',
-        retorno_cero_inicial_unidad TEXT DEFAULT '',
+        estabilizacion_inicial TEXT DEFAULT '',
         retorno_cero_final_valoracion TEXT DEFAULT '',
-        retorno_cero_final_carga TEXT DEFAULT '',
-        retorno_cero_final_unidad TEXT DEFAULT '',
+        estabilizacion_final TEXT DEFAULT '',
 
         -- Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',

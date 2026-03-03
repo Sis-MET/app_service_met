@@ -501,7 +501,6 @@ class DatabaseHelperMntPrvRegularStil {
         indicacion1_inicial_10 TEXT DEFAULT '',
         retorno1_inicial_10 TEXT DEFAULT '',
         
-        
         -- Linealidad inicial (hasta 12 puntos)
         lin_inicial_1 TEXT DEFAULT '',
         ind_inicial_1 TEXT DEFAULT '',

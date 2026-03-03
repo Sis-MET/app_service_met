@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart'; // NUEVO: Para las fuentes del sticker
 import 'package:provider/provider.dart';
 import '../fin_servicios_controller.dart';
 
@@ -378,8 +379,195 @@ class CondicionesFinalesStep extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20.0),
+          _buildStickerPreview(context, controller),
+          const SizedBox(height: 20.0),
         ],
       ),
+    );
+  }
+
+  Widget _buildStickerPreview(
+      BuildContext context, FinServiciosController controller) {
+    if (controller.stickerCertificado.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '5. STICKER DE CALIBRADO (REFERENCIAL):',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: Container(
+            width: 320,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Franja amarilla METRICA
+                Container(
+                  width: 50,
+                  height: 180,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFD700),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
+                    ),
+                  ),
+                  child: const RotatedBox(
+                    quarterTurns: 3,
+                    child: Center(
+                      child: Text(
+                        'METRICA LTDA',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Contenido derecho
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Cabecera negra CALIBRADO
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: const Column(
+                          children: [
+                            Text(
+                              'CALIBRADO',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            Text(
+                              'www.metrica.com.bo',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Datos manuscritos
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Certificado:',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black87)),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                controller.stickerCertificado,
+                                style: GoogleFonts.caveat(
+                                  color: Colors.blue.shade800,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text('Fecha de calibración:',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black87)),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 0),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                controller.stickerFecha,
+                                style: GoogleFonts.caveat(
+                                  color: Colors.blue.shade800,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    controller.stickerCodMetrica,
+                                    style: GoogleFonts.caveat(
+                                      color: Colors.blue.shade800,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    const Text('Nº: ',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black)),
+                                    Text(
+                                      controller.stickerNro,
+                                      style: GoogleFonts.specialElite(
+                                        color: Colors.red.shade800,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

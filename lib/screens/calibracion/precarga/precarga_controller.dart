@@ -167,6 +167,12 @@ class PrecargaController extends ChangeNotifier {
   Map<String, List<File>> get balanzaPhotos => _balanzaPhotos;
   bool get fotosTomadas => _fotosTomadas;
 
+  // Modo QR
+  bool _isQrMode = false;
+  String? _qrCodMetrica;
+  bool get isQrMode => _isQrMode;
+  String? get qrCodMetrica => _qrCodMetrica;
+
   // Listas de opciones
   final List<String> unidadesPermitidas = ['mg', 'g', 'kg'];
 
@@ -888,6 +894,23 @@ class PrecargaController extends ChangeNotifier {
     }
   }
 
+  // NUEVO: Método para buscar y seleccionar balanza por QR
+  String? selectBalanzaByQr(String codMetrica) {
+    if (_balanzas.isEmpty) {
+      return 'No hay instrumentos disponibles en esta planta.';
+    }
+
+    try {
+      final balanzaEncontrada = _balanzas.firstWhere(
+        (b) => b['cod_metrica'] == codMetrica,
+      );
+      selectBalanza(balanzaEncontrada);
+      return null; // Éxito
+    } catch (e) {
+      return 'No se encontró el instrumento $codMetrica en esta planta.';
+    }
+  }
+
   void createNewBalanza() {
     final now = DateTime.now();
     final formattedDateTime =
@@ -1270,6 +1293,111 @@ class PrecargaController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error al cargar equipos de la sesión: $e');
     }
+  }
+
+  // ==================== MÉTODOS DE QR ====================
+
+  /// Procesa un código métrica escaneado desde un QR.
+  /// Formato esperado: XXXX-XX-XXX (ej: 0032-11-001)
+  /// Auto-selecciona cliente (paso 1) y planta (paso 2),
+  /// almacena el código completo para auto-seleccionar balanza en paso 4.
+  Future<String?> processQrCode(String codMetrica) async {
+    _isQrMode = true;
+    _qrCodMetrica = codMetrica;
+
+    // Parsear el código métrica: XXXX-XX-XXX
+    final parts = codMetrica.split('-');
+    if (parts.length != 3) {
+      _isQrMode = false;
+      _qrCodMetrica = null;
+      return 'Formato de código métrica inválido: $codMetrica';
+    }
+
+    final codigoCliente = parts[0]; // ej: 0032
+    final codigoPlanta = '${parts[0]}-${parts[1]}'; // ej: 0032-11
+
+    // 1. Buscar y auto-seleccionar cliente
+    if (_clientes == null || _clientes!.isEmpty) {
+      await fetchClientes();
+    }
+
+    final clienteMatch = _clientes?.firstWhere(
+      (c) => c['codigo_cliente']?.toString().trim() == codigoCliente,
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (clienteMatch == null || clienteMatch.isEmpty) {
+      _isQrMode = false;
+      _qrCodMetrica = null;
+      return 'No se encontró cliente con código: $codigoCliente';
+    }
+
+    // Seleccionar cliente MANUALMENTE (no usar selectClientFromList porque
+    // este dispara fetchPlantas sin await, causando acceso concurrente a la BD)
+    _isNewClient = false;
+    _selectedClienteId = clienteMatch['cliente_id']?.toString() ?? '';
+    _selectedClienteName = clienteMatch['cliente']?.toString() ?? '';
+    _selectedClienteRazonSocial = clienteMatch['razonsocial']?.toString() ?? '';
+    clearPlantaSelection();
+    updateStepErrors();
+    notifyListeners();
+
+    // 2. Cargar plantas UNA SOLA VEZ con await
+    await fetchPlantas(_selectedClienteId!);
+    await fetchEquipos();
+
+    if (_plantas == null || _plantas!.isEmpty) {
+      return 'No se encontraron plantas para el cliente: ${clienteMatch['cliente']}';
+    }
+
+    final plantaMatch = _plantas!.firstWhere(
+      (p) => p['codigo_planta']?.toString().trim() == codigoPlanta,
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (plantaMatch.isEmpty) {
+      return 'No se encontró planta con código: $codigoPlanta';
+    }
+
+    // Seleccionar planta
+    selectPlanta(plantaMatch['unique_key']?.toString() ?? '');
+
+    // 3. Ir al paso 2 (SECA) - el usuario debe confirmar manualmente
+    _currentStep = 2;
+    updateStepErrors();
+    notifyListeners();
+
+    return null; // Sin error
+  }
+
+  /// Auto-selecciona la balanza que coincida con el código QR escaneado.
+  /// Debe llamarse después de que se carguen las balanzas (después de confirmar SECA).
+  Future<String?> autoSelectBalanzaFromQr() async {
+    if (!_isQrMode || _qrCodMetrica == null) return null;
+
+    if (_balanzas.isEmpty) {
+      return 'No hay balanzas disponibles para selección automática';
+    }
+
+    final balanzaMatch = _balanzas.firstWhere(
+      (b) => b['cod_metrica']?.toString().trim() == _qrCodMetrica?.trim(),
+      orElse: () => <String, dynamic>{},
+    );
+
+    if (balanzaMatch.isEmpty) {
+      return 'No se encontró balanza con código: $_qrCodMetrica';
+    }
+
+    // Seleccionar la balanza automáticamente
+    selectBalanza(balanzaMatch);
+    return null; // Sin error
+  }
+
+  /// Resetea el modo QR
+  void clearQrMode() {
+    _isQrMode = false;
+    _qrCodMetrica = null;
+    notifyListeners();
   }
 }
 

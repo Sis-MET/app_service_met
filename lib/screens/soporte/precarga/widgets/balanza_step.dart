@@ -9,6 +9,7 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../precarga_controller.dart';
+import '../../../calibracion/precarga/widgets/qr_scanner_screen.dart';
 
 class BalanzaStep extends StatefulWidget {
   final Map<String, TextEditingController> balanzaControllers;
@@ -32,6 +33,8 @@ class BalanzaStep extends StatefulWidget {
 }
 
 class _BalanzaStepState extends State<BalanzaStep> {
+  String? _lastFilledCodMetrica; // Track which balanza was last filled
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +44,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
           Provider.of<PrecargaControllerSop>(context, listen: false);
       if (controller.selectedBalanza != null) {
         _fillBalanzaData(controller.selectedBalanza!);
+        _lastFilledCodMetrica =
+            controller.selectedBalanza!['cod_metrica']?.toString();
       }
     });
   }
@@ -101,6 +106,18 @@ class _BalanzaStepState extends State<BalanzaStep> {
   Widget build(BuildContext context) {
     return Consumer<PrecargaControllerSop>(
       builder: (context, controller, child) {
+        // Auto-fill cuando se selecciona una balanza diferente (ej: por QR)
+        if (controller.selectedBalanza != null) {
+          final currentCod =
+              controller.selectedBalanza!['cod_metrica']?.toString();
+          if (currentCod != _lastFilledCodMetrica) {
+            _lastFilledCodMetrica = currentCod;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _fillBalanzaData(controller.selectedBalanza!);
+            });
+          }
+        }
+
         return Column(
           children: [
             // Título
@@ -204,35 +221,73 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return Row(
       children: [
         Expanded(
+          flex: 4,
           child: ElevatedButton.icon(
             onPressed: () => _showBalanzasDialog(controller),
-            icon: const Icon(Icons.search),
-            label: const Text('Ver Instrumentos'),
+            icon: const Icon(Icons.search, size: 20),
+            label: const Text('Buscar', style: TextStyle(fontSize: 13)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF326677),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 8),
         Expanded(
+          flex: 3,
+          child: ElevatedButton.icon(
+            onPressed: () => _scanQrForBalanza(context, controller),
+            icon: const Icon(Icons.qr_code_scanner, size: 20),
+            label: const Text('QR', style: TextStyle(fontSize: 13)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF007BFF),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 4,
           child: ElevatedButton.icon(
             onPressed: () {
               controller.createNewBalanza();
               _initializeNewBalanzaFields(controller);
             },
-            icon: const Icon(Icons.add),
-            label: const Text('Nuevo Instrumento'),
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text('Nuevo', style: TextStyle(fontSize: 13)),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF327734),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
             ),
           ),
         ),
       ],
     ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.3);
+  }
+
+  Future<void> _scanQrForBalanza(
+      BuildContext context, PrecargaControllerSop controller) async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+    );
+    if (result != null && result.isNotEmpty && mounted) {
+      final error = controller.selectBalanzaByQr(result);
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Instrumento seleccionado por QR'),
+              backgroundColor: Colors.green),
+        );
+      }
+    }
   }
 
   void _initializeNewBalanzaFields(PrecargaControllerSop controller) {

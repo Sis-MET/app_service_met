@@ -324,17 +324,13 @@ class DatabaseHelperAjustes {
         
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
-        retorno_cero_inicial_carga TEXT DEFAULT '',
-        retorno_cero_inicial_unidad TEXT DEFAULT '',
+        estabilizacion_inicial TEXT DEFAULT '',
         retorno_cero_final_valoracion TEXT DEFAULT '',
-        retorno_cero_final_carga TEXT DEFAULT '',
-        retorno_cero_final_unidad TEXT DEFAULT '',
+        estabilizacion_final TEXT DEFAULT '',
 
         -- Excentricidad Inicial
         excentricidad_inicial_tipo_plataforma TEXT DEFAULT '',
-        excentricidad_inicial_opcion_prueba TEXT DEFAULT '',
         excentricidad_inicial_carga TEXT DEFAULT '',
-        excentricidad_inicial_ruta_imagen TEXT DEFAULT '',
         excentricidad_inicial_cantidad_posiciones TEXT DEFAULT '',
         excentricidad_inicial_pos1_numero TEXT DEFAULT '',
         excentricidad_inicial_pos1_indicacion TEXT DEFAULT '',
@@ -362,9 +358,7 @@ class DatabaseHelperAjustes {
         excentricidad_inicial_pos6_error TEXT DEFAULT '',
         
         excentricidad_final_tipo_plataforma TEXT DEFAULT '',
-        excentricidad_final_opcion_prueba TEXT DEFAULT '',
         excentricidad_final_carga TEXT DEFAULT '',
-        excentricidad_final_ruta_imagen TEXT DEFAULT '',
         excentricidad_final_cantidad_posiciones TEXT DEFAULT '',
         excentricidad_final_pos1_numero TEXT DEFAULT '',
         excentricidad_final_pos1_indicacion TEXT DEFAULT '',

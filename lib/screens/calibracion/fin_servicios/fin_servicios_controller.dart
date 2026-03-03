@@ -53,6 +53,12 @@ class FinServiciosController extends ChangeNotifier {
   String? selectedReglaAceptacion;
   bool isExporting = false;
 
+  // Sticker Preview (Pasos Finales)
+  String stickerCertificado = '';
+  String stickerFecha = '';
+  String stickerCodMetrica = '';
+  String stickerNro = '';
+
   FinServiciosController({
     required this.secaValue,
     required this.sessionId,
@@ -72,6 +78,29 @@ class FinServiciosController extends ChangeNotifier {
         hriInicial = double.tryParse(registro['hri']?.toString() ?? '');
         tiInicial = double.tryParse(registro['ti']?.toString() ?? '');
         patmiInicial = double.tryParse(registro['patmi']?.toString() ?? '');
+
+        // --- Cálculo de Datos para el Sticker ---
+        final reca = registro['n_reca']?.toString() ?? 'SN';
+        final sticker = registro['sticker']?.toString() ?? 'SN';
+        final fecha = registro['fecha_servicio']?.toString() ??
+            DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+        // Cód Cliente (ej: 0028 de 0028-11-020)
+        final codParts = codMetrica.split('-');
+        final codCliente = codParts.isNotEmpty ? codParts[0] : 'XXXX';
+
+        // Cotización (ej: C04 de 26-0028-11-C04)
+        final secaParts = secaValue.split('-');
+        final cotizacion = secaParts.isNotEmpty ? secaParts.last : 'C0X';
+
+        // Gestión (2 dígitos del año actual)
+        final gestion = DateTime.now().year.toString().substring(2);
+
+        stickerCertificado = '$codCliente-$cotizacion-$reca-$gestion';
+        stickerFecha = fecha;
+        stickerCodMetrica = codMetrica;
+        stickerNro = sticker;
+
         notifyListeners();
       }
     } catch (e) {

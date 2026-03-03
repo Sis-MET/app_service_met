@@ -337,8 +337,8 @@ class AjusteVerificacionesController {
 
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
-      'tipo_servicio': 'ajustes y verificaciones',
-      'estado_servicio': 'Completo',
+      'tipo_servicio': 'IBM.BL',
+      'estado_servicio': 'Comple|to',
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,

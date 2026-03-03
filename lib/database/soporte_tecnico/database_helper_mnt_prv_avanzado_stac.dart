@@ -306,10 +306,9 @@ class DatabaseHelperMntPrvAvanzadoStac {
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
         estabilizacion_inicial TEXT DEFAULT '',
-        retorno_cero_inicial_unidad TEXT DEFAULT '',
         retorno_cero_final_valoracion TEXT DEFAULT '',
         estabilizacion_final TEXT DEFAULT '',
-        retorno_cero_final_unidad TEXT DEFAULT '',
+   
 
         -- Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',

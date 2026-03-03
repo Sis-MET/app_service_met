@@ -668,7 +668,7 @@ class AppDatabase {
         factor TEXT DEFAULT '',
         regla_aceptacion TEXT DEFAULT '',
         estado_servicio_bal TEXT DEFAULT '',
-        tipo_servicio TEXT DEFAULT 'CAL.B',
+        tipo_servicio TEXT DEFAULT 'CAL.BL',
         inf_bal TEXT DEFAULT ''
       )
       ''');

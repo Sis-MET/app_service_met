@@ -247,7 +247,7 @@ class MntPrvRegularStilController {
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'tipo_servicio': 'mnt prv regular stil',
+      'tipo_servicio': 'MPR.BL',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'comentario_general': model.comentarioGeneral,

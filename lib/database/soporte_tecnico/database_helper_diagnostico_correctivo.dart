@@ -283,7 +283,7 @@ class DatabaseHelperDiagnosticoCorrectivo {
       CREATE TABLE diagnostico_correctivo (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         --INF CLIENTE Y PERSONAL
-        tipo_servicio TEXT DEFAULT '',   
+        tipo_servicio TEXT DEFAULT 'mnt_correctivo',   
         cliente TEXT DEFAULT '',
         razon_social TEXT DEFAULT '',
         planta TEXT DEFAULT '',
@@ -454,7 +454,7 @@ class DatabaseHelperDiagnosticoCorrectivo {
       await db.execute('''
       CREATE TABLE diagnostico (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tipo_servicio TEXT DEFAULT '',   
+        tipo_servicio TEXT DEFAULT 'diagnostico',   
         cliente TEXT DEFAULT '',
         razon_social TEXT DEFAULT '',
         planta TEXT DEFAULT '',

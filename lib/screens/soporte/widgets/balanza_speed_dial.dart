@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/provider/balanza_provider.dart';
 
@@ -37,19 +36,6 @@ class BalanzaSpeedDial extends StatelessWidget {
             ),
             labelBackgroundColor: Colors.blue,
             onTap: () => _showBalanzaInfo(context),
-          ),
-          SpeedDialChild(
-            child: const Icon(Icons.history, size: 24),
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
-            label: 'Último servicio',
-            labelStyle: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-            labelBackgroundColor: Colors.orange,
-            onTap: () => _showLastServiceData(context),
           ),
         ],
       ),
@@ -163,122 +149,6 @@ class BalanzaSpeedDial extends StatelessWidget {
                               style: GoogleFonts.inter(fontSize: 15),
                             ),
                           ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showLastServiceData(BuildContext context) {
-    final lastServiceData =
-        Provider.of<BalanzaProvider>(context, listen: false).lastServiceData;
-
-    if (lastServiceData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay datos de servicio disponibles'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    final Map<String, String> fieldLabels = {
-      'reg_fecha': 'Fecha del Último Servicio',
-      'reg_usuario': 'Técnico Responsable',
-      'seca': 'Último SECA',
-      'exc': 'Excentricidad',
-    };
-
-    for (int i = 1; i <= 30; i++) {
-      fieldLabels['rep$i'] = 'Repetibilidad $i';
-    }
-
-    for (int i = 1; i <= 60; i++) {
-      fieldLabels['lin$i'] = 'Linealidad $i';
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.7,
-          minChildSize: 0.5,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                children: [
-                  // Handle bar
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  // Header
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.history,
-                            color: Colors.orange, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Último Servicio',
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Divider(height: 1, color: Colors.grey[300]),
-                  const SizedBox(height: 8),
-                  // Content
-                  Expanded(
-                    child: ListView(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
-                      children: [
-                        ...lastServiceData.entries
-                            .where((entry) =>
-                                entry.value != null &&
-                                fieldLabels.containsKey(entry.key))
-                            .map((entry) => _buildDetailContainer(
-                                context,
-                                fieldLabels[entry.key]!,
-                                entry.key == 'reg_fecha'
-                                    ? DateFormat('dd/MM/yyyy')
-                                        .format(DateTime.parse(entry.value))
-                                    : entry.value.toString())),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
                   ),
                 ],
               ),

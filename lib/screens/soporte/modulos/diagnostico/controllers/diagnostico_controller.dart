@@ -190,6 +190,7 @@ class DiagnosticoController {
 
   Map<String, dynamic> _prepareDataForSave() {
     final Map<String, dynamic> data = {
+      'tipo_servicio': 'DIG.BL',
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,

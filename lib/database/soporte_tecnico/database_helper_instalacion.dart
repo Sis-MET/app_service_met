@@ -275,7 +275,7 @@ class DatabaseHelperInstalacion {
       CREATE TABLE instalacion (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         --INF CLIENTE Y PERSONAL
-        tipo_servicio TEXT DEFAULT '',   
+        tipo_servicio TEXT DEFAULT 'instalacion',   
         cliente TEXT DEFAULT '',
         razon_social TEXT DEFAULT '',
         planta TEXT DEFAULT '',

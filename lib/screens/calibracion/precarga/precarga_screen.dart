@@ -17,6 +17,7 @@ import 'widgets/cliente_step.dart';
 import 'widgets/planta_step.dart';
 import 'widgets/seca_step.dart';
 import 'widgets/balanza_step.dart';
+import 'widgets/qr_scanner_screen.dart';
 
 class PrecargaScreen extends StatefulWidget {
   final String userName;
@@ -156,6 +157,11 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
 
       if (widget.sessionId != null && widget.secaValue != null) {
         await _loadExistingSession();
+      } else {
+        // Mostrar diálogo de modo de entrada solo para sesiones nuevas
+        if (mounted) {
+          _showEntryModeDialog();
+        }
       }
 
       controller.updateStepErrors();
@@ -452,7 +458,20 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
 
       case 2: // SECA
         return controller.secaConfirmed
-            ? () => controller.nextStep()
+            ? () async {
+                controller.nextStep();
+                // En modo QR, auto-seleccionar balanza al avanzar al paso 4
+                if (controller.isQrMode) {
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (!mounted) return;
+                  final error = await controller.autoSelectBalanzaFromQr();
+                  if (error != null && mounted) {
+                    _showSnackBar(error, isError: true);
+                  } else if (mounted) {
+                    _showSnackBar('Instrumento identificado automáticamente ✅');
+                  }
+                }
+              }
             : () => _confirmSeca();
 
       case 3: // Balanza (Último paso ahora)
@@ -519,6 +538,178 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
       } else {
         _showSnackBar('Error al confirmar SECA: $e', isError: true);
       }
+    }
+  }
+
+  // ==================== DIÁLOGO DE MODO DE ENTRADA ====================
+
+  void _showEntryModeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF667EEA).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: Color(0xFF667EEA),
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '¿Cómo desea identificar\nel instrumento?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Puede escanear el código QR del instrumento para auto-completar los datos, o ingresar manualmente.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Botón QR
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    // Abrir scanner
+                    final codMetrica = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const QrScannerScreen(),
+                      ),
+                    );
+                    if (codMetrica != null && mounted) {
+                      await _processQrResult(codMetrica);
+                    }
+                  },
+                  icon: const Icon(Icons.qr_code_scanner, size: 22),
+                  label: Text(
+                    'Escanear QR',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF667EEA),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Botón Manual
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    // Continuar con flujo manual normal
+                  },
+                  icon: Icon(
+                    Icons.edit_note,
+                    size: 22,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                  ),
+                  label: Text(
+                    'Ingreso Manual',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.grey[700],
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(
+                      color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _processQrResult(String codMetrica) async {
+    // Mostrar indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF667EEA)),
+            const SizedBox(height: 16),
+            Text(
+              'Identificando instrumento...\n$codMetrica',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Procesar el código QR
+    final error = await controller.processQrCode(codMetrica);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Cerrar diálogo de carga
+
+    if (error != null) {
+      _showSnackBar(error, isError: true);
+      // Mostrar de nuevo el diálogo de entrada
+      _showEntryModeDialog();
+    } else {
+      _showSnackBar(
+        'Cliente y planta identificados ✅\nConfirme el SECA para continuar',
+      );
+
+      // Forzar rebuild para mostrar el paso SECA
+      setState(() {});
     }
   }
 
@@ -730,7 +921,7 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
       // Recargar datos actualizados/guardados en la BD
       final balanza = Balanza(
         cod_metrica: balanzaData['cod_metrica']?.toString() ?? '',
-        unidad: balanzaData['unidad']?.toString() ?? '',
+        unidad: balanzaData['unidades']?.toString() ?? '',
         cap_max1: balanzaData['cap_max1']?.toString() ?? '',
         d1: _parseDouble(balanzaData['d1']),
         e1: _parseDouble(balanzaData['e1']),

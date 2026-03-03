@@ -189,7 +189,7 @@ class MntPrvAvanzadoStacController {
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'tipo_servicio': 'mnt prv avanzado stac',
+      'tipo_servicio': 'MPA.SP',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,
       'comentario_general': model.comentarioGeneral,

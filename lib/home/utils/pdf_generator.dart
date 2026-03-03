@@ -26,13 +26,17 @@ class PdfGenerator {
         firstRecord['tec_responsable']?.toString() ??
         '';
 
-    // Filtrar y deduplicar registros
-    final records = _filterAndDeduplicate(
-        servicio.balanzas, 'estado_servicio_bal', 'Balanza Calibrada');
+    // Filtrar y deduplicar: solo balanzas calibradas o con datos reales
+    final records = _filterCalibracion(servicio.balanzas);
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
+        pageFormat: PdfPageFormat.a4.landscape.copyWith(
+          marginLeft: 10,
+          marginRight: 10,
+          marginTop: 14,
+          marginBottom: 14,
+        ),
         theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (pw.Context context) {
           return [
@@ -44,7 +48,7 @@ class PdfGenerator {
                 tecResponsable,
                 'RESUMEN DE CALIBRACIÓN - SECA ${servicio.seca}',
                 logo),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 10),
             _buildCalibracionTable(records, font),
           ];
         },
@@ -74,13 +78,17 @@ class PdfGenerator {
         firstRecord['tec_responsable']?.toString() ??
         '';
 
-    // Filtrar y deduplicar registros
-    final records = _filterAndDeduplicate(
-        servicio.servicios, 'estado_servicio', 'Completo');
+    // Filtrar y deduplicar registros completos
+    final records = _filterSoporte(servicio.servicios);
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4.landscape,
+        pageFormat: PdfPageFormat.a4.landscape.copyWith(
+          marginLeft: 10,
+          marginRight: 10,
+          marginTop: 14,
+          marginBottom: 14,
+        ),
         theme: pw.ThemeData.withFont(base: font, bold: fontBold),
         build: (pw.Context context) {
           return [
@@ -90,9 +98,9 @@ class PdfGenerator {
                 planta,
                 dirPlanta,
                 tecResponsable,
-                'Resumen de Soporte Técnico - OTST ${servicio.otst}',
+                'RESUMEN DE SOPORTE TÉCNICO - OTST ${servicio.otst}',
                 logo),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 10),
             _buildSoporteTable(records, font),
           ];
         },
@@ -102,49 +110,92 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  static List<Map<String, dynamic>> _filterAndDeduplicate(
-      List<Map<String, dynamic>> originalList,
-      String statusKey,
-      String completedStatus) {
-    // Mapa para rastrear registros únicos.
-    // Clave: Identificador único (cod_metrica > serie > id generado)
+  // ──────────────────────────────────────────────────────────────
+  // FILTROS
+  // ──────────────────────────────────────────────────────────────
+
+  /// Filtro para calibración: elimina duplicados y filas vacías/pendientes sin datos clave
+  static List<Map<String, dynamic>> _filterCalibracion(
+      List<Map<String, dynamic>> originalList) {
     final Map<String, Map<String, dynamic>> uniqueMap = {};
 
     for (var record in originalList) {
-      // Determinar clave única
-      String uniqueKey = record['cod_metrica']?.toString().trim() ?? '';
-      if (uniqueKey.isEmpty || uniqueKey == 'null') {
-        uniqueKey = record['serie']?.toString().trim() ?? '';
-      }
-      if (uniqueKey.isEmpty || uniqueKey == 'null') {
-        // Si no tiene identificadores, usamos algo del contenido o lo dejamos pasar (aunque dificil de deduplicar)
-        // Usamos hashCode como fallback temporal si es necesario, o lo saltamos
-        uniqueKey = record.hashCode.toString();
-      }
+      final String key = _getUniqueKey(record);
+      final String estado = record['estado_servicio_bal']?.toString() ?? '';
+      final bool isCalibrada = estado == 'Balanza Calibrada';
 
-      final currentStatus = record[statusKey]?.toString() ?? '';
-      final isCompleted = currentStatus == completedStatus;
+      // Detectar si la fila tiene al menos datos mínimos útiles
+      final bool hasData = _hasMinimumData(record);
 
-      if (uniqueMap.containsKey(uniqueKey)) {
-        // Ya existe un registro para este equipo
-        final existingRecord = uniqueMap[uniqueKey]!;
-        final existingStatus = existingRecord[statusKey]?.toString() ?? '';
-        final existingIsCompleted = existingStatus == completedStatus;
+      // Si no tiene datos mínimos y no está calibrada, descartarla
+      if (!hasData && !isCalibrada) continue;
 
-        // Si el registro actual está completado y el existente no, lo reemplazamos
-        if (isCompleted && !existingIsCompleted) {
-          uniqueMap[uniqueKey] = record;
+      if (uniqueMap.containsKey(key)) {
+        final existingStatus =
+            uniqueMap[key]!['estado_servicio_bal']?.toString() ?? '';
+        // Si el actual está calibrado y el existente no, reemplazar
+        if (isCalibrada && existingStatus != 'Balanza Calibrada') {
+          uniqueMap[key] = record;
         }
-        // Si ambos están completados o ambos incompletos, nos quedamos con el primero (o ultimo, irrelevante)
-        // Si el existente esta completado y el actual no, mantenemos el existente
       } else {
-        // No existe, agregamos
-        uniqueMap[uniqueKey] = record;
+        uniqueMap[key] = record;
       }
     }
 
     return uniqueMap.values.toList();
   }
+
+  /// Filtro para soporte: elimina duplicados y filas vacías/incompletas
+  static List<Map<String, dynamic>> _filterSoporte(
+      List<Map<String, dynamic>> originalList) {
+    final Map<String, Map<String, dynamic>> uniqueMap = {};
+
+    for (var record in originalList) {
+      final String key = _getUniqueKey(record);
+      final String estado = record['estado_servicio']?.toString() ?? '';
+      final bool isCompleto = estado == 'Completo';
+      final bool hasData = _hasMinimumData(record);
+
+      if (!hasData && !isCompleto) continue;
+
+      if (uniqueMap.containsKey(key)) {
+        final existingStatus =
+            uniqueMap[key]!['estado_servicio']?.toString() ?? '';
+        if (isCompleto && existingStatus != 'Completo') {
+          uniqueMap[key] = record;
+        }
+      } else {
+        uniqueMap[key] = record;
+      }
+    }
+
+    return uniqueMap.values.toList();
+  }
+
+  static String _getUniqueKey(Map<String, dynamic> record) {
+    String key = record['cod_metrica']?.toString().trim() ?? '';
+    if (key.isEmpty || key == 'null') {
+      key = record['serie']?.toString().trim() ?? '';
+    }
+    if (key.isEmpty || key == 'null') {
+      key = record.hashCode.toString();
+    }
+    return key;
+  }
+
+  /// Un registro tiene datos mínimos si tiene al menos marca, modelo o cod_metrica no vacío
+  static bool _hasMinimumData(Map<String, dynamic> record) {
+    final fields = ['marca', 'modelo', 'cod_metrica', 'serie', 'cod_int'];
+    for (final f in fields) {
+      final v = record[f]?.toString().trim() ?? '';
+      if (v.isNotEmpty && v != 'null' && v != '0') return true;
+    }
+    return false;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // ENCABEZADO
+  // ──────────────────────────────────────────────────────────────
 
   static pw.Widget _buildHeader(
       String cliente,
@@ -162,14 +213,14 @@ class PdfGenerator {
           children: [
             pw.Text(title,
                 style:
-                    pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                    pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
             pw.Container(
-              height: 40,
+              height: 32,
               child: pw.Image(logo),
             ),
           ],
         ),
-        pw.SizedBox(height: 10),
+        pw.SizedBox(height: 6),
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -205,18 +256,26 @@ class PdfGenerator {
       child: pw.Row(
         children: [
           pw.Text('$label ',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
           pw.Expanded(
-              child:
-                  pw.Text(value, maxLines: 1, overflow: pw.TextOverflow.clip)),
+              child: pw.Text(value,
+                  maxLines: 1,
+                  overflow: pw.TextOverflow.clip,
+                  style: const pw.TextStyle(fontSize: 8))),
         ],
       ),
     );
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // TABLA CALIBRACIÓN
+  // ──────────────────────────────────────────────────────────────
+
   static pw.Widget _buildCalibracionTable(
       List<Map<String, dynamic>> records, pw.Font font) {
     final headers = [
+      '#',
+      'Cód. Métrica',
       'Marca',
       'Modelo',
       'Serie',
@@ -227,10 +286,12 @@ class PdfGenerator {
       'Ubicación',
       'Fecha',
       'Observaciones',
-      'Estado'
+      'Estado',
     ];
 
+    int rowNum = 0;
     final data = records.map((r) {
+      rowNum++;
       final estado = r['estado_servicio_bal']?.toString() ?? '';
       final isCalibrada = estado == 'Balanza Calibrada';
       final color = isCalibrada
@@ -238,6 +299,8 @@ class PdfGenerator {
           : PdfColor.fromInt(0xFFFFCDD2); // Rojo suave
 
       return [
+        '$rowNum',
+        r['cod_metrica']?.toString() ?? '',
         r['marca']?.toString() ?? '',
         r['modelo']?.toString() ?? '',
         r['serie']?.toString() ?? '',
@@ -249,14 +312,14 @@ class PdfGenerator {
         r['fecha_servicio']?.toString() ?? '',
         r['observaciones']?.toString() ?? '',
         pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 2),
           decoration: pw.BoxDecoration(
             color: color,
-            borderRadius: pw.BorderRadius.circular(4),
+            borderRadius: pw.BorderRadius.circular(3),
           ),
           child: pw.Text(
             estado.isEmpty ? 'Pendiente' : estado,
-            style: const pw.TextStyle(fontSize: 8),
+            style: const pw.TextStyle(fontSize: 6),
           ),
         ),
       ];
@@ -266,31 +329,40 @@ class PdfGenerator {
       headers: headers,
       data: data,
       headerStyle: pw.TextStyle(
-          fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white),
+          fontWeight: pw.FontWeight.bold, fontSize: 7, color: PdfColors.white),
       headerDecoration:
           const pw.BoxDecoration(color: PdfColor.fromInt(0xFF365666)),
-      cellStyle: const pw.TextStyle(fontSize: 8),
+      cellStyle: const pw.TextStyle(fontSize: 6),
       cellAlignment: pw.Alignment.centerLeft,
       headerAlignment: pw.Alignment.centerLeft,
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 3),
       columnWidths: {
-        0: const pw.FixedColumnWidth(50), // Marca
-        1: const pw.FixedColumnWidth(50), // Modelo
-        2: const pw.FixedColumnWidth(50), // Serie
-        3: const pw.FixedColumnWidth(50), // Cod Int
-        4: const pw.FixedColumnWidth(40), // Cap
-        5: const pw.FixedColumnWidth(30), // d
-        6: const pw.FixedColumnWidth(30), // Und
-        7: const pw.FlexColumnWidth(2), // Ubicacion (largo)
-        8: const pw.FixedColumnWidth(50), // Fecha
-        9: const pw.FlexColumnWidth(3), // Observaciones (muy largo)
-        10: const pw.FixedColumnWidth(60), // Estado
+        0: const pw.FixedColumnWidth(16), // #
+        1: const pw.FixedColumnWidth(55), // Cód. Métrica
+        2: const pw.FixedColumnWidth(40), // Marca
+        3: const pw.FixedColumnWidth(40), // Modelo
+        4: const pw.FixedColumnWidth(42), // Serie
+        5: const pw.FixedColumnWidth(38), // Cod Int
+        6: const pw.FixedColumnWidth(34), // Cap
+        7: const pw.FixedColumnWidth(24), // d
+        8: const pw.FixedColumnWidth(24), // Und
+        9: const pw.FlexColumnWidth(2), // Ubicacion (largo)
+        10: const pw.FixedColumnWidth(42), // Fecha
+        11: const pw.FlexColumnWidth(3), // Observaciones
+        12: const pw.FixedColumnWidth(52), // Estado
       },
     );
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // TABLA SOPORTE TÉCNICO
+  // ──────────────────────────────────────────────────────────────
+
   static pw.Widget _buildSoporteTable(
       List<Map<String, dynamic>> records, pw.Font font) {
     final headers = [
+      '#',
+      'Cód. Métrica',
       'Marca',
       'Modelo',
       'Serie',
@@ -301,17 +373,27 @@ class PdfGenerator {
       'Ubicación',
       'Fecha',
       'Observaciones',
-      'Estado'
+      'Estado',
     ];
 
+    int rowNum = 0;
     final data = records.map((r) {
+      rowNum++;
       final estado = r['estado_servicio']?.toString() ?? '';
       final isCompleto = estado == 'Completo';
       final color = isCompleto
           ? PdfColor.fromInt(0xFFC8E6C9) // Verde suave
           : PdfColor.fromInt(0xFFFFCDD2); // Rojo suave
 
+      // Observaciones: usar comentario_general primero, luego observaciones
+      final obs =
+          (r['comentario_general']?.toString().trim().isNotEmpty == true)
+              ? r['comentario_general']!.toString()
+              : r['observaciones']?.toString() ?? '';
+
       return [
+        '$rowNum',
+        r['cod_metrica']?.toString() ?? '',
         r['marca']?.toString() ?? '',
         r['modelo']?.toString() ?? '',
         r['serie']?.toString() ?? '',
@@ -321,17 +403,18 @@ class PdfGenerator {
         r['unidades']?.toString() ?? '',
         r['ubicacion']?.toString() ?? '',
         r['fecha_servicio']?.toString() ?? '',
-        r['observaciones']?.toString() ?? '',
+        obs,
         pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            decoration: pw.BoxDecoration(
-              color: color,
-              borderRadius: pw.BorderRadius.circular(4),
-            ),
-            child: pw.Text(
-              estado.isEmpty ? 'Pendiente' : estado,
-              style: const pw.TextStyle(fontSize: 8),
-            )),
+          padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+          decoration: pw.BoxDecoration(
+            color: color,
+            borderRadius: pw.BorderRadius.circular(3),
+          ),
+          child: pw.Text(
+            estado.isEmpty ? 'Pendiente' : estado,
+            style: const pw.TextStyle(fontSize: 6),
+          ),
+        ),
       ];
     }).toList();
 
@@ -339,24 +422,27 @@ class PdfGenerator {
       headers: headers,
       data: data,
       headerStyle: pw.TextStyle(
-          fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white),
+          fontWeight: pw.FontWeight.bold, fontSize: 7, color: PdfColors.white),
       headerDecoration:
           const pw.BoxDecoration(color: PdfColor.fromInt(0xFF365666)),
-      cellStyle: const pw.TextStyle(fontSize: 8),
+      cellStyle: const pw.TextStyle(fontSize: 6),
       cellAlignment: pw.Alignment.centerLeft,
       headerAlignment: pw.Alignment.centerLeft,
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 3),
       columnWidths: {
-        0: const pw.FixedColumnWidth(50), // Marca
-        1: const pw.FixedColumnWidth(50), // Modelo
-        2: const pw.FixedColumnWidth(50), // Serie
-        3: const pw.FixedColumnWidth(50), // Cod Int
-        4: const pw.FixedColumnWidth(40), // Cap
-        5: const pw.FixedColumnWidth(30), // d
-        6: const pw.FixedColumnWidth(30), // Und
-        7: const pw.FlexColumnWidth(2), // Ubicacion
-        8: const pw.FixedColumnWidth(50), // Fecha
-        9: const pw.FlexColumnWidth(3), // Observaciones
-        10: const pw.FixedColumnWidth(60), // Estado
+        0: const pw.FixedColumnWidth(16), // #
+        1: const pw.FixedColumnWidth(55), // Cód. Métrica
+        2: const pw.FixedColumnWidth(40), // Marca
+        3: const pw.FixedColumnWidth(40), // Modelo
+        4: const pw.FixedColumnWidth(42), // Serie
+        5: const pw.FixedColumnWidth(38), // Cod Int
+        6: const pw.FixedColumnWidth(34), // Cap
+        7: const pw.FixedColumnWidth(24), // d
+        8: const pw.FixedColumnWidth(24), // Und
+        9: const pw.FlexColumnWidth(2), // Ubicacion
+        10: const pw.FixedColumnWidth(42), // Fecha
+        11: const pw.FlexColumnWidth(3), // Observaciones
+        12: const pw.FixedColumnWidth(52), // Estado
       },
     );
   }

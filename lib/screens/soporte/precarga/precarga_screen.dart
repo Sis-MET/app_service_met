@@ -35,6 +35,9 @@ import 'widgets/planta_step.dart';
 import 'widgets/seca_step.dart';
 import 'widgets/balanza_step.dart';
 import 'widgets/tipo_servicio_step.dart';
+import '../../calibracion/precarga/widgets/qr_scanner_screen.dart';
+import 'package:service_met/models/balanza_model.dart';
+import 'package:service_met/provider/balanza_provider.dart';
 
 class PrecargaScreenSop extends StatefulWidget {
   final String tableName;
@@ -548,7 +551,13 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     switch (controller.currentStep) {
       case -1: // Tipo de Servicio
         return controller.canProceedToStep(-1)
-            ? () => controller.nextStep()
+            ? () {
+                controller.nextStep();
+                // Mostrar diálogo QR al entrar al paso 0 si es sesión nueva
+                if (mounted && widget.sessionId == null) {
+                  _showEntryModeDialog();
+                }
+              }
             : null;
 
       case 0: // Cliente
@@ -563,7 +572,20 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
 
       case 2: // SECA
         return controller.secaConfirmed
-            ? () => controller.nextStep()
+            ? () async {
+                controller.nextStep();
+                // En modo QR, auto-seleccionar balanza al avanzar al paso 3
+                if (controller.isQrMode) {
+                  await Future.delayed(const Duration(milliseconds: 300));
+                  if (!mounted) return;
+                  final error = await controller.autoSelectBalanzaFromQr();
+                  if (error != null && mounted) {
+                    _showSnackBar(error, isError: true);
+                  } else if (mounted) {
+                    _showSnackBar('Instrumento identificado automáticamente ✅');
+                  }
+                }
+              }
             : () => _confirmSeca();
 
       case 3: // Balanza
@@ -626,6 +648,178 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       } else {
         _showSnackBar('Error al confirmar OTST: $e', isError: true);
       }
+    }
+  }
+
+  // ==================== DIÁLOGO DE MODO DE ENTRADA ====================
+
+  void _showEntryModeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF667EEA).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: Color(0xFF667EEA),
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '¿Cómo desea identificar\nel instrumento?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Puede escanear el código QR del instrumento para auto-completar los datos, o ingresar manualmente.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Botón QR
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    // Abrir scanner
+                    final codMetrica = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const QrScannerScreen(),
+                      ),
+                    );
+                    if (codMetrica != null && mounted) {
+                      await _processQrResult(codMetrica);
+                    }
+                  },
+                  icon: const Icon(Icons.qr_code_scanner, size: 22),
+                  label: Text(
+                    'Escanear QR',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF667EEA),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Botón Manual
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    // Continuar con flujo manual normal
+                  },
+                  icon: Icon(
+                    Icons.edit_note,
+                    size: 22,
+                    color: isDark ? Colors.white70 : Colors.grey[700],
+                  ),
+                  label: Text(
+                    'Ingreso Manual',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: isDark ? Colors.white70 : Colors.grey[700],
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(
+                      color: isDark ? Colors.grey[600]! : Colors.grey[300]!,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _processQrResult(String codMetrica) async {
+    // Mostrar indicador de carga
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF667EEA)),
+            const SizedBox(height: 16),
+            Text(
+              'Identificando instrumento...\n$codMetrica',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Procesar el código QR
+    final error = await controller.processQrCode(codMetrica);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Cerrar diálogo de carga
+
+    if (error != null) {
+      _showSnackBar(error, isError: true);
+      // Mostrar de nuevo el diálogo de entrada
+      _showEntryModeDialog();
+    } else {
+      _showSnackBar(
+        'Cliente y planta identificados ✅\nConfirme el OTST para continuar',
+      );
+
+      // Forzar rebuild para mostrar el paso OTST
+      setState(() {});
     }
   }
 
@@ -822,6 +1016,53 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         sticker: _stickerController.text.trim(),
         balanzaData: balanzaData,
       );
+
+      // Función auxiliar para parsear double
+      double parseDouble(dynamic value) {
+        if (value == null) return 0.0;
+        if (value is double) return value;
+        if (value is int) return value.toDouble();
+        if (value is String) {
+          if (value.trim().isEmpty) return 0.0;
+          return double.tryParse(value) ?? 0.0;
+        }
+        return 0.0;
+      }
+
+      // Limpiar y resetear el provider para que la info de la balanza esté disponible en los siguientes módulos
+      final balanzaProvider =
+          Provider.of<BalanzaProvider>(context, listen: false);
+
+      balanzaProvider.clearSelectedBalanza();
+      balanzaProvider.clearLastServiceData();
+
+      // Recargar datos parseados de la BD
+      final balanza = Balanza(
+        cod_metrica: balanzaData['cod_metrica']?.toString() ?? '',
+        unidad: balanzaData['unidades']?.toString() ?? '',
+        cap_max1: balanzaData['cap_max1']?.toString() ?? '',
+        d1: parseDouble(balanzaData['d1']),
+        e1: parseDouble(balanzaData['e1']),
+        dec1: parseDouble(balanzaData['dec1']),
+        cap_max2: balanzaData['cap_max2']?.toString() ?? '0',
+        d2: parseDouble(balanzaData['d2']),
+        e2: parseDouble(balanzaData['e2']),
+        dec2: parseDouble(balanzaData['dec2']),
+        cap_max3: balanzaData['cap_max3']?.toString() ?? '0',
+        d3: parseDouble(balanzaData['d3']),
+        e3: parseDouble(balanzaData['e3']),
+        dec3: parseDouble(balanzaData['dec3']),
+        n_celdas: balanzaData['n_celdas']?.toString() ?? '',
+        exc: parseDouble(balanzaData['exc']),
+        categoria: balanzaData['categoria_balanza']?.toString() ?? '',
+        tecnologia: balanzaData['tecnologia']?.toString() ?? '',
+        clase: balanzaData['clase']?.toString() ?? '',
+        tipo: balanzaData['tipo_equipo']?.toString() ?? '',
+        rango: balanzaData['rango']?.toString() ?? '',
+      );
+
+      balanzaProvider.setSelectedBalanza(balanza,
+          isNew: controller.isNewBalanza);
 
       if (!mounted) return;
 
