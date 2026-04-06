@@ -72,7 +72,7 @@ class PruebasMetrologicasController extends ChangeNotifier {
       onUpdate: notifyListeners,
     );
 
-    await linealidadController.loadLinFromPrecargaOrDatabase();
+    await linealidadController.initialize();
 
     _isLoading = false;
     notifyListeners();

@@ -34,6 +34,89 @@ class AppDatabase {
     }
   }
 
+  /// Busca un servicio incompleto por cod_metrica
+  /// Un servicio se considera incompleto si no tiene estado_servicio_bal definido
+  Future<Map<String, dynamic>?> getServicioIncompletoPorCodMetrica(
+      String codMetrica) async {
+    try {
+      final db = await database;
+
+      final List<Map<String, dynamic>> result = await db.query(
+        'registros_calibracion',
+        where: 'cod_metrica = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
+        whereArgs: [codMetrica],
+        orderBy: 'id DESC',
+        limit: 1,
+      );
+
+      return result.isNotEmpty ? result.first : null;
+    } catch (e) {
+      debugPrint('Error al buscar servicio incompleto por codMetrica: $e');
+      return null;
+    }
+  }
+
+  /// Verifica si un registro tiene datos de calibración completados
+  Future<bool> esServicioCompleto(String seca, String sessionId) async {
+    try {
+      final db = await database;
+      final result = await db.query(
+        'registros_calibracion',
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+        limit: 1,
+      );
+
+      if (result.isEmpty) return false;
+
+      final registro = result.first;
+      // Un servicio se considera completo si tiene estado_servicio_bal
+      final estadoServicio = registro['estado_servicio_bal']?.toString();
+      return estadoServicio != null && estadoServicio.isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar servicio completo: $e');
+      return false;
+    }
+  }
+
+  /// Obtiene el último servicio incompleto para un cliente
+  Future<List<Map<String, dynamic>>> getServiciosIncompletosPorCliente(
+      String cliente) async {
+    try {
+      final db = await database;
+
+      final List<Map<String, dynamic>> result = await db.query(
+        'registros_calibracion',
+        where: 'cliente = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
+        whereArgs: [cliente],
+        orderBy: 'fecha_servicio DESC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('Error al buscar servicios incompletos por cliente: $e');
+      return [];
+    }
+  }
+
+  /// Obtiene todos los servicios incompletos
+  Future<List<Map<String, dynamic>>> getAllServiciosIncompletos() async {
+    try {
+      final db = await database;
+
+      final List<Map<String, dynamic>> result = await db.query(
+        'registros_calibracion',
+        where: 'estado_servicio_bal IS NULL OR estado_servicio_bal = ""',
+        orderBy: 'fecha_servicio DESC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('Error al obtener servicios incompletos: $e');
+      return [];
+    }
+  }
+
   Future<Map<String, dynamic>?> getUltimoRegistroPorSeca(String seca) async {
     try {
       final db = await database;

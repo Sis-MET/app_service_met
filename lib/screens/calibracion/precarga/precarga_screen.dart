@@ -113,7 +113,6 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
           dec3: _parseDouble(balanzaData['dec3']),
           n_celdas: balanzaData['n_celdas']?.toString() ?? '',
           exc: _parseDouble(balanzaData['exc']),
-          // Asignar campos adicionales
           categoria: balanzaData['categoria']?.toString() ?? '',
           tecnologia: balanzaData['tecnologia']?.toString() ?? '',
           clase: balanzaData['clase']?.toString() ?? '',
@@ -130,12 +129,10 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
           balanzaProvider.setLastServiceData(balanzaData['servicio']);
         } else if (controller.isNewBalanza) {
           balanzaProvider.clearLastServiceData();
+          controller.clearRegistroIncompleto();
         }
 
         debugPrint('✅ BalanzaProvider actualizado: ${balanza.cod_metrica}');
-        debugPrint('   Es nueva: ${controller.isNewBalanza}');
-        debugPrint(
-            '   Tiene servicio anterior: ${balanzaData['servicio'] != null}');
       } catch (e) {
         debugPrint('❌ Error al actualizar BalanzaProvider: $e');
       }
@@ -988,6 +985,8 @@ class _PrecargaScreenState extends State<PrecargaScreen> {
               nReca: _nRecaController.text,
               secaValue: controller.generatedSeca!,
               sessionId: controller.generatedSessionId!,
+              // El balanza_step ya guardó el registro en el controller
+              registroIncompleto: controller.registroIncompletoActual,
             ),
           ),
         );

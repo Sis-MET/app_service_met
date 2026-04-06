@@ -78,17 +78,6 @@ class _ExcentricidadFormState extends State<ExcentricidadForm> {
                 index: index,
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0E8833),
-              ),
-              onPressed: () async {
-                await widget.controller.saveDataToDatabase(context);
-              },
-              child: const Text('GUARDAR DATOS DE EXCENTRICIDAD'),
-            ),
-
           ],
         ],
       ),

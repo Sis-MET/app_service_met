@@ -274,7 +274,9 @@ class CondicionesFinalesStep extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
             child: TextFormField(
               controller: controller.obscomController,
+              focusNode: controller.obscomFocusNode,
               maxLines: 3,
+              maxLength: 490,
               decoration: _buildInputDecoration('Observaciones'),
             ),
           ),
@@ -742,15 +744,17 @@ class CondicionesFinalesStep extends StatelessWidget {
         children: [
           Icon(isExpired ? Icons.warning : Icons.check_circle,
               size: 14, color: isExpired ? Colors.red[800] : Colors.green[800]),
-          const SizedBox(width: 4),
-          Text(
-            isExpired
-                ? 'Vencido hace ${elapsed - 365} días'
-                : 'Días de validez: $remaining',
-            style: TextStyle(
-              fontSize: 13, // Slightly larger
-              fontWeight: FontWeight.w700,
-              color: isExpired ? Colors.red[900] : Colors.green[900],
+          Flexible(
+            child: Text(
+              isExpired
+                  ? 'Vencido hace ${elapsed - 365} días'
+                  : 'Días de validez: $remaining',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isExpired ? Colors.red[900] : Colors.green[900],
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

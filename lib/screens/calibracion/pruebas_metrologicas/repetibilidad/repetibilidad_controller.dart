@@ -1,5 +1,6 @@
 // ignore_for_file: unused_field
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:service_met/providers/calibration_provider.dart';
@@ -32,6 +33,13 @@ class RepetibilidadController {
 
   final VoidCallback? onUpdate;
 
+  // --- Auto-save ---
+  Timer? _autoSaveTimer;
+  bool _isAutoSaving = false;
+  bool get isAutoSaving => _isAutoSaving;
+  bool _lastSaveSuccessful = true;
+  bool get lastSaveSuccessful => _lastSaveSuccessful;
+
   RepetibilidadController({
     required this.provider,
     required this.codMetrica,
@@ -40,7 +48,43 @@ class RepetibilidadController {
     required this.context,
     this.loadExisting = true,
     this.onUpdate,
-  });
+  }) {
+    notaController.addListener(_scheduleAutoSave);
+    comentarioController.addListener(_scheduleAutoSave);
+  }
+
+  /// Programa un auto-guardado con debounce de 1.5 segundos
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSaveToDatabase();
+    });
+  }
+
+  /// Flush: ejecuta auto-guardado inmediato
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    await _autoSaveToDatabase();
+  }
+
+  /// Guarda silenciosamente sin SnackBar
+  Future<void> _autoSaveToDatabase() async {
+    if (_isAutoSaving) return;
+    _isAutoSaving = true;
+    onUpdate?.call();
+
+    try {
+      await saveDataToDatabase();
+      _lastSaveSuccessful = true;
+      debugPrint('💾 Auto-guardado repetibilidad completado');
+    } catch (e) {
+      _lastSaveSuccessful = false;
+      debugPrint('❌ Error en auto-guardado repetibilidad: $e');
+    } finally {
+      _isAutoSaving = false;
+      onUpdate?.call();
+    }
+  }
 
   // Método para obtener el valor D correcto según la carga desde la BD
   Future<double> getDForCarga(double carga) async {
@@ -549,6 +593,15 @@ class RepetibilidadController {
       cargaController.addListener(() {
         _onCargaValueChanged(i);
       });
+      cargaController.addListener(_scheduleAutoSave);
+
+      // Add auto-save listeners to indicaciones and retornos
+      for (final ic in indicacionControllers[i]) {
+        ic.addListener(_scheduleAutoSave);
+      }
+      for (final rc in retornoControllers[i]) {
+        rc.addListener(_scheduleAutoSave);
+      }
 
       // EJECUTAR MANUALMENTE POR PRIMERA VEZ si ya hay valor
       if (cargaController.text.isNotEmpty) {
@@ -589,30 +642,22 @@ class RepetibilidadController {
 
   void updateRepetibilityCount(int? value, VoidCallback onUpdateUI) {
     if (value != null) {
-      // Preservar datos existentes antes de cambiar
       final existingData = _preserveExistingData();
-
       selectedRepetibilityCount = value;
       _initializeControllers(false);
-
-      // Restaurar datos preservados
       _restorePreservedData(existingData);
-
+      _scheduleAutoSave();
       onUpdateUI();
     }
   }
 
   void updateRowCount(int? value, VoidCallback onUpdateUI) {
     if (value != null) {
-      // Preservar datos existentes antes de cambiar
       final existingData = _preserveExistingData();
-
       selectedRowCount = value;
       _initializeControllers(false);
-
-      // Restaurar datos preservados
       _restorePreservedData(existingData);
-
+      _scheduleAutoSave();
       onUpdateUI();
     }
   }
@@ -754,6 +799,7 @@ class RepetibilidadController {
   }
 
   void dispose() {
+    _autoSaveTimer?.cancel();
     _disposeControllers();
     notaController.dispose();
     comentarioController.dispose();

@@ -38,7 +38,7 @@ class PasoPruebasIniciales extends StatelessWidget {
 
           // Hora de inicio
           _buildReadOnlyField(
-            label: 'Hora de Inicio',
+            label: 'Hora de inicio',
             value: model.horaInicio,
             icon: Icons.access_time,
             context: context,

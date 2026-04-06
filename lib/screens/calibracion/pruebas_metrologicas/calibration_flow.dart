@@ -101,7 +101,7 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
               const Text(
                 'FINALIZAR PRUEBAS',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -269,89 +269,151 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
         ],
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Botón Anterior
-            if (controller.currentStep > 0)
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: controller.previousStep,
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: const Text('Anterior'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.grey[700],
-                    side: BorderSide(color: Colors.grey[400]!),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            // Indicador de auto-guardado
+            _buildAutoSaveIndicator(controller),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                // Botón Anterior
+                if (controller.currentStep > 0)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: controller.previousStep,
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Anterior'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[400]!),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        textStyle: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
+
+                if (controller.currentStep > 0) const SizedBox(width: 12),
+
+                // Botón Siguiente o Finalizar
+                Expanded(
+                  child: controller.currentStep < _steps.length - 1
+                      ? ElevatedButton.icon(
+                          onPressed: () async {
+                            // Flush auto-save del paso actual antes de avanzar
+                            if (controller.currentStep == 0) {
+                              await controller.excentricidadController
+                                  .flushAutoSave();
+                            } else if (controller.currentStep == 1) {
+                              await controller.repetibilidadController
+                                  .flushAutoSave();
+                            } else if (controller.currentStep == 2) {
+                              await controller.linealidadController
+                                  .flushAutoSave();
+                            }
+                            controller.nextStep();
+                          },
+                          icon: const Icon(Icons.arrow_forward, size: 18),
+                          label: const Text('Siguiente'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF667EEA),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 2,
+                            textStyle: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: () async {
+                            // Validar que se haya tomado la foto
+                            if (controller.cargaPhoto == null) {
+                              _showSnackBar(
+                                  'Debe tomar una fotografía de la carga antes de finalizar.',
+                                  isError: true);
+                              return;
+                            }
+                            _showConfirmationDialog();
+                          },
+                          icon: const Icon(Icons.check_circle, size: 18),
+                          label: const Text('Finalizar'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 2,
+                            textStyle: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                 ),
-              ),
-
-            if (controller.currentStep > 0) const SizedBox(width: 12),
-
-            // Botón Siguiente o Finalizar
-            Expanded(
-              child: controller.currentStep < _steps.length - 1
-                  ? ElevatedButton.icon(
-                      onPressed: () async {
-                        // Guardar datos del paso actual antes de avanzar
-                        if (controller.currentStep == 0) {
-                          await controller.excentricidadController
-                              .saveDataToDatabase(context);
-                        } else if (controller.currentStep == 1) {
-                          await controller.repetibilidadController
-                              .saveDataToDatabase();
-                        } else if (controller.currentStep == 2) {
-                          await controller.linealidadController
-                              .saveDataToDatabase();
-                        }
-                        controller.nextStep();
-                      },
-                      icon: const Icon(Icons.arrow_forward, size: 18),
-                      label: const Text('Siguiente'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF667EEA),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 2,
-                        textStyle: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    )
-                  : ElevatedButton.icon(
-                      onPressed: () async {
-                        // Validar que se haya tomado la foto
-                        if (controller.cargaPhoto == null) {
-                          _showSnackBar(
-                              'Debe tomar una fotografía de la carga antes de finalizar.',
-                              isError: true);
-                          return;
-                        }
-                        _showConfirmationDialog();
-                      },
-                      icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('Finalizar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        elevation: 2,
-                        textStyle: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildAutoSaveIndicator(PruebasMetrologicasController controller) {
+    bool isSaving = false;
+    bool lastSuccess = true;
+
+    switch (controller.currentStep) {
+      case 0:
+        isSaving = controller.excentricidadController.isAutoSaving;
+        lastSuccess = controller.excentricidadController.lastSaveSuccessful;
+        break;
+      case 1:
+        isSaving = controller.repetibilidadController.isAutoSaving;
+        lastSuccess = controller.repetibilidadController.lastSaveSuccessful;
+        break;
+      case 2:
+        isSaving = controller.linealidadController.isAutoSaving;
+        lastSuccess = controller.linealidadController.lastSaveSuccessful;
+        break;
+    }
+
+    if (isSaving) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Guardando...',
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          ),
+        ],
+      );
+    } else if (lastSuccess && controller.currentStep < 3) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey[400]),
+          const SizedBox(width: 4),
+          Text(
+            'Guardado automáticamente',
+            style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
 
   Widget _buildSpeedDial() {

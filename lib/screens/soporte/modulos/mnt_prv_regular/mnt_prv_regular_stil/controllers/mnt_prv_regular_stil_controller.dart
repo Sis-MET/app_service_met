@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -12,7 +13,198 @@ class MntPrvRegularStilController {
   final MntPrvRegularStilModel model;
   final Map<String, List<File>> _fieldPhotos = {};
 
+  Timer? _autoSaveTimer;
+  final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
+  final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(false);
+
   MntPrvRegularStilController({required this.model});
+
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    isAutoSaving.dispose();
+    lastSaveSuccessful.dispose();
+  }
+
+  void scheduleAutoSave(BuildContext context) {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave(context);
+    });
+  }
+
+  Future<void> flushAutoSave(BuildContext context) async {
+    _autoSaveTimer?.cancel();
+    await _autoSave(context);
+  }
+
+  Future<void> _autoSave(BuildContext context) async {
+    if (isAutoSaving.value) return;
+    isAutoSaving.value = true;
+
+    try {
+      await saveDataToDatabase(context, showMessage: false);
+      lastSaveSuccessful.value = true;
+    } catch (e) {
+      lastSaveSuccessful.value = false;
+      debugPrint('Error en auto-guardado: $e');
+    } finally {
+      isAutoSaving.value = false;
+    }
+  }
+
+  Future<void> loadInitialValues() async {
+    try {
+      final dbHelper = DatabaseHelperMntPrvRegularStil();
+      final registro = await dbHelper.getRegistroBySeca(model.secaValue, model.sessionId);
+
+      if (registro != null) {
+        model.comentarioGeneral = registro['comentario_general']?.toString() ?? '';
+        model.recomendacion = registro['recomendacion']?.toString() ?? '';
+        model.estadoFisico = registro['estado_fisico']?.toString() ?? '';
+        model.estadoOperacional = registro['estado_operacional']?.toString() ?? '';
+        model.estadoMetrologico = registro['estado_metrologico']?.toString() ?? '';
+
+        final hInicio = registro['hora_inicio']?.toString();
+        if (hInicio != null && hInicio.isNotEmpty) model.horaInicio = hInicio;
+
+        final hFin = registro['hora_fin']?.toString();
+        if (hFin != null && hFin.isNotEmpty) model.horaFin = hFin;
+
+        final proxServ = registro['fecha_prox_servicio']?.toString();
+        if (proxServ != null && proxServ.isNotEmpty) model.fechaProxServicio = proxServ;
+
+        // Campos Estado
+        final camposMap = {
+          'vibracion': 'Vibración', 'polvo': 'Polvo', 'temperatura': 'Temperatura',
+          'humedad': 'Humedad', 'mesada': 'Mesada', 'iluminacion': 'Iluminación',
+          'limpieza_fosa': 'Limpieza de Fosa', 'estado_drenaje': 'Estado de Drenaje',
+          'carcasa': 'Carcasa', 'teclado_fisico': 'Teclado Fisico', 'display_fisico': 'Display Fisico',
+          'fuente_poder': 'Fuente de poder', 'bateria_operacional': 'Bateria operacional',
+          'bracket': 'Bracket', 'teclado_operativo': 'Teclado Operativo', 'display_operativo': 'Display Operativo',
+          'conector_celda': 'Contector de celda', 'bateria_memoria': 'Bateria de memoria',
+          'limpieza_general': 'Limpieza general', 'golpes_terminal': 'Golpes al terminal',
+          'nivelacion': 'Nivelacion', 'limpieza_receptor': 'Limpieza receptor',
+          'golpes_receptor': 'Golpes al receptor de carga', 'encendido': 'Encendido',
+          'limitador_movimiento': 'Limitador de movimiento', 'suspension': 'Suspensión',
+          'limitador_carga': 'Limitador de carga', 'celda_carga': 'Celda de carga',
+          'tapa_caja': 'Tapa de caja sumadora', 'humedad_interna': 'Humedad Interna',
+          'estado_prensacables': 'Estado de prensacables', 'estado_borneas': 'Estado de borneas',
+        };
+
+        camposMap.forEach((dbKey, modelKey) {
+          if (model.camposEstado.containsKey(modelKey)) {
+            final estado = registro['${dbKey}_estado']?.toString();
+            final solucion = registro['${dbKey}_solucion']?.toString();
+            if (estado != null && estado.isNotEmpty) model.camposEstado[modelKey]!.initialValue = estado;
+            if (solucion != null && solucion.isNotEmpty) model.camposEstado[modelKey]!.solutionValue = solucion;
+          }
+        });
+
+        // Pruebas Iniciales
+        final retCeroIniVal = registro['retorno_cero_inicial_valoracion']?.toString();
+        if (retCeroIniVal != null && retCeroIniVal.isNotEmpty) model.pruebasIniciales.retornoCero.estado = retCeroIniVal;
+        
+        final estabIni = registro['estabilizacion_inicial']?.toString();
+        if (estabIni != null && estabIni.isNotEmpty) model.pruebasIniciales.retornoCero.estabilidad = estabIni;
+        
+        final uniIni = registro['unidad_retorno_cero_inicial']?.toString();
+        if (uniIni != null && uniIni.isNotEmpty) model.pruebasIniciales.retornoCero.unidad = uniIni;
+        
+        _loadExcentricidadData(registro, model.pruebasIniciales.excentricidad, 'inicial');
+        _loadRepetibilidadData(registro, model.pruebasIniciales.repetibilidad, 'inicial');
+        _loadLinealidadData(registro, model.pruebasIniciales.linealidad, 'inicial');
+
+        // Pruebas Finales
+        final retCeroFinVal = registro['retorno_cero_final_valoracion']?.toString();
+        if (retCeroFinVal != null && retCeroFinVal.isNotEmpty) model.pruebasFinales.retornoCero.estado = retCeroFinVal;
+        
+        final estabFin = registro['estabilizacion_final']?.toString();
+        if (estabFin != null && estabFin.isNotEmpty) model.pruebasFinales.retornoCero.estabilidad = estabFin;
+        
+        final uniFin = registro['unidad_retorno_cero_final']?.toString();
+        if (uniFin != null && uniFin.isNotEmpty) model.pruebasFinales.retornoCero.unidad = uniFin;
+        
+        _loadExcentricidadData(registro, model.pruebasFinales.excentricidad, 'final');
+        _loadRepetibilidadData(registro, model.pruebasFinales.repetibilidad, 'final');
+        _loadLinealidadData(registro, model.pruebasFinales.linealidad, 'final');
+      }
+    } catch (e) {
+      debugPrint('Error al cargar initial values en MNT STIL: $e');
+    }
+  }
+
+  void _loadExcentricidadData(Map<String, dynamic> registro, Excentricidad? exc, String tipo) {
+    if (exc == null) return;
+    
+    final tipoPlataforma = registro['tipo_plataforma_$tipo']?.toString();
+    if (tipoPlataforma != null && tipoPlataforma.isNotEmpty) {
+      exc.activo = true;
+      exc.tipoPlataforma = tipoPlataforma;
+      exc.puntosIndicador = registro['puntos_ind_$tipo']?.toString() ?? '';
+      exc.carga = registro['carga_exc_$tipo']?.toString() ?? '';
+      
+      exc.posiciones.clear();
+      for (int i = 0; i < 6; i++) {
+        final posVal = registro['posicion_${tipo}_${i + 1}']?.toString();
+        if (posVal != null && posVal.isNotEmpty) {
+          exc.posiciones.add(PosicionExcentricidad(
+            posicion: posVal,
+            indicacion: registro['indicacion_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
+
+  void _loadRepetibilidadData(Map<String, dynamic> registro, Repetibilidad? rep, String tipo) {
+    if (rep == null) return;
+    
+    final carga1Str = registro['repetibilidad1_$tipo']?.toString();
+    if (carga1Str != null && carga1Str.isNotEmpty) {
+       rep.activo = true;
+       // Only handling 1 carga to match table setup 
+       rep.cargas.clear();
+       final carga1 = CargaRepetibilidad(valor: carga1Str);
+       carga1.pruebas.clear();
+       
+       for (int j = 0; j < 10; j++) {
+         final ind = registro['indicacion1_${tipo}_${j + 1}']?.toString();
+         if (ind != null && ind.isNotEmpty) {
+           carga1.pruebas.add(PruebaRepetibilidad(
+             indicacion: ind,
+             retorno: registro['retorno1_${tipo}_${j + 1}']?.toString() ?? '0',
+           ));
+         }
+       }
+       
+       if (carga1.pruebas.isNotEmpty) {
+         rep.cargas.add(carga1);
+         rep.cantidadPruebas = carga1.pruebas.length;
+       }
+    }
+  }
+
+  void _loadLinealidadData(Map<String, dynamic> registro, Linealidad? lin, String tipo) {
+    if (lin == null) return;
+    
+    final lin1Str = registro['lin_${tipo}_1']?.toString();
+    if (lin1Str != null && lin1Str.isNotEmpty) {
+      lin.activo = true;
+      lin.puntos.clear();
+      
+      for (int i = 0; i < 12; i++) {
+        final ptVal = registro['lin_${tipo}_${i + 1}']?.toString();
+        if (ptVal != null && ptVal.isNotEmpty) {
+          lin.puntos.add(PuntoLinealidad(
+            lt: ptVal,
+            indicacion: registro['ind_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_lin_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
 
   void copiarPruebasInicialesAFinales() {
     model.copiarPruebasInicialesAFinales();

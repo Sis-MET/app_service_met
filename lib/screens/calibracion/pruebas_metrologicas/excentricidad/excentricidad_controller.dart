@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -78,6 +79,13 @@ class ExcentricidadController {
   final TextEditingController notaController = TextEditingController();
   final VoidCallback? onUpdate;
 
+  // --- Auto-save ---
+  Timer? _autoSaveTimer;
+  bool _isAutoSaving = false;
+  bool get isAutoSaving => _isAutoSaving;
+  bool _lastSaveSuccessful = true;
+  bool get lastSaveSuccessful => _lastSaveSuccessful;
+
   ExcentricidadController({
     required this.codMetrica,
     required this.secaValue,
@@ -85,6 +93,65 @@ class ExcentricidadController {
     this.onUpdate,
   }) {
     _setupCargaListener();
+    // Auto-save listeners for carga and nota
+    cargaController.addListener(_scheduleAutoSave);
+    notaController.addListener(_scheduleAutoSave);
+  }
+
+  /// Programa un auto-guardado con debounce de 1.5 segundos
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSaveToDatabase();
+    });
+  }
+
+  /// Flush: ejecuta auto-guardado inmediato
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    await _autoSaveToDatabase();
+  }
+
+  /// Guarda silenciosamente sin SnackBar
+  Future<void> _autoSaveToDatabase() async {
+    if (_isAutoSaving) return;
+    _isAutoSaving = true;
+    onUpdate?.call();
+
+    try {
+      final dbHelper = AppDatabase();
+      final existingRecord = await dbHelper.getRegistroBySeca(secaValue, sessionId);
+
+      final Map<String, dynamic> registro = {
+        'session_id': sessionId,
+        'seca': secaValue,
+        'tipo_plataforma': selectedPlatform ?? '',
+        'puntos_ind': selectedOption ?? '',
+        'carga': cargaController.text.trim(),
+        'observaciones': notaController.text.trim(),
+      };
+
+      for (int i = 0; i < positionControllers.length; i++) {
+        registro['posicion${i + 1}'] = positionControllers[i].text.trim();
+        registro['indicacion${i + 1}'] = indicationControllers[i].text.trim();
+        registro['retorno${i + 1}'] = returnControllers[i].text.trim();
+      }
+
+      if (existingRecord != null) {
+        await dbHelper.upsertRegistroCalibracion(registro);
+      } else {
+        await dbHelper.insertRegistroCalibracion(registro);
+      }
+
+      _lastSaveSuccessful = true;
+      debugPrint('💾 Auto-guardado excentricidad completado');
+    } catch (e) {
+      _lastSaveSuccessful = false;
+      debugPrint('❌ Error en auto-guardado excentricidad: $e');
+    } finally {
+      _isAutoSaving = false;
+      onUpdate?.call();
+    }
   }
 
   // Método para obtener la ruta de precarga_database
@@ -286,6 +353,7 @@ class ExcentricidadController {
     }
 
     updatePositionsFromOption();
+    _scheduleAutoSave();
   }
 
   int _getPositionCountForOption(String option) {
@@ -307,6 +375,14 @@ class ExcentricidadController {
         List.generate(positionCount, (_) => TextEditingController());
     returnControllers =
         List.generate(positionCount, (_) => TextEditingController(text: '0'));
+
+    // Add auto-save listeners to new controllers
+    for (final c in indicationControllers) {
+      c.addListener(_scheduleAutoSave);
+    }
+    for (final c in returnControllers) {
+      c.addListener(_scheduleAutoSave);
+    }
   }
 
   Future<void> saveDataToDatabase(BuildContext context) async {
@@ -366,6 +442,7 @@ class ExcentricidadController {
   }
 
   void dispose() {
+    _autoSaveTimer?.cancel();
     pmax1Controller.dispose();
     oneThirdPmax1Controller.dispose();
     cargaController.dispose();

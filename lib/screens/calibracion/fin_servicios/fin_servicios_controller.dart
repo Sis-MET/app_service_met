@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -35,6 +36,7 @@ class FinServiciosController extends ChangeNotifier {
   final TextEditingController ventaPesasController = TextEditingController();
   final TextEditingController reemplazoController = TextEditingController();
   final TextEditingController obscomController = TextEditingController();
+  final FocusNode obscomFocusNode = FocusNode();
 
   double? hriInicial;
   double? tiInicial;
@@ -59,6 +61,13 @@ class FinServiciosController extends ChangeNotifier {
   String stickerCodMetrica = '';
   String stickerNro = '';
 
+  // Auto-save
+  Timer? _autoSaveTimer;
+  bool _isAutoSaving = false;
+  bool get isAutoSaving => _isAutoSaving;
+  bool _lastSaveSuccessful = true;
+  bool get lastSaveSuccessful => _lastSaveSuccessful;
+
   FinServiciosController({
     required this.secaValue,
     required this.sessionId,
@@ -66,6 +75,58 @@ class FinServiciosController extends ChangeNotifier {
     required this.context,
   }) {
     _loadInitialValues();
+    _setupAutoSaveListeners();
+  }
+
+  void _setupAutoSaveListeners() {
+    final controllers = [
+      horaController,
+      hrifinController,
+      tifinController,
+      patmifinController,
+      mantenimientoController,
+      ventaPesasController,
+      reemplazoController,
+      obscomController,
+    ];
+    for (final ctrl in controllers) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
+  }
+
+  void _scheduleAutoSave() {
+    // Solo auto-guardar en el paso 1
+    if (_currentStep != 0) return;
+    
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave();
+    });
+  }
+
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    if (_currentStep == 0) {
+      await _autoSave();
+    }
+  }
+
+  Future<void> _autoSave() async {
+    if (_isAutoSaving) return;
+    _isAutoSaving = true;
+    notifyListeners();
+
+    try {
+      await _saveStep1DataOnly();
+      _lastSaveSuccessful = true;
+      debugPrint('💾 Auto-guardado fin de servicios completado');
+    } catch (e) {
+      _lastSaveSuccessful = false;
+      debugPrint('❌ Error en auto-guardado fin servicios: $e');
+    } finally {
+      _isAutoSaving = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _loadInitialValues() async {
@@ -101,11 +162,43 @@ class FinServiciosController extends ChangeNotifier {
         stickerCodMetrica = codMetrica;
         stickerNro = sticker;
 
+        // Cargar datos previos si existen
+        horaController.text = registro['hora_fin']?.toString() ?? '';
+        hrifinController.text = registro['hri_fin']?.toString() ?? '';
+        tifinController.text = registro['ti_fin']?.toString() ?? '';
+        patmifinController.text = registro['patmi_fin']?.toString() ?? '';
+        mantenimientoController.text = registro['mant_soporte']?.toString() ?? '';
+        ventaPesasController.text = registro['venta_pesas']?.toString() ?? '';
+        reemplazoController.text = registro['reemplazo']?.toString() ?? '';
+        
+        final existingObs = registro['observaciones']?.toString();
+        if (existingObs != null && existingObs.isNotEmpty) {
+          obscomController.text = existingObs;
+        } else {
+          obscomController.text = "Sin Observaciones";
+        }
+
         notifyListeners();
+      } else {
+        obscomController.text = "Sin Observaciones";
       }
     } catch (e) {
       debugPrint('Error al cargar valores iniciales: $e');
+      obscomController.text = "Sin Observaciones";
     }
+
+    // Add Focus listener for target behavior
+    obscomFocusNode.addListener(() {
+      if (obscomFocusNode.hasFocus) {
+        if (obscomController.text == "Sin Observaciones") {
+          obscomController.clear();
+        }
+      } else {
+        if (obscomController.text.trim().isEmpty) {
+          obscomController.text = "Sin Observaciones";
+        }
+      }
+    });
   }
 
   void setStep(int step) {
@@ -133,6 +226,7 @@ class FinServiciosController extends ChangeNotifier {
     final now = DateTime.now();
     final formattedTime = DateFormat('HH:mm:ss').format(now);
     horaController.text = formattedTime;
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -143,6 +237,7 @@ class FinServiciosController extends ChangeNotifier {
       if (finalPhotos['final']!.length < 5) {
         finalPhotos['final']!.add(File(photo.path));
         fotosTomadas = true;
+        _scheduleAutoSave();
         notifyListeners();
       } else {
         _showSnackBar('Maximo de 5 fotos alcanzado', isError: true);
@@ -155,10 +250,11 @@ class FinServiciosController extends ChangeNotifier {
     if (finalPhotos['final']?.isEmpty ?? true) {
       fotosTomadas = false;
     }
+    _scheduleAutoSave();
     notifyListeners();
   }
 
-  Future<void> saveStep1() async {
+  bool validateStep1() {
     if (horaController.text.isEmpty ||
         hrifinController.text.isEmpty ||
         tifinController.text.isEmpty ||
@@ -168,13 +264,19 @@ class FinServiciosController extends ChangeNotifier {
         reemplazoController.text.isEmpty ||
         obscomController.text.isEmpty) {
       _showSnackBar('Debe terminar de llenar todos los campos', isError: true);
-      return;
+      return false;
     }
+    return true;
+  }
 
+  Future<void> saveStep1() async {
     if (finalPhotos['final']?.isNotEmpty ?? false) {
       await _savePhotosToZip();
     }
+    await _saveStep1DataOnly();
+  }
 
+  Future<void> _saveStep1DataOnly() async {
     try {
       final dbHelper = AppDatabase();
       final existingRecord =
@@ -220,10 +322,9 @@ class FinServiciosController extends ChangeNotifier {
       }
 
       isDataSaved = true;
-      notifyListeners();
-      _showSnackBar('Datos guardados correctamente');
     } catch (e) {
-      _showSnackBar('Error al guardar los datos: $e', isError: true);
+      debugPrint('Error interno al guardar: $e');
+      rethrow;
     }
   }
 
@@ -309,6 +410,7 @@ class FinServiciosController extends ChangeNotifier {
       final pesa = Map<String, dynamic>.from(equipo);
       pesa['cantidad'] = '1';
       _selectedPesas.add(pesa);
+      _scheduleAutoSave();
       notifyListeners();
     } else {
       _showSnackBar('Máximo 5 pesas patrón permitidas', isError: true);
@@ -317,6 +419,7 @@ class FinServiciosController extends ChangeNotifier {
 
   void removePesa(String codInstrumento) {
     _selectedPesas.removeWhere((p) => p['cod_instrumento'] == codInstrumento);
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -325,10 +428,7 @@ class FinServiciosController extends ChangeNotifier {
         .indexWhere((p) => p['cod_instrumento'] == codInstrumento);
     if (index != -1) {
       _selectedPesas[index]['cantidad'] = nuevaCantidad;
-      // No notificamos a los oyentes aquí para evitar reconstrucciones masivas que pierdan el foco
-      // El valor se actualiza por referencia en la lista, pero para persistencia es suficiente.
-      // Si necesitamos actualizar UI dependiente de esto, llamaríamos notifyListeners().
-      // Dado que es un campo de texto independiente, mejor no reconstruir todo.
+      _scheduleAutoSave();
     }
   }
 
@@ -577,6 +677,7 @@ class FinServiciosController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     horaController.dispose();
     hrifinController.dispose();
     tifinController.dispose();
@@ -585,6 +686,7 @@ class FinServiciosController extends ChangeNotifier {
     ventaPesasController.dispose();
     reemplazoController.dispose();
     obscomController.dispose();
+    obscomFocusNode.dispose();
     indicarController.dispose();
     factorSeguridadController.dispose();
     super.dispose();

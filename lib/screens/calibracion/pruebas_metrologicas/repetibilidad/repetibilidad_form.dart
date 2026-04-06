@@ -132,43 +132,13 @@ class _RepetibilidadFormState extends State<RepetibilidadForm> {
                 ],
               ),
             ),
-            const SizedBox(height: 20.0),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0E8833),
-              ),
-              onPressed: () async {
-                try {
-                  await controller.saveDataToDatabase();
-                  _showSnackBar(context, 'Datos guardados correctamente');
-                } catch (e) {
-                  _showSnackBar(context, 'Error al guardar: $e', isError: true);
-                }
-              },
-              child: const Text('GUARDAR DATOS DE REPETIBILIDAD'),
-            )
           ],
         ),
       ),
     );
   }
 
-  void _showSnackBar(BuildContext context, String message,
-      {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white), // color del texto
-        ),
-        // Usa `SnackBarTheme` o personaliza aquí:
-        backgroundColor: isError
-            ? Colors.red
-            : Colors.green, // esto aún funciona en versiones actuales
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+
 
   InputDecoration buildInputDecoration(
     String labelText, {

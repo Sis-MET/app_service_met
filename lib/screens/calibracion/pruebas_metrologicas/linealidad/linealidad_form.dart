@@ -121,36 +121,13 @@ class _LinealidadFormState extends State<LinealidadForm> {
             ],
 
             _buildRowsSection(controller),
-            _buildActionButtons(controller, context),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _saveDataToDatabase(
-      BuildContext context, LinealidadController controller) async {
-    try {
-      await controller.saveDataToDatabase();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Datos guardados correctamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+
 
   void _saveLsubnAsLt(LinealidadController controller) {
     final lsubn = controller.lsubnController.text;
@@ -380,35 +357,39 @@ class _LinealidadFormState extends State<LinealidadForm> {
         ),
         const SizedBox(height: 20),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          // Use Expanded to ensure buttons fit in narrow screens and avoid overflow
           children: [
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF287a94),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF287a94),
+                ),
+                onPressed: controller.rows.length < 60
+                    ? () {
+                        setState(() {
+                          controller.addRow();
+                          _scrollToNewRow(); // ← Auto-scroll al agregar fila
+                        });
+                      }
+                    : null,
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar Carga'),
               ),
-              onPressed: controller.rows.length < 60
-                  ? () {
-                      setState(() {
-                        controller.addRow();
-                        _scrollToNewRow(); // ← Auto-scroll al agregar fila
-                      });
-                    }
-                  : null,
-              icon: const Icon(Icons.add),
-              label: const Text('Agregar Carga'),
             ),
             const SizedBox(width: 12),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFc11515),
+            Expanded(
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFc11515),
+                ),
+                onPressed: controller.rows.length > 6
+                    ? () => setState(() {
+                          controller.removeRow(controller.rows.length - 1);
+                        })
+                    : null,
+                icon: const Icon(Icons.remove),
+                label: const Text('Eliminar Carga'),
               ),
-              onPressed: controller.rows.length > 6
-                  ? () => setState(() {
-                        controller.removeRow(controller.rows.length - 1);
-                      })
-                  : null,
-              icon: const Icon(Icons.remove),
-              label: const Text('Eliminar Carga'),
             ),
           ],
         ),
@@ -416,54 +397,7 @@ class _LinealidadFormState extends State<LinealidadForm> {
     );
   }
 
-  Widget _buildActionButtons(
-      LinealidadController controller, BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        IntrinsicHeight(
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0E8833),
-                      ),
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          await _saveDataToDatabase(context, controller);
-                        }
-                      },
-                      child: const Text('GUARDAR DATOS DE LINEALIDAD'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
-  void _showSnackBar(BuildContext context, String message,
-      {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white), // color del texto
-        ),
-        // Usa `SnackBarTheme` o personaliza aquí:
-        backgroundColor: isError
-            ? Colors.red
-            : Colors.green, // esto aún funciona en versiones actuales
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   InputDecoration buildInputDecoration(
     String labelText, {

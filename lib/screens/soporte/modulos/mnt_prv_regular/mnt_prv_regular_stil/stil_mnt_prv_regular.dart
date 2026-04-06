@@ -60,6 +60,12 @@ class _StilMntPrvRegularStacScreenState
     _actualizarHora();
     _loadD1Value();
     _initializeSteps();
+    _loadInitialDataAsync();
+  }
+
+  Future<void> _loadInitialDataAsync() async {
+    await _controller.loadInitialValues();
+    if (mounted) setState(() {});
   }
 
   void _initializeSteps() {
@@ -183,20 +189,25 @@ class _StilMntPrvRegularStacScreenState
     return _cachedD1 ?? 0.1;
   }
 
-  // ✅ Guardar automáticamente al cambiar de paso
+  // ✅ Guardar automáticamente al cambiar de paso o interceptar datos
+  void _onFieldChanged() {
+    setState(() {});
+    _controller.scheduleAutoSave(context);
+  }
+
   Future<void> _saveCurrentStep() async {
     if (_isSaving) return;
 
     setState(() => _isSaving = true);
 
     try {
-      await _controller.saveDataToDatabase(context, showMessage: false);
-      debugPrint('✅ Paso $_currentStep guardado automáticamente');
+      await _controller.flushAutoSave(context);
+      debugPrint('✅ Paso $_currentStep guardado forzosamente');
     } catch (e) {
       debugPrint('❌ Error al guardar paso $_currentStep: $e');
       _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -404,7 +415,6 @@ class _StilMntPrvRegularStacScreenState
               : null,
           centerTitle: true,
           actions: [
-            // ✅ Indicador de guardado automático
             if (_isSaving)
               const Padding(
                 padding: EdgeInsets.all(16.0),
@@ -528,31 +538,31 @@ class _StilMntPrvRegularStacScreenState
           controller: _controller,
           getIndicationSuggestions: _controller.getIndicationSuggestions,
           getD1FromDatabase: _getD1FromCache,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 1:
         return PasoEntorno(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 2:
         return PasoTerminal(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 3:
         return PasoBalanza(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 4:
         return PasoCajaSumadora(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 5:
         return PasoPruebasFinales(
@@ -560,12 +570,12 @@ class _StilMntPrvRegularStacScreenState
           controller: _controller,
           getIndicationSuggestions: _controller.getIndicationSuggestions,
           getD1FromDatabase: _getD1FromCache,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 6:
         return PasoEstadoFinal(
           model: _model,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       default:
         return const Center(child: Text('Paso no encontrado'));
@@ -585,78 +595,140 @@ class _StilMntPrvRegularStacScreenState
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Botón Anterior
-          if (_currentStep > 0)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _goToStep(_currentStep - 1),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('ANTERIOR'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+          _buildAutoSaveIndicator(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Botón Anterior
+              if (_currentStep > 0)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _goToStep(_currentStep - 1),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('ANTERIOR'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+
+              if (_currentStep > 0) const SizedBox(width: 12),
+
+              // Botón Siguiente o Finalizar
+              Expanded(
+                flex: _currentStep == 0 ? 1 : 2,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          if (_currentStep < _steps.length - 1) {
+                            await _goToStep(_currentStep + 1);
+                          } else {
+                            // Último paso: finalizar
+                            if (_validateCurrentStep()) {
+                              await _saveCurrentStep();
+
+                              if (!mounted) return;
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FinServicioMntPrvStilScreen(
+                                    sessionId: widget.sessionId,
+                                    secaValue: widget.secaValue,
+                                    codMetrica: widget.codMetrica,
+                                    nReca: widget.nReca,
+                                    userName: widget.userName,
+                                    clienteId: widget.clienteId,
+                                    plantaCodigo: widget.plantaCodigo,
+                                    tableName: 'mnt_prv_regular_stil',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: Icon(
+                    _currentStep < _steps.length - 1
+                        ? Icons.arrow_forward
+                        : Icons.check_circle,
+                  ),
+                  label: Text(
+                    _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _currentStep < _steps.length - 1
+                        ? const Color(0xFF195375)
+                        : const Color(0xFF167D1D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ),
-            ),
-
-          if (_currentStep > 0) const SizedBox(width: 12),
-
-          // Botón Siguiente o Finalizar
-          Expanded(
-            flex: _currentStep == 0 ? 1 : 2,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
-                      if (_currentStep < _steps.length - 1) {
-                        await _goToStep(_currentStep + 1);
-                      } else {
-                        // Último paso: finalizar
-                        if (_validateCurrentStep()) {
-                          await _saveCurrentStep();
-
-                          if (!mounted) return;
-
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FinServicioMntPrvStilScreen(
-                                sessionId: widget.sessionId,
-                                secaValue: widget.secaValue,
-                                codMetrica: widget.codMetrica,
-                                nReca: widget.nReca,
-                                userName: widget.userName,
-                                clienteId: widget.clienteId,
-                                plantaCodigo: widget.plantaCodigo,
-                                tableName: 'mnt_prv_regular_stil',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
-              icon: Icon(
-                _currentStep < _steps.length - 1
-                    ? Icons.arrow_forward
-                    : Icons.check_circle,
-              ),
-              label: Text(
-                _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _currentStep < _steps.length - 1
-                    ? const Color(0xFF195375)
-                    : const Color(0xFF167D1D),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAutoSaveIndicator() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _controller.isAutoSaving,
+      builder: (context, isSaving, _) {
+        if (isSaving) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Guardando...',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return ValueListenableBuilder<bool>(
+          valueListenable: _controller.lastSaveSuccessful,
+          builder: (context, success, _) {
+            if (success) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_done_outlined,
+                      size: 14, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Guardado automáticamente',
+                    style: TextStyle(
+                      fontSize: 11, // Match UI design
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 }

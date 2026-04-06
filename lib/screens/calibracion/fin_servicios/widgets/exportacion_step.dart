@@ -517,7 +517,7 @@ class _ResumenExportacionScreenState extends State<_ResumenExportacionScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF46824B),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(18),
                       ),
                     ),
                     child: const Text(

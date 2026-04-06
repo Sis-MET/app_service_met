@@ -31,6 +31,14 @@ class PrecargaController extends ChangeNotifier {
   String? _generatedSeca;
   bool _secaConfirmed = false;
 
+  // Registro incompleto en recuperación 
+  Map<String, dynamic>? _registroIncompletoActual;
+  Map<String, dynamic>? get registroIncompletoActual => _registroIncompletoActual;
+
+  void clearRegistroIncompleto() {
+    _registroIncompletoActual = null;
+  }
+
   // Validación por paso
   Map<int, String?> _stepErrors = {0: null, 1: null, 2: null, 3: null};
   Map<int, String?> get stepErrors => _stepErrors;
@@ -894,6 +902,250 @@ class PrecargaController extends ChangeNotifier {
     }
   }
 
+  // ==================== MÉTODOS DE RECUPERACIÓN DE SERVICIOS INCOMPLETOS ====================
+
+  /// Verifica si existe un servicio incompleto para el cod_metrica seleccionado
+  Future<Map<String, dynamic>?> checkServicioIncompleto(String codMetrica) async {
+    try {
+      final dbHelper = AppDatabase();
+      final servicioIncompleto =
+          await dbHelper.getServicioIncompletoPorCodMetrica(codMetrica);
+      return servicioIncompleto;
+    } catch (e) {
+      debugPrint('Error al verificar servicio incompleto: $e');
+      return null;
+    }
+  }
+
+  /// Carga los datos de un servicio incompleto en el controller
+  Future<void> loadServicioIncompleto(Map<String, dynamic> registro) async {
+    try {
+      debugPrint('🔄 Recuperando servicio incompleto...');
+      // Guardar referencia al registro para pasarlo a InicioServicioScreen
+      _registroIncompletoActual = registro;
+
+      // Cargar datos básicos del servicio
+      if (registro['seca'] != null) {
+        _generatedSeca = registro['seca'];
+        _secaConfirmed = true;
+      }
+
+      if (registro['session_id'] != null) {
+        _generatedSessionId = registro['session_id'];
+      }
+
+      if (registro['cliente'] != null) {
+        _selectedClienteName = registro['cliente'];
+      }
+
+      if (registro['razon_social'] != null) {
+        _selectedClienteRazonSocial = registro['razon_social'];
+      }
+
+      if (registro['planta'] != null) {
+        _selectedPlantaNombre = registro['planta'];
+      }
+
+      if (registro['dir_planta'] != null) {
+        _selectedPlantaDir = registro['dir_planta'];
+      }
+
+      if (registro['dep_planta'] != null) {
+        _selectedPlantaDep = registro['dep_planta'];
+      }
+
+      if (registro['cod_planta'] != null) {
+        _selectedPlantaCodigo = registro['cod_planta'];
+      }
+
+      // Cargar datos de la balanza si existen
+      if (_selectedBalanza != null) {
+        final balanzaData = _selectedBalanza!;
+
+        // Campos editados
+        if (registro['inf_bal'] != null) {
+          _hiddenEditedFields = registro['inf_bal'];
+          // Parsear campos editados y desbloquearlos
+          final camposEditados =
+              _hiddenEditedFields.isEmpty ? [] : _hiddenEditedFields.split(',');
+          for (var campo in camposEditados) {
+            _balanzaUnlockState[campo] = true;
+          }
+        }
+
+        // Cargar datos de la balanza desde el registro
+        if (registro['cod_int'] != null) {
+          balanzaData['cod_interno'] = registro['cod_int'];
+        }
+        if (registro['marca'] != null) {
+          balanzaData['marca'] = registro['marca'];
+        }
+        if (registro['modelo'] != null) {
+          balanzaData['modelo'] = registro['modelo'];
+        }
+        if (registro['serie'] != null) {
+          balanzaData['serie'] = registro['serie'];
+        }
+        if (registro['tipo_equipo'] != null) {
+          balanzaData['tipo'] = registro['tipo_equipo'];
+        }
+        if (registro['unidades'] != null) {
+          balanzaData['unidad'] = registro['unidades'];
+        }
+        if (registro['ubicacion'] != null) {
+          balanzaData['ubicacion'] = registro['ubicacion'];
+        }
+        if (registro['n_celdas'] != null) {
+          balanzaData['n_celdas'] = registro['n_celdas'];
+        }
+        if (registro['cap_max1'] != null) {
+          balanzaData['cap_max1'] = registro['cap_max1'];
+        }
+        if (registro['d1'] != null) {
+          balanzaData['d1'] = registro['d1'];
+        }
+        if (registro['cap_max2'] != null) {
+          balanzaData['cap_max2'] = registro['cap_max2'];
+        }
+        if (registro['d2'] != null) {
+          balanzaData['d2'] = registro['d2'];
+        }
+        if (registro['cap_max3'] != null) {
+          balanzaData['cap_max3'] = registro['cap_max3'];
+        }
+        if (registro['d3'] != null) {
+          balanzaData['d3'] = registro['d3'];
+        }
+      }
+
+      // Cargar datos de inspección visual (Paso 1 de inicio_servicio)
+      // Estos datos serán cargados por el InicioServicioController cuando corresponda
+
+      debugPrint('✅ Servicio incompleto recuperado exitosamente');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error al cargar servicio incompleto: $e');
+      rethrow;
+    }
+  }
+
+  /// Verifica si hay datos de inspección visual guardados
+  Future<bool> hasInspeccionVisualData(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return false;
+
+      // Verificar si tiene datos de inspección visual
+      return registro['vibracion'] != null &&
+          registro['vibracion'].toString().isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar datos de inspección visual: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si hay datos de precargas y ajuste guardados
+  Future<bool> hasPrecargasData(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return false;
+
+      // Verificar si tiene datos de precargas
+      return registro['precarga1'] != null &&
+          registro['precarga1'].toString().isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar datos de precargas: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si hay datos de excentricidad guardados
+  Future<bool> hasExcentricidadData(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return false;
+
+      // Verificar si tiene datos de excentricidad
+      return registro['tipo_plataforma'] != null &&
+          registro['tipo_plataforma'].toString().isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar datos de excentricidad: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si hay datos de repetibilidad guardados
+  Future<bool> hasRepetibilidadData(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return false;
+
+      // Verificar si tiene datos de repetibilidad
+      return registro['repetibilidad1'] != null &&
+          registro['repetibilidad1'].toString().isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar datos de repetibilidad: $e');
+      return false;
+    }
+  }
+
+  /// Verifica si hay datos de linealidad guardados
+  Future<bool> hasLinealidadData(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return false;
+
+      // Verificar si tiene datos de linealidad
+      return registro['lin1'] != null &&
+          registro['lin1'].toString().isNotEmpty;
+    } catch (e) {
+      debugPrint('Error al verificar datos de linealidad: $e');
+      return false;
+    }
+  }
+
+  /// Obtiene el paso actual del servicio incompleto
+  /// Retorna: 0 = sin datos, 1 = inspección visual, 2 = precargas,
+  /// 3 = excentricidad, 4 = repetibilidad, 5 = linealidad, 6 = foto/final
+  Future<int> getPasoActualServicio(String seca, String sessionId) async {
+    try {
+      final dbHelper = AppDatabase();
+      final registro = await dbHelper.getRegistroBySeca(seca, sessionId);
+
+      if (registro == null) return 0;
+
+      // Verificar datos de linealidad (paso más avanzado)
+      if (await hasLinealidadData(seca, sessionId)) return 5;
+
+      // Verificar datos de repetibilidad
+      if (await hasRepetibilidadData(seca, sessionId)) return 4;
+
+      // Verificar datos de excentricidad
+      if (await hasExcentricidadData(seca, sessionId)) return 3;
+
+      // Verificar datos de precargas
+      if (await hasPrecargasData(seca, sessionId)) return 2;
+
+      // Verificar datos de inspección visual
+      if (await hasInspeccionVisualData(seca, sessionId)) return 1;
+
+      return 0;
+    } catch (e) {
+      debugPrint('Error al obtener paso actual: $e');
+      return 0;
+    }
+  }
+
   // NUEVO: Método para buscar y seleccionar balanza por QR
   String? selectBalanzaByQr(String codMetrica) {
     if (_balanzas.isEmpty) {
@@ -1209,6 +1461,7 @@ class PrecargaController extends ChangeNotifier {
     _balanzas = [];
     _selectedBalanza = null;
     _isNewBalanza = false;
+    _registroIncompletoActual = null;
 
     _equipos = [];
     _selectedEquipos = [];

@@ -16,6 +16,7 @@ class InicioServicioScreen extends StatefulWidget {
   final String secaValue;
   final String codMetrica;
   final String nReca;
+  final Map<String, dynamic>? registroIncompleto;
 
   const InicioServicioScreen({
     super.key,
@@ -23,6 +24,7 @@ class InicioServicioScreen extends StatefulWidget {
     required this.secaValue,
     required this.codMetrica,
     required this.nReca,
+    this.registroIncompleto,
   });
 
   @override
@@ -41,6 +43,62 @@ class _InicioServicioScreenState extends State<InicioServicioScreen> {
       codMetrica: widget.codMetrica,
       nReca: widget.nReca,
     );
+
+    // Cargar datos del registro incompleto si se proporciona
+    if (widget.registroIncompleto != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadIncompleteRecord();
+      });
+    }
+  }
+
+  Future<void> _loadIncompleteRecord() async {
+    if (widget.registroIncompleto == null) return;
+
+    try {
+      // Cargar datos de inspección visual
+      await controller.loadInspeccionVisualFromRegistro(widget.registroIncompleto!);
+
+      // Si también hay datos de precargas, cargarlos
+      if (widget.registroIncompleto!['precarga1'] != null &&
+          widget.registroIncompleto!['precarga1'].toString().isNotEmpty) {
+        await controller.loadPrecargasFromRegistro(widget.registroIncompleto!);
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Datos de servicio recuperados',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'Se han cargado los datos guardados anteriormente',
+                        style: GoogleFonts.inter(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error al cargar registro incompleto: $e');
+    }
   }
 
   @override
@@ -142,47 +200,97 @@ class _InicioServicioScreenState extends State<InicioServicioScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (controller.currentStep > 0)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => controller.previousStep(),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Anterior'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
+          // Indicador de auto-guardado
+          _buildAutoSaveIndicator(controller),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (controller.currentStep > 0)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => controller.previousStep(),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Anterior'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              if (controller.currentStep > 0) const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _handleNextButton(controller),
+                  icon: Icon(controller.currentStep == 1
+                      ? Icons.arrow_forward
+                      : Icons.arrow_forward),
+                  label: Text(controller.currentStep == 1
+                      ? 'Continuar a Pruebas'
+                      : 'Siguiente'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: controller.currentStep == 1
+                        ? Colors.green
+                        : const Color(0xFF667EEA),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
               ),
-            ),
-          if (controller.currentStep > 0) const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => _handleNextButton(controller),
-              icon: Icon(controller.currentStep == 1
-                  ? Icons.save
-                  : Icons.arrow_forward),
-              label: Text(controller.currentStep == 1
-                  ? 'Finalizar y Continuar'
-                  : 'Siguiente'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: controller.currentStep == 1
-                    ? Colors.green
-                    : const Color(0xFF667EEA),
-                foregroundColor: Colors.white,
-              ),
-            ),
+            ],
           ),
         ],
       ),
     );
   }
 
+  Widget _buildAutoSaveIndicator(InicioServicioController controller) {
+    if (controller.isAutoSaving) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Guardando...',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      );
+    } else if (controller.lastSaveSuccessful) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey[400]),
+          const SizedBox(width: 4),
+          Text(
+            'Guardado automáticamente',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   Future<void> _handleNextButton(InicioServicioController controller) async {
     if (controller.currentStep == 0) {
       if (controller.validateStep1()) {
-        await controller.saveStep1();
+        await controller.flushAutoSave();
         controller.nextStep();
       } else {
         _showSnackBar('Por favor complete todos los campos requeridos',
@@ -190,7 +298,7 @@ class _InicioServicioScreenState extends State<InicioServicioScreen> {
       }
     } else if (controller.currentStep == 1) {
       if (controller.validateStep2()) {
-        await controller.saveStep2();
+        await controller.flushAutoSave();
         _navigateToCalibrationFlow();
       } else {
         _showSnackBar('Por favor complete todos los campos requeridos',

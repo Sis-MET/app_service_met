@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
@@ -18,6 +19,13 @@ class InicioServicioController extends ChangeNotifier {
   final String codMetrica;
   final String nReca;
 
+  // --- Auto-save ---
+  Timer? _autoSaveTimer;
+  bool _isAutoSaving = false;
+  bool get isAutoSaving => _isAutoSaving;
+  bool _lastSaveSuccessful = true;
+  bool get lastSaveSuccessful => _lastSaveSuccessful;
+
   InicioServicioController({
     required this.sessionId,
     required this.secaValue,
@@ -25,6 +33,65 @@ class InicioServicioController extends ChangeNotifier {
     required this.nReca,
   }) {
     _initializeControllers();
+    _setupAutoSaveListeners();
+  }
+
+  /// Programa un auto-guardado con debounce de 1.5 segundos
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave();
+    });
+  }
+
+  /// Ejecuta el auto-guardado inmediato (flush)
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    await _autoSave();
+  }
+
+  /// Guarda los datos del paso actual sin mostrar diálogos
+  Future<void> _autoSave() async {
+    if (_isAutoSaving) return;
+    _isAutoSaving = true;
+    notifyListeners();
+
+    try {
+      if (_currentStep == 0) {
+        await saveStep1(skipPhotos: true);
+      } else if (_currentStep == 1) {
+        await saveStep2();
+      }
+      _lastSaveSuccessful = true;
+      debugPrint('💾 Auto-guardado completado (paso $_currentStep)');
+    } catch (e) {
+      _lastSaveSuccessful = false;
+      debugPrint('❌ Error en auto-guardado: $e');
+    } finally {
+      _isAutoSaving = false;
+      notifyListeners();
+    }
+  }
+
+  /// Configura listeners en todos los TextEditingController para disparar auto-save
+  void _setupAutoSaveListeners() {
+    // Listeners para paso 2 (controllers definidos inline)
+    for (final ctrl in [tipoAjusteController, cargasPesasController, horaPruebasController, tiController, hriController, patmiController]) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
+
+    // Listeners para precarga controllers
+    for (final ctrl in precargasControllers) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
+    for (final ctrl in indicacionesControllers) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
+
+    // Listeners para comment controllers (paso 1)
+    for (final ctrl in commentControllers.values) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
   }
 
   // --- Estado Paso 1: Inspección Visual (ServicioScreen) ---
@@ -93,6 +160,7 @@ class InicioServicioController extends ChangeNotifier {
   void updateFieldData(String label, String value) {
     fieldData[label] ??= {};
     fieldData[label]!['value'] = value;
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -134,16 +202,19 @@ class InicioServicioController extends ChangeNotifier {
       _setFieldToGood('Golpes al receptor de Carga', 'Sin Daños');
       _setFieldToGood('Encendido', 'Bueno');
     }
+    _scheduleAutoSave();
     notifyListeners();
   }
 
   void setTiempoMin(String? value) {
     tiempoMin = value;
+    _scheduleAutoSave();
     notifyListeners();
   }
 
   void setTiempoBalanza(String? value) {
     tiempoBalanza = value;
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -151,8 +222,13 @@ class InicioServicioController extends ChangeNotifier {
   void addPreloadRow() {
     if (rowCount >= maxPreloads) return;
     rowCount++;
-    precargasControllers.add(TextEditingController());
-    indicacionesControllers.add(TextEditingController());
+    final pc = TextEditingController();
+    final ic = TextEditingController();
+    pc.addListener(_scheduleAutoSave);
+    ic.addListener(_scheduleAutoSave);
+    precargasControllers.add(pc);
+    indicacionesControllers.add(ic);
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -161,6 +237,7 @@ class InicioServicioController extends ChangeNotifier {
       rowCount--;
       precargasControllers.removeLast().dispose();
       indicacionesControllers.removeLast().dispose();
+      _scheduleAutoSave();
       notifyListeners();
     }
   }
@@ -175,6 +252,7 @@ class InicioServicioController extends ChangeNotifier {
       tipoAjusteController.clear();
       cargasPesasController.clear();
     }
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -186,6 +264,7 @@ class InicioServicioController extends ChangeNotifier {
     } else {
       cargasPesasController.clear();
     }
+    _scheduleAutoSave();
     notifyListeners();
   }
 
@@ -262,6 +341,114 @@ class InicioServicioController extends ChangeNotifier {
     }
   }
 
+  // ==================== RECUPERACIÓN DE SERVICIO INCOMPLETO ====================
+
+  /// Carga los datos de inspección visual desde un registro incompleto
+  Future<void> loadInspeccionVisualFromRegistro(
+      Map<String, dynamic> registro) async {
+    try {
+      debugPrint('🔄 Cargando datos de inspección visual...');
+
+      // Cargar tiempo de estabilización y operación
+      if (registro['tiempo_estab'] != null) {
+        tiempoMin = registro['tiempo_estab'];
+      }
+      if (registro['t_ope_balanza'] != null) {
+        tiempoBalanza = registro['t_ope_balanza'];
+      }
+      if (registro['hora_inicio'] != null) {
+        horaInicio = registro['hora_inicio'];
+      }
+
+      // Cargar datos de inspección visual
+      final camposInspeccion = {
+        'Vibración': 'vibracion',
+        'Polvo': 'polvo',
+        'Temperatura': 'temp',
+        'Humedad': 'humedad',
+        'Mesada': 'mesada',
+        'Iluminación': 'iluminacion',
+        'Limpieza de Fosa': 'limp_foza',
+        'Estado de Drenaje': 'estado_drenaje',
+        'Limpieza General': 'limp_general',
+        'Golpes al Terminal': 'golpes_terminal',
+        'Nivelación': 'nivelacion',
+        'Limpieza Receptor': 'limp_recepto',
+        'Golpes al receptor de Carga': 'golpes_receptor',
+        'Encendido': 'encendido',
+      };
+
+      camposInspeccion.forEach((label, campo) {
+        if (registro[campo] != null && registro[campo].toString().isNotEmpty) {
+          updateFieldData(label, registro[campo]);
+        }
+        if (registro['${campo}_comentario'] != null) {
+          commentControllers[label]?.text = registro['${campo}_comentario'];
+        }
+      });
+
+      notifyListeners();
+      debugPrint('✅ Datos de inspección visual cargados exitosamente');
+    } catch (e) {
+      debugPrint('Error al cargar inspección visual: $e');
+    }
+  }
+
+  /// Carga los datos de precargas y ajuste desde un registro incompleto
+  Future<void> loadPrecargasFromRegistro(Map<String, dynamic> registro) async {
+    try {
+      debugPrint('🔄 Cargando datos de precargas...');
+
+      // Cargar datos de ambiente
+      if (registro['hri'] != null) {
+        hriController.text = registro['hri'];
+      }
+      if (registro['ti'] != null) {
+        tiController.text = registro['ti'];
+      }
+      if (registro['patmi'] != null) {
+        patmiController.text = registro['patmi'];
+      }
+
+      // Cargar ajuste
+      if (registro['ajuste'] != null) {
+        isAjusteRealizado = registro['ajuste'].toString().toLowerCase() == 'sí' ||
+            registro['ajuste'].toString().toLowerCase() == 'si';
+      }
+      if (registro['tipo'] != null) {
+        tipoAjusteController.text = registro['tipo'];
+        isAjusteExterno = registro['tipo'].toString() == 'EXTERNO';
+      }
+      if (registro['cargas_pesas'] != null) {
+        cargasPesasController.text = registro['cargas_pesas'];
+      }
+
+      // Cargar precargas (máximo 6)
+      for (int i = 0; i < 6; i++) {
+        final precargaKey = 'precarga${i + 1}';
+        final indicadorKey = 'p_indicador${i + 1}';
+
+        if (registro[precargaKey] != null &&
+            registro[precargaKey].toString().isNotEmpty) {
+          if (i < precargasControllers.length) {
+            precargasControllers[i].text = registro[precargaKey];
+          }
+        }
+        if (registro[indicadorKey] != null &&
+            registro[indicadorKey].toString().isNotEmpty) {
+          if (i < indicacionesControllers.length) {
+            indicacionesControllers[i].text = registro[indicadorKey];
+          }
+        }
+      }
+
+      notifyListeners();
+      debugPrint('✅ Datos de precargas cargados exitosamente');
+    } catch (e) {
+      debugPrint('Error al cargar precargas: $e');
+    }
+  }
+
   // --- Navegación y Guardado ---
   void nextStep() {
     if (_currentStep < 1) {
@@ -328,9 +515,11 @@ class InicioServicioController extends ChangeNotifier {
     return true;
   }
 
-  Future<void> saveStep1() async {
-    // Guardar fotos primero
-    await _savePhotosToZip();
+  Future<void> saveStep1({bool skipPhotos = false}) async {
+    // Guardar fotos solo si es guardado manual (no auto-save)
+    if (!skipPhotos) {
+      await _savePhotosToZip();
+    }
 
     // Guardar datos
     final dbHelper = AppDatabase();
@@ -464,6 +653,7 @@ class InicioServicioController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
     for (var controller in commentControllers.values) {
       controller.dispose();
     }

@@ -100,7 +100,7 @@ class FinServiciosScreen extends StatelessWidget {
   Widget _buildBottomButtons(
       BuildContext context, FinServiciosController controller) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
@@ -111,45 +111,105 @@ class FinServiciosScreen extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          if (controller.currentStep > 0)
-            ElevatedButton(
-              onPressed: controller.previousStep,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child:
-                  const Text('Anterior', style: TextStyle(color: Colors.white)),
-            )
-          else
-            const SizedBox.shrink(),
-          if (controller.currentStep < 1)
-            ElevatedButton(
-              onPressed: () async {
-                if (controller.currentStep == 0) {
-                  // Validate and save step 1 before moving
-                  await controller.saveStep1();
-                  if (controller.isDataSaved) {
-                    controller.nextStep();
-                  }
-                } else {
-                  controller.nextStep();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFc0101a),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text('Siguiente',
-                  style: TextStyle(color: Colors.white)),
-            ),
+          // Indicador de auto-guardado
+          _buildAutoSaveIndicator(controller),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (controller.currentStep > 0)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => controller.previousStep(),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Anterior'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              if (controller.currentStep > 0) const SizedBox(width: 16),
+              if (controller.currentStep < 2)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      if (controller.currentStep == 0) {
+                        if (controller.validateStep1()) {
+                          // Si es válido, hace el flush final que incluye zipear fotos
+                          await controller.saveStep1();
+                          if (controller.isDataSaved) {
+                            controller.nextStep();
+                          }
+                        }
+                      } else {
+                        controller.nextStep();
+                      }
+                    },
+                    icon: Icon(controller.currentStep == 1
+                        ? Icons.check_circle
+                        : Icons.arrow_forward),
+                    label: Text(controller.currentStep == 1
+                        ? 'Finalizar y Exportar'
+                        : 'Siguiente'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: controller.currentStep == 1
+                          ? Colors.green
+                          : const Color(0xFF667EEA),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Widget _buildAutoSaveIndicator(FinServiciosController controller) {
+    if (controller.currentStep != 0) return const SizedBox.shrink();
+
+    if (controller.isAutoSaving) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: Colors.grey[500],
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Guardando...',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      );
+    } else if (controller.lastSaveSuccessful) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey[400]),
+          const SizedBox(width: 4),
+          Text(
+            'Guardado automáticamente',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[400],
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

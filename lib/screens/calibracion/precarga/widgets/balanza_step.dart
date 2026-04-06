@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../precarga_controller.dart';
 import 'qr_scanner_screen.dart';
+import 'servicio_incompleto_dialog.dart';
 
 class BalanzaStep extends StatefulWidget {
   final Map<String, TextEditingController> balanzaControllers;
@@ -215,17 +216,94 @@ class _BalanzaStepState extends State<BalanzaStep> {
       MaterialPageRoute(builder: (context) => const QrScannerScreen()),
     );
     if (result != null && result.isNotEmpty && mounted) {
-      final error = controller.selectBalanzaByQr(result);
-      if (error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: Colors.red),
+      // Verificar si existe un servicio incompleto para este código métrica
+      final servicioIncompleto = await controller.checkServicioIncompleto(result);
+
+      if (servicioIncompleto != null) {
+        // Mostrar diálogo de recuperación
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext dialogContext) {
+            return ServicioIncompletoDialog(
+              registro: servicioIncompleto,
+              onNuevo: () {
+                Navigator.pop(dialogContext);
+                controller.clearRegistroIncompleto();
+                final error = controller.selectBalanzaByQr(result);
+                if (error != null && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error), backgroundColor: Colors.red),
+                  );
+                } else {
+                  _fillBalanzaData(controller.selectedBalanza!);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Instrumento seleccionado por QR'),
+                        backgroundColor: Colors.green),
+                  );
+                }
+              },
+              onRecuperar: () async {
+                Navigator.pop(dialogContext);
+                await controller.loadServicioIncompleto(servicioIncompleto);
+                final error = controller.selectBalanzaByQr(result);
+                if (error != null && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(error), backgroundColor: Colors.red),
+                  );
+                } else {
+                  _fillBalanzaData(controller.selectedBalanza!);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Servicio recuperado exitosamente',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'SECA: ${servicioIncompleto['seca']}',
+                                  style: GoogleFonts.inter(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            );
+          },
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Instrumento seleccionado por QR'),
-              backgroundColor: Colors.green),
-        );
+        final error = controller.selectBalanzaByQr(result);
+        if (error != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(error), backgroundColor: Colors.red),
+          );
+        } else {
+          _fillBalanzaData(controller.selectedBalanza!);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Instrumento seleccionado por QR'),
+                backgroundColor: Colors.green),
+          );
+        }
       }
     }
   }
@@ -1320,7 +1398,83 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   void _showCalibrationWarningDialog(
-      Map<String, dynamic> balanza, PrecargaController controller) {
+      Map<String, dynamic> balanza, PrecargaController controller) async {
+    final codMetrica = balanza['cod_metrica']?.toString();
+
+    // Verificar si existe un servicio incompleto para este instrumento
+    if (codMetrica != null) {
+      final servicioIncompleto = await controller.checkServicioIncompleto(codMetrica);
+
+      if (servicioIncompleto != null) {
+        // Mostrar diálogo de recuperación de servicio incompleto
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return ServicioIncompletoDialog(
+              registro: servicioIncompleto,
+              onNuevo: () {
+                Navigator.pop(context); // Cerrar diálogo
+                controller.clearRegistroIncompleto();
+                controller.selectBalanza(balanza);
+                _fillBalanzaData(balanza);
+                Navigator.pop(context); // Cerrar diálogo de balanzas
+              },
+              onRecuperar: () async {
+                Navigator.pop(context); // Cerrar diálogo
+
+                // Cargar datos del servicio incompleto
+                await controller.loadServicioIncompleto(servicioIncompleto);
+
+                // Seleccionar la balanza
+                controller.selectBalanza(balanza);
+                _fillBalanzaData(balanza);
+                Navigator.pop(context); // Cerrar diálogo de balanzas
+
+                // Mostrar mensaje de éxito
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Servicio recuperado exitosamente',
+                                  style: GoogleFonts.inter(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'SECA: ${servicioIncompleto['seca']}',
+                                  style: GoogleFonts.inter(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            );
+          },
+        );
+        return;
+      }
+    }
+
+    // Si no hay servicio incompleto, mostrar advertencia normal
     showDialog(
       context: context,
       builder: (BuildContext context) {

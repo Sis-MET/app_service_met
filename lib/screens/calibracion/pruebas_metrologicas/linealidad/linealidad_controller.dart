@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:service_met/providers/calibration_provider.dart';
 import '../../../../database/app_database.dart';
@@ -48,7 +49,50 @@ class LinealidadController {
     required this.sessionId,
     required this.context,
     this.onUpdate,
-  });
+  }) {
+    notaController.addListener(_scheduleAutoSave);
+    comentarioController.addListener(_scheduleAutoSave);
+  }
+
+  // --- Auto-save ---
+  Timer? _autoSaveTimer;
+  bool _isAutoSaving = false;
+  bool get isAutoSaving => _isAutoSaving;
+  bool _lastSaveSuccessful = true;
+  bool get lastSaveSuccessful => _lastSaveSuccessful;
+
+  /// Programa un auto-guardado con debounce de 1.5 segundos
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSaveToDatabase();
+    });
+  }
+
+  /// Flush: ejecuta auto-guardado inmediato
+  Future<void> flushAutoSave() async {
+    _autoSaveTimer?.cancel();
+    await _autoSaveToDatabase();
+  }
+
+  /// Guarda silenciosamente sin SnackBar
+  Future<void> _autoSaveToDatabase() async {
+    if (_isAutoSaving) return;
+    _isAutoSaving = true;
+    onUpdate?.call();
+
+    try {
+      await saveDataToDatabase();
+      _lastSaveSuccessful = true;
+      debugPrint('💾 Auto-guardado linealidad completado');
+    } catch (e) {
+      _lastSaveSuccessful = false;
+      debugPrint('❌ Error en auto-guardado linealidad: $e');
+    } finally {
+      _isAutoSaving = false;
+      onUpdate?.call();
+    }
+  }
 
   // Método para obtener el valor D correcto según la carga desde la BD
   Future<double> getDForCarga(double carga) async {
@@ -514,14 +558,16 @@ class LinealidadController {
 
   void updateMetodo(String? value) {
     selectedMetodo = value;
+    _scheduleAutoSave();
     Future.microtask(() {
       provider.updateTempDataForTest('linealidad', toMap());
-      _notifyUpdate(); // ← En lugar de onUpdate?.call()
+      _notifyUpdate();
     });
   }
 
   void updateMetodoCarga(String? value) {
     selectedMetodoCarga = value;
+    _scheduleAutoSave();
     Future.microtask(() {
       provider.updateTempDataForTest('linealidad', toMap());
     });
@@ -537,12 +583,18 @@ class LinealidadController {
         ),
       );
     }
-    rows.add({
+    final newRow = {
       'lt': TextEditingController(),
       'indicacion': TextEditingController(),
       'retorno': TextEditingController(text: '0'),
       'difference': TextEditingController(),
-    });
+    };
+    // Add auto-save listeners to new row controllers
+    for (final ctrl in newRow.values) {
+      ctrl.addListener(_scheduleAutoSave);
+    }
+    rows.add(newRow);
+    _scheduleAutoSave();
     Future.microtask(() {
       provider.updateTempDataForTest('linealidad', toMap());
     });
@@ -555,6 +607,7 @@ class LinealidadController {
         controller.dispose();
       }
       rows.removeAt(index);
+      _scheduleAutoSave();
       Future.microtask(() {
         provider.updateTempDataForTest('linealidad', toMap());
       });
@@ -714,6 +767,7 @@ class LinealidadController {
   }
 
   void dispose() {
+    _autoSaveTimer?.cancel();
     _disposeRows();
     notaController.dispose();
     comentarioController.dispose();
