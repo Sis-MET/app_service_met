@@ -8,11 +8,13 @@ import 'pruebas_metrologicas_widget.dart';
 class PasoPruebasFinales extends StatefulWidget {
   final MntCorrectivoModel model;
   final MntCorrectivoController controller;
+  final Function? onUpdate;
 
   const PasoPruebasFinales({
     super.key,
     required this.model,
     required this.controller,
+    this.onUpdate,
   });
 
   @override
@@ -31,7 +33,10 @@ class _PasoPruebasFinalesState extends State<PasoPruebasFinales> {
           PruebasMetrologicasWidget(
             pruebas: widget.model.pruebasFinales,
             tipoPrueba: 'Final',
-            onChanged: () => setState(() {}),
+            onChanged: () {
+              setState(() {});
+              if (widget.onUpdate != null) widget.onUpdate!();
+            },
             getIndicationSuggestions:
                 (String cargaStr, String currentIndication) async {
               double carga = double.tryParse(cargaStr) ?? 0;

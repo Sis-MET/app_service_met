@@ -144,6 +144,7 @@ class _PasoEstadoFinalState extends State<PasoEstadoFinal> {
               helperText: '* Campo obligatorio',
             ),
             maxLines: 4,
+            maxLength: 490,
             onChanged: (value) {
               widget.model.comentarioGeneral = value;
               widget.onChanged();
@@ -154,9 +155,10 @@ class _PasoEstadoFinalState extends State<PasoEstadoFinal> {
 
           // Recomendación
           DropdownButtonFormField<String>(
-            initialValue: widget.model.recomendacion.isEmpty
+            value: widget.model.recomendacion.isEmpty
                 ? null
                 : widget.model.recomendacion,
+            hint: const Text('Seleccione...'),
             decoration: InputDecoration(
               labelText: 'Recomendación del Proximo Servicio *',
               border: OutlineInputBorder(
@@ -374,7 +376,8 @@ class _PasoEstadoFinalState extends State<PasoEstadoFinal> {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      initialValue: value.isEmpty ? null : value,
+      value: value.isEmpty ? null : value,
+      hint: const Text('Seleccione...'),
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(

@@ -157,16 +157,21 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
 
     return DropdownButtonFormField<String>(
       initialValue: widget.campo.initialValue.isEmpty
-          ? '4 No aplica'
+          ? null
           : widget.campo.initialValue,
+      hint: const Text('Seleccionar estado'),
       decoration: InputDecoration(
         labelText: 'Estado',
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),
         prefixIcon: Icon(
-          _iconMap[widget.campo.initialValue] ?? Icons.help_outline,
-          color: _colorMap[widget.campo.initialValue] ?? Colors.grey,
+          widget.campo.initialValue.isEmpty
+              ? Icons.help_outline
+              : (_iconMap[widget.campo.initialValue] ?? Icons.help_outline),
+          color: widget.campo.initialValue.isEmpty
+              ? Colors.grey
+              : (_colorMap[widget.campo.initialValue] ?? Colors.grey),
         ),
       ),
       items: opciones.map((String value) {
@@ -215,16 +220,21 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
 
     return DropdownButtonFormField<String>(
       initialValue: widget.campo.solutionValue.isEmpty
-          ? 'No aplica'
+          ? null
           : widget.campo.solutionValue,
+      hint: const Text('Seleccionar solución'),
       decoration: InputDecoration(
         labelText: 'Solución',
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
         ),
         prefixIcon: Icon(
-          iconos[widget.campo.solutionValue] ?? Icons.help_outline,
-          color: colores[widget.campo.solutionValue] ?? Colors.grey,
+          widget.campo.solutionValue.isEmpty
+              ? Icons.help_outline
+              : (iconos[widget.campo.solutionValue] ?? Icons.help_outline),
+          color: widget.campo.solutionValue.isEmpty
+              ? Colors.grey
+              : (colores[widget.campo.solutionValue] ?? Colors.grey),
         ),
       ),
       items: opciones.map((String value) {

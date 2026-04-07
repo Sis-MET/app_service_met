@@ -62,8 +62,25 @@ class _StacVerificacionesInternasScreenState
     _initializeModel();
     _controller = VerificacionesInternasController(model: _model);
     _actualizarHora();
-    _loadD1Value();
     _initializeSteps();
+
+    // Trigger async load at start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialDataAsync();
+    });
+  }
+
+  Future<void> _loadInitialDataAsync() async {
+    setState(() => _isSaving = true);
+    await _controller.loadInitialValues();
+    await _loadD1Value();
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _initializeSteps() {
@@ -322,6 +339,7 @@ class _StacVerificacionesInternasScreenState
             Expanded(
               child: _buildStepContent(),
             ),
+            _buildAutoSaveIndicator(),
             _buildNavigationButtons(isDarkMode),
           ],
         ),
@@ -333,83 +351,99 @@ class _StacVerificacionesInternasScreenState
 
   Widget _buildProgressBar(bool isDarkMode) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
       decoration: BoxDecoration(
         color: isDarkMode ? Colors.black26 : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
-      child: Column(
+      child: Stack(
+        alignment: Alignment.centerLeft,
         children: [
-          Row(
-            children: [
-              Icon(
-                _steps[_currentStep].icon,
-                color: Theme.of(context).primaryColor,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Paso ${_currentStep + 1} de ${_steps.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDarkMode ? Colors.white60 : Colors.black45,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            height: 4,
+            width: double.infinity,
+            color: Colors.grey.withOpacity(0.2),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: List.generate(_steps.length, (index) {
-              final isCompleted = index < _currentStep;
-              final isCurrent = index == _currentStep;
-
-              return Expanded(
-                child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(
-                    left: index == 0 ? 0 : 4,
-                    right: index == _steps.length - 1 ? 0 : 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isCompleted || isCurrent
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              );
-            }),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: 4,
+            width: MediaQuery.of(context).size.width *
+                ((_currentStep + 1) / _steps.length),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(2),
+                bottomRight: Radius.circular(2),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildAutoSaveIndicator() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _controller.isAutoSaving,
+      builder: (context, isSaving, child) {
+        return ValueListenableBuilder<bool>(
+          valueListenable: _controller.lastSaveSuccessful,
+          builder: (context, isSuccess, child) {
+            if (isSaving) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                color: Colors.blue.withOpacity(0.1),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    SizedBox(width: 8),
+                    Text('Guardando...', style: TextStyle(fontSize: 12, color: Colors.blue)),
+                  ],
+                ),
+              );
+            }
+            if (!isSuccess) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                color: Colors.red.withOpacity(0.1),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 14, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Error al auto-guardar', style: TextStyle(fontSize: 12, color: Colors.red)),
+                  ],
+                ),
+              );
+            }
+            // Estado neutro: Guardado ok
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_done_outlined, size: 14, color: Colors.grey),
+                  SizedBox(width: 8),
+                  Text('Guardado automáticamente', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _onFieldChanged() {
+    setState(() {});
+    _controller.scheduleAutoSave(context);
   }
 
   Widget _buildStepContent() {
@@ -418,7 +452,7 @@ class _StacVerificacionesInternasScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppVerificacionesInternasConstants.inspeccionVisualCampos,
           titulo: 'INSPECCIÓN VISUAL',
           subtitulo: 'Inspeccione el estado general del equipo',
@@ -431,13 +465,13 @@ class _StacVerificacionesInternasScreenState
           model: _model,
           controller: _controller,
           getD1FromDatabase: _getD1FromCache,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
 
       case 2: // Estado Final
         return PasoEstadoFinal(
           model: _model,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
 
       default:

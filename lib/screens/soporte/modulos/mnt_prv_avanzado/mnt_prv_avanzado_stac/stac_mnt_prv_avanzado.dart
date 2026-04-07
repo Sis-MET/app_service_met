@@ -47,6 +47,7 @@ class _StacMntPrvAvanzadoStacScreenState
 
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _dataLoaded = false; // Flag para forzar reconstrucción de widgets de pruebas
   DateTime? _lastPressedTime;
   double? _cachedD1; // Cachear d1 para evitar múltiples consultas
 
@@ -61,6 +62,22 @@ class _StacMntPrvAvanzadoStacScreenState
     _actualizarHora();
     _loadD1Value();
     _initializeSteps();
+    _loadInitialDataAsync();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadInitialDataAsync() async {
+    await _controller.loadInitialValues();
+    if (mounted) {
+      setState(() {
+        _dataLoaded = true; // Fuerza reconstrucción de widgets con initialValue
+      });
+    }
   }
 
   void _initializeSteps() {
@@ -170,20 +187,25 @@ class _StacMntPrvAvanzadoStacScreenState
     return _cachedD1 ?? 0.1;
   }
 
-  // Guardar automáticamente al cambiar de paso
+  // Guardar automáticamente al cambiar de paso o interceptar datos
+  void _onFieldChanged() {
+    setState(() {});
+    _controller.scheduleAutoSave(context);
+  }
+
   Future<void> _saveCurrentStep() async {
     if (_isSaving) return;
 
     setState(() => _isSaving = true);
 
     try {
-      await _controller.saveDataToDatabase(context, showMessage: false);
-      debugPrint('Paso $_currentStep guardado automáticamente');
+      await _controller.flushAutoSave(context);
+      debugPrint('Paso $_currentStep guardado forzosamente');
     } catch (e) {
       debugPrint('Error al guardar paso $_currentStep: $e');
       _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -362,18 +384,7 @@ class _StacMntPrvAvanzadoStacScreenState
                 )
               : null,
           centerTitle: true,
-          actions: [
-            // Indicador de guardado automático
-            if (_isSaving)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-          ],
+          actions: const [],
         ),
         body: Column(
           children: [
@@ -392,6 +403,61 @@ class _StacMntPrvAvanzadoStacScreenState
         floatingActionButton: const BalanzaSpeedDial(),
         floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       ),
+    );
+  }
+
+  Widget _buildAutoSaveIndicator() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _controller.isAutoSaving,
+      builder: (context, isSaving, _) {
+        if (isSaving) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Guardando...',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          );
+        }
+
+        return ValueListenableBuilder<bool>(
+          valueListenable: _controller.lastSaveSuccessful,
+          builder: (context, success, _) {
+            if (success) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_done_outlined,
+                      size: 14, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Guardado automáticamente',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 
@@ -483,16 +549,17 @@ class _StacMntPrvAvanzadoStacScreenState
     switch (_currentStep) {
       case 0:
         return PasoPruebasIniciales(
+          key: ValueKey('pruebas_ini_$_dataLoaded'),
           model: _model,
           controller: _controller,
           getD1FromDatabase: _getD1FromCache,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       case 1:
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.lozasYFundacionesCampos,
           titulo: 'LOZAS Y FUNDACIONES',
           subtitulo: 'Inspeccione el estado de lozas y fundaciones',
@@ -503,7 +570,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.limpiezaYDrenajeCampos,
           titulo: 'LIMPIEZA Y DRENAJE',
           subtitulo: 'Inspeccione limpieza y sistema de drenaje',
@@ -514,7 +581,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.chequeoCampos,
           titulo: 'CHEQUEO GENERAL',
           subtitulo: 'Inspeccione el estado general del equipo',
@@ -525,7 +592,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.verificacionesElectricasCampos,
           titulo: 'VERIFICACIONES ELÉCTRICAS',
           subtitulo: 'Inspeccione conexiones y cableado',
@@ -536,7 +603,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.proteccionRayosCampos,
           titulo: 'PROTECCIÓN CONTRA RAYOS',
           subtitulo: 'Verifique sistema de protección eléctrica',
@@ -547,7 +614,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.verificacionesCeldasCampos,
           titulo: 'VERIFICACIONES DE CÉLULAS DE CARGA',
           subtitulo: 'Inspeccione células y componentes de pesaje',
@@ -558,7 +625,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.terminalCampos,
           titulo: 'TERMINAL',
           subtitulo: 'Inspeccione el terminal de pesaje',
@@ -569,7 +636,7 @@ class _StacMntPrvAvanzadoStacScreenState
         return PasoGenerico(
           model: _model,
           controller: _controller,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
           campos: AppStacAvanzadoConstants.calibracionCampos,
           titulo: 'CALIBRACIÓN',
           subtitulo: 'Verifique la calibración',
@@ -578,6 +645,7 @@ class _StacMntPrvAvanzadoStacScreenState
         );
       case 9:
         return PasoPruebasFinales(
+          key: ValueKey('pruebas_fin_$_dataLoaded'),
           model: _model,
           controller: _controller,
           getD1FromDatabase: _getD1FromCache,
@@ -606,75 +674,82 @@ class _StacMntPrvAvanzadoStacScreenState
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Botón Anterior
-          if (_currentStep > 0)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _goToStep(_currentStep - 1),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('ANTERIOR'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+          _buildAutoSaveIndicator(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Botón Anterior
+              if (_currentStep > 0)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _goToStep(_currentStep - 1),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('ANTERIOR'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+
+              if (_currentStep > 0) const SizedBox(width: 12),
+
+              // Botón Siguiente o Finalizar
+              Expanded(
+                flex: _currentStep == 0 ? 1 : 2,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          if (_currentStep < _steps.length - 1) {
+                            await _goToStep(_currentStep + 1);
+                          } else {
+                            // Último paso: finalizar
+                            if (_validateCurrentStep()) {
+                              await _saveCurrentStep();
+
+                              if (!mounted) return;
+
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FinServicioMntAvaStacScreen(
+                                    sessionId: widget.sessionId,
+                                    secaValue: widget.secaValue,
+                                    codMetrica: widget.codMetrica,
+                                    nReca: widget.nReca,
+                                    userName: widget.userName,
+                                    clienteId: widget.clienteId,
+                                    plantaCodigo: widget.plantaCodigo,
+                                    tableName: 'mnt_prv_avanzado_stac',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  icon: Icon(
+                    _currentStep < _steps.length - 1
+                        ? Icons.arrow_forward
+                        : Icons.check_circle,
+                  ),
+                  label: Text(
+                    _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _currentStep < _steps.length - 1
+                        ? const Color(0xFF195375)
+                        : const Color(0xFF167D1D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ),
-            ),
-
-          if (_currentStep > 0) const SizedBox(width: 12),
-
-          // Botón Siguiente o Finalizar
-          Expanded(
-            flex: _currentStep == 0 ? 1 : 2,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
-                      if (_currentStep < _steps.length - 1) {
-                        await _goToStep(_currentStep + 1);
-                      } else {
-                        // Último paso: finalizar
-                        if (_validateCurrentStep()) {
-                          await _saveCurrentStep();
-
-                          if (!mounted) return;
-
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => FinServicioMntAvaStacScreen(
-                                sessionId: widget.sessionId,
-                                secaValue: widget.secaValue,
-                                codMetrica: widget.codMetrica,
-                                nReca: widget.nReca,
-                                userName: widget.userName,
-                                clienteId: widget.clienteId,
-                                plantaCodigo: widget.plantaCodigo,
-                                tableName: 'mnt_prv_avanzado_stac',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
-              icon: Icon(
-                _currentStep < _steps.length - 1
-                    ? Icons.arrow_forward
-                    : Icons.check_circle,
-              ),
-              label: Text(
-                _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _currentStep < _steps.length - 1
-                    ? const Color(0xFF195375)
-                    : const Color(0xFF167D1D),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
+            ],
           ),
         ],
       ),

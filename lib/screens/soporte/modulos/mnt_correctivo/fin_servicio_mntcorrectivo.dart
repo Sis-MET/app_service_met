@@ -85,12 +85,13 @@ class _FinServicioMntcorrectivoScreenState
       final rows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
         where:
-            'otst = ? AND estado_servicio = ? AND (tipo_servicio = ? OR tipo_servicio = ?)',
+            'otst = ? AND estado_servicio = ? AND (tipo_servicio = ? OR tipo_servicio = ? OR tipo_servicio = ?)',
         whereArgs: [
           widget.secaValue,
           'Completo',
           'Mantenimiento Correctivo',
-          'correctivo'
+          'correctivo',
+          'MCR.BL'
         ],
       );
 
@@ -107,12 +108,13 @@ class _FinServicioMntcorrectivoScreenState
       final updatedRows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
         where:
-            'otst = ? AND estado_servicio = ? AND (tipo_servicio = ? OR tipo_servicio = ?)',
+            'otst = ? AND estado_servicio = ? AND (tipo_servicio = ? OR tipo_servicio = ? OR tipo_servicio = ?)',
         whereArgs: [
           widget.secaValue,
           'Completo',
           'Mantenimiento Correctivo',
-          'correctivo'
+          'correctivo',
+          'MCR.BL'
         ],
       );
 
@@ -289,8 +291,8 @@ class _FinServicioMntcorrectivoScreenState
 
       final List<Map<String, dynamic>> rows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
-        where: 'otst = ? AND (tipo_servicio = ? OR tipo_servicio = ?)',
-        whereArgs: [widget.secaValue, 'Mantenimiento Correctivo', 'correctivo'],
+        where: 'otst = ? AND (tipo_servicio = ? OR tipo_servicio = ? OR tipo_servicio = ?)',
+        whereArgs: [widget.secaValue, 'Mantenimiento Correctivo', 'correctivo', 'MCR.BL'],
         orderBy: 'session_id DESC',
         limit: 1,
       );

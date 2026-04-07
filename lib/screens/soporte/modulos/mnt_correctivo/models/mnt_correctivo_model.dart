@@ -7,7 +7,7 @@ class InspeccionItem {
   List<File> fotos;
 
   InspeccionItem({
-    this.estado = 'Bueno',
+    this.estado = '',
     this.solucion,
     this.comentario,
     List<File>? fotos,
@@ -151,8 +151,8 @@ class RetornoCero {
   String unidad;
 
   RetornoCero({
-    this.estado = '1 Bueno',
-    this.estabilidad = '1 Bueno',
+    this.estado = '',
+    this.estabilidad = '',
     this.valor = '',
     this.unidad = 'kg',
   });

@@ -63,8 +63,24 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
     _model.horaInicio = DateFormat('HH:mm').format(DateTime.now());
 
     _controller = MntCorrectivoController(model: _model);
-    _controller.init();
+    _initializeData();
     _initializeSteps();
+  }
+
+  Future<void> _initializeData() async {
+    await _controller.init();
+    await _controller.loadInitialValues();
+    if (mounted) setState(() {});
+  }
+
+  void _onFieldChanged() {
+    _controller.scheduleAutoSave(context);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _initializeSteps() {
@@ -229,17 +245,21 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
                   )
                 : null,
             centerTitle: true,
-            actions: [
-              // Indicador de guardado automático
-              if (_isSaving)
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
+              // Indicador de guardado automático Cloud Guardando...
+              ValueListenableBuilder<bool>(
+                valueListenable: _controller.isAutoSaving,
+                builder: (context, isSaving, _) {
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _controller.lastSaveSuccessful,
+                    builder: (context, saveSuccess, _) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: _buildAutoSaveIndicator(isSaving, saveSuccess),
+                      );
+                    },
+                  );
+                },
+              ),
             ],
           ),
           body: Column(
@@ -263,6 +283,49 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
     );
   }
 
+  Widget _buildAutoSaveIndicator(bool isSaving, bool saveSuccess) {
+    if (isSaving) {
+      return const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+            ),
+          ),
+          SizedBox(width: 8),
+          Text('Guardando...',
+              style: TextStyle(fontSize: 12, color: Colors.blue)),
+        ],
+      );
+    }
+
+    if (!saveSuccess) {
+      return const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.error_outline, size: 16, color: Colors.red),
+          SizedBox(width: 4),
+          Text('Error al guardar',
+              style: TextStyle(fontSize: 12, color: Colors.red)),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.cloud_done, size: 16, color: Colors.green[400]),
+        const SizedBox(width: 4),
+        Text('Guardado automático',
+            style: TextStyle(fontSize: 12, color: Colors.green[400])),
+      ],
+    );
+  }
+
   Widget _buildProgressBar(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -278,65 +341,58 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
       ),
       child: Column(
         children: [
-          // Título del paso actual
           Row(
             children: [
-              Icon(
-                _steps[_currentStep].icon,
-                color: Theme.of(context).primaryColor,
-                size: 24,
-              ),
+               Icon(_steps[_currentStep].icon,
+                  color: Theme.of(context).primaryColor, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Paso ${_currentStep + 1} de ${_steps.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDarkMode ? Colors.white60 : Colors.black45,
-                      ),
-                    ),
+                    Text('Paso ${_currentStep + 1} de ${_steps.length}',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                isDarkMode ? Colors.white70 : Colors.black54)),
+                    Text(_steps[_currentStep].title,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(_steps[_currentStep].subtitle,
+                        style: TextStyle(
+                            fontSize: 11,
+                            color:
+                                isDarkMode ? Colors.white60 : Colors.black45)),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-
-          // Barra de progreso visual
           Row(
             children: List.generate(_steps.length, (index) {
               final isCompleted = index < _currentStep;
               final isCurrent = index == _currentStep;
 
               return Expanded(
-                child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(
-                    left: index == 0 ? 0 : 4,
-                    right: index == _steps.length - 1 ? 0 : 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isCompleted || isCurrent
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
+                child: GestureDetector(
+                  onTap: () async {
+                    if (index < _currentStep || _validateCurrentStep()) {
+                      await _controller.flushAutoSave(context);
+                      setState(() => _currentStep = index);
+                    }
+                  },
+                  child: Container(
+                    height: 6,
+                    margin: EdgeInsets.only(
+                        left: index == 0 ? 0 : 4,
+                        right: index == _steps.length - 1 ? 0 : 4),
+                    decoration: BoxDecoration(
+                      color: isCompleted || isCurrent
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               );
@@ -353,14 +409,18 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
         return PasoInformacionGeneral(
           model: _model,
           controller: _controller,
-          onUpdate: () => setState(() {}),
+          onUpdate: _onFieldChanged,
         );
       case 1:
-        return PasoPruebasFinales(model: _model, controller: _controller);
+        return PasoPruebasFinales(
+          model: _model, 
+          controller: _controller,
+          onUpdate: _onFieldChanged,
+        );
       case 2:
         return PasoEstadoFinalMntCorrectivo(
           model: _model,
-          onChanged: () => setState(() {}),
+          onChanged: _onFieldChanged,
         );
       default:
         return const Center(child: Text('Paso no encontrado'));

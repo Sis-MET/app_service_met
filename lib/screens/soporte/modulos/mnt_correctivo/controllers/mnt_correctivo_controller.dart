@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -13,7 +14,165 @@ class MntCorrectivoController {
   final MntCorrectivoModel model;
   double? _cachedD1;
 
+  Timer? _autoSaveTimer;
+  final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
+  final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
+
   MntCorrectivoController({required this.model});
+
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    isAutoSaving.dispose();
+    lastSaveSuccessful.dispose();
+  }
+
+  void scheduleAutoSave(BuildContext context) {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave(context);
+    });
+  }
+
+  Future<void> flushAutoSave(BuildContext context) async {
+    _autoSaveTimer?.cancel();
+    await _autoSave(context);
+  }
+
+  Future<void> _autoSave(BuildContext context) async {
+    if (isAutoSaving.value) return;
+    isAutoSaving.value = true;
+
+    try {
+      final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
+      final data = _prepareDataForSave();
+      await dbHelper.upsertRegistroRelevamiento(data);
+      lastSaveSuccessful.value = true;
+    } catch (e) {
+      lastSaveSuccessful.value = false;
+      debugPrint('Error en auto-guardado (Mnt Correctivo): $e');
+    } finally {
+      isAutoSaving.value = false;
+    }
+  }
+
+  Future<void> loadInitialValues() async {
+    try {
+      final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
+      final db = await dbHelper.database;
+      final results = await db.query(
+        'diagnostico_correctivo',
+        where: 'session_id = ? AND otst = ? AND tipo_servicio = ?',
+        whereArgs: [model.sessionId, model.secaValue, 'MCR.BL'],
+        limit: 1,
+      );
+
+      if (results.isNotEmpty) {
+        final registro = results.first;
+
+        model.horaFin = registro['hora_fin']?.toString() ?? '';
+        model.reporteFalla = registro['reporte']?.toString() ?? '';
+        model.evaluacion = registro['evaluacion']?.toString() ?? '';
+        model.trabajoRealizado = registro['trabajo_realizado']?.toString() ?? '';
+        
+        // Estado Final
+        model.comentarioGeneral = registro['comentario_general']?.toString() ?? '';
+        model.recomendacion = registro['recomendacion']?.toString() ?? '';
+        model.fechaProxServicio = registro['fecha_prox_servicio']?.toString() ?? '';
+        model.estadoFisico = registro['fisico']?.toString() ?? '';
+        model.estadoOperacional = registro['operacional']?.toString() ?? '';
+        model.estadoMetrologico = registro['metrologico']?.toString() ?? '';
+
+        // Pruebas Finales - Retorno Cero
+        final retCeroFinEst = registro['retorno_cero_final_valoracion']?.toString();
+        if (retCeroFinEst != null && retCeroFinEst.isNotEmpty) {
+           model.pruebasFinales.retornoCero.estado = retCeroFinEst;
+        }
+        final estabFinEst = registro['estabilizacion_final']?.toString();
+        if (estabFinEst != null && estabFinEst.isNotEmpty) {
+           model.pruebasFinales.retornoCero.estabilidad = estabFinEst;
+        }
+
+        _loadExcentricidadData(registro, model.pruebasFinales, 'final');
+        _loadRepetibilidadData(registro, model.pruebasFinales, 'final');
+        _loadLinealidadData(registro, model.pruebasFinales, 'final');
+      }
+    } catch (e) {
+      debugPrint('Error loading initial values (Mnt Correctivo): $e');
+    }
+  }
+
+  void _loadExcentricidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final tipoPlataforma = registro['tipo_plataforma_$tipo']?.toString();
+    if (tipoPlataforma != null && tipoPlataforma.isNotEmpty) {
+      pruebas.excentricidad ??= Excentricidad();
+      final exc = pruebas.excentricidad!;
+      exc.activo = true;
+      exc.tipoPlataforma = tipoPlataforma;
+      exc.puntosIndicador = registro['puntos_ind_$tipo']?.toString() ?? '';
+      exc.carga = registro['carga_exc_$tipo']?.toString() ?? '';
+
+      exc.posiciones.clear();
+      for (int i = 0; i < 6; i++) {
+        final posVal = registro['posicion_${tipo}_${i + 1}']?.toString();
+        if (posVal != null && posVal.isNotEmpty) {
+          exc.posiciones.add(PosicionExcentricidad(
+            posicion: posVal,
+            indicacion: registro['indicacion_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
+
+  void _loadRepetibilidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final carga1Str = registro['repetibilidad1_$tipo']?.toString();
+    if (carga1Str != null && carga1Str.isNotEmpty) {
+      pruebas.repetibilidad ??= Repetibilidad();
+      final rep = pruebas.repetibilidad!;
+      rep.activo = true;
+      
+      rep.cargas.clear();
+      final carga1 = CargaRepetibilidad(valor: carga1Str);
+      carga1.pruebas.clear();
+
+      for (int j = 0; j < 10; j++) {
+        final ind = registro['indicacion1_${tipo}_${j + 1}']?.toString();
+        if (ind != null && ind.isNotEmpty) {
+          carga1.pruebas.add(PruebaRepetibilidad(
+            indicacion: ind,
+            retorno: registro['retorno1_${tipo}_${j + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+
+      if (carga1.pruebas.isNotEmpty) {
+        rep.cargas.add(carga1);
+        rep.cantidadPruebas = carga1.pruebas.length;
+      }
+    }
+  }
+
+  void _loadLinealidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final lin1Str = registro['lin_${tipo}_1']?.toString();
+    if (lin1Str != null && lin1Str.isNotEmpty) {
+      pruebas.linealidad ??= Linealidad();
+      final lin = pruebas.linealidad!;
+      lin.activo = true;
+      lin.puntos.clear();
+
+      for (int i = 0; i < 12; i++) {
+        final ptVal = registro['lin_${tipo}_${i + 1}']?.toString();
+        if (ptVal != null && ptVal.isNotEmpty) {
+          lin.puntos.add(PuntoLinealidad(
+            lt: ptVal,
+            indicacion: registro['ind_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_lin_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
 
   Future<void> init() async {
     await getD1FromDatabase();
@@ -202,13 +361,26 @@ class MntCorrectivoController {
     }
   }
 
+  bool _isServiceComplete() {
+    return model.evaluacion.isNotEmpty &&
+        model.trabajoRealizado.isNotEmpty &&
+        model.reporteFalla.isNotEmpty &&
+        model.comentarioGeneral.isNotEmpty &&
+        model.recomendacion.isNotEmpty &&
+        model.fechaProxServicio.isNotEmpty &&
+        model.estadoFisico.isNotEmpty &&
+        model.estadoMetrologico.isNotEmpty &&
+        model.estadoOperacional.isNotEmpty &&
+        model.horaFin.isNotEmpty;
+  }
+
   Map<String, dynamic> _prepareDataForSave() {
     // Lógica similar a Diagnostico pero con Pruebas Finales e Inspección
     final data = <String, dynamic>{
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,
-      'estado_servicio': 'Completo',
+      'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
       'tipo_servicio': 'MCR.BL',
       'hora_inicio': model.horaInicio,
       'hora_fin': model.horaFin,

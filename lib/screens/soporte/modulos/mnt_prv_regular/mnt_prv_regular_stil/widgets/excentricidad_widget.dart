@@ -145,6 +145,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
           Image.asset(widget.excentricidad.imagenPath!),
         const SizedBox(height: 20),
         TextFormField(
+          initialValue: widget.excentricidad.carga,
           onChanged: (value) {
             widget.excentricidad.carga = value;
             // Actualizar indicaciones

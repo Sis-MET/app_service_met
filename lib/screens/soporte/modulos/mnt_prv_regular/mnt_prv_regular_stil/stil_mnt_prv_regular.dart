@@ -46,10 +46,11 @@ class _StilMntPrvRegularStacScreenState
 
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _dataLoaded = false; // Flag para forzar reconstrucción de widgets de pruebas
   DateTime? _lastPressedTime;
-  double? _cachedD1; // ✅ Cachear d1 para evitar múltiples consultas
+  double? _cachedD1; //  Cachear d1 para evitar múltiples consultas
 
-  // ✅ Definición de pasos
+  //  Definición de pasos
   final List<StepData> _steps = [];
 
   @override
@@ -65,7 +66,11 @@ class _StilMntPrvRegularStacScreenState
 
   Future<void> _loadInitialDataAsync() async {
     await _controller.loadInitialValues();
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {
+        _dataLoaded = true; // Fuerza reconstrucción de widgets con initialValue
+      });
+    }
   }
 
   void _initializeSteps() {
@@ -169,7 +174,7 @@ class _StilMntPrvRegularStacScreenState
     _model.horaInicio = horaFormateada;
   }
 
-  // ✅ Cargar d1 una sola vez
+  //  Cargar d1 una sola vez
   Future<void> _loadD1Value() async {
     try {
       _cachedD1 = await _controller.getD1FromDatabase();
@@ -189,7 +194,7 @@ class _StilMntPrvRegularStacScreenState
     return _cachedD1 ?? 0.1;
   }
 
-  // ✅ Guardar automáticamente al cambiar de paso o interceptar datos
+  //  Guardar automáticamente al cambiar de paso o interceptar datos
   void _onFieldChanged() {
     setState(() {});
     _controller.scheduleAutoSave(context);
@@ -202,16 +207,16 @@ class _StilMntPrvRegularStacScreenState
 
     try {
       await _controller.flushAutoSave(context);
-      debugPrint('✅ Paso $_currentStep guardado forzosamente');
+      debugPrint(' Paso $_currentStep guardado forzosamente');
     } catch (e) {
-      debugPrint('❌ Error al guardar paso $_currentStep: $e');
+      debugPrint(' Error al guardar paso $_currentStep: $e');
       _showSnackBar('Error al guardar: ${e.toString()}', isError: true);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  // ✅ Validar paso actual antes de avanzar
+  //  Validar paso actual antes de avanzar
   bool _validateCurrentStep() {
     switch (_currentStep) {
       case 0: // Pruebas Iniciales
@@ -222,16 +227,15 @@ class _StilMntPrvRegularStacScreenState
       case 2: // Terminal
       case 3: // Balanza
       case 4: // Caja sumadora
-        // Verificar que todos los campos tengan estado seleccionado
+        // Auto-completar los campos que el usuario no tocó con el valor visual por defecto
         final camposDelPaso = _getCamposDelPaso(_currentStep);
         for (var campo in camposDelPaso) {
-          if (_model.camposEstado[campo]?.initialValue == null ||
-              _model.camposEstado[campo]!.initialValue.isEmpty) {
-            _showSnackBar(
-              'Por favor complete todos los campos del estado en: $campo',
-              isError: true,
-            );
-            return false;
+          if (_model.camposEstado[campo]?.initialValue.isEmpty ?? true) {
+            _model.camposEstado[campo]!.initialValue = '4 No aplica';
+            _model.camposEstado[campo]!.solutionValue = 'No aplica';
+            if (_model.camposEstado[campo]!.comentario.isEmpty) {
+              _model.camposEstado[campo]!.comentario = 'Sin comentario';
+            }
           }
         }
         return true;
@@ -414,29 +418,19 @@ class _StilMntPrvRegularStacScreenState
                 )
               : null,
           centerTitle: true,
-          actions: [
-            if (_isSaving)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-          ],
+          actions: const [],
         ),
         body: Column(
           children: [
-            // ✅ Barra de progreso mejorada
+            //  Barra de progreso mejorada
             _buildProgressBar(isDarkMode),
 
-            // ✅ Contenido del paso actual
+            //  Contenido del paso actual
             Expanded(
               child: _buildStepContent(),
             ),
 
-            // ✅ Botones de navegación
+            //  Botones de navegación
             _buildNavigationButtons(isDarkMode),
           ],
         ),
@@ -534,6 +528,7 @@ class _StilMntPrvRegularStacScreenState
     switch (_currentStep) {
       case 0:
         return PasoPruebasIniciales(
+          key: ValueKey('pruebas_ini_$_dataLoaded'),
           model: _model,
           controller: _controller,
           getIndicationSuggestions: _controller.getIndicationSuggestions,
@@ -566,6 +561,7 @@ class _StilMntPrvRegularStacScreenState
         );
       case 5:
         return PasoPruebasFinales(
+          key: ValueKey('pruebas_fin_$_dataLoaded'),
           model: _model,
           controller: _controller,
           getIndicationSuggestions: _controller.getIndicationSuggestions,
@@ -638,7 +634,8 @@ class _StilMntPrvRegularStacScreenState
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => FinServicioMntPrvStilScreen(
+                                  builder: (context) =>
+                                      FinServicioMntPrvStilScreen(
                                     sessionId: widget.sessionId,
                                     secaValue: widget.secaValue,
                                     codMetrica: widget.codMetrica,
@@ -659,7 +656,9 @@ class _StilMntPrvRegularStacScreenState
                         : Icons.check_circle,
                   ),
                   label: Text(
-                    _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
+                    _currentStep < _steps.length - 1
+                        ? 'SIGUIENTE'
+                        : 'FINALIZAR',
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _currentStep < _steps.length - 1
@@ -733,7 +732,7 @@ class _StilMntPrvRegularStacScreenState
   }
 }
 
-// ✅ Clase auxiliar para datos de pasos
+//  Clase auxiliar para datos de pasos
 class StepData {
   final String title;
   final String subtitle;

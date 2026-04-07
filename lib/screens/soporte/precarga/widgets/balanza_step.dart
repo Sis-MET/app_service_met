@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../precarga_controller.dart';
 import '../../../calibracion/precarga/widgets/qr_scanner_screen.dart';
+import 'servicio_incompleto_dialog.dart';
 
 class BalanzaStep extends StatefulWidget {
   final Map<String, TextEditingController> balanzaControllers;
@@ -1292,7 +1293,80 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   void _showCalibrationWarningDialog(
-      Map<String, dynamic> balanza, PrecargaControllerSop controller) {
+      Map<String, dynamic> balanza, PrecargaControllerSop controller) async {
+    final codMetrica = balanza['cod_metrica']?.toString();
+
+    // Verificar si existe un servicio incompleto para este instrumento
+    if (codMetrica != null) {
+      final servicioIncompleto =
+          await controller.checkServicioIncompleto(codMetrica);
+
+      if (servicioIncompleto != null) {
+        // Mostrar diálogo de recuperación de servicio incompleto
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return ServicioIncompletoDialog(
+              registro: servicioIncompleto,
+              onNuevo: () {
+                Navigator.pop(context); // Cerrar diálogo
+                controller.selectBalanza(balanza);
+                _fillBalanzaData(balanza);
+                Navigator.pop(context); // Cerrar diálogo de balanzas
+              },
+              onRecuperar: () async {
+                Navigator.pop(context); // Cerrar diálogo
+
+                // Cargar datos del servicio incompleto
+                controller.selectBalanza(balanza);
+                await controller.loadServicioIncompleto(servicioIncompleto);
+                _fillBalanzaData(balanza);
+                Navigator.pop(context); // Cerrar diálogo de balanzas
+
+                // Mostrar mensaje de éxito
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle,
+                              color: Colors.white, size: 20),
+                          const SizedBox(width: 10),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Servicio recuperado exitosamente',
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'OTST: ${servicioIncompleto['otst']}',
+                                style: GoogleFonts.inter(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: const Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            );
+          },
+        );
+        return;
+      }
+    }
+
+    // Si no hay servicio incompleto, mostrar advertencia normal
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1313,19 +1387,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'La balanza ${balanza['cod_metrica']} tiene un registro pero NO está marcada como "Balanza Calibrada".',
+                'La balanza ${balanza['cod_metrica']} tiene un registro pero no está marcada como completa.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(fontSize: 14),
               ),
               const SizedBox(height: 16),
-              Text(
-                '¿Desea continuar con esta balanza?',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ],
           ),
           actions: [
@@ -1337,8 +1403,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               onPressed: () {
                 controller.selectBalanza(balanza);
                 _fillBalanzaData(balanza);
-                Navigator.pop(context); // Cerrar alerta
-                Navigator.pop(context); // Cerrar diálogo de balanzas
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[700],

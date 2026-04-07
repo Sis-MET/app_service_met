@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -12,7 +13,194 @@ class RelevamientoDeDatosController {
   final RelevamientoDeDatosModel model;
   final Map<String, List<File>> _fieldPhotos = {};
 
+  Timer? _autoSaveTimer;
+  final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
+  final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
+
   RelevamientoDeDatosController({required this.model});
+
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    isAutoSaving.dispose();
+    lastSaveSuccessful.dispose();
+  }
+
+  void scheduleAutoSave(BuildContext context) {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave(context);
+    });
+  }
+
+  Future<void> flushAutoSave(BuildContext context) async {
+    _autoSaveTimer?.cancel();
+    await _autoSave(context);
+  }
+
+  Future<void> _autoSave(BuildContext context) async {
+    if (isAutoSaving.value) return;
+    isAutoSaving.value = true;
+
+    try {
+      await saveDataToDatabase(context, showMessage: false);
+      lastSaveSuccessful.value = true;
+    } catch (e) {
+      lastSaveSuccessful.value = false;
+      debugPrint('Error en auto-guardado (Relevamiento): $e');
+    } finally {
+      isAutoSaving.value = false;
+    }
+  }
+
+  Future<void> loadInitialValues() async {
+    try {
+      final dbHelper = DatabaseHelperRelevamiento();
+      final db = await dbHelper.database;
+      final results = await db.query(
+        'relevamiento_de_datos',
+        where: 'session_id = ? AND otst = ?',
+        whereArgs: [model.sessionId, model.secaValue],
+        limit: 1,
+      );
+
+      if (results.isNotEmpty) {
+        final registro = results.first;
+
+        model.horaFin = registro['hora_fin']?.toString() ?? '';
+        model.comentarioGeneral = registro['comentario_general']?.toString() ?? '';
+        model.recomendacion = registro['recomendaciones']?.toString() ?? ''; // En Relevamiento es 'recomendaciones'
+        
+        // Mapear campos de ESTADO
+        final camposMap = {
+          'carcasa': 'Carcasa',
+          'conector_cables': 'Conector y Cables',
+          'alimentacion': 'Alimentación',
+          'pantalla': 'Pantalla',
+          'teclado': 'Teclado',
+          'bracket_columna': 'Bracket y columna',
+          'plato_carga': 'Plato de Carga',
+          'estructura': 'Estructura',
+          'topes_carga': 'Topes de Carga',
+          'patas': 'Patas',
+          'limpieza': 'Limpieza',
+          'bordes_puntas': 'Bordes y puntas',
+          'celulas': 'Célula(s)',
+          'cables': 'Cable(s)',
+          'cubierta_silicona': 'Cubierta de Silicona',
+          'entorno': 'Entorno',
+          'nivelacion': 'Nivelación',
+          'movilizacion': 'Movilización',
+          'flujo_pesas': 'Flujo de Pesadas',
+        };
+
+        camposMap.forEach((dbKey, modelKey) {
+          if (model.camposEstado.containsKey(modelKey)) {
+            final estado = registro[dbKey]?.toString();
+            final comentario = registro['${dbKey}_comentario']?.toString();
+            if (estado != null && estado.isNotEmpty) {
+              model.camposEstado[modelKey]!.initialValue = estado;
+            }
+            if (comentario != null && comentario.isNotEmpty) {
+              model.camposEstado[modelKey]!.comentario = comentario;
+            }
+          }
+        });
+
+        // Pruebas Finales (ya que relevamiento no tiene iniciales)
+        final retCeroEdo = registro['retorno_cero']?.toString();
+        if (retCeroEdo != null && retCeroEdo.isNotEmpty) {
+           model.pruebasFinales.retornoCero.estado = retCeroEdo;
+        }
+
+        final estCeroEdo = registro['carga_retorno_cero']?.toString();
+        if (estCeroEdo != null && estCeroEdo.isNotEmpty) {
+           model.pruebasFinales.retornoCero.estabilidad = estCeroEdo;
+        }
+
+        model.pruebasFinales.pMaxBruto = registro['p_max_bruto']?.toString() ?? '';
+        model.pruebasFinales.pMinNeto = registro['p_min_neto']?.toString() ?? '';
+
+        _loadExcentricidadData(registro, model.pruebasFinales);
+        _loadRepetibilidadData(registro, model.pruebasFinales);
+        _loadLinealidadData(registro, model.pruebasFinales);
+      }
+    } catch (e) {
+      debugPrint('Error al cargar initial values en Relevamiento: $e');
+    }
+  }
+
+  void _loadExcentricidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas) {
+    final tipoPlataforma = registro['tipo_plataforma']?.toString();
+    if (tipoPlataforma != null && tipoPlataforma.isNotEmpty) {
+      pruebas.excentricidad ??= Excentricidad();
+      final exc = pruebas.excentricidad!;
+      exc.activo = true;
+      exc.tipoPlataforma = tipoPlataforma;
+      exc.puntosIndicador = registro['puntos_ind']?.toString() ?? '';
+      exc.carga = registro['carga']?.toString() ?? '';
+
+      exc.posiciones.clear();
+      for (int i = 0; i < 6; i++) {
+        final posVal = registro['posicion${i + 1}']?.toString();
+        if (posVal != null && posVal.isNotEmpty) {
+          exc.posiciones.add(PosicionExcentricidad(
+            posicion: posVal,
+            indicacion: registro['indicacion${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
+
+  void _loadRepetibilidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas) {
+    final carga1Str = registro['repetibilidad1']?.toString();
+    if (carga1Str != null && carga1Str.isNotEmpty) {
+      pruebas.repetibilidad ??= Repetibilidad();
+      final rep = pruebas.repetibilidad!;
+      rep.activo = true;
+      
+      rep.cargas.clear();
+      final carga1 = CargaRepetibilidad(valor: carga1Str);
+      carga1.pruebas.clear();
+
+      for (int j = 0; j < 10; j++) {
+        final ind = registro['indicacion1_${j + 1}']?.toString();
+        if (ind != null && ind.isNotEmpty) {
+          carga1.pruebas.add(PruebaRepetibilidad(
+            indicacion: ind,
+            retorno: registro['retorno1_${j + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+
+      if (carga1.pruebas.isNotEmpty) {
+        rep.cargas.add(carga1);
+        rep.cantidadPruebas = carga1.pruebas.length;
+      }
+    }
+  }
+
+  void _loadLinealidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas) {
+    final lin1Str = registro['lin1']?.toString();
+    if (lin1Str != null && lin1Str.isNotEmpty) {
+      pruebas.linealidad ??= Linealidad();
+      final lin = pruebas.linealidad!;
+      lin.activo = true;
+      lin.puntos.clear();
+
+      for (int i = 0; i < 12; i++) {
+        final ptVal = registro['lin${i + 1}']?.toString();
+        if (ptVal != null && ptVal.isNotEmpty) {
+          lin.puntos.add(PuntoLinealidad(
+            lt: ptVal,
+            indicacion: registro['ind${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_lin${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
 
   // ✅ OPTIMIZADO: Obtener d1 sin múltiples consultas
   Future<double> getD1FromDatabase() async {
@@ -173,10 +361,17 @@ class RelevamientoDeDatosController {
         .replaceAll(RegExp(r'[^\w\-]'), '');
   }
 
+  // Método helper para verificar si el servicio está completo
+  bool _isServiceComplete() {
+    return model.comentarioGeneral.isNotEmpty &&
+        model.recomendacion.isNotEmpty &&
+        model.horaFin.isNotEmpty;
+  }
+
   // ✅ MEJORADO: Preparar datos con validación
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
-      'estado_servicio': 'Completo',
+      'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,

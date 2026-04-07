@@ -40,9 +40,9 @@ class RelevamientoDeDatosModel {
   // Método para resetear el modelo
   void reset() {
     camposEstado.forEach((key, value) {
-      value.initialValue = '4 No aplica';
-      value.solutionValue = 'No aplica';
-      value.comentario = 'Sin comentario';
+      value.initialValue = '';
+      value.solutionValue = '';
+      value.comentario = '';
       value.fotos.clear();
     });
 
@@ -66,9 +66,9 @@ class CampoEstado {
   List<File> fotos;
 
   CampoEstado({
-    this.initialValue = '4 No aplica',
-    this.solutionValue = 'No aplica',
-    this.comentario = 'Sin comentario',
+    this.initialValue = '',
+    this.solutionValue = '',
+    this.comentario = '',
     List<File>? fotos,
   }) : fotos = fotos ?? [];
 
@@ -130,8 +130,8 @@ class RetornoCero {
   String unidad;
 
   RetornoCero({
-    this.estado = '1 Bueno',
-    this.estabilidad = '1 Bueno',
+    this.estado = '',
+    this.estabilidad = '',
     this.valor = '',
     this.unidad = '',
   });

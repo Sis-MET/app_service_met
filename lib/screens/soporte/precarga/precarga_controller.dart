@@ -943,6 +943,73 @@ class PrecargaControllerSop extends ChangeNotifier {
     }
   }
 
+  // ==================== RECUPERACIÓN DE SERVICIOS INCOMPLETOS ====================
+  
+  Future<Map<String, dynamic>?> checkServicioIncompleto(String codMetrica) async {
+    try {
+      if (_tableName == null) return null;
+      final dbHelper = _getDatabaseHelper();
+      final db = await dbHelper.database;
+      
+      final registros = await db.query(
+        dbHelper.tableName,
+        where: 'cod_metrica = ? AND estado_servicio == ?',
+        whereArgs: [codMetrica, 'Pendiente'],
+        orderBy: 'fecha_servicio DESC',
+        limit: 1,
+      );
+      
+      if (registros.isNotEmpty) {
+        return registros.first;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error al verificar servicio incompleto: $e');
+      return null;
+    }
+  }
+  
+  Future<void> loadServicioIncompleto(Map<String, dynamic> registro) async {
+    try {
+      if (registro['session_id'] != null) _generatedSessionId = registro['session_id'];
+      if (registro['otst'] != null) {
+        _generatedSeca = registro['otst'];
+        _secaConfirmed = true;
+      }
+      
+      if (_selectedBalanza != null) {
+        if (registro['inf_bal'] != null) {
+          _hiddenEditedFields = registro['inf_bal'].toString();
+          final camposEditados = _hiddenEditedFields.isEmpty ? [] : _hiddenEditedFields.split(',');
+          for (var campo in camposEditados) {
+            _balanzaUnlockState[campo] = true;
+          }
+        }
+        
+        final bData = _selectedBalanza!;
+        if (registro['cod_int'] != null) bData['cod_interno'] = registro['cod_int'];
+        if (registro['marca'] != null) bData['marca'] = registro['marca'];
+        if (registro['modelo'] != null) bData['modelo'] = registro['modelo'];
+        if (registro['serie'] != null) bData['serie'] = registro['serie'];
+        if (registro['tipo_equipo'] != null) bData['tipo'] = registro['tipo_equipo'];
+        if (registro['unidades'] != null) bData['unidad'] = registro['unidades'];
+        if (registro['ubicacion'] != null) bData['ubicacion'] = registro['ubicacion'];
+        if (registro['num_celdas'] != null) bData['n_celdas'] = registro['num_celdas'];
+        
+        if (registro['cap_max1'] != null) bData['cap_max1'] = registro['cap_max1'];
+        if (registro['d1'] != null) bData['d1'] = registro['d1'];
+        if (registro['cap_max2'] != null) bData['cap_max2'] = registro['cap_max2'];
+        if (registro['d2'] != null) bData['d2'] = registro['d2'];
+        if (registro['cap_max3'] != null) bData['cap_max3'] = registro['cap_max3'];
+        if (registro['d3'] != null) bData['d3'] = registro['d3'];
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error al cargar servicio incompleto: $e');
+    }
+  }
+
   void selectBalanza(Map<String, dynamic> balanza) {
     _selectedBalanza = balanza;
     _isNewBalanza = false;
@@ -1093,10 +1160,16 @@ class PrecargaControllerSop extends ChangeNotifier {
 
       // Filtrar campos que solo son visuales y no deben guardarse
       final dataToSave = Map<String, String>.from(balanzaData);
+      
+      // Mapear n_celdas a num_celdas para guardarlo en la BBDD local
+      if (dataToSave.containsKey('n_celdas') && dataToSave['n_celdas'] != null) {
+        dataToSave['num_celdas'] = dataToSave['n_celdas']!;
+      }
+
       dataToSave.remove('tecnologia');
       dataToSave.remove('clase');
       dataToSave.remove('rango');
-      dataToSave.remove('n_celdas'); // NO GUARDAR n_celdas
+      dataToSave.remove('n_celdas'); // NO GUARDAR n_celdas (se renombró a num_celdas)
 
       final registro = {
         'session_id': _generatedSessionId!,

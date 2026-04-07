@@ -137,8 +137,9 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
 
           // Recomendación
           DropdownButtonFormField<String>(
-            initialValue:
+            value:
                 model.recomendacion.isEmpty ? null : model.recomendacion,
+            hint: const Text('Hint: Seleccione...'),
             decoration: InputDecoration(
               labelText: 'Recomendación *',
               border: OutlineInputBorder(
@@ -355,7 +356,8 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      initialValue: value.isEmpty ? null : value,
+      value: value.isEmpty ? null : value,
+      hint: const Text('Hint: Seleccione...'),
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(

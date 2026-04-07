@@ -306,10 +306,10 @@ class DatabaseHelperMntPrvAvanzadoStac {
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
         estabilizacion_inicial TEXT DEFAULT '',
+
         retorno_cero_final_valoracion TEXT DEFAULT '',
         estabilizacion_final TEXT DEFAULT '',
    
-
         -- Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',
         puntos_ind_inicial TEXT DEFAULT '',
@@ -386,10 +386,6 @@ class DatabaseHelperMntPrvAvanzadoStac {
         indicacion_final_12 TEXT DEFAULT '',
         retorno_final_12 TEXT DEFAULT '',
         
-
-        repetibilidad_inicial_cantidad_cargas TEXT DEFAULT '',
-        repetibilidad_inicial_cantidad_pruebas TEXT DEFAULT '',
-        
         -- Carga 1
         repetibilidad1_inicial TEXT DEFAULT '',
         indicacion1_inicial_1 TEXT DEFAULT '',
@@ -412,10 +408,6 @@ class DatabaseHelperMntPrvAvanzadoStac {
         retorno1_inicial_9 TEXT DEFAULT '',
         indicacion1_inicial_10 TEXT DEFAULT '',
         retorno1_inicial_10 TEXT DEFAULT '',
-         
-        -- Repetibilidad Final
-        repetibilidad_final_cantidad_cargas INTEGER DEFAULT '',
-        repetibilidad_final_cantidad_pruebas INTEGER DEFAULT '',
         
         -- Carga 1
         repetibilidad1_final TEXT DEFAULT '',
@@ -439,7 +431,6 @@ class DatabaseHelperMntPrvAvanzadoStac {
         retorno1_final_9 TEXT DEFAULT '',
         indicacion1_final_10 TEXT DEFAULT '',
         retorno1_final_10 TEXT DEFAULT '',
-        
         
         -- Linealidad Inicial
         linealidad_inicial_cantidad_puntos INTEGER DEFAULT '',

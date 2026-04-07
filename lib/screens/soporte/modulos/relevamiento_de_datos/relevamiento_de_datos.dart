@@ -56,8 +56,19 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
     _initializeModel();
     _controller = RelevamientoDeDatosController(model: _model);
     _actualizarHora();
-    _loadD1Value();
+    _loadInitialDataAsync();
     _initializeSteps();
+  }
+
+  Future<void> _loadInitialDataAsync() async {
+    await _controller.loadInitialValues();
+    await _loadD1Value();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _initializeSteps() {
@@ -107,8 +118,9 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
     return _cachedD1 ?? 0.1;
   }
 
-  void _onModelChanged() {
+  void _onFieldChanged() {
     setState(() {});
+    _controller.scheduleAutoSave(context);
   }
 
   Future<void> _saveCurrentStep() async {
@@ -117,11 +129,12 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
     setState(() => _isSaving = true);
 
     try {
-      await _controller.saveDataToDatabase(context, showMessage: false);
+      await _controller.flushAutoSave(context);
     } catch (e) {
       debugPrint('Error al guardar paso $_currentStep: $e');
+      _showSnackBar('Error al guardar: ${e.toString()}');
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -302,13 +315,16 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
         ),
         body: Column(
           children: [
-            // Barra de progreso
+            // Barra de progreso plana
             _buildProgressBar(isDarkMode),
 
             // Contenido del paso actual
             Expanded(
               child: _buildStepContent(),
             ),
+
+            // Indicador flotante automático estilo STAC
+            _buildAutoSaveIndicator(),
 
             // Botones de navegación
             _buildNavigationButtons(isDarkMode),
@@ -322,85 +338,115 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
 
   Widget _buildProgressBar(bool isDarkMode) {
     return Container(
+      width: double.infinity,
+      color: isDarkMode ? Colors.black26 : Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black26 : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Título del paso actual
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                _steps[_currentStep].icon,
-                color: Theme.of(context).primaryColor,
-                size: 24,
+              Text(
+                'Paso ${_currentStep + 1} de ${_steps.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isDarkMode ? Colors.white70 : Colors.black54,
+                ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Paso ${_currentStep + 1} de ${_steps.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _steps[_currentStep].subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDarkMode ? Colors.white60 : Colors.black45,
-                      ),
-                    ),
-                  ],
+              Text(
+                _steps[_currentStep].title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-
-          // Barra de progreso visual
+          const SizedBox(height: 8),
           Row(
-            children: List.generate(_steps.length, (index) {
-              final isCompleted = index < _currentStep;
-              final isCurrent = index == _currentStep;
-
-              return Expanded(
+            children: List.generate(
+              _steps.length,
+              (index) => Expanded(
                 child: Container(
                   height: 4,
                   margin: EdgeInsets.only(
-                    left: index == 0 ? 0 : 4,
-                    right: index == _steps.length - 1 ? 0 : 4,
-                  ),
+                      right: index < _steps.length - 1 ? 4 : 0),
                   decoration: BoxDecoration(
-                    color: isCompleted || isCurrent
+                    color: index <= _currentStep
                         ? Theme.of(context).primaryColor
-                        : Colors.grey.withOpacity(0.3),
+                        : (isDarkMode ? Colors.white24 : Colors.grey[300]),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              );
-            }),
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAutoSaveIndicator() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _controller.isAutoSaving,
+      builder: (context, isSaving, _) {
+        if (isSaving) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.5,
+                    color: Colors.grey[500],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Guardando...',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ValueListenableBuilder<bool>(
+          valueListenable: _controller.lastSaveSuccessful,
+          builder: (context, success, _) {
+            if (success) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0, top: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cloud_done_outlined,
+                        size: 14, color: Colors.grey[400]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Guardado automáticamente',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox(height: 28);
+          },
+        );
+      },
     );
   }
 
@@ -410,25 +456,25 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
         return PasoEntorno(
           model: _model,
           controller: _controller,
-          onChanged: _onModelChanged,
+          onChanged: _onFieldChanged,
         );
       case 1:
         return PasoTerminalPlataformaCeldas(
           model: _model,
           controller: _controller,
-          onChanged: _onModelChanged,
+          onChanged: _onFieldChanged,
         );
       case 2:
         return PasoPruebasFinales(
           model: _model,
           controller: _controller,
           getD1FromDatabase: _getD1FromDatabase,
-          onChanged: _onModelChanged,
+          onChanged: _onFieldChanged,
         );
       case 3:
         return PasoEstadoFinal(
           model: _model,
-          onChanged: _onModelChanged,
+          onChanged: _onFieldChanged,
         );
       default:
         return const Center(child: Text('Paso no encontrado'));

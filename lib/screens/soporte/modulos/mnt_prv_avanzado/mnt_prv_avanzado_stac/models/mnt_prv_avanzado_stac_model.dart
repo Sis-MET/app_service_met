@@ -49,8 +49,8 @@ class MntPrvAvanzadoStacModel {
 
   void reset() {
     camposEstado.forEach((key, value) {
-      value.initialValue = '4 No aplica';
-      value.solutionValue = 'No aplica';
+      value.initialValue = '';
+      value.solutionValue = '';
       value.comentario = 'Sin comentario';
       value.fotos.clear();
     });
@@ -76,8 +76,8 @@ class CampoEstadoAvanzadoStac {
   List<File> fotos;
 
   CampoEstadoAvanzadoStac({
-    this.initialValue = '4 No aplica',
-    this.solutionValue = 'No aplica',
+    this.initialValue = '',
+    this.solutionValue = '',
     this.comentario = 'Sin comentario',
     List<File>? fotos,
   }) : fotos = fotos ?? [];
@@ -134,8 +134,8 @@ class RetornoCero {
   String unidad;
 
   RetornoCero({
-    this.estado = '1 Bueno',
-    this.estabilidad = '1 Bueno',
+    this.estado = '',
+    this.estabilidad = '',
     this.valor = '',
     this.unidad = '',
   });

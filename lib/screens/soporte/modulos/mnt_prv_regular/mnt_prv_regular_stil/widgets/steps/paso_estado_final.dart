@@ -144,14 +144,15 @@ class _PasoEstadoFinalState extends State<PasoEstadoFinal> {
               helperText: '* Campo obligatorio',
             ),
             maxLines: 4,
+            maxLength: 490,
             onChanged: (value) {
               widget.model.comentarioGeneral = value;
               widget.onChanged();
             },
             controller: _comentarioController,
           ),
-          const SizedBox(height: 20),
 
+          const SizedBox(height: 20),
           // Recomendación
           DropdownButtonFormField<String>(
             initialValue: widget.model.recomendacion.isEmpty

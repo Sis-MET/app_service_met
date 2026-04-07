@@ -2,6 +2,7 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -12,10 +13,246 @@ class MntPrvAvanzadoStacController {
   final MntPrvAvanzadoStacModel model;
   final Map<String, List<File>> _fieldPhotos = {};
 
+  Timer? _autoSaveTimer;
+  final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
+  final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
+
   MntPrvAvanzadoStacController({required this.model});
+
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    isAutoSaving.dispose();
+    lastSaveSuccessful.dispose();
+  }
+
+  void scheduleAutoSave(BuildContext context) {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave(context);
+    });
+  }
+
+  Future<void> flushAutoSave(BuildContext context) async {
+    _autoSaveTimer?.cancel();
+    await _autoSave(context);
+  }
+
+  Future<void> _autoSave(BuildContext context) async {
+    if (isAutoSaving.value) return;
+    isAutoSaving.value = true;
+
+    try {
+      await saveDataToDatabase(context, showMessage: false);
+      lastSaveSuccessful.value = true;
+    } catch (e) {
+      lastSaveSuccessful.value = false;
+      debugPrint('Error en auto-guardado: $e');
+    } finally {
+      isAutoSaving.value = false;
+    }
+  }
 
   void copiarPruebasInicialesAFinales() {
     model.copiarPruebasInicialesAFinales();
+  }
+
+  Future<void> loadInitialValues() async {
+    try {
+      final dbHelper = DatabaseHelperMntPrvAvanzadoStac();
+      final db = await dbHelper.database;
+      final results = await db.query(
+        'mnt_prv_avanzado_stac',
+        where: 'session_id = ? AND otst = ?',
+        whereArgs: [model.sessionId, model.secaValue],
+        limit: 1,
+      );
+
+      if (results.isNotEmpty) {
+        final registro = results.first;
+
+        // Recuperar campos fijos
+        model.horaFin = registro['hora_fin']?.toString() ?? '';
+        model.comentarioGeneral =
+            registro['comentario_general']?.toString() ?? '';
+        model.recomendacion = registro['recomendacion']?.toString() ?? '';
+        model.estadoFisico = registro['fisico']?.toString() ?? '';
+        model.estadoOperacional = registro['operacional']?.toString() ?? '';
+        model.estadoMetrologico = registro['metrologico']?.toString() ?? '';
+        model.fechaProxServicio =
+            registro['fecha_prox_servicio']?.toString() ?? '';
+
+        // Campos Estado Dinámicos
+        final camposMap = {
+          'losas_aproximacion': 'Losas de aproximación (daños o grietas)',
+          'fundaciones': 'Fundaciones (daños o grietas)',
+          'limpieza_perimetro': 'Limpieza de perímetro de balanza',
+          'fosa_humedad': 'Fosa libre de humedad',
+          'drenaje_libre': 'Drenaje libre',
+          'bomba_sumidero': 'Bomba de sumidero funcional',
+          'corrosion': 'Corrosión',
+          'puente_grietas': 'Puente de pesaje (grietas)',
+          'tapas_pernos': 'Tapas superiores y pernos',
+          'desgaste_estres': 'Desgaste y estrés',
+          'limpieza_puente': 'Limpieza por debajo del puente',
+          'estado_rieles': 'Estado rieles laterales',
+          'limitadores_long': 'Limitadores Longitudinales',
+          'limitadores_trans': 'Limitadores Transversales',
+          'cable_homerun': 'Cable home run',
+          'cables_celdas': 'Cables de celdas de carga',
+          'conexion_celda_cable': 'Conexión entre celda de carga y cable',
+          'conectores_celdas': 'Conectores de celdas de carga',
+          'conector_terminacion': 'Conector de terminación',
+          'caja_union': 'Caja de unión o Sumadora',
+          'sistema_proteccion_rayos': 'Sistema de Protección contra Rayos',
+          'conexion_malla_tierra': 'Conexión de Malla de Tierra',
+          'tension_neutro_tierra': 'Tensión entre neutro y tierra adecuada',
+          'estado_strike_shield': 'Estado strike shield',
+          'limpieza_conectores': 'Limpieza e inspección conectores',
+          'limpieza_estructura':
+              'Limpieza e inspección de superficies de acoplamiento de la estructura',
+          'bearing_cups': 'Limpieza e inspección de bearing cups',
+          'celdas_carga': 'Limpieza e inspección de celdas de carga',
+          'lubricacion_celdas': 'Lubricacion celdas de carga',
+          'lubricacion_bearing': 'Lubricación bearing cups',
+          'protector_goma': 'Protector de goma para celdas',
+          'carcasa': 'Carcasa',
+          'voltaje_pila': 'Voltaje pila de Boton',
+          'estado_teclado': 'Estado del teclado',
+          'estado_display': 'Estado del display',
+          'registros_predictivo': 'Registros Predictivo solo PDX',
+          'alertas_servicio': 'Alertas de servicio MT',
+          'estado_prensacables': 'Estado prensacables:',
+          'comunicacion_pc': 'Comunicación con PC',
+          'balanza_apta':
+              'Balanza apta para Verificación Dentro tolerancias NB23001',
+        };
+
+        camposMap.forEach((dbKey, modelKey) {
+          if (model.camposEstado.containsKey(modelKey)) {
+            final estado = registro['${dbKey}_estado']?.toString();
+            final solucion = registro['${dbKey}_solucion']?.toString();
+            if (estado != null && estado.isNotEmpty) {
+              model.camposEstado[modelKey]!.initialValue = estado;
+            }
+            if (solucion != null && solucion.isNotEmpty) {
+              model.camposEstado[modelKey]!.solutionValue = solucion;
+            }
+          }
+        });
+
+        // Pruebas Iniciales
+        final retCeroIniVal =
+            registro['retorno_cero_inicial_valoracion']?.toString();
+        if (retCeroIniVal != null && retCeroIniVal.isNotEmpty) {
+          model.pruebasIniciales.retornoCero.estado = retCeroIniVal;
+        }
+
+        final estabIni = registro['estabilizacion_inicial']?.toString();
+        if (estabIni != null && estabIni.isNotEmpty) {
+          model.pruebasIniciales.retornoCero.estabilidad = estabIni;
+        }
+
+        _loadExcentricidadData(registro, model.pruebasIniciales, 'inicial');
+        _loadRepetibilidadData(registro, model.pruebasIniciales, 'inicial');
+        _loadLinealidadData(registro, model.pruebasIniciales, 'inicial');
+
+        // Pruebas Finales
+        final retCeroFinVal =
+            registro['retorno_cero_final_valoracion']?.toString();
+        if (retCeroFinVal != null && retCeroFinVal.isNotEmpty) {
+          model.pruebasFinales.retornoCero.estado = retCeroFinVal;
+        }
+
+        final estabFin = registro['estabilizacion_final']?.toString();
+        if (estabFin != null && estabFin.isNotEmpty) {
+          model.pruebasFinales.retornoCero.estabilidad = estabFin;
+        }
+
+        _loadExcentricidadData(registro, model.pruebasFinales, 'final');
+        _loadRepetibilidadData(registro, model.pruebasFinales, 'final');
+        _loadLinealidadData(registro, model.pruebasFinales, 'final');
+      }
+    } catch (e) {
+      debugPrint('Error al cargar initial values en MNT STAC: $e');
+    }
+  }
+
+  void _loadExcentricidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final tipoPlataforma = registro['tipo_plataforma_$tipo']?.toString();
+    if (tipoPlataforma != null && tipoPlataforma.isNotEmpty) {
+      pruebas.excentricidad ??= Excentricidad();
+      final exc = pruebas.excentricidad!;
+      exc.activo = true;
+      exc.tipoPlataforma = tipoPlataforma;
+      exc.puntosIndicador = registro['puntos_ind_$tipo']?.toString() ?? '';
+      exc.carga = registro['carga_exc_$tipo']?.toString() ?? '';
+
+      exc.posiciones.clear();
+      for (int i = 0; i < 6; i++) {
+        final posVal = registro['posicion_${tipo}_${i + 1}']?.toString();
+        if (posVal != null && posVal.isNotEmpty) {
+          exc.posiciones.add(PosicionExcentricidad(
+            posicion: posVal,
+            indicacion:
+                registro['indicacion_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno: registro['retorno_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
+  }
+
+  void _loadRepetibilidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final carga1Str = registro['repetibilidad1_$tipo']?.toString();
+    if (carga1Str != null && carga1Str.isNotEmpty) {
+      pruebas.repetibilidad ??= Repetibilidad();
+      final rep = pruebas.repetibilidad!;
+      rep.activo = true;
+      // Only handling 1 carga to match table setup
+      rep.cargas.clear();
+      final carga1 = CargaRepetibilidad(valor: carga1Str);
+      carga1.pruebas.clear();
+
+      for (int j = 0; j < 10; j++) {
+        final ind = registro['indicacion1_${tipo}_${j + 1}']?.toString();
+        if (ind != null && ind.isNotEmpty) {
+          carga1.pruebas.add(PruebaRepetibilidad(
+            indicacion: ind,
+            retorno: registro['retorno1_${tipo}_${j + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+
+      if (carga1.pruebas.isNotEmpty) {
+        rep.cargas.add(carga1);
+        rep.cantidadPruebas = carga1.pruebas.length;
+      }
+    }
+  }
+
+  void _loadLinealidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+    final lin1Str = registro['lin_${tipo}_1']?.toString();
+    if (lin1Str != null && lin1Str.isNotEmpty) {
+      pruebas.linealidad ??= Linealidad();
+      final lin = pruebas.linealidad!;
+      lin.activo = true;
+      lin.puntos.clear();
+
+      for (int i = 0; i < 12; i++) {
+        final ptVal = registro['lin_${tipo}_${i + 1}']?.toString();
+        if (ptVal != null && ptVal.isNotEmpty) {
+          lin.puntos.add(PuntoLinealidad(
+            lt: ptVal,
+            indicacion: registro['ind_${tipo}_${i + 1}']?.toString() ?? '',
+            retorno:
+                registro['retorno_lin_${tipo}_${i + 1}']?.toString() ?? '0',
+          ));
+        }
+      }
+    }
   }
 
   // OPTIMIZADO: Obtener d1 de la tabla correcta
@@ -182,10 +419,21 @@ class MntPrvAvanzadoStacController {
         .replaceAll(RegExp(r'[^\w\-]'), '');
   }
 
+  // Método helper para verificar si el servicio está completo
+  bool _isServiceComplete() {
+    return model.comentarioGeneral.isNotEmpty &&
+        model.recomendacion.isNotEmpty &&
+        model.estadoFisico.isNotEmpty &&
+        model.estadoOperacional.isNotEmpty &&
+        model.estadoMetrologico.isNotEmpty &&
+        model.horaFin.isNotEmpty &&
+        model.fechaProxServicio.isNotEmpty;
+  }
+
   // MEJORADO: Preparar datos con validación
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
-      'estado_servicio': 'Completo',
+      'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
       'session_id': model.sessionId,
       'cod_metrica': model.codMetrica,
       'otst': model.secaValue,

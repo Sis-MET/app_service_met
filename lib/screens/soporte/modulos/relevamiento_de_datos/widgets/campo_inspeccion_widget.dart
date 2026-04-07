@@ -180,26 +180,20 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
     final opciones = widget.customOptions ??
         ['1 Bueno', '2 Aceptable', '3 Malo', '4 No aplica'];
 
-    // ✅ Validar que el valor inicial esté en las opciones
-    String initialValue = widget.campo.initialValue;
-    if (initialValue.isEmpty || !opciones.contains(initialValue)) {
-      initialValue = opciones.first;
-      // Actualizar el modelo si el valor cambió forzosamente
-      if (initialValue != widget.campo.initialValue) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              widget.campo.initialValue = initialValue;
-              widget.onChanged();
-            });
-          }
-        });
-      }
-    }
+    // ✅ Map empty to null to show hint
+    String? currentVal = widget.campo.initialValue.isEmpty
+        ? null
+        : (opciones.contains(widget.campo.initialValue)
+            ? widget.campo.initialValue
+            : null);
+
+    // Provide default aesthetics for the decorator prefix
+    final safeIcon = currentVal != null ? (_iconMap[currentVal] ?? Icons.check_circle_outline) : Icons.touch_app_outlined;
+    final safeColor = currentVal != null ? (_colorMap[currentVal] ?? Colors.blue) : Colors.grey;
 
     return DropdownButtonFormField<String>(
-      initialValue:
-          initialValue, // ✅ Usar value en lugar de initialValue para control reactivo
+      value: currentVal,
+      hint: const Text('Seleccione un valor...'),
       decoration: InputDecoration(
         labelText: widget.customOptions != null
             ? 'Selección'
@@ -208,9 +202,8 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
           borderRadius: BorderRadius.circular(8),
         ),
         prefixIcon: Icon(
-          _iconMap[initialValue] ??
-              Icons.check_circle_outline, // Icono por defecto
-          color: _colorMap[initialValue] ?? Colors.blue, // Color por defecto
+          safeIcon,
+          color: safeColor,
         ),
       ),
       items: opciones.map((String value) {

@@ -144,6 +144,7 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
         ),
         const SizedBox(height: 10),
         TextFormField(
+          initialValue: widget.repetibilidad.cargas[cargaIndex].valor,
           onChanged: (value) {
             widget.repetibilidad.cargas[cargaIndex].valor = value;
             _updateIndicacionValues(cargaIndex, value);

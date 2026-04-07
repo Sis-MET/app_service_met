@@ -24,8 +24,8 @@ android {
         applicationId = "bo.metrica.smet"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "4.7.1" 
+        versionCode = 5
+        versionName = "4.8.1" 
     }
 
     buildTypes {

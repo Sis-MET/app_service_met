@@ -446,8 +446,6 @@ class DatabaseHelperMntPrvRegularStil {
         -- PRUEBAS METROLÓGICAS INICIALES
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
         estabilizacion_inicial TEXT DEFAULT '',
-        unidad_retorno_cero_inicial TEXT DEFAULT '',
-        
 
         -- Pruebas de Excentricidad Inicial
         tipo_plataforma_inicial TEXT DEFAULT '',
@@ -553,7 +551,6 @@ class DatabaseHelperMntPrvRegularStil {
         -- PRUEBAS METROLÓGICAS FINALES
         retorno_cero_final_valoracion TEXT DEFAULT '',
         estabilizacion_final TEXT DEFAULT '',
-        unidad_retorno_cero_final TEXT DEFAULT '',
         
         -- Pruebas de Excentricidad Final
         tipo_plataforma_final TEXT DEFAULT '',
@@ -584,9 +581,7 @@ class DatabaseHelperMntPrvRegularStil {
         indicacion_final_6 TEXT DEFAULT '',
         retorno_final_6 TEXT DEFAULT '',
         
-        -- Repetibilidad final (hasta 3 cargas con 10 mediciones cada una)
-        repetibilidad_count_final INTEGER DEFAULT 0,
-        repetibilidad_rows_final INTEGER DEFAULT 0,
+        -- Repetibilidad final (hasta 1 carga con 10 mediciones)
         
         repetibilidad1_final TEXT DEFAULT '',
         indicacion1_final_1 TEXT DEFAULT '',
