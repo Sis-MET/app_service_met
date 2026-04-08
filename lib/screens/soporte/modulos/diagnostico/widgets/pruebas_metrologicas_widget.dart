@@ -59,7 +59,10 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
 
         // Retorno a Cero
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estado,
+          value: widget.pruebas.retornoCero.estado.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estado,
+          hint: const Text('Seleccione...'),
           decoration: _buildInputDecoration('Retorno a Cero'),
           items: const [
             DropdownMenuItem(value: '1 Bueno', child: Text('1 Bueno')),
@@ -81,8 +84,10 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         // El modelo `RetornoCero` de STIL tiene `valor`, `unidad`, `estabilidad` (opcional).
         // Si seguimos STIL, usamos `estabilidad`.
         DropdownButtonFormField<String>(
-          initialValue: widget
-              .pruebas.retornoCero.estabilidad, // Usamos campo estabilidad
+          value: widget.pruebas.retornoCero.estabilidad.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estabilidad,
+          hint: const Text('Seleccione...'),
           decoration: _buildInputDecoration('Estabilidad'),
           items: const [
             DropdownMenuItem(value: '1 Bueno', child: Text('1 Bueno')),

@@ -66,7 +66,10 @@ class _PruebasMetrologicasInstalacionWidgetState
 
         // Retorno a Cero
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estado,
+          value: widget.pruebas.retornoCero.estado.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estado,
+          hint: const Text('Seleccione...'),
           decoration: InputDecoration(
             labelText: 'Retorno a Cero',
             border: OutlineInputBorder(
@@ -106,7 +109,10 @@ class _PruebasMetrologicasInstalacionWidgetState
 
         // Estabilidad
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estabilidad,
+          value: widget.pruebas.retornoCero.estabilidad.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estabilidad,
+          hint: const Text('Seleccione...'),
           decoration: _buildInputDecoration('Estabilidad'),
           items: ['1 Bueno', '2 Regular', '3 Malo', '4 No aplica']
               .map((String value) {

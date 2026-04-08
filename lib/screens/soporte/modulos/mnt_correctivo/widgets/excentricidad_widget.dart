@@ -6,13 +6,13 @@ import '../utils/constants.dart';
 
 class ExcentricidadWidget extends StatefulWidget {
   final Excentricidad excentricidad;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
+  final Future<double> Function() getD1FromDatabase;
   final Function onChanged;
 
   const ExcentricidadWidget({
     super.key,
     required this.excentricidad,
-    required this.getIndicationSuggestions,
+    required this.getD1FromDatabase,
     required this.onChanged,
   });
 
@@ -215,15 +215,32 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                   controller: _indicationControllers[index],
                   decoration: _buildInputDecoration(
                     'Indicación',
-                    suffixIcon: FutureBuilder<List<String>>(
-                      future: widget.getIndicationSuggestions(
-                          widget.excentricidad.carga,
-                          _indicationControllers[index].text),
+                    suffixIcon: FutureBuilder<double>(
+                      future: widget.getD1FromDatabase(),
                       builder: (context, snapshot) {
-                        final suggestions = snapshot.data ?? [];
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return const Tooltip(
+                            message: 'Error al cargar d1',
+                            child:
+                                Icon(Icons.error_outline, color: Colors.red),
+                          );
+                        }
+                        final d1 = snapshot.data ?? 0.1;
+
                         return PopupMenuButton<String>(
                           icon: const Icon(Icons.arrow_drop_down),
-                          color: Colors.white,
                           onSelected: (String newValue) {
                             setState(() {
                               _indicationControllers[index].text = newValue;
@@ -233,14 +250,34 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                             });
                           },
                           itemBuilder: (BuildContext context) {
-                            return suggestions.map((String value) {
+                            final currentText =
+                                _indicationControllers[index].text.trim();
+                            final baseValue = double.tryParse(
+                                  (currentText.isEmpty
+                                          ? widget.excentricidad.carga
+                                          : currentText)
+                                      .replaceAll(',', '.'),
+                                ) ??
+                                0.0;
+
+                            int decimals = 0;
+                            if (d1 % 1 != 0) {
+                              final d1Str = d1.toString();
+                              if (d1Str.contains('.')) {
+                                decimals = d1Str.split('.')[1].length;
+                              } else {
+                                decimals = 1;
+                              }
+                            }
+
+                            return List.generate(11, (i) {
+                              final value = baseValue + ((i - 5) * d1);
+                              final txt = value.toStringAsFixed(decimals);
                               return PopupMenuItem<String>(
-                                value: value,
-                                child: Text(value,
-                                    style:
-                                        const TextStyle(color: Colors.black)),
+                                value: txt,
+                                child: Text(txt),
                               );
-                            }).toList();
+                            });
                           },
                         );
                       },

@@ -61,8 +61,8 @@ class MntCorrectivoController {
       final db = await dbHelper.database;
       final results = await db.query(
         'diagnostico_correctivo',
-        where: 'session_id = ? AND otst = ? AND tipo_servicio = ?',
-        whereArgs: [model.sessionId, model.secaValue, 'MCR.BL'],
+        where: 'session_id = ? AND otst = ?',
+        whereArgs: [model.sessionId, model.secaValue],
         limit: 1,
       );
 
@@ -181,24 +181,35 @@ class MntCorrectivoController {
   Future<double> getD1FromDatabase() async {
     if (_cachedD1 != null) return _cachedD1!;
     try {
-      final dbHelper = DatabaseHelperAjustes();
+      final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
       final db = await dbHelper.database;
       final List<Map<String, dynamic>> result = await db.query(
-        'ajustes_metrologicos',
+        'diagnostico_correctivo',
         columns: ['d1'],
-        where: 'cod_metrica = ? AND otst = ?',
-        whereArgs: [model.codMetrica, model.secaValue],
+        where: 'session_id = ? AND cod_metrica = ?',
+        whereArgs: [model.sessionId, model.codMetrica],
         limit: 1,
       );
-      if (result.isNotEmpty) {
-        final d1 = double.tryParse(result.first['d1'].toString()) ?? 0.0;
-        _cachedD1 = d1;
-        return d1;
+      if (result.isNotEmpty && result.first['d1'] != null) {
+        final d1Value = result.first['d1'];
+        double d1 = 0.0;
+        if (d1Value is double) {
+          d1 = d1Value;
+        } else if (d1Value is int) {
+          d1 = d1Value.toDouble();
+        } else if (d1Value is String && d1Value.isNotEmpty) {
+          d1 = double.tryParse(d1Value) ?? 0.0;
+        }
+        
+        if (d1 > 0) {
+          _cachedD1 = d1;
+          return d1;
+        }
       }
     } catch (e) {
       debugPrint('Error getting d1: $e');
     }
-    return 0.0;
+    return 0.1; // Default fallback to avoid multiplying by 0.0
   }
 
   List<String> getIndicationSuggestions(double carga, double d) {
@@ -324,18 +335,27 @@ class MntCorrectivoController {
     // Helper para obtener string seguro y trim
     String getVal(String key) => data[key]?.toString().trim() ?? '';
 
-    // 1. General
-    if (data.containsKey('reporte')) {
+    // 1. Reporte de falla
+    if (data.containsKey('reporte') && getVal('reporte').isNotEmpty) {
       model.reporteFalla = getVal('reporte');
     }
 
-    // Prioridad: 1. evaluacion, 2. comentario_general
+    // 2. Evaluación (prioridad: 'evaluacion', fallback: 'comentario_general')
     if (data.containsKey('evaluacion') && getVal('evaluacion').isNotEmpty) {
       model.evaluacion = getVal('evaluacion');
     } else if (data.containsKey('comentario_general')) {
-      // Fallback para CSVs antiguos o si está vacío
       model.evaluacion = getVal('comentario_general');
     }
+
+    // 3. Trabajo Realizado
+    if (data.containsKey('trabajo_realizado') &&
+        getVal('trabajo_realizado').isNotEmpty) {
+      model.trabajoRealizado = getVal('trabajo_realizado');
+    }
+
+    debugPrint('  reporte: ${model.reporteFalla}');
+    debugPrint('  evaluacion: ${model.evaluacion}');
+    debugPrint('  trabajoRealizado: ${model.trabajoRealizado}');
   }
 
   // --- SAVE ---

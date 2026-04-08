@@ -5,13 +5,13 @@ import '../models/mnt_correctivo_model.dart';
 
 class RepetibilidadWidget extends StatefulWidget {
   final Repetibilidad repetibilidad;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
+  final Future<double> Function() getD1FromDatabase;
   final Function onChanged;
 
   const RepetibilidadWidget({
     super.key,
     required this.repetibilidad,
-    required this.getIndicationSuggestions,
+    required this.getD1FromDatabase,
     required this.onChanged,
   });
 
@@ -172,12 +172,10 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
             Row(
               children: [
                 Expanded(
-                  child: FutureBuilder<List<String>>(
-                    future: widget.getIndicationSuggestions(
-                        widget.repetibilidad.cargas[cargaIndex].valor,
-                        _indicacionControllers[cargaIndex][pruebaIndex].text),
+                  child: FutureBuilder<double>(
+                    future: widget.getD1FromDatabase(),
                     builder: (context, snapshot) {
-                      final suggestions = snapshot.data ?? [];
+                      final d1 = snapshot.data ?? 0.1;
                       return TextFormField(
                         controller: _indicacionControllers[cargaIndex]
                             [pruebaIndex],
@@ -186,7 +184,6 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
                             .copyWith(
                           suffixIcon: PopupMenuButton<String>(
                             icon: const Icon(Icons.arrow_drop_down),
-                            color: Colors.white,
                             onSelected: (String newValue) {
                               setState(() {
                                 _indicacionControllers[cargaIndex][pruebaIndex]
@@ -197,14 +194,31 @@ class _RepetibilidadWidgetState extends State<RepetibilidadWidget> {
                               });
                             },
                             itemBuilder: (BuildContext context) {
-                              return suggestions.map((String value) {
+                              final baseValue = double.tryParse(
+                                      _indicacionControllers[cargaIndex]
+                                              [pruebaIndex]
+                                          .text) ??
+                                  0.0;
+
+                              int decimals = 0;
+                              if (d1 % 1 != 0) {
+                                final d1Str = d1.toString();
+                                if (d1Str.contains('.')) {
+                                  decimals = d1Str.split('.')[1].length;
+                                } else {
+                                  decimals = 1;
+                                }
+                              }
+
+                              return List.generate(11, (index) {
+                                final multiplier = index - 5;
+                                final value = baseValue + (multiplier * d1);
+                                final txt = value.toStringAsFixed(decimals);
                                 return PopupMenuItem<String>(
-                                  value: value,
-                                  child: Text(value,
-                                      style:
-                                          const TextStyle(color: Colors.black)),
+                                  value: txt,
+                                  child: Text(txt),
                                 );
-                              }).toList();
+                              });
                             },
                           ),
                         ),

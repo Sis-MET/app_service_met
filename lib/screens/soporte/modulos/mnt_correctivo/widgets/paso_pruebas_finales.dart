@@ -37,14 +37,9 @@ class _PasoPruebasFinalesState extends State<PasoPruebasFinales> {
               setState(() {});
               if (widget.onUpdate != null) widget.onUpdate!();
             },
-            getIndicationSuggestions:
-                (String cargaStr, String currentIndication) async {
-              double carga = double.tryParse(cargaStr) ?? 0;
-              double d = await widget.controller.getD1FromDatabase();
-              return widget.controller.getIndicationSuggestions(carga, d);
-            },
             getD1FromDatabase: widget.controller.getD1FromDatabase,
           ),
+
         ],
       ),
     );

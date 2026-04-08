@@ -52,7 +52,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
 
         // Retorno a Cero
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estado.isEmpty
+          value: widget.pruebas.retornoCero.estado.isEmpty
               ? null
               : widget.pruebas.retornoCero.estado,
           hint: const Text('Seleccione estado'),
@@ -74,7 +74,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
 
         // Estabilidad
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estabilidad.isEmpty
+          value: widget.pruebas.retornoCero.estabilidad.isEmpty
               ? null
               : widget.pruebas.retornoCero.estabilidad,
           hint: const Text('Seleccione estado'),

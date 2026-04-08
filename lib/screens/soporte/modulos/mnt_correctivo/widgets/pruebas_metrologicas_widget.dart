@@ -10,7 +10,6 @@ class PruebasMetrologicasWidget extends StatefulWidget {
   final PruebasMetrologicas pruebas;
   final String tipoPrueba; // 'Inicial' o 'Final'
   final Function onChanged;
-  final Future<List<String>> Function(String, String) getIndicationSuggestions;
   final Future<double> Function() getD1FromDatabase;
 
   const PruebasMetrologicasWidget({
@@ -18,7 +17,6 @@ class PruebasMetrologicasWidget extends StatefulWidget {
     required this.pruebas,
     required this.tipoPrueba,
     required this.onChanged,
-    required this.getIndicationSuggestions,
     required this.getD1FromDatabase,
   });
 
@@ -54,7 +52,10 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
 
         // Retorno a Cero
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estado,
+          value: widget.pruebas.retornoCero.estado.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estado,
+          hint: const Text('Seleccione...'),
           decoration: _buildInputDecoration('Retorno a Cero'),
           items: const [
             DropdownMenuItem(value: '1 Bueno', child: Text('1 Bueno')),
@@ -73,7 +74,10 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
 
         // Estabilidad (Campo Carga en DB, o 'Estabilidad' en modelo)
         DropdownButtonFormField<String>(
-          initialValue: widget.pruebas.retornoCero.estabilidad,
+          value: widget.pruebas.retornoCero.estabilidad.isEmpty
+              ? null
+              : widget.pruebas.retornoCero.estabilidad,
+          hint: const Text('Seleccione...'),
           decoration: _buildInputDecoration('Estabilidad'),
           items: const [
             DropdownMenuItem(value: '1 Bueno', child: Text('1 Bueno')),
@@ -111,7 +115,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.excentricidad != null)
           ExcentricidadWidget(
             excentricidad: widget.pruebas.excentricidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 
@@ -137,7 +141,7 @@ class _PruebasMetrologicasWidgetState extends State<PruebasMetrologicasWidget> {
         if (widget.pruebas.repetibilidad != null)
           RepetibilidadWidget(
             repetibilidad: widget.pruebas.repetibilidad!,
-            getIndicationSuggestions: widget.getIndicationSuggestions,
+            getD1FromDatabase: widget.getD1FromDatabase,
             onChanged: widget.onChanged,
           ),
 

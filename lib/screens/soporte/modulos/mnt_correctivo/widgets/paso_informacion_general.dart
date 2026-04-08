@@ -24,6 +24,7 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
   late TextEditingController _reporteController;
   late TextEditingController _evaluacionController;
   late TextEditingController _trabajoRealizadoController;
+  bool _isImporting = false;
 
   @override
   void initState() {
@@ -33,6 +34,15 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
         TextEditingController(text: widget.model.evaluacion);
     _trabajoRealizadoController =
         TextEditingController(text: widget.model.trabajoRealizado);
+  }
+
+  /// Refresca los controllers desde el modelo y fuerza un setState visual.
+  void _refreshControllers() {
+    setState(() {
+      _reporteController.text = widget.model.reporteFalla;
+      _evaluacionController.text = widget.model.evaluacion;
+      _trabajoRealizadoController.text = widget.model.trabajoRealizado;
+    });
   }
 
   @override
@@ -73,11 +83,37 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
                 backgroundColor: Colors.blueAccent,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              onPressed: () => widget.controller
-                  .importDiagnosticoCsv(context, widget.onUpdate),
-              icon: const Icon(Icons.download, color: Colors.white),
-              label: const Text('IMPORTAR DIAGNÓSTICO (CSV)',
-                  style: TextStyle(color: Colors.white)),
+              onPressed: _isImporting
+                  ? null
+                  : () async {
+                      setState(() => _isImporting = true);
+                      await widget.controller.importDiagnosticoCsv(
+                        context,
+                        () {
+                          // Refrescar campos visuales + guardar
+                          _refreshControllers();
+                          widget.onUpdate();
+                        },
+                      );
+                      if (mounted) setState(() => _isImporting = false);
+                    },
+              icon: _isImporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.download, color: Colors.white),
+              label: Text(
+                _isImporting
+                    ? 'Cargando datos...   '
+                    : 'IMPORTAR DIAGNÓSTICO (CSV)',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -96,7 +132,10 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
             maxLength: 800,
             maxLines: 8,
             minLines: 4,
-            onChanged: (value) => widget.model.reporteFalla = value,
+            onChanged: (value) {
+              widget.model.reporteFalla = value;
+              widget.onUpdate();
+            },
           ),
           const SizedBox(height: 20),
           TextFormField(
@@ -111,7 +150,10 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
             maxLength: 800,
             maxLines: 8,
             minLines: 4,
-            onChanged: (value) => widget.model.evaluacion = value,
+            onChanged: (value) {
+              widget.model.evaluacion = value;
+              widget.onUpdate();
+            },
           ),
           const SizedBox(height: 20),
           TextFormField(
@@ -126,7 +168,10 @@ class _PasoInformacionGeneralState extends State<PasoInformacionGeneral> {
             maxLength: 800,
             maxLines: 8,
             minLines: 4,
-            onChanged: (value) => widget.model.trabajoRealizado = value,
+            onChanged: (value) {
+              widget.model.trabajoRealizado = value;
+              widget.onUpdate();
+            },
           ),
         ],
       ),

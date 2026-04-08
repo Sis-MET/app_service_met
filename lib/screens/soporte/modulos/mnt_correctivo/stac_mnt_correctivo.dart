@@ -43,6 +43,7 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
 
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _isLoading = true;
   DateTime? _lastPressedTime;
 
   // Definición de pasos
@@ -70,7 +71,7 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
   Future<void> _initializeData() async {
     await _controller.init();
     await _controller.loadInitialValues();
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _isLoading = false);
   }
 
   void _onFieldChanged() {
@@ -245,37 +246,42 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
                   )
                 : null,
             centerTitle: true,
-              // Indicador de guardado automático Cloud Guardando...
-              ValueListenableBuilder<bool>(
-                valueListenable: _controller.isAutoSaving,
-                builder: (context, isSaving, _) {
-                  return ValueListenableBuilder<bool>(
-                    valueListenable: _controller.lastSaveSuccessful,
-                    builder: (context, saveSuccess, _) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 16.0),
-                        child: _buildAutoSaveIndicator(isSaving, saveSuccess),
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
           ),
-          body: Column(
-            children: [
-              // Barra de progreso mejorada
-              _buildProgressBar(isDarkMode),
+          body: _isLoading
+              ? Column(
+                  children: [
+                    _buildProgressBar(isDarkMode),
+                    const Expanded(
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(height: 16),
+                            Text(
+                              'Cargando datos...',
+                              style: TextStyle(fontSize: 14, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  children: [
+                    // Barra de progreso mejorada
+                    _buildProgressBar(isDarkMode),
 
-              // Contenido del paso actual
-              Expanded(
-                child: _buildStepContent(),
-              ),
+                    // Contenido del paso actual
+                    Expanded(
+                      child: _buildStepContent(),
+                    ),
 
-              // Botones de navegación
-              _buildNavigationButtons(isDarkMode),
-            ],
-          ),
+                    // Botones de navegación
+                    _buildNavigationButtons(isDarkMode),
+                  ],
+                ),
           floatingActionButton: const BalanzaSpeedDial(),
           floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
         ),
@@ -283,46 +289,52 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
     );
   }
 
-  Widget _buildAutoSaveIndicator(bool isSaving, bool saveSuccess) {
-    if (isSaving) {
-      return const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 12,
-            height: 12,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
-          ),
-          SizedBox(width: 8),
-          Text('Guardando...',
-              style: TextStyle(fontSize: 12, color: Colors.blue)),
-        ],
-      );
-    }
+  Widget _buildAutoSaveIndicator() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _controller.isAutoSaving,
+      builder: (context, isSaving, _) {
+        if (isSaving) {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(
+                  strokeWidth: 1.5,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Guardando...',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+            ],
+          );
+        }
 
-    if (!saveSuccess) {
-      return const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, size: 16, color: Colors.red),
-          SizedBox(width: 4),
-          Text('Error al guardar',
-              style: TextStyle(fontSize: 12, color: Colors.red)),
-        ],
-      );
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.cloud_done, size: 16, color: Colors.green[400]),
-        const SizedBox(width: 4),
-        Text('Guardado automático',
-            style: TextStyle(fontSize: 12, color: Colors.green[400])),
-      ],
+        return ValueListenableBuilder<bool>(
+          valueListenable: _controller.lastSaveSuccessful,
+          builder: (context, success, _) {
+            if (success) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_done_outlined,
+                      size: 14, color: Colors.grey[400]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Guardado automáticamente',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  ),
+                ],
+              );
+            }
+            return const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 
@@ -440,73 +452,80 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Botón Anterior
-          if (_currentStep > 0)
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _goToStep(_currentStep - 1),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('ANTERIOR'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+          _buildAutoSaveIndicator(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              // Botón Anterior
+              if (_currentStep > 0)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _goToStep(_currentStep - 1),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('ANTERIOR'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+                ),
+
+              if (_currentStep > 0) const SizedBox(width: 12),
+
+              // Botón Siguiente
+              Expanded(
+                flex: _currentStep == 0 ? 1 : 2,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          if (_currentStep < _steps.length - 1) {
+                            await _goToStep(_currentStep + 1);
+                          } else {
+                            // Finalizar servicio
+                            if (_validateCurrentStep()) {
+                              await _saveCurrentStep();
+                              if (mounted) {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        FinServicioMntcorrectivoScreen(
+                                      sessionId: widget.sessionId,
+                                      secaValue: widget.secaValue,
+                                      nReca: widget.nReca,
+                                      codMetrica: widget.codMetrica,
+                                      userName: widget.userName,
+                                      clienteId: widget.clienteId,
+                                      plantaCodigo: widget.plantaCodigo,
+                                      tableName: 'diagnostico_correctivo',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                  icon: Icon(
+                    _currentStep < _steps.length - 1
+                        ? Icons.arrow_forward
+                        : Icons.check_circle,
+                  ),
+                  label: Text(
+                    _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF195375),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                 ),
               ),
-            ),
-
-          if (_currentStep > 0) const SizedBox(width: 12),
-
-          // Botón Siguiente
-          Expanded(
-            flex: _currentStep == 0 ? 1 : 2,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
-                      if (_currentStep < _steps.length - 1) {
-                        await _goToStep(_currentStep + 1);
-                      } else {
-                        // Finalizar servicio
-                        if (_validateCurrentStep()) {
-                          await _saveCurrentStep();
-                          if (mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    FinServicioMntcorrectivoScreen(
-                                  sessionId: widget.sessionId,
-                                  secaValue: widget.secaValue, // SECA/OTST
-                                  nReca: widget.nReca,
-                                  codMetrica: widget.codMetrica,
-                                  userName: widget.userName,
-                                  clienteId: widget.clienteId,
-                                  plantaCodigo: widget.plantaCodigo,
-                                  tableName: 'diagnostico_correctivo',
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      }
-                    },
-              icon: Icon(
-                _currentStep < _steps.length - 1
-                    ? Icons.arrow_forward
-                    : Icons.check_circle,
-              ),
-              label: Text(
-                _currentStep < _steps.length - 1 ? 'SIGUIENTE' : 'FINALIZAR',
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF195375),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
+            ],
           ),
         ],
       ),
