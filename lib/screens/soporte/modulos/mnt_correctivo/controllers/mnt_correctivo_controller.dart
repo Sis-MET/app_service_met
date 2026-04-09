@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/mnt_correctivo_model.dart';
 import '../../../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
-import '../../../../../database/soporte_tecnico/database_helper_ajustes.dart'; // Para d1
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 
@@ -72,24 +71,28 @@ class MntCorrectivoController {
         model.horaFin = registro['hora_fin']?.toString() ?? '';
         model.reporteFalla = registro['reporte']?.toString() ?? '';
         model.evaluacion = registro['evaluacion']?.toString() ?? '';
-        model.trabajoRealizado = registro['trabajo_realizado']?.toString() ?? '';
-        
+        model.trabajoRealizado =
+            registro['trabajo_realizado']?.toString() ?? '';
+
         // Estado Final
-        model.comentarioGeneral = registro['comentario_general']?.toString() ?? '';
+        model.comentarioGeneral =
+            registro['comentario_general']?.toString() ?? '';
         model.recomendacion = registro['recomendacion']?.toString() ?? '';
-        model.fechaProxServicio = registro['fecha_prox_servicio']?.toString() ?? '';
+        model.fechaProxServicio =
+            registro['fecha_prox_servicio']?.toString() ?? '';
         model.estadoFisico = registro['fisico']?.toString() ?? '';
         model.estadoOperacional = registro['operacional']?.toString() ?? '';
         model.estadoMetrologico = registro['metrologico']?.toString() ?? '';
 
         // Pruebas Finales - Retorno Cero
-        final retCeroFinEst = registro['retorno_cero_final_valoracion']?.toString();
+        final retCeroFinEst =
+            registro['retorno_cero_final_valoracion']?.toString();
         if (retCeroFinEst != null && retCeroFinEst.isNotEmpty) {
-           model.pruebasFinales.retornoCero.estado = retCeroFinEst;
+          model.pruebasFinales.retornoCero.estado = retCeroFinEst;
         }
         final estabFinEst = registro['estabilizacion_final']?.toString();
         if (estabFinEst != null && estabFinEst.isNotEmpty) {
-           model.pruebasFinales.retornoCero.estabilidad = estabFinEst;
+          model.pruebasFinales.retornoCero.estabilidad = estabFinEst;
         }
 
         _loadExcentricidadData(registro, model.pruebasFinales, 'final');
@@ -101,7 +104,8 @@ class MntCorrectivoController {
     }
   }
 
-  void _loadExcentricidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+  void _loadExcentricidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
     final tipoPlataforma = registro['tipo_plataforma_$tipo']?.toString();
     if (tipoPlataforma != null && tipoPlataforma.isNotEmpty) {
       pruebas.excentricidad ??= Excentricidad();
@@ -117,7 +121,8 @@ class MntCorrectivoController {
         if (posVal != null && posVal.isNotEmpty) {
           exc.posiciones.add(PosicionExcentricidad(
             posicion: posVal,
-            indicacion: registro['indicacion_${tipo}_${i + 1}']?.toString() ?? '',
+            indicacion:
+                registro['indicacion_${tipo}_${i + 1}']?.toString() ?? '',
             retorno: registro['retorno_${tipo}_${i + 1}']?.toString() ?? '0',
           ));
         }
@@ -125,13 +130,14 @@ class MntCorrectivoController {
     }
   }
 
-  void _loadRepetibilidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+  void _loadRepetibilidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
     final carga1Str = registro['repetibilidad1_$tipo']?.toString();
     if (carga1Str != null && carga1Str.isNotEmpty) {
       pruebas.repetibilidad ??= Repetibilidad();
       final rep = pruebas.repetibilidad!;
       rep.activo = true;
-      
+
       rep.cargas.clear();
       final carga1 = CargaRepetibilidad(valor: carga1Str);
       carga1.pruebas.clear();
@@ -153,7 +159,8 @@ class MntCorrectivoController {
     }
   }
 
-  void _loadLinealidadData(Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
+  void _loadLinealidadData(
+      Map<String, dynamic> registro, PruebasMetrologicas pruebas, String tipo) {
     final lin1Str = registro['lin_${tipo}_1']?.toString();
     if (lin1Str != null && lin1Str.isNotEmpty) {
       pruebas.linealidad ??= Linealidad();
@@ -167,7 +174,8 @@ class MntCorrectivoController {
           lin.puntos.add(PuntoLinealidad(
             lt: ptVal,
             indicacion: registro['ind_${tipo}_${i + 1}']?.toString() ?? '',
-            retorno: registro['retorno_lin_${tipo}_${i + 1}']?.toString() ?? '0',
+            retorno:
+                registro['retorno_lin_${tipo}_${i + 1}']?.toString() ?? '0',
           ));
         }
       }
@@ -200,7 +208,7 @@ class MntCorrectivoController {
         } else if (d1Value is String && d1Value.isNotEmpty) {
           d1 = double.tryParse(d1Value) ?? 0.0;
         }
-        
+
         if (d1 > 0) {
           _cachedD1 = d1;
           return d1;

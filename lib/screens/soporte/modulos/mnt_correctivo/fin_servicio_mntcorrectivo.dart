@@ -291,8 +291,14 @@ class _FinServicioMntcorrectivoScreenState
 
       final List<Map<String, dynamic>> rows = await db.query(
         widget.tableName ?? 'diagnostico_correctivo',
-        where: 'otst = ? AND (tipo_servicio = ? OR tipo_servicio = ? OR tipo_servicio = ?)',
-        whereArgs: [widget.secaValue, 'Mantenimiento Correctivo', 'correctivo', 'MCR.BL'],
+        where:
+            'otst = ? AND (tipo_servicio = ? OR tipo_servicio = ? OR tipo_servicio = ?)',
+        whereArgs: [
+          widget.secaValue,
+          'Mantenimiento Correctivo',
+          'correctivo',
+          'MCR.BL'
+        ],
         orderBy: 'session_id DESC',
         limit: 1,
       );
