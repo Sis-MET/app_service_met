@@ -57,9 +57,10 @@ class InspeccionVisualStep extends StatelessWidget {
 
         // Tiempos
         DropdownButtonFormField<String>(
-          initialValue: controller.tiempoMin,
+          initialValue: _validarOpcion(controller.tiempoMin),
           decoration: _buildInputDecoration(
               'Tiempo de estabilización de Pesas (en Minutos):'),
+          hint: const Text('Seleccione una opción'),
           items: const [
             DropdownMenuItem(
                 value: 'Mayor a 15 minutos', child: Text('Mayor a 15 minutos')),
@@ -70,9 +71,10 @@ class InspeccionVisualStep extends StatelessWidget {
         ),
         const SizedBox(height: 20.0),
         DropdownButtonFormField<String>(
-          initialValue: controller.tiempoBalanza,
+          initialValue: _validarOpcion(controller.tiempoBalanza),
           decoration:
               _buildInputDecoration('Tiempo previo a operacion de Balanza:'),
+          hint: const Text('Seleccione una opción'),
           items: const [
             DropdownMenuItem(
                 value: 'Mayor a 15 minutos', child: Text('Mayor a 15 minutos')),
@@ -139,6 +141,11 @@ class InspeccionVisualStep extends StatelessWidget {
       ],
     );
   }
+
+  /// Devuelve el valor solo si está entre las opciones válidas, si no null.
+  static const _opcionesValidas = ['Mayor a 15 minutos', 'Mayor a 30 minutos'];
+  String? _validarOpcion(String? valor) =>
+      _opcionesValidas.contains(valor) ? valor : null;
 
   InputDecoration _buildInputDecoration(String labelText) {
     return InputDecoration(

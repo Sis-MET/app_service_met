@@ -81,8 +81,12 @@ class PruebasMetrologicasController extends ChangeNotifier {
   File? _cargaPhoto;
   File? get cargaPhoto => _cargaPhoto;
 
+  bool _photoSaved = false;
+  bool get photoSaved => _photoSaved;
+
   void setCargaPhoto(File photo) {
     _cargaPhoto = photo;
+    _photoSaved = false; // Nueva foto: requiere guardado nuevamente
     notifyListeners();
   }
 
@@ -107,8 +111,8 @@ class PruebasMetrologicasController extends ChangeNotifier {
       );
 
       if (outputFile != null) {
-        // En Android/iOS, si se pasan 'bytes', el FilePicker se encarga de guardar el archivo.
-        // El path devuelto puede ser un URI del sistema que File.copy no puede manejar directamente.
+        _photoSaved = true;
+        notifyListeners();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Foto guardada correctamente'),

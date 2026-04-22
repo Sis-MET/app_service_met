@@ -26,89 +26,104 @@ class StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    // Validar que el paso actual esté dentro de los límites
-    final safeCurrentStep = currentStep.clamp(0, steps.length - 1);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final safeStep = currentStep.clamp(0, steps.length - 1);
+    final step = steps[safeStep];
+    final primaryColor = Theme.of(context).primaryColor;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black26 : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: Colors.transparent,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Título del paso actual
+          // ── Fila compacta ──────────────────────────────────────────
           Row(
             children: [
-              Icon(
-                steps[safeCurrentStep].icon,
-                color: Theme.of(context).primaryColor,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Pill con icono + nombre del paso
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: primaryColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(step.icon, size: 13, color: primaryColor),
+                    const SizedBox(width: 5),
                     Text(
-                      'Paso ${safeCurrentStep + 1} de ${steps.length}',
+                      step.title,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      steps[safeCurrentStep].title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      steps[safeCurrentStep].subtitle,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDarkMode ? Colors.white60 : Colors.black45,
+                        fontWeight: FontWeight.w700,
+                        color: primaryColor,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 10),
+
+              // Subtitle sutil
+              Expanded(
+                child: Text(
+                  step.subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+
+              // Contador "1 / 4"
+              Text(
+                '${safeStep + 1} / ${steps.length}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white54 : Colors.black45,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
 
-          // Barra de progreso visual
+          const SizedBox(height: 8),
+
+          // ── Barra de progreso delgada segmentada ───────────────────
           Row(
-            children: List.generate(steps.length, (index) {
-              final isCompleted = index < safeCurrentStep;
-              final isCurrent = index == safeCurrentStep;
+            children: List.generate(steps.length, (i) {
+              final isCompleted = i < safeStep;
+              final isCurrent = i == safeStep;
 
               return Expanded(
-                child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(
-                    left: index == 0 ? 0 : 4,
-                    right: index == steps.length - 1 ? 0 : 4,
-                  ),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: 3,
+                  margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
                   decoration: BoxDecoration(
-                    color: isCompleted || isCurrent
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey.withOpacity(0.3),
+                    color: isCompleted
+                        ? primaryColor
+                        : isCurrent
+                            ? primaryColor.withOpacity(0.55)
+                            : (isDark
+                                ? Colors.white12
+                                : Colors.black.withOpacity(0.08)),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               );
             }),
           ),
+
+          const SizedBox(height: 4),
         ],
       ),
     );

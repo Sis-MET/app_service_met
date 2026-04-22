@@ -2,11 +2,12 @@
 
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 
 class BackupService {
@@ -178,15 +179,21 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   Future<void> _downloadFile(FileSystemEntity file) async {
     try {
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null) return;
+      final fileName = file.uri.pathSegments.last;
+      final Uint8List bytes = await File(file.path).readAsBytes();
 
-      final success =
-          await BackupService.copyFileToDirectory(file.path, selectedDirectory);
+      final params = SaveFileDialogParams(
+        data: bytes,
+        fileName: fileName,
+      );
+      final savedPath = await FlutterFileDialog.saveFile(params: params);
 
-      if (success) {
+      if (savedPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Archivo descargado en: $selectedDirectory')),
+          SnackBar(
+            content: Text('Archivo guardado: $fileName'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
@@ -195,32 +202,38 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Future<void> _downloadSelectedFiles() async {
-    try {
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory == null) return;
+    int successCount = 0;
+    final List<String> errors = [];
 
-      int successCount = 0;
-      for (var file in _selectedFiles) {
-        try {
-          await BackupService.copyFileToDirectory(file.path, selectedDirectory);
-          successCount++;
-        } catch (e) {
-          debugPrint('Error al copiar ${file.path}: $e');
-        }
+    for (final file in _selectedFiles) {
+      try {
+        final fileName = file.uri.pathSegments.last;
+        final Uint8List bytes = await File(file.path).readAsBytes();
+        final params = SaveFileDialogParams(data: bytes, fileName: fileName);
+        final savedPath = await FlutterFileDialog.saveFile(params: params);
+        if (savedPath != null) successCount++;
+      } catch (e) {
+        errors.add(file.uri.pathSegments.last);
+        debugPrint('Error al copiar ${file.path}: $e');
       }
+    }
 
-      setState(() {
-        _selectedFiles.clear();
-        _isSelectionMode = false;
-      });
+    setState(() {
+      _selectedFiles.clear();
+      _isSelectionMode = false;
+    });
 
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(
-                '$successCount archivos descargados en: $selectedDirectory')),
+          content: Text(
+            errors.isEmpty
+                ? '$successCount archivo(s) descargado(s) correctamente'
+                : '$successCount descargados, ${errors.length} con errores',
+          ),
+          backgroundColor: errors.isEmpty ? Colors.green : Colors.orange,
+        ),
       );
-    } catch (e) {
-      _showErrorDialog('Error al descargar', e.toString());
     }
   }
 

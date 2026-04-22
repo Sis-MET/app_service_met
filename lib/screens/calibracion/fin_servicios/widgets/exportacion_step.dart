@@ -1,8 +1,9 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member, deprecated_member_use
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../fin_servicios_controller.dart';
@@ -13,308 +14,570 @@ class ExportacionStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Provider.of<FinServiciosController>(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
-    final cardOpacity = isDarkMode ? 0.4 : 0.2;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(height: 30.0),
-            _buildInfoSection(
-              'FINALIZAR SERVICIO',
-              'Al dar clic se finalizará el servicio de calibración y se exportarán los datos en un archivo CSV.',
-              textColor,
-            ),
-            _buildActionCard(
-              'images/tarjetas/t4.png',
-              'FINALIZAR SERVICIO\nY EXPORTAR DATOS',
-              () => _confirmarYExportar(context, controller),
-              textColor,
-              cardOpacity,
-            ),
-            const SizedBox(height: 40),
-            _buildInfoSection(
-              'SELECCIONAR OTRA BALANZA',
-              'Al dar clic se volverá a la pantalla de identificación de balanza para seleccionar otra balanza.',
-              textColor,
-            ),
-            _buildActionCard(
-              'images/tarjetas/t7.png',
-              'SELECCIONAR\nOTRA BALANZA',
-              () => _confirmarSeleccionOtraBalanza(context, controller),
-              textColor,
-              cardOpacity,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoSection(String title, String description, Color textColor) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.info_outline, color: textColor),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: textColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            description,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: textColor,
-            ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──────────────────────────────────────────────────
+          _SectionHeader(
+            icon: Icons.summarize_rounded,
+            label: 'Resumen del Servicio',
+            color: const Color(0xFF667EEA),
           ),
-        ),
-        const SizedBox(height: 20),
-      ],
-    );
-  }
+          const SizedBox(height: 12),
+          _ResumenCard(controller: controller, isDark: isDark),
 
-  Widget _buildActionCard(
-    String imagePath,
-    String title,
-    VoidCallback onTap,
-    Color textColor,
-    double opacity,
-  ) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.0)),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          width: 300,
-          height: 180,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20.0)),
-          child: Stack(
+          const SizedBox(height: 24),
+
+          // ── Formulario de exportación ────────────────────────────────
+          _SectionHeader(
+            icon: Icons.tune_rounded,
+            label: 'Datos para el Certificado',
+            color: const Color(0xFF667EEA),
+          ),
+          const SizedBox(height: 12),
+          _ExportForm(controller: controller, isDark: isDark),
+
+          const SizedBox(height: 28),
+
+          // ── Acción: Exportar ─────────────────────────────────────────
+          _ExportButton(controller: controller),
+
+          const SizedBox(height: 16),
+
+          // ── Divisor ─────────────────────────────────────────────────
+          Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20.0),
-                  image: DecorationImage(
-                    image: AssetImage(imagePath),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20.0),
-                    color: Colors.black.withOpacity(opacity),
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'o también',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark ? Colors.white38 : Colors.black38,
                   ),
                 ),
               ),
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            offset: const Offset(0, 1),
-                            blurRadius: 6.0,
-                            color: Colors.black.withOpacity(0.7),
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
+              const Expanded(child: Divider()),
             ],
           ),
-        ),
-      ),
-    );
-  }
 
-  Future<void> _confirmarYExportar(
-      BuildContext context, FinServiciosController controller) async {
-    // Show dialog to get additional data
-    final additionalData = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text(
-                'DATOS ADICIONALES PARA EXPORTACIÓN',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      decoration: _buildInputDecoration('EMP NB 23001'),
-                      initialValue: controller.selectedEmp23001,
-                      items: ['Sí', 'No'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setDialogState(() {
-                          controller.selectedEmp23001 = newValue;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: controller.indicarController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d*')),
-                      ],
-                      decoration: _buildInputDecoration('Indicar (%)'),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: controller.factorSeguridadController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d*')),
-                      ],
-                      decoration: _buildInputDecoration('Factor Seguridad'),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      decoration: _buildInputDecoration('Regla de Aceptación'),
-                      initialValue: controller.selectedReglaAceptacion,
-                      items: ['Ninguna', 'Simple', 'Conservadora']
-                          .map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setDialogState(() {
-                          controller.selectedReglaAceptacion = newValue;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: const Text('Cancelar'),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF46824B),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx, true);
-                  },
-                  child: const Text('Confirmar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+          const SizedBox(height: 16),
 
-    if (additionalData == true) {
-      final registros = await controller.prepareExportData();
-      if (registros.isNotEmpty && context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => _ResumenExportacionScreen(
-              cantidad: registros.length,
-              seca: controller.secaValue,
-              registros: registros,
-              onExport: (registros) => controller.executeExport(registros),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _confirmarSeleccionOtraBalanza(
-      BuildContext context, FinServiciosController controller) async {
-    final bool confirmado = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'CONFIRMAR ACCIÓN',
-            style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w900),
-          ),
-          content:
-              const Text('¿Está seguro que desea seleccionar otra balanza?'),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancelar'),
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Sí, continuar'),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmado == true) {
-      await controller.confirmarSeleccionOtraBalanza();
-    }
-  }
-
-  InputDecoration _buildInputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        borderSide: const BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20.0),
-        borderSide: const BorderSide(color: Colors.blue, width: 2.0),
+          // ── Acción secundaria: Otra balanza ──────────────────────────
+          _OtraBalanzaButton(controller: controller, isDark: isDark),
+        ],
       ),
     );
   }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Widgets internos
+// ────────────────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _SectionHeader({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: color,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResumenCard extends StatelessWidget {
+  final FinServiciosController controller;
+  final bool isDark;
+
+  const _ResumenCard({required this.controller, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final fecha = DateFormat('dd MMM yyyy • HH:mm').format(DateTime.now());
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF1A2A4A), const Color(0xFF0F1E35)]
+              : [const Color(0xFFF0F4FF), const Color(0xFFE8EEFF)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF667EEA).withOpacity(0.25),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Fila principal: SECA + Código
+          Row(
+            children: [
+              Expanded(
+                child: _InfoChip(
+                  icon: Icons.tag_rounded,
+                  label: 'SECA',
+                  value: controller.secaValue,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _InfoChip(
+                  icon: Icons.qr_code_rounded,
+                  label: 'Código',
+                  value: controller.codMetrica,
+                  isDark: isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Fila secundaria: Fecha + Estado
+          Row(
+            children: [
+              Expanded(
+                child: _InfoChip(
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Fecha',
+                  value: fecha,
+                  isDark: isDark,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _InfoChip(
+                  icon: Icons.verified_rounded,
+                  label: 'Estado',
+                  value: 'Calibrada',
+                  isDark: isDark,
+                  highlight: true,
+                ),
+              ),
+            ],
+          ),
+          // Sticker preview si hay datos
+          if (controller.stickerCertificado.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF667EEA).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFF667EEA).withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.workspace_premium_rounded,
+                      size: 18, color: Color(0xFF667EEA)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nro. Certificado',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                        Text(
+                          controller.stickerCertificado,
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF667EEA),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool isDark;
+  final bool highlight;
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.isDark,
+    this.highlight = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withOpacity(0.05)
+            : Colors.white.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: highlight ? Colors.green.withOpacity(0.4) : Colors.transparent,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: highlight
+                ? Colors.green
+                : isDark
+                    ? Colors.white54
+                    : Colors.black38,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: highlight
+                        ? Colors.green
+                        : isDark
+                            ? Colors.white
+                            : Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportForm extends StatelessWidget {
+  final FinServiciosController controller;
+  final bool isDark;
+
+  const _ExportForm({required this.controller, required this.isDark});
+
+  InputDecoration _deco(String label) => InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(fontSize: 13),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withOpacity(0.15)
+                : Colors.black.withOpacity(0.12),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white70 : Colors.black54,
+            width: 1.5,
+          ),
+        ),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.black.withOpacity(0.02),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.07),
+        ),
+        color: isDark ? Colors.white.withOpacity(0.03) : Colors.white,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // EMP NB 23001
+          DropdownButtonFormField<String>(
+            decoration: _deco('EMP NB 23001'),
+            value: controller.selectedEmp23001,
+            hint: Text('Seleccionar', style: GoogleFonts.inter(fontSize: 13)),
+            items: ['Sí', 'No']
+                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                .toList(),
+            onChanged: (v) {
+              controller.selectedEmp23001 = v;
+              controller.notifyListeners();
+            },
+          ),
+          const SizedBox(height: 12),
+          // Indicar + Factor en fila
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: controller.indicarController,
+                  decoration: _deco('Indicar (%)'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                  ],
+                  style: GoogleFonts.inter(fontSize: 13),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: controller.factorSeguridadController,
+                  decoration: _deco('Factor Seguridad'),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                  ],
+                  style: GoogleFonts.inter(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Regla de aceptación
+          DropdownButtonFormField<String>(
+            decoration: _deco('Regla de Aceptación'),
+            value: controller.selectedReglaAceptacion,
+            hint: Text('Seleccionar', style: GoogleFonts.inter(fontSize: 13)),
+            items: ['Ninguna', 'Simple', 'Conservadora']
+                .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                .toList(),
+            onChanged: (v) {
+              controller.selectedReglaAceptacion = v;
+              controller.notifyListeners();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportButton extends StatefulWidget {
+  final FinServiciosController controller;
+
+  const _ExportButton({required this.controller});
+
+  @override
+  State<_ExportButton> createState() => _ExportButtonState();
+}
+
+class _ExportButtonState extends State<_ExportButton> {
+  bool _complete = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Escuchar cambios en los TextFields para recalcular
+    widget.controller.indicarController.addListener(_update);
+    widget.controller.factorSeguridadController.addListener(_update);
+    widget.controller.addListener(_update);
+    _update();
+  }
+
+  void _update() {
+    final c = widget.controller;
+    final ok = c.selectedEmp23001 != null &&
+        c.indicarController.text.trim().isNotEmpty &&
+        c.factorSeguridadController.text.trim().isNotEmpty &&
+        c.selectedReglaAceptacion != null;
+    if (mounted && ok != _complete) setState(() => _complete = ok);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.indicarController.removeListener(_update);
+    widget.controller.factorSeguridadController.removeListener(_update);
+    widget.controller.removeListener(_update);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final exporting = widget.controller.isExporting;
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: _complete && !exporting
+            ? () async {
+                final registros = await widget.controller.prepareExportData();
+                if (registros.isNotEmpty && context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => _ResumenExportacionScreen(
+                        cantidad: registros.length,
+                        seca: widget.controller.secaValue,
+                        registros: registros,
+                        onExport: widget.controller.executeExport,
+                      ),
+                    ),
+                  );
+                }
+              }
+            : null,
+        icon: exporting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: Colors.white),
+              )
+            : const Icon(Icons.file_download_rounded, size: 20),
+        label: Text(
+          exporting
+              ? 'Exportando...'
+              : _complete
+                  ? 'Generar y Exportar CSV'
+                  : 'Complete los campos para continuar',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _complete ? const Color(0xFF2E7D32) : null,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.grey[300],
+          disabledForegroundColor: Colors.grey[600],
+          elevation: _complete ? 2 : 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OtraBalanzaButton extends StatelessWidget {
+  final FinServiciosController controller;
+  final bool isDark;
+
+  const _OtraBalanzaButton({required this.controller, required this.isDark});
+
+  Future<void> _confirmar(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Registrar otra balanza',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: const Text(
+            '¿Deseas registrar otra balanza del mismo servicio? Se iniciará un nuevo registro manteniendo los datos del cliente.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await controller.confirmarSeleccionOtraBalanza();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: TextButton.icon(
+        onPressed: () => _confirmar(context),
+        icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+        label: Text(
+          'Registrar otra balanza',
+          style: GoogleFonts.inter(fontSize: 13),
+        ),
+        style: TextButton.styleFrom(
+          foregroundColor: isDark ? Colors.white54 : Colors.black45,
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Pantalla de resumen antes de exportar (sin cambios en lógica)
+// ────────────────────────────────────────────────────────────────────────────
 
 class _ResumenExportacionScreen extends StatefulWidget {
   final int cantidad;
@@ -344,30 +607,23 @@ class _ResumenExportacionScreenState extends State<_ResumenExportacionScreen> {
   }
 
   Future<Map<String, dynamic>> _generarResumen() async {
-    // Contar balanzas únicas por cod_metrica
     final balanzasUnicas = <String, Map<String, dynamic>>{};
-    int totalRegistros = widget.registros.length;
-
-    for (final registro in widget.registros) {
-      final codMetrica = registro['cod_metrica']?.toString() ?? 'N/A';
-      final marca = registro['marca']?.toString() ?? 'N/A';
-      final modelo = registro['modelo']?.toString() ?? 'N/A';
-
-      if (!balanzasUnicas.containsKey(codMetrica)) {
-        balanzasUnicas[codMetrica] = {
-          'cod_metrica': codMetrica,
-          'marca': marca,
-          'modelo': modelo,
+    for (final r in widget.registros) {
+      final cod = r['cod_metrica']?.toString() ?? 'N/A';
+      if (!balanzasUnicas.containsKey(cod)) {
+        balanzasUnicas[cod] = {
+          'cod_metrica': cod,
+          'marca': r['marca']?.toString() ?? 'N/A',
+          'modelo': r['modelo']?.toString() ?? 'N/A',
           'cantidad': 0,
         };
       }
-      balanzasUnicas[codMetrica]?['cantidad'] =
-          (balanzasUnicas[codMetrica]?['cantidad'] ?? 0) + 1;
+      balanzasUnicas[cod]!['cantidad'] =
+          (balanzasUnicas[cod]!['cantidad'] as int) + 1;
     }
-
     return {
       'totalBalanzas': balanzasUnicas.length,
-      'totalRegistros': totalRegistros,
+      'totalRegistros': widget.registros.length,
       'balanzas': balanzasUnicas.values.toList(),
       'fecha': DateFormat('dd-MM-yyyy HH:mm').format(DateTime.now()),
       'seca': widget.seca,
@@ -376,156 +632,211 @@ class _ResumenExportacionScreenState extends State<_ResumenExportacionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDarkMode ? Colors.white : Colors.black;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 70,
-        title: Text(
-          'RESUMEN DE EXPORTACIÓN',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w900,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: AppBar(
+              toolbarHeight: 70,
+              title: Text(
+                'RESUMEN DE EXPORTACIÓN',
+                style: GoogleFonts.poppins(
+                  color: isDark ? Colors.white : Colors.black,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              backgroundColor: isDark
+                  ? Colors.black.withOpacity(0.4)
+                  : Colors.white.withOpacity(0.7),
+              elevation: 0,
+              centerTitle: true,
+              iconTheme:
+                  IconThemeData(color: isDark ? Colors.white : Colors.black),
+            ),
           ),
         ),
-        backgroundColor: isDarkMode ? Colors.transparent : Colors.white,
-        elevation: 0,
-        flexibleSpace: isDarkMode
-            ? ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                  child: Container(color: Colors.black.withOpacity(0.4)),
-                ),
-              )
-            : null,
-        iconTheme: IconThemeData(color: textColor),
-        centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _resumenFuture,
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+        builder: (context, snap) {
+          if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          final resumen = snapshot.data!;
-          final balanzas = resumen['balanzas'] as List<Map<String, dynamic>>;
-          final totalBalanzas = resumen['totalBalanzas'] as int;
-          final totalRegistros = resumen['totalRegistros'] as int;
+          final res = snap.data!;
+          final balanzas = res['balanzas'] as List<Map<String, dynamic>>;
+          final totalBalanzas = res['totalBalanzas'] as int;
+          final totalRegistros = res['totalRegistros'] as int;
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Tarjeta de resumen general
-                Card(
-                  elevation: 4,
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF46824B),
-                      borderRadius: BorderRadius.circular(12),
+                // Banner resumen
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF2E7D32), Color(0xFF388E3C)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded,
+                              color: Colors.white, size: 22),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Listo para exportar',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _ResRow('SECA', res['seca']),
+                      _ResRow('Fecha / Hora', res['fecha']),
+                      _ResRow('Balanzas calibradas', '$totalBalanzas'),
+                      _ResRow('Total de registros', '$totalRegistros'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                Text(
+                  'DETALLE DE BALANZAS',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: const Color(0xFF667EEA),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                ...balanzas.asMap().entries.map((e) {
+                  final i = e.key;
+                  final b = e.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.08)
+                            : Colors.black.withOpacity(0.07),
+                      ),
+                      color: isDark
+                          ? Colors.white.withOpacity(0.03)
+                          : Colors.white,
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          'RESUMEN GENERAL',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF667EEA).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${i + 1}',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF667EEA),
+                              ),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _buildResumenItem(
-                          'SECA:',
-                          resumen['seca'],
-                          Colors.white,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                b['cod_metrica'],
+                                style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Text(
+                                '${b['marca']} · ${b['modelo']}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color:
+                                      isDark ? Colors.white54 : Colors.black45,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        _buildResumenItem(
-                          'Fecha/Hora:',
-                          resumen['fecha'],
-                          Colors.white,
-                        ),
-                        _buildResumenItem(
-                          'Balanzas calibradas:',
-                          totalBalanzas.toString(),
-                          Colors.white,
-                        ),
-                        _buildResumenItem(
-                          'Total de registros:',
-                          totalRegistros.toString(),
-                          Colors.white,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${b['cantidad']} reg.',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.green[700],
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ),
+                  );
+                }),
+
                 const SizedBox(height: 24),
-                Text(
-                  'DETALLE DE BALANZAS',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: balanzas.length,
-                  itemBuilder: (context, index) {
-                    final balanza = balanzas[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Balanza ${index + 1}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Divider(),
-                            _buildDetalleItem(
-                                'Código:', balanza['cod_metrica']),
-                            _buildDetalleItem('Marca:', balanza['marca']),
-                            _buildDetalleItem('Modelo:', balanza['modelo']),
-                            _buildDetalleItem(
-                                'Registros:', balanza['cantidad'].toString()),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 30),
+
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
+                  height: 54,
+                  child: ElevatedButton.icon(
                     onPressed: () => widget.onExport(widget.registros),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF46824B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                    icon: const Icon(Icons.file_download_rounded, size: 20),
+                    label: Text(
+                      'CONFIRMAR Y EXPORTAR CSV',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                    child: const Text(
-                      'CONFIRMAR Y EXPORTAR',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2E7D32),
+                      foregroundColor: Colors.white,
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
@@ -537,57 +848,27 @@ class _ResumenExportacionScreenState extends State<_ResumenExportacionScreen> {
       ),
     );
   }
+}
 
-  Widget _buildResumenItem(String label, String value, Color color) {
+class _ResRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _ResRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: color.withOpacity(0.9),
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetalleItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          Text(label,
+              style: GoogleFonts.inter(fontSize: 13, color: Colors.white70)),
+          Text(value,
+              style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
         ],
       ),
     );

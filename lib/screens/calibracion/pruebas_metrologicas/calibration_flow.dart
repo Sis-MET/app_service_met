@@ -298,7 +298,7 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
 
                 if (controller.currentStep > 0) const SizedBox(width: 12),
 
-                // Botón Siguiente o Finalizar
+                // Botón Siguiente o Guardar Foto / Finalizar (paso 3)
                 Expanded(
                   child: controller.currentStep < _steps.length - 1
                       ? ElevatedButton.icon(
@@ -329,30 +329,64 @@ class _CalibrationFlowScreenState extends State<CalibrationFlowScreen> {
                             ),
                           ),
                         )
-                      : ElevatedButton.icon(
-                          onPressed: () async {
-                            // Validar que se haya tomado la foto
-                            if (controller.cargaPhoto == null) {
-                              _showSnackBar(
-                                  'Debe tomar una fotografía de la carga antes de finalizar.',
-                                  isError: true);
-                              return;
-                            }
-                            _showConfirmationDialog();
-                          },
-                          icon: const Icon(Icons.check_circle, size: 18),
-                          label: const Text('Finalizar'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            elevation: 2,
-                            textStyle: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                      // ── Paso 3: Foto ──────────────────────────────────
+                      : controller.cargaPhoto == null
+                          // Sin foto: botón deshabilitado
+                          ? ElevatedButton.icon(
+                              onPressed: null,
+                              icon: const Icon(Icons.camera_alt, size: 18),
+                              label: const Text('Tome una fotografía'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey[400],
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                elevation: 0,
+                                textStyle: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            )
+                          : !controller.photoSaved
+                              // Foto tomada pero NO guardada: mostrar "Guardar Foto"
+                              ? ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await controller.savePhotoToDevice();
+                                  },
+                                  icon: const Icon(Icons.save_alt, size: 18),
+                                  label: const Text('Guardar Foto'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.orange,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    elevation: 2,
+                                    textStyle: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                )
+                              // Foto guardada: mostrar "Finalizar"
+                              : ElevatedButton.icon(
+                                  onPressed: () =>
+                                      _showConfirmationDialog(),
+                                  icon: const Icon(Icons.check_circle,
+                                      size: 18),
+                                  label: const Text('Finalizar'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    elevation: 2,
+                                    textStyle: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
                 ),
               ],
             ),

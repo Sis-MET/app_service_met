@@ -337,53 +337,95 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
   }
 
   Widget _buildProgressBar(bool isDarkMode) {
+    final primaryColor = Theme.of(context).primaryColor;
+    final step = _steps[_currentStep];
+
     return Container(
-      width: double.infinity,
-      color: isDarkMode ? Colors.black26 : Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: Colors.transparent,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Paso ${_currentStep + 1} de ${_steps.length}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white70 : Colors.black54,
+              // Pill con icono + nombre
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: primaryColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(step.icon, size: 13, color: primaryColor),
+                    const SizedBox(width: 5),
+                    Text(
+                      step.title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 10),
+              // Subtitle sutil
+              Expanded(
+                child: Text(
+                  step.subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Contador
               Text(
-                _steps[_currentStep].title,
+                '${_currentStep + 1} / ${_steps.length}',
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).primaryColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white54 : Colors.black45,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 8),
+          // Barra delgada segmentada animada
           Row(
-            children: List.generate(
-              _steps.length,
-              (index) => Expanded(
-                child: Container(
-                  height: 4,
-                  margin: EdgeInsets.only(
-                      right: index < _steps.length - 1 ? 4 : 0),
+            children: List.generate(_steps.length, (i) {
+              final isCompleted = i < _currentStep;
+              final isCurrent = i == _currentStep;
+              return Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  height: 3,
+                  margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
                   decoration: BoxDecoration(
-                    color: index <= _currentStep
-                        ? Theme.of(context).primaryColor
-                        : (isDarkMode ? Colors.white24 : Colors.grey[300]),
+                    color: isCompleted
+                        ? primaryColor
+                        : isCurrent
+                            ? primaryColor.withOpacity(0.55)
+                            : (isDarkMode
+                                ? Colors.white12
+                                : Colors.black.withOpacity(0.08)),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ),
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -498,14 +540,15 @@ class _RelevamientoDeDatosScreenState extends State<RelevamientoDeDatosScreen> {
         children: [
           // Botón Anterior
           if (_currentStep > 0)
-            Expanded(
-              child: ElevatedButton.icon(
+            SizedBox(
+              width: 110,
+              child: OutlinedButton.icon(
                 onPressed: _isSaving ? null : _previousStep,
-                icon: const Icon(Icons.arrow_back),
+                icon: const Icon(Icons.arrow_back, size: 16),
                 label: const Text('ANTERIOR'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[600],
-                  foregroundColor: Colors.white,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  side: BorderSide(color: Colors.grey[400]!),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),

@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -56,10 +58,6 @@ class _PhotoCaptureStepState extends State<PhotoCaptureStep> {
     );
   }
 
-  Future<void> _savePhoto() async {
-    await widget.controller.savePhotoToDevice();
-  }
-
   @override
   Widget build(BuildContext context) {
     final photo = widget.controller.cargaPhoto;
@@ -69,6 +67,7 @@ class _PhotoCaptureStepState extends State<PhotoCaptureStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const SizedBox(height: 8),
           Text(
             'FOTO DE ÚLTIMA CARGA',
             style: GoogleFonts.poppins(
@@ -93,17 +92,6 @@ class _PhotoCaptureStepState extends State<PhotoCaptureStep> {
           else
             _buildPhotoPreview(photo, isDarkMode),
           const SizedBox(height: 24),
-          if (photo != null)
-            ElevatedButton.icon(
-              onPressed: _savePhoto,
-              icon: const Icon(Icons.save_alt),
-              label: const Text('Guardar Foto en Dispositivo'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
         ],
       ),
     );

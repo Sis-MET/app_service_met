@@ -2,10 +2,11 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:service_met/home/home_screen.dart';
@@ -144,46 +145,108 @@ class _FinServicioAjustesVerificacionesScreenState
     return registrosUnicos.values.toList();
   }
 
-  /// Exporta datos a CSV con depuración
   Future<void> _exportToCSV(
       BuildContext context, List<Map<String, dynamic>> registros) async {
     if (_isExporting) return;
     _isExporting = true;
 
     try {
-      // 1. Depurar los datos
       final registrosDepurados = await _depurarDatos(registros);
-
-      // 2. Generar CSV
       final csvBytes = await _generateCSVBytes(registrosDepurados);
-
-      // 3. Crear nombre del archivo
       final fileName =
-          '${widget.secaValue}_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now())}ajustes_metrologicos.csv';
+          '${widget.secaValue}_${DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now())}_ajustes_metrologicos.csv';
 
-      // 4. Guardar internamente
+      // Respaldo automático interno
       final externalDir = await getExternalStorageDirectory();
+      String? autoSavedPath;
       if (externalDir != null) {
         final exportDir =
             Directory('${externalDir.path}/RespaldoSM/CSV_Automaticos');
         if (!await exportDir.exists()) await exportDir.create(recursive: true);
-
         final internalFile = File('${exportDir.path}/$fileName');
         await internalFile.writeAsBytes(csvBytes);
+        autoSavedPath = internalFile.path;
       }
 
-      // 5. Preguntar ubicación de destino
-      final directoryPath = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Selecciona carpeta de destino para exportación',
+      // Selector SAF sin crash
+      final params = SaveFileDialogParams(
+        data: Uint8List.fromList(csvBytes),
+        fileName: fileName,
       );
+      final savedPath = await FlutterFileDialog.saveFile(params: params);
 
-      if (directoryPath != null) {
-        final userFile = File('$directoryPath/$fileName');
-        await userFile.writeAsBytes(csvBytes, mode: FileMode.write);
-        _showSnackBar(
-            context, 'Archivo CSV exportado exitosamente a: ${userFile.path}');
+      if (savedPath != null) {
+        final messenger = ScaffoldMessenger.of(context);
+        messenger.clearSnackBars();
+        messenger.showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.green[800],
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'CSV exportado exitosamente',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.insert_drive_file_rounded,
+                        color: Colors.white70, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        fileName,
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    const Icon(Icons.folder_rounded,
+                        color: Colors.white70, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        savedPath
+                            .replaceAll(fileName, '')
+                            .replaceAll(RegExp(r'/$'), ''),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
       } else {
-        _showSnackBar(context, 'Exportación cancelada.', isError: true);
+        _showSnackBar(
+          context,
+          autoSavedPath != null
+              ? 'Exportación al destino cancelada.\nRespaldo guardado automáticamente.'
+              : 'Exportación cancelada.',
+          isError: autoSavedPath == null,
+        );
       }
     } catch (e) {
       _showSnackBar(context, 'Error al exportar CSV: $e', isError: true);

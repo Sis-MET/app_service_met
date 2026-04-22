@@ -6,12 +6,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:service_met/database/app_database.dart';
 import 'package:service_met/screens/calibracion/precarga/precarga_screen.dart';
 import 'package:service_met/home/home_screen.dart';
@@ -97,7 +95,7 @@ class FinServiciosController extends ChangeNotifier {
   void _scheduleAutoSave() {
     // Solo auto-guardar en el paso 1
     if (_currentStep != 0) return;
-    
+
     _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
       _autoSave();
@@ -167,10 +165,11 @@ class FinServiciosController extends ChangeNotifier {
         hrifinController.text = registro['hri_fin']?.toString() ?? '';
         tifinController.text = registro['ti_fin']?.toString() ?? '';
         patmifinController.text = registro['patmi_fin']?.toString() ?? '';
-        mantenimientoController.text = registro['mant_soporte']?.toString() ?? '';
+        mantenimientoController.text =
+            registro['mant_soporte']?.toString() ?? '';
         ventaPesasController.text = registro['venta_pesas']?.toString() ?? '';
         reemplazoController.text = registro['reemplazo']?.toString() ?? '';
-        
+
         final existingObs = registro['observaciones']?.toString();
         if (existingObs != null && existingObs.isNotEmpty) {
           obscomController.text = existingObs;
@@ -497,18 +496,19 @@ class FinServiciosController extends ChangeNotifier {
   }
 
   Future<void> executeExport(List<Map<String, dynamic>> rows) async {
-    // Export logic
-    await _exportToCSV(rows);
+    final success = await _exportToCSV(rows);
 
-    // Navigate to Home
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+    // Solo navegar al inicio si la exportación fue exitosa
+    if (success && context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
   }
 
-  Future<void> _exportToCSV(List<Map<String, dynamic>> registros) async {
-    if (isExporting) return;
+  Future<bool> _exportToCSV(List<Map<String, dynamic>> registros) async {
+    if (isExporting) return false;
     isExporting = true;
     notifyListeners();
 
@@ -518,26 +518,98 @@ class FinServiciosController extends ChangeNotifier {
       final fileName =
           '${secaValue}_${DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now())}.csv';
 
-      final internalDir = await getApplicationDocumentsDirectory();
-      final exportDir = Directory('${internalDir.path}/export_servicios');
-      if (!await exportDir.exists()) await exportDir.create(recursive: true);
-
-      final internalFile = File('${exportDir.path}/$fileName');
-      await internalFile.writeAsBytes(csvBytes);
-
-      final directoryPath = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Selecciona carpeta de destino para exportación',
+      final params = SaveFileDialogParams(
+        data: Uint8List.fromList(csvBytes),
+        fileName: fileName,
+        mimeTypesFilter: ['text/csv'],
       );
 
-      if (directoryPath != null) {
-        final userFile = File('$directoryPath/$fileName');
-        await userFile.writeAsBytes(csvBytes, mode: FileMode.write);
-        _showSnackBar('Archivo CSV exportado exitosamente a: ${userFile.path}');
+      final savedPath = await FlutterFileDialog.saveFile(params: params);
+
+      if (savedPath != null) {
+        final savedFile = savedPath.split('/').last;
+        final savedDir = savedPath.contains('/')
+            ? savedPath.substring(0, savedPath.lastIndexOf('/'))
+            : savedPath;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF1B5E20),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle,
+                        color: Colors.greenAccent, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'CSV exportado exitosamente',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.insert_drive_file,
+                        color: Colors.white70, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        savedFile,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.folder, color: Colors.white70, size: 14),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        savedDir,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+        return true;
       } else {
         _showSnackBar('Exportación cancelada.', isError: true);
+        return false;
       }
     } catch (e) {
       _showSnackBar('Error al exportar CSV: $e', isError: true);
+      return false;
     } finally {
       isExporting = false;
       notifyListeners();

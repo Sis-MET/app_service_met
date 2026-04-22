@@ -189,9 +189,6 @@ class InstalacionController {
     data['retorno_cero_inicial_estabilidad'] =
         model.pruebasIniciales.retornoCero.estabilidad; // NUEVO (V3)
 
-    // TODO: La tabla instalacion NO tiene columna 'estabilizacion_inicial' según Schema.
-    // Ignoramos ese campo o lo guardamos en otro lado si fuera critico.
-
     // Pruebas Iniciales
     _addExcentricidadData(
         data, model.pruebasIniciales.excentricidad, 'inicial');

@@ -1,6 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -692,23 +693,20 @@ class DatabaseHelperMntPrvRegularStil {
 
       List<List<dynamic>> rows = [];
       rows.add(registros.first.keys.toList());
-
       for (var registro in registros) {
         rows.add(registro.values.toList());
       }
 
-      String csv = const ListToCsvConverter().convert(rows);
+      final String csv = const ListToCsvConverter().convert(rows);
+      final Uint8List bytes = Uint8List.fromList(csv.codeUnits);
+      final String fileName =
+          'mnt_prv_regular_stil_${DateTime.now().millisecondsSinceEpoch}.csv';
 
-      String? outputFile = await FilePicker.platform.saveFile(
-        dialogTitle: 'Guardar archivo CSV',
-        fileName: 'mnt_prv_regular_stil${DateTime.now().toIso8601String()}.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
+      final params = SaveFileDialogParams(data: bytes, fileName: fileName);
+      final savedPath = await FlutterFileDialog.saveFile(params: params);
 
-      if (outputFile != null) {
-        await File(outputFile).writeAsString(csv);
-        debugPrint('Datos exportados a $outputFile');
+      if (savedPath != null) {
+        debugPrint('Datos exportados a $savedPath');
       }
     } catch (e) {
       debugPrint('Error exportando datos: $e');

@@ -120,45 +120,37 @@ class FinServiciosScreen extends StatelessWidget {
           Row(
             children: [
               if (controller.currentStep > 0)
-                Expanded(
-                  child: ElevatedButton.icon(
+                SizedBox(
+                  width: 110,
+                  child: OutlinedButton.icon(
                     onPressed: () => controller.previousStep(),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 16),
                     label: const Text('Anterior'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[600],
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      side: BorderSide(color: Colors.grey[400]!),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),
-              if (controller.currentStep > 0) const SizedBox(width: 16),
-              if (controller.currentStep < 2)
+              if (controller.currentStep > 0) const SizedBox(width: 12),
+              if (controller.currentStep == 0)
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () async {
-                      if (controller.currentStep == 0) {
-                        if (controller.validateStep1()) {
-                          // Si es válido, hace el flush final que incluye zipear fotos
-                          await controller.saveStep1();
-                          if (controller.isDataSaved) {
-                            controller.nextStep();
-                          }
+                      if (controller.validateStep1()) {
+                        await controller.saveStep1();
+                        if (controller.isDataSaved) {
+                          controller.nextStep();
                         }
-                      } else {
-                        controller.nextStep();
                       }
                     },
-                    icon: Icon(controller.currentStep == 1
-                        ? Icons.check_circle
-                        : Icons.arrow_forward),
-                    label: Text(controller.currentStep == 1
-                        ? 'Finalizar y Exportar'
-                        : 'Siguiente'),
+                    icon: const Icon(Icons.arrow_forward),
+                    label: const Text('Siguiente'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: controller.currentStep == 1
-                          ? Colors.green
-                          : const Color(0xFF667EEA),
+                      backgroundColor: const Color(0xFF667EEA),
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),
                 ),

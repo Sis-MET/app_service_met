@@ -339,77 +339,103 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
   }
 
   Widget _buildProgressBar(bool isDarkMode) {
+    final primaryColor = Theme.of(context).primaryColor;
+    final step = _steps[_currentStep];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDarkMode ? Colors.black26 : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      color: Colors.transparent,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-               Icon(_steps[_currentStep].icon,
-                  color: Theme.of(context).primaryColor, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Pill con icono + nombre
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: primaryColor.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Paso ${_currentStep + 1} de ${_steps.length}',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color:
-                                isDarkMode ? Colors.white70 : Colors.black54)),
-                    Text(_steps[_currentStep].title,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Text(_steps[_currentStep].subtitle,
-                        style: TextStyle(
-                            fontSize: 11,
-                            color:
-                                isDarkMode ? Colors.white60 : Colors.black45)),
+                    Icon(step.icon, size: 13, color: primaryColor),
+                    const SizedBox(width: 5),
+                    Text(
+                      step.title,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: primaryColor,
+                      ),
+                    ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Subtitle sutil
+              Expanded(
+                child: Text(
+                  step.subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDarkMode ? Colors.white38 : Colors.black38,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              // Contador
+              Text(
+                '${_currentStep + 1} / ${_steps.length}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDarkMode ? Colors.white54 : Colors.black45,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          // Barra delgada segmentada animada (sin GestureDetector para simplificar)
           Row(
-            children: List.generate(_steps.length, (index) {
-              final isCompleted = index < _currentStep;
-              final isCurrent = index == _currentStep;
-
+            children: List.generate(_steps.length, (i) {
+              final isCompleted = i < _currentStep;
+              final isCurrent = i == _currentStep;
               return Expanded(
                 child: GestureDetector(
                   onTap: () async {
-                    if (index < _currentStep || _validateCurrentStep()) {
+                    if (i < _currentStep || _validateCurrentStep()) {
                       await _controller.flushAutoSave(context);
-                      setState(() => _currentStep = index);
+                      setState(() => _currentStep = i);
                     }
                   },
-                  child: Container(
-                    height: 6,
-                    margin: EdgeInsets.only(
-                        left: index == 0 ? 0 : 4,
-                        right: index == _steps.length - 1 ? 0 : 4),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    height: 3,
+                    margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
                     decoration: BoxDecoration(
-                      color: isCompleted || isCurrent
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(3),
+                      color: isCompleted
+                          ? primaryColor
+                          : isCurrent
+                              ? primaryColor.withOpacity(0.55)
+                              : (isDarkMode
+                                  ? Colors.white12
+                                  : Colors.black.withOpacity(0.08)),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
               );
             }),
           ),
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -461,14 +487,15 @@ class _StacMntCorrectivoScreenState extends State<StacMntCorrectivoScreen> {
             children: [
               // Botón Anterior
               if (_currentStep > 0)
-                Expanded(
-                  child: ElevatedButton.icon(
+                SizedBox(
+                  width: 110,
+                  child: OutlinedButton.icon(
                     onPressed: () => _goToStep(_currentStep - 1),
-                    icon: const Icon(Icons.arrow_back),
+                    icon: const Icon(Icons.arrow_back, size: 16),
                     label: const Text('ANTERIOR'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[600],
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      side: BorderSide(color: Colors.grey[400]!),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                   ),
