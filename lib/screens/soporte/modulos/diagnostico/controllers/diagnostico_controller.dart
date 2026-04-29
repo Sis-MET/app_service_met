@@ -1,22 +1,71 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import 'package:intl/intl.dart';
 import '../models/diagnostico_model.dart';
-import 'package:archive/archive.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
-import 'dart:typed_data';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 
-class DiagnosticoController {
-  final DiagnosticoModel model;
+class DiagnosticoController extends BaseSoporteController<DiagnosticoModel> {
+  Timer? _autoSaveTimer;
+  final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
+  final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
 
-  // Cache para d1
-  double? _cachedD1;
+  DiagnosticoController({required super.model});
 
-  DiagnosticoController({required this.model});
+  void dispose() {
+    _autoSaveTimer?.cancel();
+    isAutoSaving.dispose();
+    lastSaveSuccessful.dispose();
+  }
+
+  void scheduleAutoSave(BuildContext context) {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(milliseconds: 1500), () {
+      _autoSave(context);
+    });
+  }
+
+  Future<void> flushAutoSave(BuildContext context) async {
+    _autoSaveTimer?.cancel();
+    await _autoSave(context);
+  }
+
+  Future<void> _autoSave(BuildContext context) async {
+    if (isAutoSaving.value) return;
+    isAutoSaving.value = true;
+    try {
+      await saveDataToDatabase(context, showMessage: false);
+      lastSaveSuccessful.value = true;
+      debugPrint('Auto-guardado Diagnóstico OK');
+    } catch (e) {
+      lastSaveSuccessful.value = false;
+      debugPrint('Error en auto-guardado (Diagnóstico): $e');
+    } finally {
+      isAutoSaving.value = false;
+    }
+  }
+
+  Future<void> saveDataToDatabase(BuildContext context,
+      {bool showMessage = true}) async {
+    try {
+      final DatabaseHelperDiagnosticoCorrectivo dbHelper =
+          DatabaseHelperDiagnosticoCorrectivo();
+      final data = prepareDataForSave();
+      await dbHelper.upsertRegistroDiagnostico(data);
+
+      if (showMessage && context.mounted) {
+        showSnackBar(context, 'Datos guardados exitosamente', isError: false);
+      }
+    } catch (e) {
+      debugPrint('❌ Error saveDataToDatabase (Diagnóstico): $e');
+      if (showMessage && context.mounted) {
+        showSnackBar(context, 'Error al guardar: $e', isError: true);
+      }
+      rethrow;
+    }
+  }
 
   /// Inicializa datos necesarios
   Future<void> init() async {
@@ -24,171 +73,12 @@ class DiagnosticoController {
     if (model.horaInicio.isEmpty) {
       // La hora se setea en el modelo o en la vista al iniciar
     }
-    // Cargar d1
-    await getD1FromDatabase();
-  }
-
-  /// Obtiene d1 de la base de datos (copiado de AjusteVerificacionesController)
-  Future<double> getD1FromDatabase() async {
-    if (_cachedD1 != null) return _cachedD1!;
-
-    try {
-      final dbHelper = DatabaseHelperAjustes();
-      final db = await dbHelper.database;
-      final List<Map<String, dynamic>> result = await db.query(
-        'ajustes_metrologicos',
-        columns: ['d1'],
-        where: 'cod_metrica = ? AND otst = ?',
-        whereArgs: [model.codMetrica, model.secaValue],
-        limit: 1,
-      );
-
-      if (result.isNotEmpty) {
-        final d1 = double.tryParse(result.first['d1'].toString()) ?? 0.0;
-        _cachedD1 = d1;
-        return d1;
-      }
-    } catch (e) {
-      debugPrint('Error obteniendo d1: $e');
-    }
-    return 0.0;
-  }
-
-  /// Calcula sugerencias de indicación basadas en d
-  List<String> getIndicationSuggestions(double carga, double d) {
-    if (d == 0) return [];
-
-    // Generar sugerencias: carga, carga + d, carga - d, etc.
-    // Lógica simplificada similar a STIL
-    return [
-      carga.toString(),
-      (carga + d).toStringAsFixed(getDecimalPlaces(d)),
-      (carga - d).toStringAsFixed(getDecimalPlaces(d)),
-    ];
-  }
-
-  int getDecimalPlaces(double value) {
-    String text = value.toString();
-    if (text.contains('.')) {
-      return text.split('.')[1].length;
-    }
-    return 0;
-  }
-
-  // --- MÉTODOS DE FOTOS (Similar a STIL/Ajustes) ---
-
-  Future<void> agregarFoto(String campo, File foto) async {
-    model.addPhoto(campo, foto);
-  }
-
-  void eliminarFoto(String campo, int index) {
-    if (model.fieldPhotos.containsKey(campo) &&
-        model.fieldPhotos[campo]!.length > index) {
-      model.fieldPhotos[campo]!.removeAt(index);
-    }
-  }
-
-  void limpiarFotos(String campo) {
-    model.clearPhotos(campo);
-  }
-
-  String _sanitizeFileName(String name) {
-    return name
-        .replaceAll(' ', '_')
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ñ', 'n')
-        .replaceAll(RegExp(r'[^\w\.-]'), ''); // Eliminar caracteres especiales
-  }
-
-  Future<void> _savePhotos(BuildContext context) async {
-    bool hasPhotos =
-        model.fieldPhotos.values.any((photos) => photos.isNotEmpty);
-
-    if (hasPhotos) {
-      try {
-        final archive = Archive();
-        model.fieldPhotos.forEach((label, photos) {
-          for (var i = 0; i < photos.length; i++) {
-            final file = photos[i];
-            // Usar etiqueta sanitizada
-            final safeLabel = _sanitizeFileName(label);
-            final fileName = '${safeLabel}_${i + 1}.jpg';
-
-            if (file.existsSync()) {
-              final bytes = file.readAsBytesSync();
-              archive.addFile(ArchiveFile(fileName, bytes.length, bytes));
-            }
-          }
-        });
-
-        final zipEncoder = ZipEncoder();
-        final zipData = zipEncoder.encode(archive);
-
-        final uint8ListData = Uint8List.fromList(zipData);
-        final zipFileName =
-            '${model.secaValue}_${model.codMetrica}_diagnostico.zip';
-
-        final params = SaveFileDialogParams(
-          data: uint8ListData,
-          fileName: zipFileName,
-          mimeTypesFilter: ['application/zip'],
-        );
-
-        final filePath = await FlutterFileDialog.saveFile(params: params);
-        if (filePath != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Fotos guardadas en $filePath')),
-          );
-        }
-      } catch (e) {
-        debugPrint('Error al guardar fotos: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error al guardar fotos: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   // --- GUARDADO A BASE DE DATOS ---
 
-  Future<void> saveData(BuildContext context) async {
-    try {
-      // 1. Guardar Fotos
-      await _savePhotos(context);
-
-      // 2. Guardar Datos BD
-      final DatabaseHelperDiagnosticoCorrectivo dbHelper =
-          DatabaseHelperDiagnosticoCorrectivo();
-      final data = _prepareDataForSave();
-
-      await dbHelper.upsertRegistroDiagnostico(data);
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Datos guardados exitosamente'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error SAVE DATA: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al guardar: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Map<String, dynamic> _prepareDataForSave() {
+  @override
+  Map<String, dynamic> prepareDataForSave() {
     final Map<String, dynamic> data = {
       'tipo_servicio': 'DIG.BL',
       'session_id': model.sessionId,
@@ -205,5 +95,27 @@ class DiagnosticoController {
     return data;
   }
 
-  // Método eliminado: _addPruebasMetrologicasData (Ya no aplican pruebas en diagnóstico)
+  @override
+  Future<void> saveData(BuildContext context) async {
+    try {
+      // 1. Guardar Fotos
+      await savePhotos(context);
+
+      // 2. Guardar Datos BD
+      final DatabaseHelperDiagnosticoCorrectivo dbHelper =
+          DatabaseHelperDiagnosticoCorrectivo();
+      final data = prepareDataForSave();
+
+      await dbHelper.upsertRegistroDiagnostico(data);
+
+      if (context.mounted) {
+        showSnackBar(context, 'Datos guardados exitosamente', isError: false);
+      }
+    } catch (e) {
+      debugPrint('Error SAVE DATA: $e');
+      if (context.mounted) {
+        showSnackBar(context, 'Error al guardar: $e', isError: true);
+      }
+    }
+  }
 }

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/mnt_correctivo_model.dart';
 
-class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
+class PasoEstadoFinalMntCorrectivo extends StatefulWidget {
   final MntCorrectivoModel model;
   final VoidCallback onChanged;
 
@@ -13,6 +13,35 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
     required this.model,
     required this.onChanged,
   });
+
+  @override
+  State<PasoEstadoFinalMntCorrectivo> createState() =>
+      _PasoEstadoFinalMntCorrectivoState();
+}
+
+class _PasoEstadoFinalMntCorrectivoState
+    extends State<PasoEstadoFinalMntCorrectivo> {
+  late final TextEditingController _horaFinController;
+  late final TextEditingController _fechaProxController;
+  late final TextEditingController _comentarioController;
+
+  @override
+  void initState() {
+    super.initState();
+    _horaFinController = TextEditingController(text: widget.model.horaFin);
+    _fechaProxController =
+        TextEditingController(text: widget.model.fechaProxServicio);
+    _comentarioController =
+        TextEditingController(text: widget.model.comentarioGeneral);
+  }
+
+  @override
+  void dispose() {
+    _horaFinController.dispose();
+    _fechaProxController.dispose();
+    _comentarioController.dispose();
+    super.dispose();
+  }
 
   // Función para calcular fecha futura
   String _calcularFechaFutura(int meses) {
@@ -72,8 +101,11 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    model.fechaProxServicio = fechaCalculada;
-                    onChanged();
+                    setState(() {
+                      widget.model.fechaProxServicio = fechaCalculada;
+                      _fechaProxController.text = fechaCalculada;
+                    });
+                    widget.onChanged();
                     Navigator.of(context).pop();
                   },
                 ),
@@ -106,7 +138,7 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
           // Hora de inicio (solo lectura)
           _buildReadOnlyField(
             label: 'Hora de Inicio',
-            value: model.horaInicio,
+            value: widget.model.horaInicio,
             icon: Icons.access_time,
             context: context,
           ),
@@ -124,22 +156,20 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
               helperText: '* Campo obligatorio',
             ),
             maxLines: 4,
+            controller: _comentarioController,
             onChanged: (value) {
-              model.comentarioGeneral = value;
-              onChanged();
+              widget.model.comentarioGeneral = value;
+              widget.onChanged();
             },
-            controller: TextEditingController(text: model.comentarioGeneral)
-              ..selection = TextSelection.collapsed(
-                offset: model.comentarioGeneral.length,
-              ),
           ),
           const SizedBox(height: 20),
 
           // Recomendación
           DropdownButtonFormField<String>(
-            value:
-                model.recomendacion.isEmpty ? null : model.recomendacion,
-            hint: const Text('Hint: Seleccione...'),
+            value: widget.model.recomendacion.isEmpty
+                ? null
+                : widget.model.recomendacion,
+            hint: const Text('Seleccione...'),
             decoration: InputDecoration(
               labelText: 'Recomendación *',
               border: OutlineInputBorder(
@@ -162,8 +192,8 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
               );
             }).toList(),
             onChanged: (String? newValue) {
-              model.recomendacion = newValue ?? '';
-              onChanged();
+              setState(() => widget.model.recomendacion = newValue ?? '');
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 20),
@@ -184,8 +214,7 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
                   suffixIcon: const Icon(Icons.arrow_drop_down),
                   helperText: 'Seleccione 3, 6 o 12 meses',
                 ),
-                controller:
-                    TextEditingController(text: model.fechaProxServicio),
+                controller: _fechaProxController,
               ),
             ),
           ),
@@ -204,12 +233,12 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
           // Estado Físico
           _buildEstadoDropdown(
             label: 'Estado Físico *',
-            value: model.estadoFisico,
+            value: widget.model.estadoFisico,
             icon: Icons.build_circle_outlined,
-            color: _getColorForEstado(model.estadoFisico),
+            color: _getColorForEstado(widget.model.estadoFisico),
             onChanged: (value) {
-              model.estadoFisico = value ?? '';
-              onChanged();
+              setState(() => widget.model.estadoFisico = value ?? '');
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 16),
@@ -217,12 +246,12 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
           // Estado Operacional
           _buildEstadoDropdown(
             label: 'Estado Operacional *',
-            value: model.estadoOperacional,
+            value: widget.model.estadoOperacional,
             icon: Icons.settings_outlined,
-            color: _getColorForEstado(model.estadoOperacional),
+            color: _getColorForEstado(widget.model.estadoOperacional),
             onChanged: (value) {
-              model.estadoOperacional = value ?? '';
-              onChanged();
+              setState(() => widget.model.estadoOperacional = value ?? '');
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 16),
@@ -230,12 +259,12 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
           // Estado Metrológico
           _buildEstadoDropdown(
             label: 'Estado Metrológico *',
-            value: model.estadoMetrologico,
+            value: widget.model.estadoMetrologico,
             icon: Icons.speed_outlined,
-            color: _getColorForEstado(model.estadoMetrologico),
+            color: _getColorForEstado(widget.model.estadoMetrologico),
             onChanged: (value) {
-              model.estadoMetrologico = value ?? '';
-              onChanged();
+              setState(() => widget.model.estadoMetrologico = value ?? '');
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 24),
@@ -254,13 +283,16 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
                 onPressed: () {
                   final ahora = DateTime.now();
                   final horaFormateada = DateFormat('HH:mm:ss').format(ahora);
-                  model.horaFin = horaFormateada;
-                  onChanged();
+                  setState(() {
+                    widget.model.horaFin = horaFormateada;
+                    _horaFinController.text = horaFormateada;
+                  });
+                  widget.onChanged();
                 },
                 tooltip: 'Registrar hora actual',
               ),
             ),
-            controller: TextEditingController(text: model.horaFin),
+            controller: _horaFinController,
           ),
           const SizedBox(height: 12),
           _buildInfoBox(
@@ -453,13 +485,13 @@ class PasoEstadoFinalMntCorrectivo extends StatelessWidget {
   }
 
   Widget _buildResumenCard(BuildContext context, bool isDarkMode) {
-    final tieneComentario = model.comentarioGeneral.isNotEmpty;
-    final tieneRecomendacion = model.recomendacion.isNotEmpty;
-    final tieneFechaProxServicio = model.fechaProxServicio.isNotEmpty;
-    final tieneEstados = model.estadoFisico.isNotEmpty &&
-        model.estadoOperacional.isNotEmpty &&
-        model.estadoMetrologico.isNotEmpty;
-    final tieneHoraFinal = model.horaFin.isNotEmpty;
+    final tieneComentario = widget.model.comentarioGeneral.isNotEmpty;
+    final tieneRecomendacion = widget.model.recomendacion.isNotEmpty;
+    final tieneFechaProxServicio = widget.model.fechaProxServicio.isNotEmpty;
+    final tieneEstados = widget.model.estadoFisico.isNotEmpty &&
+        widget.model.estadoOperacional.isNotEmpty &&
+        widget.model.estadoMetrologico.isNotEmpty;
+    final tieneHoraFinal = widget.model.horaFin.isNotEmpty;
 
     final completado = tieneComentario &&
         tieneRecomendacion &&

@@ -5,8 +5,13 @@ import '../models/diagnostico_model.dart';
 
 class PasoInformacionGeneral extends StatelessWidget {
   final DiagnosticoModel model;
+  final VoidCallback? onChanged;
 
-  const PasoInformacionGeneral({super.key, required this.model});
+  const PasoInformacionGeneral({
+    super.key,
+    required this.model,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +35,10 @@ class PasoInformacionGeneral extends StatelessWidget {
             maxLength: 800,
             maxLines: 8,
             minLines: 4,
-            onChanged: (value) => model.reporteFalla = value,
+            onChanged: (value) {
+              model.reporteFalla = value;
+              onChanged?.call();
+            },
           ),
           const SizedBox(height: 20),
           // Evaluación
@@ -46,7 +54,10 @@ class PasoInformacionGeneral extends StatelessWidget {
             maxLength: 800,
             maxLines: 8,
             minLines: 4,
-            onChanged: (value) => model.evaluacion = value,
+            onChanged: (value) {
+              model.evaluacion = value;
+              onChanged?.call();
+            },
           ),
         ],
       ),

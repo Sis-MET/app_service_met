@@ -1,9 +1,13 @@
 import 'dart:io';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 
-class DiagnosticoModel {
+class DiagnosticoModel implements BaseSoporteModel {
+  @override
   String sessionId;
+  @override
   String secaValue;
   String nReca;
+  @override
   String codMetrica;
   String userName;
   String clienteId;
@@ -32,6 +36,7 @@ class DiagnosticoModel {
   PruebasMetrologicas pruebasIniciales = PruebasMetrologicas();
 
   // Fotos (Mapeo de nombre de campo a lista de archivos)
+  @override
   Map<String, List<File>> fieldPhotos = {};
 
   DiagnosticoModel({
@@ -45,6 +50,7 @@ class DiagnosticoModel {
   });
 
   // Método para añadir fotos
+  @override
   void addPhoto(String field, File photo) {
     if (!fieldPhotos.containsKey(field)) {
       fieldPhotos[field] = [];
@@ -52,7 +58,16 @@ class DiagnosticoModel {
     fieldPhotos[field]!.add(photo);
   }
 
+  // Método para remover fotos
+  @override
+  void removePhoto(String field, int index) {
+    if (fieldPhotos.containsKey(field) && index < fieldPhotos[field]!.length) {
+      fieldPhotos[field]!.removeAt(index);
+    }
+  }
+
   // Método para limpiar fotos de un campo
+  @override
   void clearPhotos(String field) {
     if (fieldPhotos.containsKey(field)) {
       fieldPhotos[field]!.clear();

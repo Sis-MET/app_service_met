@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 
 class InspeccionItem {
   String estado; // Bueno, Malo, Regular, No aplica
@@ -14,10 +15,13 @@ class InspeccionItem {
   }) : fotos = fotos ?? [];
 }
 
-class MntCorrectivoModel {
+class MntCorrectivoModel implements BaseSoporteModel {
+  @override
   String sessionId;
+  @override
   String secaValue;
   String nReca;
+  @override
   String codMetrica;
   String userName;
   String clienteId;
@@ -52,6 +56,9 @@ class MntCorrectivoModel {
   // Inspección Visual y Entorno
   // Map de 'Label' -> InspeccionItem
   Map<String, InspeccionItem> inspeccionItems = {};
+
+  @override
+  Map<String, List<File>> fieldPhotos = {};
 
   // Constructor
   MntCorrectivoModel({
@@ -107,10 +114,27 @@ class MntCorrectivoModel {
     }
   }
 
-// Helper para fotos de cualquier campo (metrológico o inspección)
-  // En MntCorrectivo, las fotos de inspección van dentro de InspeccionItem.
-  // Las fotos de excentricidad van en el objeto Excentricidad (path).
-  // Pero necesitamos un método unificado para agregarlas si usamos un controller genérico.
+  @override
+  void addPhoto(String field, File photo) {
+    if (!fieldPhotos.containsKey(field)) {
+      fieldPhotos[field] = [];
+    }
+    fieldPhotos[field]!.add(photo);
+  }
+
+  @override
+  void removePhoto(String field, int index) {
+    if (fieldPhotos.containsKey(field) && index < fieldPhotos[field]!.length) {
+      fieldPhotos[field]!.removeAt(index);
+    }
+  }
+
+  @override
+  void clearPhotos(String field) {
+    if (fieldPhotos.containsKey(field)) {
+      fieldPhotos[field]!.clear();
+    }
+  }
 }
 
 // =========================================================================

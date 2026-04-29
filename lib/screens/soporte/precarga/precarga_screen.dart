@@ -16,18 +16,14 @@ import '../../../database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.
 import '../../../database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import '../../../database/soporte_tecnico/database_helper_relevamiento.dart';
 import '../../../database/soporte_tecnico/database_helper_verificaciones.dart';
-import '../modulos/ajuste_verificaciones/stac_ajuste_verificaciones.dart'
-    hide StepData;
+import '../modulos/ajuste_verificaciones/stac_ajuste_verificaciones.dart';
 import '../modulos/diagnostico/stac_diagnostico.dart';
 import '../modulos/instalacion/stac_instalacion.dart';
 import '../modulos/mnt_correctivo/stac_mnt_correctivo.dart';
-import '../modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/stac_mnt_prv_avanzado.dart'
-    hide StepData;
-import '../modulos/mnt_prv_regular/mnt_prv_regular_stil/stil_mnt_prv_regular.dart'
-    hide StepData;
+import '../modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/stac_mnt_prv_avanzado.dart';
+import '../modulos/mnt_prv_regular/mnt_prv_regular_stil/stil_mnt_prv_regular.dart';
 import '../modulos/relevamiento_de_datos/relevamiento_de_datos.dart';
-import '../modulos/verificaciones_internas/stac_verificaciones_internas.dart'
-    hide StepData;
+import '../modulos/verificaciones_internas/stac_verificaciones_internas.dart';
 import 'precarga_controller.dart';
 import 'widgets/step_indicator.dart';
 import 'widgets/cliente_step.dart';

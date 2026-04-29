@@ -1,7 +1,16 @@
-class AjusteVerificacionesModel {
+import 'dart:io';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
+
+class AjusteVerificacionesModel implements BaseSoporteModel {
+  @override
   final String codMetrica;
+  @override
   final String sessionId;
+  @override
   final String secaValue;
+
+  @override
+  final Map<String, List<File>> fieldPhotos = {};
 
   // Reutilizamos PruebasMetrologicas del módulo STIL para poder usar sus widgets
   PruebasMetrologicas pruebasIniciales;
@@ -55,6 +64,31 @@ class AjusteVerificacionesModel {
     estadoOperacional = '';
     estadoMetrologico = '';
     comentarios = List.filled(10, null);
+    fieldPhotos.clear();
+  }
+
+  @override
+  void addPhoto(String campo, File foto) {
+    if (!fieldPhotos.containsKey(campo)) {
+      fieldPhotos[campo] = [];
+    }
+    if (fieldPhotos[campo]!.length < 5) {
+      fieldPhotos[campo]!.add(foto);
+    }
+  }
+
+  @override
+  void removePhoto(String campo, int index) {
+    if (fieldPhotos.containsKey(campo) && index < fieldPhotos[campo]!.length) {
+      fieldPhotos[campo]!.removeAt(index);
+    }
+  }
+
+  @override
+  void clearPhotos(String campo) {
+    if (fieldPhotos.containsKey(campo)) {
+      fieldPhotos[campo]!.clear();
+    }
   }
 }
 

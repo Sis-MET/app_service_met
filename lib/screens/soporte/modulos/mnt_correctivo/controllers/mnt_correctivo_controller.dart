@@ -4,20 +4,18 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 import '../models/mnt_correctivo_model.dart';
 import '../../../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
 
-class MntCorrectivoController {
-  final MntCorrectivoModel model;
-  double? _cachedD1;
-
+class MntCorrectivoController extends BaseSoporteController<MntCorrectivoModel> {
   Timer? _autoSaveTimer;
   final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
   final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
 
-  MntCorrectivoController({required this.model});
+  MntCorrectivoController({required super.model});
 
   void dispose() {
     _autoSaveTimer?.cancel();
@@ -43,7 +41,7 @@ class MntCorrectivoController {
 
     try {
       final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
-      final data = _prepareDataForSave();
+      final data = prepareDataForSave();
       await dbHelper.upsertRegistroRelevamiento(data);
       lastSaveSuccessful.value = true;
     } catch (e) {
@@ -186,56 +184,6 @@ class MntCorrectivoController {
     await getD1FromDatabase();
   }
 
-  Future<double> getD1FromDatabase() async {
-    if (_cachedD1 != null) return _cachedD1!;
-    try {
-      final dbHelper = DatabaseHelperDiagnosticoCorrectivo();
-      final db = await dbHelper.database;
-      final List<Map<String, dynamic>> result = await db.query(
-        'diagnostico_correctivo',
-        columns: ['d1'],
-        where: 'session_id = ? AND cod_metrica = ?',
-        whereArgs: [model.sessionId, model.codMetrica],
-        limit: 1,
-      );
-      if (result.isNotEmpty && result.first['d1'] != null) {
-        final d1Value = result.first['d1'];
-        double d1 = 0.0;
-        if (d1Value is double) {
-          d1 = d1Value;
-        } else if (d1Value is int) {
-          d1 = d1Value.toDouble();
-        } else if (d1Value is String && d1Value.isNotEmpty) {
-          d1 = double.tryParse(d1Value) ?? 0.0;
-        }
-
-        if (d1 > 0) {
-          _cachedD1 = d1;
-          return d1;
-        }
-      }
-    } catch (e) {
-      debugPrint('Error getting d1: $e');
-    }
-    return 0.1; // Default fallback to avoid multiplying by 0.0
-  }
-
-  List<String> getIndicationSuggestions(double carga, double d) {
-    if (d == 0) return [];
-    int decimals = getDecimalPlaces(d);
-    return [
-      carga.toString(),
-      (carga + d).toStringAsFixed(decimals),
-      (carga - d).toStringAsFixed(decimals),
-    ];
-  }
-
-  int getDecimalPlaces(double value) {
-    String text = value.toString();
-    if (text.contains('.')) return text.split('.')[1].length;
-    return 0;
-  }
-
   // --- IMPORTACIÓN CSV ---
 
   Future<void> importDiagnosticoCsv(
@@ -367,25 +315,24 @@ class MntCorrectivoController {
   }
 
   // --- SAVE ---
+  @override
   Future<void> saveData(BuildContext context) async {
     try {
+      await savePhotos(context);
       final DatabaseHelperDiagnosticoCorrectivo dbHelper =
           DatabaseHelperDiagnosticoCorrectivo();
-      final data = _prepareDataForSave();
+      final data = prepareDataForSave();
       await dbHelper
           .upsertRegistroRelevamiento(data); // Método existente en el helper
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Datos guardados exitosamente'),
-            backgroundColor: Colors.green),
-      );
+      if (context.mounted) {
+        showSnackBar(context, 'Datos guardados exitosamente', isError: false);
+      }
     } catch (e) {
       debugPrint('Error saving: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error guardando: $e'), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        showSnackBar(context, 'Error guardando: $e', isError: true);
+      }
     }
   }
 
@@ -402,7 +349,8 @@ class MntCorrectivoController {
         model.horaFin.isNotEmpty;
   }
 
-  Map<String, dynamic> _prepareDataForSave() {
+  @override
+  Map<String, dynamic> prepareDataForSave() {
     // Lógica similar a Diagnostico pero con Pruebas Finales e Inspección
     final data = <String, dynamic>{
       'session_id': model.sessionId,

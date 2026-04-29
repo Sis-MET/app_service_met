@@ -31,9 +31,10 @@ class PrecargaController extends ChangeNotifier {
   String? _generatedSeca;
   bool _secaConfirmed = false;
 
-  // Registro incompleto en recuperación 
+  // Registro incompleto en recuperación
   Map<String, dynamic>? _registroIncompletoActual;
-  Map<String, dynamic>? get registroIncompletoActual => _registroIncompletoActual;
+  Map<String, dynamic>? get registroIncompletoActual =>
+      _registroIncompletoActual;
 
   void clearRegistroIncompleto() {
     _registroIncompletoActual = null;
@@ -905,7 +906,8 @@ class PrecargaController extends ChangeNotifier {
   // ==================== MÉTODOS DE RECUPERACIÓN DE SERVICIOS INCOMPLETOS ====================
 
   /// Verifica si existe un servicio incompleto para el cod_metrica seleccionado
-  Future<Map<String, dynamic>?> checkServicioIncompleto(String codMetrica) async {
+  Future<Map<String, dynamic>?> checkServicioIncompleto(
+      String codMetrica) async {
     try {
       final dbHelper = AppDatabase();
       final servicioIncompleto =
@@ -920,7 +922,7 @@ class PrecargaController extends ChangeNotifier {
   /// Carga los datos de un servicio incompleto en el controller
   Future<void> loadServicioIncompleto(Map<String, dynamic> registro) async {
     try {
-      debugPrint('🔄 Recuperando servicio incompleto...');
+      debugPrint('Recuperando servicio incompleto...');
       // Guardar referencia al registro para pasarlo a InicioServicioScreen
       _registroIncompletoActual = registro;
 
@@ -1021,7 +1023,7 @@ class PrecargaController extends ChangeNotifier {
       // Cargar datos de inspección visual (Paso 1 de inicio_servicio)
       // Estos datos serán cargados por el InicioServicioController cuando corresponda
 
-      debugPrint('✅ Servicio incompleto recuperado exitosamente');
+      debugPrint('Servicio incompleto recuperado exitosamente');
       notifyListeners();
     } catch (e) {
       debugPrint('Error al cargar servicio incompleto: $e');
@@ -1106,8 +1108,7 @@ class PrecargaController extends ChangeNotifier {
       if (registro == null) return false;
 
       // Verificar si tiene datos de linealidad
-      return registro['lin1'] != null &&
-          registro['lin1'].toString().isNotEmpty;
+      return registro['lin1'] != null && registro['lin1'].toString().isNotEmpty;
     } catch (e) {
       debugPrint('Error al verificar datos de linealidad: $e');
       return false;

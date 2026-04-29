@@ -173,32 +173,39 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
       return;
     }
 
-    setState(() {
-      // Buscar primera fila vacía
-      for (int i = 0; i < widget.linealidad.puntos.length; i++) {
-        if (widget.linealidad.puntos[i].lt.isEmpty) {
+    // Buscar primera fila vacía
+    for (int i = 0; i < widget.linealidad.puntos.length; i++) {
+      if (widget.linealidad.puntos[i].lt.isEmpty) {
+        setState(() {
           widget.linealidad.puntos[i].lt = _ltnController.text;
           widget.linealidad.puntos[i].indicacion = _ltnController.text;
           _ltControllers[i].text = _ltnController.text;
           _indicacionControllers[i].text = _ltnController.text;
           _actualizarUltimaCarga();
-          _limpiarCampos();
-          return;
-        }
+        });
+        _limpiarCampos();
+        return;
       }
+    }
 
-      // Si no hay filas vacías, agregar nueva
-      if (widget.linealidad.puntos.length < 12) {
-        _agregarFila();
+    // Si no hay filas vacías, agregar nueva fila directamente (sin setState anidado)
+    if (widget.linealidad.puntos.length < 12) {
+      setState(() {
+        widget.linealidad.puntos.add(PuntoLinealidad());
+        _ltControllers.add(TextEditingController());
+        _indicacionControllers.add(TextEditingController());
+        _retornoControllers.add(TextEditingController(text: '0'));
+        _differenceControllers.add(TextEditingController());
+
         final lastIndex = widget.linealidad.puntos.length - 1;
         widget.linealidad.puntos[lastIndex].lt = _ltnController.text;
         widget.linealidad.puntos[lastIndex].indicacion = _ltnController.text;
         _ltControllers[lastIndex].text = _ltnController.text;
         _indicacionControllers[lastIndex].text = _ltnController.text;
         _actualizarUltimaCarga();
-        _limpiarCampos();
-      }
-    });
+      });
+      _limpiarCampos();
+    }
   }
 
   void _limpiarCampos() {
@@ -785,7 +792,6 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
     }
     _iLsubnController.dispose();
     _lsubnController.dispose();
-    _ioController.dispose();
     _ioController.dispose();
     _ltnController.dispose();
     super.dispose();

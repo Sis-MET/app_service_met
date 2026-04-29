@@ -67,13 +67,13 @@ class _FinServicioAjustesVerificacionesScreenState
     );
   }
 
-  // ✅ NUEVO: Función principal de confirmación y exportación
+  // NUEVO: Función principal de confirmación y exportación
   Future<void> _confirmarYExportar(BuildContext context) async {
     try {
       final dbHelper = DatabaseHelperAjustes();
       final db = await dbHelper.database;
 
-      // ✅ CAMBIO: Usar otst y estado_balanza = 'Balanza Realizada'
+      // CAMBIO: Usar otst y estado_balanza = 'Balanza Realizada'
       final rows = await db.query(
         widget.tableName ?? 'ajustes_metrologicos',
         where: 'otst = ? AND estado_servicio = ?',

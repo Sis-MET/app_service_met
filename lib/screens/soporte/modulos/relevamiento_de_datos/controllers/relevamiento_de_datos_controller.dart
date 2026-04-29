@@ -2,22 +2,17 @@
 
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:archive/archive.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 import '../../../../../../database/soporte_tecnico/database_helper_relevamiento.dart';
 import '../models/relevamiento_de_datos_model.dart';
 
-class RelevamientoDeDatosController {
-  final RelevamientoDeDatosModel model;
-  final Map<String, List<File>> _fieldPhotos = {};
-
+class RelevamientoDeDatosController extends BaseSoporteController<RelevamientoDeDatosModel> {
   Timer? _autoSaveTimer;
   final ValueNotifier<bool> isAutoSaving = ValueNotifier(false);
   final ValueNotifier<bool> lastSaveSuccessful = ValueNotifier(true);
 
-  RelevamientoDeDatosController({required this.model});
+  RelevamientoDeDatosController({required super.model});
 
   void dispose() {
     _autoSaveTimer?.cancel();
@@ -42,7 +37,13 @@ class RelevamientoDeDatosController {
     isAutoSaving.value = true;
 
     try {
-      await saveDataToDatabase(context, showMessage: false);
+      final dbHelper = DatabaseHelperRelevamiento();
+      final Map<String, dynamic> relevamientoData = prepareDataForSave();
+
+      relevamientoData['session_id'] = model.sessionId;
+      relevamientoData['otst'] = model.secaValue;
+
+      await dbHelper.upsertRegistroRelevamiento(relevamientoData);
       lastSaveSuccessful.value = true;
     } catch (e) {
       lastSaveSuccessful.value = false;
@@ -202,163 +203,29 @@ class RelevamientoDeDatosController {
     }
   }
 
-  // ✅ OPTIMIZADO: Obtener d1 sin múltiples consultas
-  Future<double> getD1FromDatabase() async {
+  @override
+  Future<void> saveData(BuildContext context) async {
     try {
+      // Primero guardar fotos si existen
+      await savePhotos(context);
+
       final dbHelper = DatabaseHelperRelevamiento();
-      final db = await dbHelper.database;
-
-      final results = await db.query(
-        'relevamiento_de_datos',
-        columns: ['d1'],
-        where: 'session_id = ? AND cod_metrica = ?',
-        whereArgs: [model.sessionId, model.codMetrica],
-        limit: 1,
-      );
-
-      if (results.isNotEmpty && results.first['d1'] != null) {
-        final d1Value = results.first['d1'];
-        if (d1Value is double) {
-          return d1Value;
-        } else if (d1Value is int) {
-          return d1Value.toDouble();
-        } else if (d1Value is String) {
-          return double.tryParse(d1Value) ?? 0.1;
-        }
-      }
-
-      return 0.1;
-    } catch (e) {
-      debugPrint('Error al obtener d1: $e');
-      return 0.1;
-    }
-  }
-
-  // ✅ NUEVO: Método para guardar solo en BD (sin fotos)
-  Future<void> saveDataToDatabase(BuildContext context,
-      {bool showMessage = true}) async {
-    try {
-      final dbHelper = DatabaseHelperRelevamiento();
-      final Map<String, dynamic> relevamientoData = _prepareDataForSave();
+      final Map<String, dynamic> relevamientoData = prepareDataForSave();
 
       relevamientoData['session_id'] = model.sessionId;
       relevamientoData['otst'] = model.secaValue;
 
       await dbHelper.upsertRegistroRelevamiento(relevamientoData);
 
-      if (showMessage && context.mounted) {
-        _showSnackBar(
-          context,
-          'Datos guardados exitosamente',
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-        );
+      if (context.mounted) {
+        showSnackBar(context, 'Datos guardados exitosamente', isError: false);
       }
     } catch (e) {
       debugPrint('Error al guardar en BD: $e');
-      if (showMessage && context.mounted) {
-        _showSnackBar(
-          context,
-          'Error al guardar: ${e.toString()}',
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
-      }
-      rethrow;
-    }
-  }
-
-  // ✅ Método completo: guardar datos + fotos
-  Future<void> saveData(BuildContext context) async {
-    try {
-      // Primero guardar fotos si existen
-      await _savePhotos(context);
-
-      // Luego guardar datos en la base de datos
-      await saveDataToDatabase(context, showMessage: true);
-    } catch (e) {
       if (context.mounted) {
-        _showSnackBar(
-          context,
-          'Error al guardar los datos: ${e.toString()}',
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-        );
+        showSnackBar(context, 'Error al guardar los datos: ${e.toString()}', isError: true);
       }
     }
-  }
-
-  // ✅ MEJORADO: Guardar fotos con compresión
-  Future<void> _savePhotos(BuildContext context) async {
-    bool hasPhotos = _fieldPhotos.values.any((photos) => photos.isNotEmpty);
-
-    if (hasPhotos) {
-      final archive = Archive();
-      int totalSize = 0;
-
-      _fieldPhotos.forEach((label, photos) {
-        for (var i = 0; i < photos.length; i++) {
-          final file = photos[i];
-          final fileSize = file.lengthSync();
-          totalSize += fileSize;
-
-          // ⚠️ Advertir si el archivo es muy grande (> 5MB)
-          if (fileSize > 5 * 1024 * 1024) {
-            debugPrint(
-                '⚠️ Foto grande detectada: ${label}_${i + 1} - ${(fileSize / 1024 / 1024).toStringAsFixed(2)} MB');
-          }
-
-          final fileName = '${_sanitizeFileName(label)}_${i + 1}.jpg';
-          archive.addFile(ArchiveFile(
-            fileName,
-            file.lengthSync(),
-            file.readAsBytesSync(),
-          ));
-        }
-      });
-
-      debugPrint(
-          '📦 Tamaño total de fotos: ${(totalSize / 1024 / 1024).toStringAsFixed(2)} MB');
-
-      final zipEncoder = ZipEncoder();
-      final zipData = zipEncoder.encode(archive);
-
-      final uint8ListData = Uint8List.fromList(zipData);
-      final zipFileName =
-          '${model.secaValue}_${model.codMetrica}_fotos_${DateTime.now().millisecondsSinceEpoch}.zip';
-
-      final params = SaveFileDialogParams(
-        data: uint8ListData,
-        fileName: zipFileName,
-        mimeTypesFilter: ['application/zip'],
-      );
-
-      try {
-        final filePath = await FlutterFileDialog.saveFile(params: params);
-        if (filePath != null && context.mounted) {
-          _showSnackBar(context, 'Fotos guardadas en $filePath');
-        } else if (context.mounted) {
-          _showSnackBar(context, 'No se seleccionó ninguna carpeta');
-        }
-      } catch (e) {
-        if (context.mounted) {
-          _showSnackBar(context, 'Error al guardar el archivo: $e');
-        }
-      }
-    }
-  }
-
-  // ✅ Sanitizar nombres de archivo
-  String _sanitizeFileName(String name) {
-    return name
-        .replaceAll(' ', '_')
-        .replaceAll('á', 'a')
-        .replaceAll('é', 'e')
-        .replaceAll('í', 'i')
-        .replaceAll('ó', 'o')
-        .replaceAll('ú', 'u')
-        .replaceAll('ñ', 'n')
-        .replaceAll(RegExp(r'[^\w\-]'), '');
   }
 
   // Método helper para verificar si el servicio está completo
@@ -368,8 +235,8 @@ class RelevamientoDeDatosController {
         model.horaFin.isNotEmpty;
   }
 
-  // ✅ MEJORADO: Preparar datos con validación
-  Map<String, dynamic> _prepareDataForSave() {
+  @override
+  Map<String, dynamic> prepareDataForSave() {
     final data = <String, dynamic>{
       'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
       'session_id': model.sessionId,
@@ -503,51 +370,21 @@ class RelevamientoDeDatosController {
     }
   }
 
-  void _showSnackBar(BuildContext context, String message,
-      {Color? backgroundColor, Color? textColor}) {
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(color: textColor ?? Colors.white),
-        ),
-        backgroundColor: backgroundColor ?? Colors.grey[700],
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Métodos de gestión de fotos
+  @override
   void agregarFoto(String campo, File foto) {
-    if (!_fieldPhotos.containsKey(campo)) {
-      _fieldPhotos[campo] = [];
-    }
-
-    // ✅ Limitar a 5 fotos por campo
-    if (_fieldPhotos[campo]!.length >= 5) {
-      debugPrint('⚠️ Límite de 5 fotos alcanzado para: $campo');
-      return;
-    }
-
-    _fieldPhotos[campo]!.add(foto);
+    super.agregarFoto(campo, foto);
     model.camposEstado[campo]?.agregarFoto(foto);
   }
 
+  @override
   void eliminarFoto(String campo, int index) {
-    if (_fieldPhotos.containsKey(campo) &&
-        index < _fieldPhotos[campo]!.length) {
-      _fieldPhotos[campo]!.removeAt(index);
-      model.camposEstado[campo]?.eliminarFoto(index);
-    }
+    super.eliminarFoto(campo, index);
+    model.camposEstado[campo]?.eliminarFoto(index);
   }
 
-  void limpiarFotos() {
-    _fieldPhotos.clear();
-    model.camposEstado.forEach((key, value) {
-      value.limpiarFotos();
-    });
+  @override
+  void limpiarFotos(String campo) {
+    super.limpiarFotos(campo);
+    model.camposEstado[campo]?.limpiarFotos();
   }
 }

@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'package:service_met/screens/soporte/controllers/base_soporte_controller.dart';
 
-class MntPrvRegularStilModel {
+class MntPrvRegularStilModel implements BaseSoporteModel {
+  @override
   final String codMetrica;
+  @override
   final String sessionId;
+  @override
   final String secaValue;
 
   // Campos de estado general
@@ -21,6 +25,9 @@ class MntPrvRegularStilModel {
   String horaInicio;
   String horaFin;
   String fechaProxServicio;
+
+  @override
+  Map<String, List<File>> fieldPhotos = {};
 
   MntPrvRegularStilModel({
     required this.codMetrica,
@@ -65,6 +72,28 @@ class MntPrvRegularStilModel {
     horaInicio = '';
     horaFin = '';
     fechaProxServicio = '';
+  }
+
+  @override
+  void addPhoto(String field, File photo) {
+    if (!fieldPhotos.containsKey(field)) {
+      fieldPhotos[field] = [];
+    }
+    fieldPhotos[field]!.add(photo);
+  }
+
+  @override
+  void removePhoto(String field, int index) {
+    if (fieldPhotos.containsKey(field) && index < fieldPhotos[field]!.length) {
+      fieldPhotos[field]!.removeAt(index);
+    }
+  }
+
+  @override
+  void clearPhotos(String field) {
+    if (fieldPhotos.containsKey(field)) {
+      fieldPhotos[field]!.clear();
+    }
   }
 }
 

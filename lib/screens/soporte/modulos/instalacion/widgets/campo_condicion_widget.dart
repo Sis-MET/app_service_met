@@ -212,8 +212,8 @@ class _CampoCondicionWidgetState extends State<CampoCondicionWidget> {
         if (newValue != null) {
           setState(() {
             widget.campo.initialValue = newValue;
-            widget.onChanged();
           });
+          widget.onChanged();
         }
       },
     );
