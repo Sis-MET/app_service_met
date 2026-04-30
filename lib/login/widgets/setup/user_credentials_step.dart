@@ -32,6 +32,8 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = widget.isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -40,12 +42,12 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0E8833).withOpacity(0.1),
+                color: accent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.person_outline,
-                color: Color(0xFF0E8833),
+                color: accent,
                 size: 28,
               ),
             ),
@@ -224,7 +226,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               flex: 2,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0E8833),
+                  backgroundColor: accent,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),

@@ -21,58 +21,65 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0);
+
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.8), color],
-            ),
+            color: cardBg,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
+                color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  size: 24,
-                  color: const Color(0xFF212121),
+                  size: 18,
+                  color: accent,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 value,
                 style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF212121),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  height: 1.1,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 title,
                 style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: Colors.black54,
+                  fontSize: 11,
+                  color: isDark ? Colors.white54 : Colors.black45,
                   fontWeight: FontWeight.w500,
+                  height: 1.4,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

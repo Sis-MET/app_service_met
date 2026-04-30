@@ -9,7 +9,6 @@ import 'package:intl/intl.dart';
 
 import '../models/servicio_model.dart';
 import '../widgets/welcome_header.dart';
-import '../widgets/stat_card.dart';
 import '../widgets/tipo_servicio_selector.dart';
 import '../widgets/service_card_calibracion.dart';
 import '../widgets/service_card_soporte.dart';
@@ -29,7 +28,7 @@ class HomeDashboardTab extends StatefulWidget {
 }
 
 class _HomeDashboardTabState extends State<HomeDashboardTab> {
-  int _tipoServicioSeleccionado = 0; // 0: Calibración, 1: Soporte Técnico
+  int _tipoServicioSeleccionado = 0;
   int totalServiciosCal = 0;
   int totalServiciosSop = 0;
   String fechaUltimaPrecarga = "Sin datos";
@@ -60,109 +59,71 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         'relevamiento_de_datos.db': 'relevamiento_de_datos',
         'verificaciones.db': 'verificaciones_internas',
       };
-
       final databasesPath = await getDatabasesPath();
-
-      // Ejecutar todas las consultas en paralelo
       final results = await Future.wait(
         databasesMap.entries.map((entry) async {
-          String dbName = entry.key;
-          String tableName = entry.value;
-          String dbPath = p.join(databasesPath, dbName);
-
+          final dbPath = p.join(databasesPath, entry.key);
           if (await databaseExists(dbPath)) {
             try {
-              // Abrir modo solo lectura si es posible (no soportado explícitamente por openDatabase simple, pero es rápido)
               final db = await openDatabase(dbPath, readOnly: true);
-              final result =
-                  await db.rawQuery('SELECT COUNT(*) as total FROM $tableName');
+              final result = await db
+                  .rawQuery('SELECT COUNT(*) as total FROM ${entry.value}');
               await db.close();
               return result.isNotEmpty ? (result.first['total'] as int) : 0;
-            } catch (e) {
-              debugPrint('Error contando en $dbName: $e');
+            } catch (_) {
               return 0;
             }
           }
           return 0;
         }),
       );
-
-      final total = results.fold(0, (sum, count) => sum + count);
-
       if (mounted) {
         setState(() {
-          totalServiciosSop = total;
+          totalServiciosSop = results.fold(0, (s, c) => s + c);
         });
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          totalServiciosSop = 0;
-        });
-      }
+    } catch (_) {
+      if (mounted) setState(() => totalServiciosSop = 0);
     }
   }
 
   Future<void> _getTotalServiciosCal() async {
     try {
-      String dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
-
+      final dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
       if (await databaseExists(dbPath)) {
         final db = await openDatabase(dbPath);
         final result = await db.rawQuery(
             'SELECT COUNT(*) as total FROM registros_calibracion WHERE estado_servicio_bal = ?',
             ['Balanza Calibrada']);
         await db.close();
-        int count = result.isNotEmpty ? result.first['total'] as int : 0;
         if (mounted) {
           setState(() {
-            totalServiciosCal = count;
+            totalServiciosCal =
+                result.isNotEmpty ? result.first['total'] as int : 0;
           });
         }
       } else {
-        if (mounted) {
-          setState(() {
-            totalServiciosCal = 0;
-          });
-        }
+        if (mounted) setState(() => totalServiciosCal = 0);
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          totalServiciosCal = 0;
-        });
-      }
+    } catch (_) {
+      if (mounted) setState(() => totalServiciosCal = 0);
     }
   }
 
   Future<void> _getFechaUltimaPrecarga() async {
     try {
-      String dbPath = p.join(await getDatabasesPath(), 'precarga_database.db');
-
+      final dbPath =
+          p.join(await getDatabasesPath(), 'precarga_database.db');
       if (await databaseExists(dbPath)) {
-        final file = File(dbPath);
-        final lastModified = await file.lastModified();
-        final formattedDate =
-            DateFormat("d MMMM 'de' y", 'es_ES').format(lastModified);
-
-        if (mounted) {
-          setState(() {
-            fechaUltimaPrecarga = formattedDate;
-          });
-        }
+        final lastModified = await File(dbPath).lastModified();
+        final formatted =
+            DateFormat("d 'de' MMMM 'de' y", 'es_ES').format(lastModified);
+        if (mounted) setState(() => fechaUltimaPrecarga = formatted);
       } else {
-        if (mounted) {
-          setState(() {
-            fechaUltimaPrecarga = "No existe";
-          });
-        }
+        if (mounted) setState(() => fechaUltimaPrecarga = "No existe");
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          fechaUltimaPrecarga = "Error";
-        });
-      }
+    } catch (_) {
+      if (mounted) setState(() => fechaUltimaPrecarga = "Error");
     }
   }
 
@@ -177,14 +138,14 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       case 'mnt_correctivo.db':
         return 'Mantenimiento Correctivo';
       case 'mnt_prv_avanzado_stac.db':
-        return 'Mantenimiento Preventivo Avanzado STAC';
+        return 'Mnt. Preventivo Avanzado STAC';
       case 'mnt_prv_avanzado_stil.db':
-        return 'Mantenimiento Preventivo Avanzado STIL';
+        return 'Mnt. Preventivo Avanzado STIL';
       case 'mnt_prv_regular_stac.db':
-        return 'Mantenimiento Preventivo Regular STAC';
+        return 'Mnt. Preventivo Regular STAC';
       case 'mnt_prv_regular_stil.db':
-        return 'Mantenimiento Preventivo Regular STIL';
-      case 'relevamiento.db':
+        return 'Mnt. Preventivo Regular STIL';
+      case 'relevamiento_de_datos.db':
         return 'Relevamiento';
       case 'verificaciones.db':
         return 'Verificaciones';
@@ -195,45 +156,31 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
 
   Future<List<ServicioSeca>> _getServiciosCalibracionPorSeca() async {
     final List<ServicioSeca> servicios = [];
-
     try {
-      String dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
-
+      final dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
       if (await databaseExists(dbPath)) {
         final db = await openDatabase(dbPath);
-        final List<Map<String, dynamic>> registros =
-            await db.query('registros_calibracion');
+        final registros = await db.query('registros_calibracion');
         final Map<String, List<Map<String, dynamic>>> agrupados = {};
-
-        for (var registro in registros) {
-          final String seca = registro['seca']?.toString() ?? 'Sin SECA';
-          if (!agrupados.containsKey(seca)) {
-            agrupados[seca] = [];
-          }
-          agrupados[seca]!.add(registro);
+        for (var r in registros) {
+          final seca = r['seca']?.toString() ?? 'Sin SECA';
+          agrupados.putIfAbsent(seca, () => []).add(r);
         }
-
         agrupados.forEach((seca, balanzas) {
           servicios.add(ServicioSeca(
-            seca: seca,
-            cantidadBalanzas: balanzas.length,
-            balanzas: balanzas,
-          ));
+              seca: seca,
+              cantidadBalanzas: balanzas.length,
+              balanzas: balanzas));
         });
-
         await db.close();
       }
-
       servicios.sort((a, b) => a.seca.compareTo(b.seca));
-      return servicios;
-    } catch (e) {
-      return [];
-    }
+    } catch (_) {}
+    return servicios;
   }
 
   Future<List<ServicioOtst>> _getServiciosSoportePorOtst() async {
     final List<ServicioOtst> servicios = [];
-
     try {
       final Map<String, String> databasesMap = {
         'ajustes.db': 'ajustes_metrologicos',
@@ -247,173 +194,304 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         'relevamiento_de_datos.db': 'relevamiento_de_datos',
         'verificaciones.db': 'verificaciones_internas',
       };
-
       final Map<String, List<Map<String, dynamic>>> agrupados = {};
-
       final databasesPath = await getDatabasesPath();
-
-      // Consultas paralelas a todas las bases de datos de soporte
       final results = await Future.wait(
         databasesMap.entries.map((entry) async {
-          String dbName = entry.key;
-          String tableName = entry.value;
-          String dbPath = p.join(databasesPath, dbName);
-
+          final dbPath = p.join(databasesPath, entry.key);
           if (await databaseExists(dbPath)) {
             try {
               final db = await openDatabase(dbPath, readOnly: true);
-              final List<Map<String, dynamic>> registros =
-                  await db.query(tableName);
+              final registros = await db.query(entry.value);
               await db.close();
-
-              // Procesar registros in-memory para esta DB
-              final List<Map<String, dynamic>> processed = [];
-              for (var registro in registros) {
-                final Map<String, dynamic> registroMod =
-                    Map<String, dynamic>.from(registro);
-                registroMod['tipo_servicio'] = _obtenerTipoServicio(dbName);
-                processed.add(registroMod);
-              }
-              return processed;
-            } catch (e) {
-              debugPrint('Error leyendo $dbName: $e');
+              return registros.map((r) {
+                final m = Map<String, dynamic>.from(r);
+                m['tipo_servicio'] = _obtenerTipoServicio(entry.key);
+                return m;
+              }).toList();
+            } catch (_) {
               return <Map<String, dynamic>>[];
             }
           }
           return <Map<String, dynamic>>[];
         }),
       );
-
-      // Agrupar resultados
       for (var dbRegistros in results) {
-        for (var registro in dbRegistros) {
-          final String otst = registro['otst']?.toString() ?? 'Sin OTST';
-          if (!agrupados.containsKey(otst)) {
-            agrupados[otst] = [];
-          }
-          agrupados[otst]!.add(registro);
+        for (var r in dbRegistros) {
+          final otst = r['otst']?.toString() ?? 'Sin OTST';
+          agrupados.putIfAbsent(otst, () => []).add(r);
         }
       }
-
-      agrupados.forEach((otst, serviciosList) {
+      agrupados.forEach((otst, list) {
         servicios.add(ServicioOtst(
-          otst: otst,
-          cantidadServicios: serviciosList.length,
-          servicios: serviciosList,
-        ));
+            otst: otst, cantidadServicios: list.length, servicios: list));
       });
-
       servicios.sort((a, b) => a.otst.compareTo(b.otst));
-      return servicios;
-    } catch (e) {
-      return [];
-    }
+    } catch (_) {}
+    return servicios;
   }
+
+  // ─────────────────────────────────────────
+  //  UI HELPERS
+  // ─────────────────────────────────────────
+
+  Widget _buildSummaryCard(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final divider =
+        isDark ? const Color(0xFF2E2E2E) : const Color(0xFFEEEEEE);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Dos stats ──
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatItem(
+                  icon: FontAwesomeIcons.screwdriverWrench,
+                  value: totalServiciosSop.toString(),
+                  label: 'Soporte\nTécnico',
+                  accent: accent,
+                  isDark: isDark,
+                  onTap: () => setState(() => _tipoServicioSeleccionado = 1),
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 64,
+                color: divider,
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+              ),
+              Expanded(
+                child: _buildStatItem(
+                  icon: FontAwesomeIcons.scaleBalanced,
+                  value: totalServiciosCal.toString(),
+                  label: 'Balanzas\nCalibradas',
+                  accent: accent,
+                  isDark: isDark,
+                  onTap: () => setState(() => _tipoServicioSeleccionado = 0),
+                ),
+              ),
+            ],
+          ),
+          // ── Divider + precarga ──
+          Container(
+            height: 1,
+            color: divider,
+            margin: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          Row(
+            children: [
+              Icon(
+                FontAwesomeIcons.cloudArrowDown,
+                size: 13,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Última precarga: ',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  fechaUltimaPrecarga,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : const Color(0xFF1A1A1A),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2);
+  }
+
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required Color accent,
+    required bool isDark,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 15, color: accent),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              height: 1.0,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: isDark ? Colors.white38 : Colors.black38,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Mis Servicios',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              ),
+            ),
+            Text(
+              'Registros en este dispositivo',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ).animate().fadeIn(delay: 500.ms);
+  }
+
+  Widget _buildEmptyState({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon,
+              size: 40,
+              color: isDark ? Colors.white24 : Colors.black26),
+          const SizedBox(height: 16),
+          Text(title,
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white54 : Colors.black45,
+              )),
+          const SizedBox(height: 6),
+          Text(subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+              textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────
+  //  BUILD
+  // ─────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
 
     return RefreshIndicator(
       onRefresh: () async {
         await _loadDashboardData();
-        setState(() {}); // Forzar reconstrucción para recargar listas
+        setState(() {});
       },
+      color: accent,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── 1. Saludo ──
             WelcomeHeader(userName: widget.userName),
-            const SizedBox(height: 30),
-            Text(
-              'Estadísticas',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDarkMode ? Colors.white : const Color(0xFF2C3E50),
-              ),
-            ).animate().fadeIn(delay: 300.ms),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                StatCard(
-                  icon: FontAwesomeIcons.screwdriverWrench,
-                  title: 'Servicios\nSoporte Técnico',
-                  value: totalServiciosSop.toString(),
-                  color: const Color(0xFF89B2CC),
-                  onTap: () {
-                    setState(() {
-                      _tipoServicioSeleccionado = 1;
-                    });
-                  },
-                ),
-                const SizedBox(width: 16),
-                StatCard(
-                  icon: FontAwesomeIcons.scaleBalanced,
-                  title: 'Balanzas\nCalibradas',
-                  value: totalServiciosCal.toString(),
-                  color: const Color(0xFFBFD6A7),
-                  onTap: () {
-                    setState(() {
-                      _tipoServicioSeleccionado = 0;
-                    });
-                  },
-                ),
-              ],
-            ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.3),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                StatCard(
-                  icon: FontAwesomeIcons.cloudArrowDown,
-                  title: 'Última\nPrecarga',
-                  value: fechaUltimaPrecarga,
-                  color: const Color(0xFFD6D4A7),
-                  onTap:
-                      () {}, // Puede navegar a pantalla de precarga si se desea
-                ),
-              ],
-            ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.3),
-            const SizedBox(height: 40),
+            const SizedBox(height: 28),
+
+            // ── 2. Card resumen ──
+            _buildSummaryCard(context),
+            const SizedBox(height: 32),
+
+            // ── 3. Encabezado sección ──
+            _buildSectionHeader(context),
+            const SizedBox(height: 14),
+
+            // ── 4. Selector tipo ──
             TipoServicioSelector(
               selectedIndex: _tipoServicioSeleccionado,
-              onSelected: (index) {
-                setState(() {
-                  _tipoServicioSeleccionado = index;
-                });
-              },
-            ),
+              onSelected: (i) =>
+                  setState(() => _tipoServicioSeleccionado = i),
+            ).animate().fadeIn(delay: 550.ms),
             const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _tipoServicioSeleccionado == 0
-                      ? 'Servicios de Calibración\npor SECA'
-                      : 'Servicios de Soporte\npor OTST',
-                  style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: isDarkMode ? Colors.white : const Color(0xFF2C3E50),
-                  ),
-                ),
-                Icon(
-                  _tipoServicioSeleccionado == 0
-                      ? FontAwesomeIcons.scaleBalanced
-                      : FontAwesomeIcons.screwdriverWrench,
-                  color: Colors.grey[600],
-                  size: 20,
-                ),
-              ],
-            ).animate().fadeIn(delay: 600.ms),
-            const SizedBox(height: 20),
+
+            // ── 5. Lista ──
             if (_tipoServicioSeleccionado == 0)
               _buildListaCalibracion(context)
             else
               _buildListaSoporte(context),
-            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -421,66 +499,27 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildListaCalibracion(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return FutureBuilder<List<ServicioSeca>>(
       future: _getServiciosCalibracionPorSeca(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyState(
+            context: context,
+            icon: FontAwesomeIcons.scaleBalanced,
+            title: 'Sin servicios de calibración',
+            subtitle:
+                'Los registros de calibración aparecerán aquí cuando estén disponibles.',
           );
         }
-
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2C3E50) : Colors.grey[50],
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  FontAwesomeIcons.scaleBalanced,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No hay servicios de calibración',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Los servicios de calibración aparecerán aquí cuando estén disponibles',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
-
-        final servicios = snapshot.data!;
-
         return Column(
-          children: servicios.asMap().entries.map((entry) {
-            final index = entry.key;
-            final servicio = entry.value;
-
-            return ServiceCardCalibracion(servicio: servicio)
-                .animate(delay: Duration(milliseconds: 700 + (index * 100)))
+          children: snapshot.data!.asMap().entries.map((e) {
+            return ServiceCardCalibracion(servicio: e.value)
+                .animate(delay: Duration(milliseconds: 600 + e.key * 80))
                 .fadeIn()
-                .slideX(begin: 0.3);
+                .slideX(begin: 0.2);
           }).toList(),
         );
       },
@@ -488,66 +527,27 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildListaSoporte(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return FutureBuilder<List<ServicioOtst>>(
       future: _getServiciosSoportePorOtst(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyState(
+            context: context,
+            icon: FontAwesomeIcons.screwdriverWrench,
+            title: 'Sin servicios de soporte',
+            subtitle:
+                'Los registros de soporte técnico aparecerán aquí cuando estén disponibles.',
           );
         }
-
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF2C3E50) : Colors.grey[50],
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  FontAwesomeIcons.screwdriverWrench,
-                  size: 48,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No hay servicios de soporte técnico',
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Los servicios de soporte técnico aparecerán aquí cuando estén disponibles',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          );
-        }
-
-        final servicios = snapshot.data!;
-
         return Column(
-          children: servicios.asMap().entries.map((entry) {
-            final index = entry.key;
-            final servicio = entry.value;
-
-            return ServiceCardSoporte(servicio: servicio)
-                .animate(delay: Duration(milliseconds: 700 + (index * 100)))
+          children: snapshot.data!.asMap().entries.map((e) {
+            return ServiceCardSoporte(servicio: e.value)
+                .animate(delay: Duration(milliseconds: 600 + e.key * 80))
                 .fadeIn()
-                .slideX(begin: 0.3);
+                .slideX(begin: 0.2);
           }).toList(),
         );
       },

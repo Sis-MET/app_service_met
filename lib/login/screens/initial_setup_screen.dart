@@ -12,7 +12,12 @@ import '../widgets/setup/user_credentials_step.dart';
 import '../widgets/setup/info_card.dart';
 
 class InitialSetupScreen extends StatefulWidget {
-  const InitialSetupScreen({super.key});
+  final bool isUpdateMode;
+
+  const InitialSetupScreen({
+    super.key,
+    this.isUpdateMode = false,
+  });
 
   @override
   State<InitialSetupScreen> createState() => _InitialSetupScreenState();
@@ -71,6 +76,24 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       if (!result.success) {
         _showError(context, result.message);
         setState(() => _loading = false);
+        return;
+      }
+
+      if (widget.isUpdateMode) {
+        // En modo actualización, solo guardamos la conexión y volvemos a Precarga
+        await _setupService.saveConfiguration(
+          ip: _ipController.text.trim(),
+          port: _portController.text.trim(),
+          database: _dbController.text.trim(),
+          dbUser: _dbUserController.text.trim(),
+          dbPass: _dbPassController.text.trim(),
+        );
+
+        setState(() => _loading = false);
+
+        if (mounted) {
+          Navigator.pop(context);
+        }
         return;
       }
 
@@ -175,13 +198,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF1a1a1a), const Color(0xFF2d2d2d)]
-                : [const Color(0xFFF5F7FA), const Color(0xFFE8EDF2)],
-          ),
+          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
         ),
         child: SafeArea(
           child: _loading
@@ -207,12 +224,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -234,13 +255,16 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2d2d2d) : Colors.white,
-              borderRadius: BorderRadius.circular(30),
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),

@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
-import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -24,7 +23,6 @@ class DetallesOtstScreen extends StatefulWidget {
 
 class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
   List<Map<String, dynamic>> serviciosEditados = [];
-  int? servicioExpandido;
 
   @override
   void initState() {
@@ -269,344 +267,264 @@ class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
   Widget _buildServicioCard(
       BuildContext context, int index, Map<String, dynamic> servicio) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
     final camposConDatos = _obtenerCamposConDatos(servicio);
-    final isExpanded = servicioExpandido == index;
     final tipoServicio = _obtenerTipoServicio(servicio);
     final iconoServicio = _obtenerIconoTipoServicio(tipoServicio);
     final colorServicio = _obtenerColorTipoServicio(tipoServicio);
+    final titulo = servicio['cod_metrica']?.toString() ??
+        servicio['modelo_balanza']?.toString() ??
+        servicio['equipo']?.toString() ??
+        'Servicio ${index + 1}';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C3E50) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Material(
-          color: Colors.transparent,
-          child: Column(
-            children: [
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    servicioExpandido = isExpanded ? null : index;
-                  });
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
+    return GestureDetector(
+      onTap: () => _mostrarDetalleServicio(context, index, servicio),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          children: [
+            // ─ Ícono tipo servicio ───────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorServicio.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(iconoServicio, color: colorServicio, size: 20),
+            ),
+            const SizedBox(width: 14),
+            // ─ Info principal ───────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    titulo,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              colorServicio,
-                              _darkenColor(colorServicio, 0.2)
-                            ],
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: colorServicio.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorServicio.withOpacity(0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
+                          child: Text(
+                            tipoServicio,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: colorServicio,
                             ),
-                          ],
-                        ),
-                        child: Icon(
-                          iconoServicio,
-                          color: Colors.white,
-                          size: 22,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              servicio['cod_metrica']?.toString() ??
-                                  servicio['modelo_balanza']?.toString() ??
-                                  servicio['equipo']?.toString() ??
-                                  'Servicio ${index + 1}',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF2C3E50),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: colorServicio.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    tipoServicio,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: colorServicio,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '${camposConDatos.length} campos',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: colorServicio.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          isExpanded
-                              ? FontAwesomeIcons.chevronUp
-                              : FontAwesomeIcons.chevronDown,
-                          size: 16,
-                          color: colorServicio,
+                      const SizedBox(width: 8),
+                      Text(
+                        '${camposConDatos.length} campos',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? Colors.white38 : Colors.black38,
                         ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
-
-              // Contenido expandible
-              AnimatedCrossFade(
-                firstChild: const SizedBox.shrink(),
-                secondChild: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 1,
-                        margin: const EdgeInsets.only(bottom: 20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              isDark ? Colors.white24 : Colors.black12,
-                              Colors.transparent,
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Información del servicio
-                      _buildInfoServicio(
-                          context, servicio, isDark, colorServicio),
-
-                      const SizedBox(height: 16),
-
-                      // Campos de datos
-                      ...camposConDatos.entries.map((entry) {
-                        // Excluir campos ya mostrados en la información del servicio
-                        if ([
-                          'tipo_servicio',
-                          'cod_metrica',
-                          'modelo',
-                          'equipo',
-                          'otst'
-                        ].contains(entry.key)) {
-                          return const SizedBox.shrink();
-                        }
-                        return _buildDataField(
-                          context,
-                          _formatearNombreCampo(entry.key),
-                          entry.value.toString(),
-                          isDark,
-                        );
-                      }),
-
-                      const SizedBox(height: 16),
-
-                      // Botón de editar
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              _mostrarDialogoEdicion(context, index, servicio),
-                          icon: const Icon(FontAwesomeIcons.penToSquare,
-                              size: 16),
-                          label: const Text('Editar datos'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorServicio,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                crossFadeState: isExpanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 300),
-              ),
-            ],
-          ),
+            ),
+            // ─ Flecha ────────────────────────────────────────────
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? Colors.white30 : Colors.black26,
+              size: 22,
+            ),
+          ],
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: index * 100))
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.2, end: 0);
+        .animate(delay: Duration(milliseconds: index * 80))
+        .fadeIn(duration: 350.ms)
+        .slideX(begin: 0.05, end: 0);
   }
 
-  Widget _buildInfoServicio(BuildContext context, Map<String, dynamic> servicio,
-      bool isDark, Color color) {
+  void _mostrarDetalleServicio(
+      BuildContext context, int index, Map<String, dynamic> servicio) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor =
+        isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+    final camposConDatos = _obtenerCamposConDatos(servicio);
     final tipoServicio = _obtenerTipoServicio(servicio);
+    final colorServicio = _obtenerColorTipoServicio(tipoServicio);
+    final titulo = servicio['cod_metrica']?.toString() ??
+        servicio['modelo_balanza']?.toString() ??
+        servicio['equipo']?.toString() ??
+        'Servicio ${index + 1}';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.92,
+        minChildSize: 0.5,
+        maxChildSize: 0.96,
+        builder: (_, controller) => Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
             children: [
-              Icon(
-                _obtenerIconoTipoServicio(tipoServicio),
-                size: 16,
-                color: color,
+              // ─ Handle + header ──────────────────────────────────
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  border:
+                      Border(bottom: BorderSide(color: borderColor, width: 1)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: colorServicio.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(_obtenerIconoTipoServicio(tipoServicio),
+                          color: colorServicio, size: 20),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            titulo,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            tipoServicio,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: colorServicio,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _mostrarDialogoEdicion(context, index, servicio);
+                      },
+                      icon: Icon(Icons.edit_outlined, size: 16, color: accent),
+                      label: Text(
+                        'Editar',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // ─ Campos scrolleables ─────────────────────────────────
               Expanded(
-                child: Text(
-                  tipoServicio,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: color,
+                child: ListView.separated(
+                  controller: controller,
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                  itemCount: camposConDatos.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: borderColor,
                   ),
+                  itemBuilder: (_, i) {
+                    final entry = camposConDatos.entries.elementAt(i);
+                    return _buildCampoRow(
+                      _formatearNombreCampo(entry.key),
+                      entry.value.toString(),
+                      isDark,
+                      cardColor,
+                    );
+                  },
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          if (servicio['cod_metrica'] != null)
-            _buildInfoRow(
-                'Código Métrica', servicio['cod_metrica'].toString(), isDark),
-          if (servicio['modelo_balanza'] != null)
-            _buildInfoRow(
-                'Modelo', servicio['modelo_balanza'].toString(), isDark),
-          if (servicio['equipo'] != null)
-            _buildInfoRow('Equipo', servicio['equipo'].toString(), isDark),
-          if (servicio['otst'] != null)
-            _buildInfoRow('OTST', servicio['otst'].toString(), isDark),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              '$label:',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white70 : Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF2C3E50),
-              ),
-              textAlign: TextAlign.end,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDataField(
-      BuildContext context, String label, String value, bool isDark) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color:
-            isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F7FA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.05),
         ),
       ),
+    );
+  }
+
+  Widget _buildCampoRow(
+      String label, String value, bool isDark, Color cardColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            flex: 2,
+            flex: 4,
             child: Text(
               label,
               style: GoogleFonts.inter(
                 fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : Colors.grey[700],
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white60 : Colors.black54,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
-            flex: 3,
+            flex: 5,
             child: Text(
               value,
               style: GoogleFonts.inter(
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white : const Color(0xFF2C3E50),
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : Colors.black87,
               ),
               textAlign: TextAlign.end,
             ),
@@ -614,132 +532,284 @@ class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
         ],
       ),
     );
-  }
-
-  Color _darkenColor(Color color, double factor) {
-    assert(factor >= 0 && factor <= 1);
-    final hsl = HSLColor.fromColor(color);
-    final hslDark = hsl.withLightness((hsl.lightness - factor).clamp(0.0, 1.0));
-    return hslDark.toColor();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final accent =
+        isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final bgColor =
+        isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
+    final cardColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor =
+        isDarkMode ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: bgColor,
+      // ── AppBar limpio: solo título + botón atrás ──────────────────────────
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-            child: AppBar(
-              toolbarHeight: 70,
-              leading: IconButton(
-                icon: Icon(
-                  FontAwesomeIcons.arrowLeft,
-                  color: isDarkMode ? Colors.white : Colors.black,
-                  size: 20,
-                ),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: Column(
+        preferredSize: const Size.fromHeight(65),
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardColor,
+            border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: SizedBox(
+              height: 65,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    'OTST ${widget.servicioOtst.otst}',
-                    style: GoogleFonts.poppins(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16.0,
+                  Positioned(
+                    left: 4,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 20,
+                          color: isDarkMode
+                              ? Colors.white70
+                              : const Color(0xFF555555)),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   Text(
-                    '${widget.servicioOtst.cantidadServicios} servicio${widget.servicioOtst.cantidadServicios != 1 ? 's' : ''} técnico${widget.servicioOtst.cantidadServicios != 1 ? 's' : ''}',
-                    style: GoogleFonts.inter(
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12.0,
+                    'DETALLE DE SERVICIOS',
+                    style: GoogleFonts.poppins(
+                      color:
+                          isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17.0,
+                      letterSpacing: 0.3,
                     ),
                   ),
                 ],
               ),
-              backgroundColor: isDarkMode
-                  ? Colors.black.withOpacity(0.1)
-                  : Colors.white.withOpacity(0.7),
-              elevation: 0,
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      FontAwesomeIcons.filePdf,
-                      color: Colors.red,
-                      size: 18,
-                    ),
-                  ),
-                  onPressed: _exportarPDF,
-                  tooltip: 'Exportar PDF',
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF4CAF50).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      FontAwesomeIcons.download,
-                      color: Color(0xFF4CAF50),
-                      size: 18,
-                    ),
-                  ),
-                  onPressed: _exportarCSV,
-                ),
-                const SizedBox(width: 8),
-              ],
             ),
           ),
         ),
       ),
-      body: SafeArea(
-        child: serviciosEditados.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      FontAwesomeIcons.boxOpen,
-                      size: 64,
-                      color: Colors.grey[400],
+      // ── Barra de acciones fija en el fondo ───────────────────────────────
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: cardColor,
+          border: Border(top: BorderSide(color: borderColor, width: 1)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _exportarPDF,
+                  icon: const Icon(FontAwesomeIcons.filePdf,
+                      size: 16, color: Colors.red),
+                  label: Text(
+                    'Exportar PDF',
+                    style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.red.withOpacity(0.4)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _exportarCSV,
+                  icon: const Icon(FontAwesomeIcons.fileArrowDown,
+                      size: 16, color: Colors.white),
+                  label: Text(
+                    'Respaldo CSV',
+                    style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accent,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: serviciosEditados.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(FontAwesomeIcons.boxOpen,
+                      size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay servicios técnicos registrados',
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[500],
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              itemCount: serviciosEditados.length + 1,
+              itemBuilder: (context, index) {
+                // Banner de resumen en la primera posición
+                if (index == 0)
+                  return _buildResumenBanner(isDarkMode, accent, borderColor);
+                final i = index - 1;
+                return _buildServicioCard(context, i, serviciosEditados[i]);
+              },
+            ),
+    );
+  }
+
+  Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor) {
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    // Extraer datos del primer servicio para el banner
+    final primerServicio =
+        serviciosEditados.isNotEmpty ? serviciosEditados.first : {};
+    final cliente = primerServicio['cliente']?.toString() ??
+        primerServicio['razon_social']?.toString() ??
+        '';
+    final fecha = primerServicio['fecha']?.toString() ??
+        primerServicio['fecha_servicio']?.toString() ??
+        '';
+    final tecnico = primerServicio['tecnico']?.toString() ??
+        primerServicio['nombre_tecnico']?.toString() ??
+        '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(FontAwesomeIcons.screwdriverWrench,
+                    color: accent, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      'No hay servicios técnicos registrados',
+                      'OTST ${widget.servicioOtst.otst}',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                    Text(
+                      'Orden de Soporte Técnico',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: isDark ? Colors.white54 : Colors.black45,
                       ),
                     ),
                   ],
                 ),
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(20),
-                itemCount: serviciosEditados.length,
-                itemBuilder: (context, index) {
-                  return _buildServicioCard(
-                      context, index, serviciosEditados[index]);
-                },
               ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: accent.withOpacity(0.2)),
+                ),
+                child: Text(
+                  '${widget.servicioOtst.cantidadServicios} equipo${widget.servicioOtst.cantidadServicios != 1 ? 's' : ''}',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (cliente.isNotEmpty || fecha.isNotEmpty || tecnico.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Divider(
+                height: 1,
+                color:
+                    isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+            const SizedBox(height: 12),
+            if (cliente.isNotEmpty)
+              _buildBannerRow(
+                  Icons.business_outlined, 'Cliente', cliente, isDark),
+            if (fecha.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _buildBannerRow(
+                  Icons.calendar_today_outlined, 'Fecha', fecha, isDark),
+            ],
+            if (tecnico.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _buildBannerRow(
+                  Icons.person_outline_rounded, 'Técnico', tecnico, isDark),
+            ],
+          ],
+        ],
       ),
+    );
+  }
+
+  Widget _buildBannerRow(
+      IconData icon, String label, String value, bool isDark) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black45),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 
@@ -756,21 +826,22 @@ class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF2C3E50) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
-                ),
+                color:
+                    (isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E))
+                        .withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 FontAwesomeIcons.penToSquare,
-                color: Colors.white,
+                color:
+                    isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E),
                 size: 18,
               ),
             ),
@@ -857,15 +928,17 @@ class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Row(
+                  content: const Row(
                     children: [
-                      const Icon(FontAwesomeIcons.circleCheck,
+                      Icon(FontAwesomeIcons.circleCheck,
                           color: Colors.white, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Cambios guardados correctamente'),
+                      SizedBox(width: 12),
+                      Text('Cambios guardados correctamente'),
                     ],
                   ),
-                  backgroundColor: Colors.green,
+                  backgroundColor: isDark
+                      ? const Color(0xFF4A90E2)
+                      : const Color(0xFF04376E),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -873,7 +946,8 @@ class _DetallesOtstScreenState extends State<DetallesOtstScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor:
+                  isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E),
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

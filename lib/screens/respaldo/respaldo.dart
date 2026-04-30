@@ -3,9 +3,9 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
@@ -381,54 +381,112 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Widget _buildFileList(String title, List<FileSystemEntity> files) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     if (files.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Text('No hay $title disponibles',
-            style: const TextStyle(color: Colors.grey)),
+        child: Text(
+          'No hay archivos disponibles',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white38 : Colors.black38,
+          ),
+        ),
       );
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$title:',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white54 : Colors.black54,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
-        ...files.map((file) => _buildFileItem(file)),
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+            ),
+          ),
+          child: Column(
+            children: files.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final file = entry.value;
+              return Column(
+                children: [
+                  _buildFileItem(file),
+                  if (idx < files.length - 1)
+                    Divider(
+                      height: 1,
+                      indent: 56,
+                      color: isDark
+                          ? const Color(0xFF3A3A3A)
+                          : const Color(0xFFEEEEEE),
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildFileItem(FileSystemEntity file) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
     final fileInfo = File(file.path);
     final stat = fileInfo.statSync();
     final modified = DateTime.fromMillisecondsSinceEpoch(
         stat.modified.millisecondsSinceEpoch);
     final isSelected = _selectedFiles.contains(file);
+    final icon = _getFileIcon(file);
 
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: _isSelectionMode
           ? Checkbox(
               value: isSelected,
+              activeColor: accent,
               onChanged: (_) => _toggleFileSelection(file),
             )
-          : Icon(_getFileIcon(file)),
+          : Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accent.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: accent, size: 20),
+            ),
       title: Text(
         file.uri.pathSegments.last,
-        style: TextStyle(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          color: isDark ? Colors.white : Colors.black87,
         ),
       ),
       subtitle: Text(
-        '${_formatBytes(stat.size)} - ${DateFormat('dd/MM/yyyy HH:mm').format(modified)}',
-        style: const TextStyle(fontSize: 12),
+        '${_formatBytes(stat.size)} · ${DateFormat('dd/MM/yyyy HH:mm').format(modified)}',
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          color: isDark ? Colors.white54 : Colors.black54,
+        ),
       ),
       trailing: _isSelectionMode
           ? null
           : IconButton(
-              icon: const Icon(Icons.download),
+              icon: Icon(Icons.download_outlined, color: accent, size: 22),
               onPressed: () => _downloadFile(file),
             ),
       onTap: () => _isSelectionMode
@@ -452,170 +510,273 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Widget _buildSearchField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: TextField(
         controller: _searchController,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          color: isDark ? Colors.white : Colors.black87,
+        ),
         decoration: InputDecoration(
           hintText: 'Buscar archivos...',
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20.0),
+          hintStyle: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark ? Colors.white38 : Colors.black38,
           ),
+          prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
+          filled: true,
+          fillColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: accent, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         onChanged: (value) => setState(() {}),
       ),
     );
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      toolbarHeight: 70,
-      title: _isSelectionMode
-          ? Text('${_selectedFiles.length} seleccionados')
-          : Text(
-              'RESPALDO DE DATOS',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-              ),
+  PreferredSizeWidget _buildAppBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+    final titleColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF555555);
+
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(65),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardColor,
+          border: Border(bottom: BorderSide(color: borderColor, width: 1)),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: SizedBox(
+            height: 65,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Botón atrás
+                Positioned(
+                  left: 4,
+                  child: IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: iconColor),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+                // Título
+                Text(
+                  _isSelectionMode
+                      ? '${_selectedFiles.length} seleccionados'
+                      : 'RESPALDO DE DATOS',
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: titleColor,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+                // Acciones en modo selección
+                if (_isSelectionMode)
+                  Positioned(
+                    right: 4,
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.download_outlined, color: accent),
+                          onPressed: _downloadSelectedFiles,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: _confirmDeleteSelected,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: iconColor),
+                          onPressed: () => setState(() {
+                            _selectedFiles.clear();
+                            _isSelectionMode = false;
+                          }),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
-      backgroundColor: Theme.of(context).brightness == Brightness.dark
-          ? Colors.transparent
-          : Colors.white,
-      elevation: 0,
-      flexibleSpace: Theme.of(context).brightness == Brightness.dark
-          ? ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-                child: Container(color: Colors.black.withOpacity(0.1)),
-              ),
-            )
-          : null,
-      iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
-      titleTextStyle: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white
-            : Colors.black,
+          ),
+        ),
       ),
-      centerTitle: true,
-      actions: _isSelectionMode
-          ? [
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: _confirmDeleteSelected,
-              ),
-              IconButton(
-                icon: const Icon(Icons.download),
-                onPressed: _downloadSelectedFiles,
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => setState(() {
-                  _selectedFiles.clear();
-                  _isSelectionMode = false;
-                }),
-              ),
-            ]
-          : null,
     );
   }
 
   InputDecoration _buildInputDecoration(String labelText) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
     return InputDecoration(
       labelText: labelText,
+      labelStyle: GoogleFonts.inter(color: isDark ? Colors.white54 : Colors.black54),
+      filled: true,
+      fillColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20.0),
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: accent, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
     );
   }
 
   Widget _buildAuthScreen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
+    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: _buildAppBar(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              'AUTENTICACIÓN REQUERIDA',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(28),
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: borderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Para acceder a los respaldos de datos, ingresa la contraseña proporcionada por el área de sistemas.',
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.lock_outline_rounded, color: accent, size: 28),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Acceso Restringido',
+                  style: GoogleFonts.poppins(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ingresa la contraseña proporcionada por el área de sistemas para acceder a los respaldos.',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: isDark ? Colors.white60 : Colors.black54,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                TextField(
+                  controller: _passwordController,
+                  decoration: _buildInputDecoration('Contraseña de acceso'),
+                  obscureText: false,
+                  keyboardType: TextInputType.number,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _authenticate,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'Ingresar',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 20.0),
-            TextField(
-              controller: _passwordController,
-              decoration: _buildInputDecoration('Ingrese la contraseña'),
-              obscureText: false,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _authenticate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text('Ingresar'),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBackupScreen() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
     final filteredDbs = _filterFiles(_databases, _searchController.text);
     final filteredCsvs = _filterFiles(_csvFiles, _searchController.text);
-    final filteredBackups =
-        _filterFiles(_precargaBackups, _searchController.text);
-    final filteredSoporteTec =
-        _filterFiles(_soporteTecDbs, _searchController.text);
+    final filteredBackups = _filterFiles(_precargaBackups, _searchController.text);
+    final filteredSoporteTec = _filterFiles(_soporteTecDbs, _searchController.text);
 
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: _buildAppBar(),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(color: accent),
+            )
           : Column(
               children: [
                 _buildSearchField(),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildFileList(
-                              'RESPALDOS DE CALIBRACIÓN', filteredBackups),
-                          const SizedBox(height: 20),
-                          _buildFileList(
-                              'BASES DE DATOS PRINCIPALES', filteredDbs),
-                          const SizedBox(height: 20),
-                          _buildFileList('RESPALDOS DE SOPORTE TÉCNICO',
-                              filteredSoporteTec),
-                          const SizedBox(height: 20),
-                          _buildFileList('ARCHIVOS CSV', filteredCsvs),
-                        ],
-                      ),
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFileList('RESPALDOS DE CALIBRACIÓN', filteredBackups),
+                        const SizedBox(height: 24),
+                        _buildFileList('BASES DE DATOS PRINCIPALES', filteredDbs),
+                        const SizedBox(height: 24),
+                        _buildFileList('SOPORTE TÉCNICO', filteredSoporteTec),
+                        const SizedBox(height: 24),
+                        _buildFileList('ARCHIVOS CSV', filteredCsvs),
+                      ],
                     ),
                   ),
                 ),

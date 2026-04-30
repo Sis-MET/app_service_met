@@ -21,13 +21,15 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E8833).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        color: accent.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: const Color(0xFF0E8833).withOpacity(0.3),
+          color: accent.withOpacity(0.2),
         ),
       ),
       child: Column(
@@ -35,15 +37,15 @@ class UserCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0E8833),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person,
-                  color: Colors.white,
-                  size: 20,
+                  color: accent,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: 12),
@@ -72,7 +74,7 @@ class UserCard extends StatelessWidget {
               // ✅ SIMPLIFICADO: Botón directo para cambiar
               IconButton(
                 icon: const Icon(Icons.swap_horiz),
-                color: const Color(0xFF0E8833),
+                color: accent,
                 tooltip: 'Cambiar usuario',
                 onPressed: onShowUserSelector,
               ),

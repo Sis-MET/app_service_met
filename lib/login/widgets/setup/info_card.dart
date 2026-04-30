@@ -21,20 +21,22 @@ class InfoCard extends StatelessWidget {
         ? 'Paso 1 de 2: Se conectará al servidor y descargará los datos necesarios.'
         : 'Paso 2 de 2: Ingrese sus credenciales para configurar el acceso automático.';
 
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E8833).withOpacity(0.1),
+        color: accent.withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF0E8833).withOpacity(0.3),
+          color: accent.withOpacity(0.3),
         ),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.info_outline,
-            color: Color(0xFF0E8833),
+            color: accent,
             size: 24,
           ),
           const SizedBox(width: 12),

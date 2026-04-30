@@ -53,17 +53,28 @@ class LoginForm extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: 40),
+          
+          // Declaramos el acento una vez para usarlo
+          Builder(builder: (context) {
+            final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+            return Column(
+              children: [
+          const SizedBox(height: 40),
 
           // Logo
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -75,13 +86,16 @@ class LoginForm extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2d2d2d) : Colors.white,
-              borderRadius: BorderRadius.circular(30),
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -189,7 +203,7 @@ class LoginForm extends StatelessWidget {
                     height: 54,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0E8833),
+                        backgroundColor: accent,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -254,92 +268,45 @@ class LoginForm extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // Botón Agregar nuevo usuario (solo si NO está agregando Y hay usuarios)
-          if (!isAddingNewUser && hasUsers) ...[
-            TextButton.icon(
-              onPressed: loading ? null : onStartAddingUser,
-              icon: const Icon(Icons.person_add_outlined, size: 18),
-              label: Text(
-                'Cambiar de Usuario',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
+          // Acciones secundarias en un Wrap limpio
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              if (!isAddingNewUser && hasUsers)
+                _buildSecondaryButton(
+                  icon: Icons.person_add_outlined,
+                  label: 'Cambiar Usuario',
+                  onPressed: loading ? null : onStartAddingUser,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  isDark: isDark,
                 ),
+              _buildSecondaryButton(
+                icon: Icons.science_outlined,
+                label: 'Offline',
+                onPressed: loading ? null : onLoginDemo,
+                color: const Color(0xFFFF9800),
+                isDark: isDark,
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
-
-          TextButton(
-            onPressed: loading ? null : onLoginDemo,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              foregroundColor:
-                  const Color(0xFFFF9800), // color naranja para texto e ícono
-              overlayColor: const Color(0xFFFF9800).withOpacity(0.12),
-              // backgroundColor: const Color(0xFFFF9800), // descomenta si quieres fondo naranja
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.science_outlined,
-                  size: 16,
-                  // color removido para heredar foregroundColor
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Modo DESCONECTADO',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    // color removido para heredar foregroundColor
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Botón Actualizar Bases de Datos
-          TextButton.icon(
-            onPressed: loading ? null : onUpdateDatabases,
-            icon: Icon(
-              Icons.system_update_alt,
-              size: 18,
-              color: isDark ? Colors.white60 : Colors.black45,
-            ),
-            label: Text(
-              'Actualizar Bases de Datos',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              _buildSecondaryButton(
+                icon: Icons.system_update_alt,
+                label: 'Actualizar BD',
+                onPressed: loading ? null : onUpdateDatabases,
                 color: isDark ? Colors.white60 : Colors.black45,
+                isDark: isDark,
               ),
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Botón reconfigurar
-          TextButton.icon(
-            onPressed: loading ? null : onReconfigure,
-            icon: Icon(
-              Icons.settings_backup_restore,
-              size: 18,
-              color: isDark ? Colors.white60 : Colors.black45,
-            ),
-            label: Text(
-              'Reconfigurar aplicación',
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+              _buildSecondaryButton(
+                icon: Icons.settings_backup_restore,
+                label: 'Reconfigurar',
+                onPressed: loading ? null : onReconfigure,
                 color: isDark ? Colors.white60 : Colors.black45,
+                isDark: isDark,
               ),
-            ),
+            ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // Footer
           Column(
@@ -374,6 +341,47 @@ class LoginForm extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+      );
+    }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onPressed,
+    required Color color,
+    required bool isDark,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: color.withOpacity(0.15),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

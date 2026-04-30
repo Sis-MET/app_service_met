@@ -436,13 +436,7 @@ class _LoginScreenState extends State<LoginScreen>
         height: size.height,
         width: size.width,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF1a1a1a), const Color(0xFF2d2d2d)]
-                : [const Color(0xFFF5F7FA), const Color(0xFFE8EDF2)],
-          ),
+          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
         ),
         child: SafeArea(
           child: _loading && _autoLoginEnabled

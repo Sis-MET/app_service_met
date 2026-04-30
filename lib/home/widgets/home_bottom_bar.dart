@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,104 +19,132 @@ class HomeBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              color: isDarkMode
-                  ? Colors.black.withOpacity(0.4)
-                  : Colors.white.withOpacity(0.7),
-              border: Border.all(
-                color: isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.1),
-                width: 0.5,
+    final bgColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
+    final items = [
+      _NavItem(icon: FontAwesomeIcons.house, label: 'Inicio', index: 0),
+      _NavItem(icon: FontAwesomeIcons.wrench, label: 'Servicios', index: 1),
+      _NavItem(icon: FontAwesomeIcons.download, label: 'Precarga', index: 2),
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        // Márgenes laterales y bottom para que "flote"
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          height: 72,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDarkMode ? 0.35 : 0.10),
+                blurRadius: 24,
+                offset: const Offset(0, 6),
               ),
-            ),
-            child: NavigationBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              height: 80,
-              indicatorColor: const Color(0xFFE8CB0C).withOpacity(0.15),
-              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(
-                    FontAwesomeIcons.home,
-                    color: modoDemo
-                        ? (isDarkMode ? Colors.white24 : Colors.black26)
-                        : currentIndex == 0
-                            ? const Color(0xFFE8CB0C)
-                            : (isDarkMode ? Colors.white70 : Colors.black54),
-                    size: 20,
-                  ),
-                  label: 'Inicio',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    FontAwesomeIcons.wrench,
-                    color: currentIndex == 1
-                        ? const Color(0xFFE8CB0C)
-                        : (isDarkMode ? Colors.white70 : Colors.black54),
-                    size: 20,
-                  ),
-                  label: 'Servicios',
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    FontAwesomeIcons.download,
-                    color: modoDemo
-                        ? (isDarkMode ? Colors.white24 : Colors.black26)
-                        : currentIndex == 2
-                            ? const Color(0xFFE8CB0C)
-                            : (isDarkMode ? Colors.white70 : Colors.black54),
-                    size: 20,
-                  ),
-                  label: 'Precarga',
-                ),
-              ],
-              selectedIndex: currentIndex,
-              onDestinationSelected: (index) {
-                // En modo DEMO solo permitir acceso a Servicios (index 1)
-                if (modoDemo && index != 1) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          const Icon(Icons.lock_outline,
-                              color: Colors.white, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'En modo DESCONECTADO solo puedes acceder a Servicios',
-                              style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500),
-                            ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: items.map((item) {
+              final isSelected = currentIndex == item.index;
+              final isDisabled = modoDemo && item.index != 1;
+
+              final iconColor = isDisabled
+                  ? (isDarkMode ? Colors.white24 : Colors.black26)
+                  : isSelected
+                      ? accent
+                      : (isDarkMode ? Colors.white54 : Colors.black38);
+
+              final labelColor = isDisabled
+                  ? (isDarkMode ? Colors.white24 : Colors.black26)
+                  : isSelected
+                      ? accent
+                      : (isDarkMode ? Colors.white54 : Colors.black38);
+
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    if (isDisabled) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.lock_outline,
+                                  color: Colors.white, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'En modo DESCONECTADO solo puedes acceder a Servicios',
+                                  style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 13),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                          backgroundColor: accent,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        ),
+                      );
+                      return;
+                    }
+                    onTap(item.index);
+                  },
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  borderRadius: BorderRadius.circular(26),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeInOut,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? accent.withOpacity(0.12)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Icon(item.icon,
+                            size: 18, color: iconColor),
                       ),
-                      backgroundColor: const Color(0xFFFF9800),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 3),
+                      AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 220),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                          color: labelColor,
+                        ),
+                        child: Text(item.label),
                       ),
-                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-                    ),
-                  );
-                  return;
-                }
-                onTap(index);
-              },
-            ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ),
       ),
     );
   }
+}
+
+class _NavItem {
+  final IconData icon;
+  final String label;
+  final int index;
+  _NavItem({required this.icon, required this.label, required this.index});
 }

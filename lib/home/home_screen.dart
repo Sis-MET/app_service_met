@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path/path.dart';
@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _modoDemo = false;
   String userName = "Cargando...";
 
-  // Variables para la navegación
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
@@ -56,7 +55,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await initializeDateFormatting('es_ES', null);
   }
 
-  // Lista de pantallas para cada tab
   List<Widget> _screens(BuildContext context) => [
         HomeDashboardTab(
             userName: userName,
@@ -78,9 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final usuarioLogueado = prefs.getString('logged_user');
 
       if (usuarioLogueado == null || usuarioLogueado.isEmpty) {
-        setState(() {
-          userName = "Usuario";
-        });
+        setState(() => userName = "Usuario");
         return;
       }
 
@@ -88,27 +84,21 @@ class _HomeScreenState extends State<HomeScreen> {
       final path = join(dbPath, 'usuarios.db');
 
       if (!await databaseExists(path)) {
-        setState(() {
-          userName = "Usuario";
-        });
+        setState(() => userName = "Usuario");
         return;
       }
 
       final db = await openDatabase(path);
-
       final results = await db.query(
         'usuarios',
         where: 'usuario = ?',
         whereArgs: [usuarioLogueado],
         limit: 1,
       );
-
       await db.close();
 
       if (results.isEmpty) {
-        setState(() {
-          userName = "Usuario";
-        });
+        setState(() => userName = "Usuario");
         return;
       }
 
@@ -133,190 +123,199 @@ class _HomeScreenState extends State<HomeScreen> {
       debugPrint('✅ Usuario cargado: $userName (ID: $usuarioLogueado)');
     } catch (e) {
       debugPrint('❌ Error obteniendo datos del usuario: $e');
-      setState(() {
-        userName = "Usuario";
-      });
+      setState(() => userName = "Usuario");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
+    final appBarBg = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final appBarBorder =
+        isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE);
+    final titleColor = isDarkMode ? Colors.white : const Color(0xFF1A1A1A);
+    final iconColor = isDarkMode ? Colors.white70 : const Color(0xFF555555);
+
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness:
+          isDarkMode ? Brightness.light : Brightness.dark,
+    ));
 
     return Scaffold(
+      // extendBody permite que el nav bar flotante no corte el scroll
       extendBody: true,
-      extendBodyBehindAppBar: true,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70),
-        child: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
-            child: AppBar(
-              toolbarHeight: 70,
-              title: Row(
-                mainAxisSize: MainAxisSize.min,
+        preferredSize: const Size.fromHeight(64),
+        child: Container(
+          decoration: BoxDecoration(
+            color: appBarBg,
+            border: Border(
+              bottom: BorderSide(color: appBarBorder, width: 1),
+            ),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: SizedBox(
+              height: 64,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    _getAppBarTitle(),
-                    style: GoogleFonts.poppins(
-                      color: isDarkMode ? Colors.white : Colors.black,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16.0,
-                    ),
-                  ),
-                  if (_modoDemo) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF9800).withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: const Color(0xFFFF9800),
-                          width: 1,
+                  // ── Título centrado ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _getAppBarTitle(),
+                        style: GoogleFonts.poppins(
+                          color: titleColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 17.0,
+                          letterSpacing: 0.4,
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.science,
-                            size: 12,
-                            color: const Color(0xFFFF9800),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'DEMO',
-                            style: GoogleFonts.inter(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFFF9800),
+                      if (_modoDemo) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: accent.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: accent.withOpacity(0.4),
+                              width: 1,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              backgroundColor: isDarkMode
-                  ? Colors.black.withOpacity(0.1)
-                  : Colors.white.withOpacity(0.7),
-              elevation: 0,
-              centerTitle: true,
-              actions: [
-                if (!_modoDemo)
-                  IconButton(
-                    icon: Icon(
-                      FontAwesomeIcons.cog,
-                      size: 20,
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ConfiguracionScreen(),
-                        ),
-                      );
-                    },
-                    tooltip: 'Configuración',
-                  ),
-                if (_modoDemo)
-                  IconButton(
-                    icon: Icon(
-                      Icons.exit_to_app,
-                      color: isDarkMode ? Colors.white70 : Colors.black54,
-                    ),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          title: Row(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.logout,
-                                color: Color(0xFFFF9800),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Salir del modo DESCONECTADO',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              Icon(Icons.science_outlined,
+                                  size: 11, color: accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                'DEMO',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: accent,
                                 ),
                               ),
                             ],
                           ),
-                          content: Text(
-                            '¿Deseas salir del modo DESCONECTADO y volver al login?',
-                            style: GoogleFonts.inter(),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: Text(
-                                'Cancelar',
-                                style: GoogleFonts.inter(
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            ElevatedButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF9800),
-                              ),
-                              child: Text(
-                                'Salir',
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
                         ),
-                      );
-
-                      if (confirm == true) {
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        await prefs.setBool('modoDemo', false);
-                        if (context.mounted) {
-                          Navigator.pushReplacementNamed(context, '/login');
-                        }
-                      }
-                    },
-                    tooltip: 'Salir del modo DESCONECTADO',
+                      ],
+                    ],
                   ),
-              ],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(0.5),
-                child: Container(
-                  height: 0.5,
-                  color: isDarkMode
-                      ? Colors.white.withOpacity(0.1)
-                      : Colors.black.withOpacity(0.1),
-                ),
+
+                  // ── Acciones a la derecha ──
+                  Positioned(
+                    right: 8,
+                    child: Row(
+                      children: [
+                        if (!_modoDemo)
+                          IconButton(
+                            icon: Icon(FontAwesomeIcons.gear,
+                                size: 18, color: iconColor),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ConfiguracionScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'Configuración',
+                          ),
+                        if (_modoDemo)
+                          IconButton(
+                            icon: Icon(Icons.logout_rounded,
+                                size: 20, color: iconColor),
+                            tooltip: 'Salir del modo DESCONECTADO',
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Icon(Icons.logout,
+                                          color: accent),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Salir del modo DESCONECTADO',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    '¿Deseas salir del modo DESCONECTADO y volver al login?',
+                                    style: GoogleFonts.inter(),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: Text(
+                                        'Cancelar',
+                                        style: GoogleFonts.inter(
+                                          color: Colors.grey,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: accent,
+                                      ),
+                                      child: Text(
+                                        'Salir',
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              if (confirm == true) {
+                                SharedPreferences prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setBool('modoDemo', false);
+                                if (context.mounted) {
+                                  Navigator.pushReplacementNamed(
+                                      context, '/login');
+                                }
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
       ),
-      body: SafeArea(
-        bottom: false,
-        child: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(),
-          children: _screens(context),
-        ),
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        children: _screens(context),
       ),
       bottomNavigationBar: HomeBottomBar(
         currentIndex: _currentIndex,

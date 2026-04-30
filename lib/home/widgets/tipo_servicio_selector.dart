@@ -16,70 +16,94 @@ class TipoServicioSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
+    final trackBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5);
+    final trackBorder =
+        isDark ? const Color(0xFF2A2A2A) : const Color(0xFFECECEC);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: trackBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: trackBorder, width: 1),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTipoServicioButton(
+          _buildTab(
+            context: context,
             index: 0,
             icon: FontAwesomeIcons.scaleBalanced,
             label: 'Calibración',
             isSelected: selectedIndex == 0,
+            accent: accent,
+            isDark: isDark,
           ),
-          _buildTipoServicioButton(
+          _buildTab(
+            context: context,
             index: 1,
             icon: FontAwesomeIcons.screwdriverWrench,
             label: 'Soporte Técnico',
             isSelected: selectedIndex == 1,
+            accent: accent,
+            isDark: isDark,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTipoServicioButton({
+  Widget _buildTab({
+    required BuildContext context,
     required int index,
     required IconData icon,
     required String label,
     required bool isSelected,
+    required Color accent,
+    required bool isDark,
   }) {
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelected(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF667EEA) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            color: isSelected ? accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: accent.withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 16,
-                color: isSelected ? Colors.white : Colors.grey,
+                size: 14,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.white38 : Colors.black38),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               Text(
                 label,
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? Colors.white : Colors.grey,
+                  fontWeight:
+                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? Colors.white38 : Colors.black38),
                 ),
               ),
             ],

@@ -15,26 +15,28 @@ class StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+
     return Row(
       children: [
         Expanded(
-          child: _buildStep(0, 'Conexión'),
+          child: _buildStep(0, 'Conexión', accent),
         ),
         Container(
           width: 40,
           height: 2,
           color: currentStep >= 1
-              ? const Color(0xFF0E8833)
+              ? accent
               : (isDark ? Colors.white24 : Colors.black12),
         ),
         Expanded(
-          child: _buildStep(1, 'Usuario'),
+          child: _buildStep(1, 'Usuario', accent),
         ),
       ],
     );
   }
 
-  Widget _buildStep(int step, String label) {
+  Widget _buildStep(int step, String label, Color accent) {
     final isActive = currentStep == step;
     final isCompleted = currentStep > step;
 
@@ -45,7 +47,7 @@ class StepIndicator extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color: isCompleted || isActive
-                ? const Color(0xFF0E8833)
+                ? accent
                 : (isDark ? Colors.white12 : Colors.black12),
             shape: BoxShape.circle,
           ),
@@ -71,7 +73,7 @@ class StepIndicator extends StatelessWidget {
             fontSize: 12,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
             color: isActive
-                ? const Color(0xFF0E8833)
+                ? accent
                 : (isDark ? Colors.white60 : Colors.black54),
           ),
         ),
