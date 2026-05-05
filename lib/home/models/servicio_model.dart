@@ -1,23 +1,19 @@
-class ServicioSeca {
-  final String seca;
-  final int cantidadBalanzas;
-  final List<Map<String, dynamic>> balanzas;
+enum TipoServicio { calibracion, soporte }
 
-  ServicioSeca({
-    required this.seca,
-    required this.cantidadBalanzas,
-    required this.balanzas,
+class ServicioResumen {
+  final TipoServicio tipo;
+  final String codigo; // "SECA XXX" o "OTST XXX"
+  final int cantidad; // cantidadBalanzas o cantidadServicios
+  final List<Map<String, dynamic>> items; // balanzas o servicios
+
+  ServicioResumen({
+    required this.tipo,
+    required this.codigo,
+    required this.cantidad,
+    required this.items,
   });
-}
 
-class ServicioOtst {
-  final String otst;
-  final int cantidadServicios;
-  final List<Map<String, dynamic>> servicios;
-
-  ServicioOtst({
-    required this.otst,
-    required this.cantidadServicios,
-    required this.servicios,
-  });
+  String get prefijo => tipo == TipoServicio.calibracion ? 'SECA' : 'OTST';
+  String get nombreTipo => tipo == TipoServicio.calibracion ? 'Calibración' : 'Soporte Técnico';
+  String get nombreItem => tipo == TipoServicio.calibracion ? 'balanza' : 'servicio';
 }

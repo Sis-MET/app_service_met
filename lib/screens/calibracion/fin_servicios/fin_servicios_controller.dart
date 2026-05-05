@@ -12,7 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/app_database.dart';
 import 'package:service_met/screens/calibracion/precarga/precarga_screen.dart';
-import 'package:service_met/home/home_screen.dart';
+import 'package:service_met/home/screens/home_screen.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 

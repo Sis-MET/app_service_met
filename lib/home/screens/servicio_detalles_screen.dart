@@ -12,29 +12,29 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
 
-class DetallesSecaScreen extends StatefulWidget {
-  final ServicioSeca servicioSeca;
+class ServicioDetallesScreen extends StatefulWidget {
+  final ServicioResumen servicio;
 
-  const DetallesSecaScreen({super.key, required this.servicioSeca});
+  const ServicioDetallesScreen({super.key, required this.servicio});
 
   @override
-  State<DetallesSecaScreen> createState() => _DetallesSecaScreenState();
+  State<ServicioDetallesScreen> createState() => _ServicioDetallesScreenState();
 }
 
-class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
-  List<Map<String, dynamic>> balanzasEditadas = [];
+class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
+  List<Map<String, dynamic>> itemsEditados = [];
 
   @override
   void initState() {
     super.initState();
-    balanzasEditadas = List.from(widget.servicioSeca.balanzas);
+    itemsEditados = List.from(widget.servicio.items);
   }
 
   // Filtrar solo campos con datos válidos
-  Map<String, dynamic> _obtenerCamposConDatos(Map<String, dynamic> balanza) {
+  Map<String, dynamic> _obtenerCamposConDatos(Map<String, dynamic> item) {
     final Map<String, dynamic> camposValidos = {};
 
-    balanza.forEach((key, value) {
+    item.forEach((key, value) {
       if (value != null &&
           value.toString().isNotEmpty &&
           value.toString() != '0' &&
@@ -58,9 +58,9 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
         .join(' ');
   }
 
-  void _editarBalanza(int index, Map<String, dynamic> nuevosDatos) {
+  void _editarItem(int index, Map<String, dynamic> nuevosDatos) {
     setState(() {
-      balanzasEditadas[index] = {...balanzasEditadas[index], ...nuevosDatos};
+      itemsEditados[index] = {...itemsEditados[index], ...nuevosDatos};
     });
   }
 
@@ -68,12 +68,12 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
     try {
       final List<List<dynamic>> csvData = [];
 
-      if (balanzasEditadas.isNotEmpty) {
-        csvData.add(balanzasEditadas.first.keys.toList());
+      if (itemsEditados.isNotEmpty) {
+        csvData.add(itemsEditados.first.keys.toList());
       }
 
-      for (var balanza in balanzasEditadas) {
-        csvData.add(balanza.values.toList());
+      for (var item in itemsEditados) {
+        csvData.add(item.values.toList());
       }
 
       // Generar CSV
@@ -84,7 +84,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
       final List<int> csvBytes = utf8.encode(csv);
 
       final fileName =
-          'SECA_${widget.servicioSeca.seca}_${DateTime.now().millisecondsSinceEpoch}.csv';
+          '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
       // Seleccionar directorio de destino
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
@@ -144,11 +144,13 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
 
   Future<void> _exportarPDF() async {
     try {
-      final pdfBytes =
-          await PdfGenerator.generateCalibracionPdf(widget.servicioSeca);
+      final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+      final pdfBytes = isCalibracion 
+          ? await PdfGenerator.generateCalibracionPdf(widget.servicio)
+          : await PdfGenerator.generateSoportePdf(widget.servicio);
 
       final fileName =
-          'Resumen_Calibracion_SECA_${widget.servicioSeca.seca}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+          'Resumen_${widget.servicio.nombreTipo.replaceAll(" ", "_")}_${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       // Seleccionar directorio de destino
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
@@ -206,19 +208,24 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
     }
   }
 
-  Widget _buildBalanzaCard(
-      BuildContext context, int index, Map<String, dynamic> balanza) {
+  Widget _buildItemCard(
+      BuildContext context, int index, Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     final borderColor =
         isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
-    final camposConDatos = _obtenerCamposConDatos(balanza);
+    
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    
+    final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
         camposConDatos['modelo']?.toString() ??
-        'Balanza ${index + 1}';
+        '${widget.servicio.nombreItem} ${index + 1}';
 
     return GestureDetector(
-      onTap: () => _mostrarDetalleBalanza(context, index, balanza),
+      onTap: () => _mostrarDetalleItem(context, index, item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -233,11 +240,10 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF667EEA).withOpacity(0.12),
+                color: primaryColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(FontAwesomeIcons.scaleBalanced,
-                  color: Color(0xFF667EEA), size: 20),
+              child: Icon(icon, color: primaryColor, size: 20),
             ),
             const SizedBox(width: 14),
             // ─ Info principal ───────────────────────────────────────
@@ -263,15 +269,15 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF667EEA).withOpacity(0.1),
+                            color: primaryColor.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Calibración',
+                            widget.servicio.nombreTipo,
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF667EEA),
+                              color: primaryColor,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -305,18 +311,23 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
         .slideX(begin: 0.05, end: 0);
   }
 
-  void _mostrarDetalleBalanza(
-      BuildContext context, int index, Map<String, dynamic> balanza) {
+  void _mostrarDetalleItem(
+      BuildContext context, int index, Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    
     final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     final borderColor =
         isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
-    final camposConDatos = _obtenerCamposConDatos(balanza);
+        
+    final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
         camposConDatos['modelo']?.toString() ??
-        'Balanza ${index + 1}';
+        '${widget.servicio.nombreItem} ${index + 1}';
 
     showModalBottomSheet(
       context: context,
@@ -356,11 +367,10 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF667EEA).withOpacity(0.12),
+                        color: primaryColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(FontAwesomeIcons.scaleBalanced,
-                          color: Color(0xFF667EEA), size: 20),
+                      child: Icon(icon, color: primaryColor, size: 20),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -379,10 +389,10 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            'Calibración de Balanza',
+                            'Servicio de ${widget.servicio.nombreTipo}',
                             style: GoogleFonts.inter(
                               fontSize: 12,
-                              color: const Color(0xFF667EEA),
+                              color: primaryColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -392,15 +402,15 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                     TextButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _mostrarDialogoEdicion(context, index, balanza);
+                        _mostrarDialogoEdicion(context, index, item);
                       },
                       icon: Icon(Icons.edit_outlined,
-                          size: 16, color: accent),
+                          size: 16, color: primaryColor),
                       label: Text(
                         'Editar',
                         style: GoogleFonts.inter(
                           fontSize: 13,
-                          color: accent,
+                          color: primaryColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -475,8 +485,10 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final accent =
-        isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    
     final bgColor =
         isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
     final cardColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
@@ -485,7 +497,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: _buildAppBar(isDarkMode),
+      appBar: _buildAppBar(isDarkMode, primaryColor),
       // ── Barra de acciones fija en el fondo ───────────────────────────────
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -531,7 +543,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                         color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accent,
+                    backgroundColor: primaryColor,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -543,7 +555,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
           ),
         ),
       ),
-      body: balanzasEditadas.isEmpty
+      body: itemsEditados.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -552,7 +564,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No hay balanzas registradas',
+                    'No hay ${widget.servicio.nombreItem}s registrados',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -564,13 +576,13 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
             )
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              itemCount: balanzasEditadas.length + 1,
+              itemCount: itemsEditados.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return _buildResumenBanner(isDarkMode, accent, borderColor);
+                  return _buildResumenBanner(isDarkMode, primaryColor, borderColor);
                 }
                 final i = index - 1;
-                return _buildBalanzaCard(context, i, balanzasEditadas[i]);
+                return _buildItemCard(context, i, itemsEditados[i]);
               },
             ),
     );
@@ -578,8 +590,11 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
 
   Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor) {
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    
     final primerDato =
-        balanzasEditadas.isNotEmpty ? balanzasEditadas.first : {};
+        itemsEditados.isNotEmpty ? itemsEditados.first : {};
     final cliente = primerDato['cliente']?.toString() ??
         primerDato['razon_social']?.toString() ?? '';
     final fecha = primerDato['fecha']?.toString() ??
@@ -606,8 +621,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                   color: accent.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(FontAwesomeIcons.scaleBalanced,
-                    color: accent, size: 20),
+                child: Icon(icon, color: accent, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -615,7 +629,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SECA ${widget.servicioSeca.seca}',
+                      '${widget.servicio.prefijo} ${widget.servicio.codigo}',
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -623,7 +637,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       ),
                     ),
                     Text(
-                      'Servicio de Calibración',
+                      'Servicio de ${widget.servicio.nombreTipo}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: isDark ? Colors.white54 : Colors.black45,
@@ -641,7 +655,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                   border: Border.all(color: accent.withOpacity(0.2)),
                 ),
                 child: Text(
-                  '${widget.servicioSeca.cantidadBalanzas} balanza${widget.servicioSeca.cantidadBalanzas != 1 ? 's' : ''}',
+                  '${widget.servicio.cantidad} ${widget.servicio.nombreItem}${widget.servicio.cantidad != 1 ? 's' : ''}',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -709,9 +723,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDarkMode) {
-    final accent =
-        isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+  PreferredSizeWidget _buildAppBar(bool isDarkMode, Color primaryColor) {
     final cardColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
     final borderColor =
         isDarkMode ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
@@ -747,7 +759,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'SECA ${widget.servicioSeca.seca}',
+                      '${widget.servicio.prefijo} ${widget.servicio.codigo}',
                       style: GoogleFonts.poppins(
                         color: titleColor,
                         fontWeight: FontWeight.w700,
@@ -756,7 +768,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       ),
                     ),
                     Text(
-                      '${widget.servicioSeca.cantidadBalanzas} balanza${widget.servicioSeca.cantidadBalanzas != 1 ? 's' : ''}',
+                      '${widget.servicio.cantidad} ${widget.servicio.nombreItem}${widget.servicio.cantidad != 1 ? 's' : ''}',
                       style: GoogleFonts.inter(
                         color: isDarkMode ? Colors.white60 : Colors.black54,
                         fontWeight: FontWeight.w500,
@@ -777,7 +789,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       const SizedBox(width: 4),
                       _buildAction(
                           icon: FontAwesomeIcons.fileExport,
-                          color: accent,
+                          color: primaryColor,
                           onPressed: _exportarCSV,
                           tooltip: 'Exportar CSV'),
                       const SizedBox(width: 8),
@@ -812,9 +824,13 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
   }
 
   void _mostrarDialogoEdicion(
-      BuildContext context, int index, Map<String, dynamic> balanza) {
+      BuildContext context, int index, Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final camposConDatos = _obtenerCamposConDatos(balanza);
+    
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final Color primaryColor = isCalibracion ? const Color(0xFF4A90E2) : const Color(0xFF04376E); // Or use custom colors, keeping the same as before
+    
+    final camposConDatos = _obtenerCamposConDatos(item);
     final Map<String, TextEditingController> controllers = {};
 
     camposConDatos.forEach((key, value) {
@@ -831,22 +847,18 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: (isDark
-                        ? const Color(0xFF4A90E2)
-                        : const Color(0xFF04376E))
-                    .withOpacity(0.12),
+                color: primaryColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 FontAwesomeIcons.penToSquare,
-                color:
-                    isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E),
+                color: primaryColor,
                 size: 18,
               ),
             ),
             const SizedBox(width: 12),
             Text(
-              'Editar Balanza',
+              'Editar ${widget.servicio.nombreItem}',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -893,9 +905,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: isDark
-                              ? const Color(0xFF4A90E2)
-                              : const Color(0xFF04376E),
+                          color: primaryColor,
                           width: 1.5,
                         ),
                       ),
@@ -924,7 +934,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                 nuevosDatos[key] = controller.text;
               });
 
-              _editarBalanza(index, nuevosDatos);
+              _editarItem(index, nuevosDatos);
               Navigator.pop(context);
 
               ScaffoldMessenger.of(context).showSnackBar(
@@ -937,8 +947,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
                       const Text('Cambios guardados correctamente'),
                     ],
                   ),
-                  backgroundColor:
-                      isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E),
+                  backgroundColor: primaryColor,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
@@ -946,8 +955,7 @@ class _DetallesSecaScreenState extends State<DetallesSecaScreen> {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E),
+              backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               elevation: 0,
               padding:

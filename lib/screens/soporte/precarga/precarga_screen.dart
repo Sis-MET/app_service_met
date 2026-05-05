@@ -8,7 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:service_met/home/home_screen.dart';
+import 'package:service_met/home/screens/home_screen.dart';
 import '../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import '../../../database/soporte_tecnico/database_helper_instalacion.dart';
@@ -33,7 +33,7 @@ import 'widgets/balanza_step.dart';
 import 'widgets/tipo_servicio_step.dart';
 import '../../calibracion/precarga/widgets/qr_scanner_screen.dart';
 import 'package:service_met/models/balanza_model.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+import 'package:service_met/providers/balanza_provider.dart';
 
 class PrecargaScreenSop extends StatefulWidget {
   final String tableName;

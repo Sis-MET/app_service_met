@@ -71,7 +71,7 @@ class UserCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // ✅ SIMPLIFICADO: Botón directo para cambiar
+              // SIMPLIFICADO: Botón directo para cambiar
               IconButton(
                 icon: const Icon(Icons.swap_horiz),
                 color: accent,

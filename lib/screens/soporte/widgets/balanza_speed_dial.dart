@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+import 'package:service_met/providers/balanza_provider.dart';
 
 class BalanzaSpeedDial extends StatelessWidget {
   const BalanzaSpeedDial({super.key});

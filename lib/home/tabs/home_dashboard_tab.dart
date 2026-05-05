@@ -10,8 +10,7 @@ import 'package:intl/intl.dart';
 import '../models/servicio_model.dart';
 import '../widgets/welcome_header.dart';
 import '../widgets/tipo_servicio_selector.dart';
-import '../widgets/service_card_calibracion.dart';
-import '../widgets/service_card_soporte.dart';
+import '../widgets/service_card.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final String userName;
@@ -154,8 +153,8 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
     }
   }
 
-  Future<List<ServicioSeca>> _getServiciosCalibracionPorSeca() async {
-    final List<ServicioSeca> servicios = [];
+  Future<List<ServicioResumen>> _getServiciosCalibracionPorSeca() async {
+    final List<ServicioResumen> servicios = [];
     try {
       final dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
       if (await databaseExists(dbPath)) {
@@ -167,20 +166,21 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           agrupados.putIfAbsent(seca, () => []).add(r);
         }
         agrupados.forEach((seca, balanzas) {
-          servicios.add(ServicioSeca(
-              seca: seca,
-              cantidadBalanzas: balanzas.length,
-              balanzas: balanzas));
+          servicios.add(ServicioResumen(
+              tipo: TipoServicio.calibracion,
+              codigo: seca,
+              cantidad: balanzas.length,
+              items: balanzas));
         });
         await db.close();
       }
-      servicios.sort((a, b) => a.seca.compareTo(b.seca));
+      servicios.sort((a, b) => a.codigo.compareTo(b.codigo));
     } catch (_) {}
     return servicios;
   }
 
-  Future<List<ServicioOtst>> _getServiciosSoportePorOtst() async {
-    final List<ServicioOtst> servicios = [];
+  Future<List<ServicioResumen>> _getServiciosSoportePorOtst() async {
+    final List<ServicioResumen> servicios = [];
     try {
       final Map<String, String> databasesMap = {
         'ajustes.db': 'ajustes_metrologicos',
@@ -223,10 +223,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         }
       }
       agrupados.forEach((otst, list) {
-        servicios.add(ServicioOtst(
-            otst: otst, cantidadServicios: list.length, servicios: list));
+        servicios.add(ServicioResumen(
+            tipo: TipoServicio.soporte, codigo: otst, cantidad: list.length, items: list));
       });
-      servicios.sort((a, b) => a.otst.compareTo(b.otst));
+      servicios.sort((a, b) => a.codigo.compareTo(b.codigo));
     } catch (_) {}
     return servicios;
   }
@@ -499,7 +499,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildListaCalibracion(BuildContext context) {
-    return FutureBuilder<List<ServicioSeca>>(
+    return FutureBuilder<List<ServicioResumen>>(
       future: _getServiciosCalibracionPorSeca(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -516,7 +516,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         }
         return Column(
           children: snapshot.data!.asMap().entries.map((e) {
-            return ServiceCardCalibracion(servicio: e.value)
+            return ServiceCard(servicio: e.value)
                 .animate(delay: Duration(milliseconds: 600 + e.key * 80))
                 .fadeIn()
                 .slideX(begin: 0.2);
@@ -527,7 +527,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildListaSoporte(BuildContext context) {
-    return FutureBuilder<List<ServicioOtst>>(
+    return FutureBuilder<List<ServicioResumen>>(
       future: _getServiciosSoportePorOtst(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -544,7 +544,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         }
         return Column(
           children: snapshot.data!.asMap().entries.map((e) {
-            return ServiceCardSoporte(servicio: e.value)
+            return ServiceCard(servicio: e.value)
                 .animate(delay: Duration(milliseconds: 600 + e.key * 80))
                 .fadeIn()
                 .slideX(begin: 0.2);

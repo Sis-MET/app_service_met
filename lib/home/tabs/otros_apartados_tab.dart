@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/screens/calibracion/precarga/precarga_screen.dart';
-import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
+import 'package:service_met/screens/precarga/descarga_de_datos.dart';
 
-class ServiciosScreen extends StatelessWidget {
+class OtrosApartadosTab extends StatelessWidget {
   final String userName;
 
-  const ServiciosScreen({super.key, required this.userName});
+  const OtrosApartadosTab({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -31,44 +30,22 @@ class ServiciosScreen extends StatelessWidget {
             _buildHeader(context),
             const SizedBox(height: 40),
 
-            // ── Lista de Servicios ──
+            // ── Lista de Herramientas ──
             _buildServiceCard(
               context,
-              icon: FontAwesomeIcons.scaleBalanced,
-              title: 'Calibración',
-              subtitle:
-                  'Procesos de calibración de balanzas, tanques y pesas patrón',
+              icon: FontAwesomeIcons.cloudArrowDown,
+              title: 'Precarga BD Principal',
+              subtitle: 'Descarga de datos de clientes, plantas y equipos desde DataMET',
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PrecargaScreen(userName: userName),
+                    builder: (context) =>
+                        DescargaDeDatosScreen(userName: userName),
                   ),
                 );
               },
               delay: 300.ms,
-            ),
-
-            _buildServiceCard(
-              context,
-              icon: FontAwesomeIcons.screwdriverWrench,
-              title: 'Soporte Técnico',
-              subtitle:
-                  'Soporte y mantenimiento de balanzas y básculas de camiones',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PrecargaScreenSop(
-                      userName: userName,
-                      clienteId: '',
-                      plantaCodigo: '',
-                      tableName: '',
-                    ),
-                  ),
-                );
-              },
-              delay: 400.ms,
             ),
 
             const SizedBox(height: 30),
@@ -88,7 +65,7 @@ class ServiciosScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Área de Servicios',
+          'Herramientas',
           style: GoogleFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.w800,
@@ -98,7 +75,7 @@ class ServiciosScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Selecciona un módulo para continuar con tu trabajo',
+          'Funciones complementarias para tu trabajo',
           style: GoogleFonts.inter(
             fontSize: 14,
             color: isDark ? Colors.white54 : Colors.black54,
@@ -215,14 +192,14 @@ class ServiciosScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(FontAwesomeIcons.lightbulb, color: accent, size: 18),
+          Icon(FontAwesomeIcons.circleInfo, color: accent, size: 18),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Información',
+                  'Herramientas Complementarias',
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -231,7 +208,7 @@ class ServiciosScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Selecciona el módulo que deseas utilizar. Cada uno tiene herramientas específicas para realizar tu trabajo diario.',
+                  'Estas herramientas complementan los servicios principales, permitiendo descargar datos de DataMET y mantener la app actualizada.',
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     color: isDark ? Colors.white54 : Colors.black54,

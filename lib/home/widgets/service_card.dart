@@ -3,17 +3,27 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/detalles_otst_screen.dart';
+import '../screens/servicio_detalles_screen.dart';
 import '../models/servicio_model.dart';
 
-class ServiceCardSoporte extends StatelessWidget {
-  final ServicioOtst servicio;
+class ServiceCard extends StatelessWidget {
+  final ServicioResumen servicio;
 
-  const ServiceCardSoporte({super.key, required this.servicio});
+  const ServiceCard({super.key, required this.servicio});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final bool isCalibracion = servicio.tipo == TipoServicio.calibracion;
+    final List<Color> gradientColors = isCalibracion
+        ? const [Color(0xFF667EEA), Color(0xFF764BA2)]
+        : const [Color(0xFF4CAF50), Color(0xFF45a049)];
+    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    final String labelSuffix = isCalibracion ? 'calibrada' : 'técnico';
+    final String pluralSuffixItem = servicio.cantidad != 1 ? 's' : '';
+    final String pluralSuffixLabel = servicio.cantidad != 1 ? 's' : '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -37,8 +47,7 @@ class ServiceCardSoporte extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      DetallesOtstScreen(servicioOtst: servicio),
+                  builder: (context) => ServicioDetallesScreen(servicio: servicio),
                 ),
               );
             },
@@ -51,16 +60,10 @@ class ServiceCardSoporte extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
-                          ),
+                          gradient: LinearGradient(colors: gradientColors),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
-                          FontAwesomeIcons.screwdriverWrench,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        child: Icon(icon, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -68,17 +71,15 @@ class ServiceCardSoporte extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'OTST ${servicio.otst}',
+                              '${servicio.prefijo} ${servicio.codigo}',
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF2C3E50),
+                                color: isDark ? Colors.white : const Color(0xFF2C3E50),
                               ),
                             ),
                             Text(
-                              '${servicio.cantidadServicios} servicio${servicio.cantidadServicios != 1 ? 's' : ''} técnico${servicio.cantidadServicios != 1 ? 's' : ''}',
+                              '${servicio.cantidad} ${servicio.nombreItem}$pluralSuffixItem $labelSuffix$pluralSuffixLabel',
                               style: GoogleFonts.inter(
                                 fontSize: 14,
                                 color: Colors.grey[600],
@@ -89,18 +90,17 @@ class ServiceCardSoporte extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.1),
+                          color: primaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          servicio.cantidadServicios.toString(),
+                          servicio.cantidad.toString(),
                           style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF4CAF50),
+                            color: primaryColor,
                           ),
                         ),
                       ),
@@ -115,15 +115,14 @@ class ServiceCardSoporte extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    DetallesOtstScreen(servicioOtst: servicio),
+                                builder: (context) => ServicioDetallesScreen(servicio: servicio),
                               ),
                             );
                           },
                           icon: const Icon(FontAwesomeIcons.eye, size: 16),
                           label: const Text('Ver detalles'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
+                            backgroundColor: primaryColor,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(vertical: 12),

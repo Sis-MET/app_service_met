@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/screens/calibracion/pruebas_metrologicas/calibration_flow.dart';
 import 'package:service_met/screens/calibracion/precarga/widgets/step_indicator.dart';
-import '../../../provider/balanza_provider.dart';
+import '../../../providers/balanza_provider.dart';
 import 'inicio_servicio_controller.dart';
 import 'widgets/inspeccion_visual_step.dart';
 import 'widgets/precargas_ajuste_step.dart';

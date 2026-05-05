@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+import 'package:service_met/providers/balanza_provider.dart';
 
 // Modelos y Controladores propios
 import 'models/verificaciones_internas_model.dart';

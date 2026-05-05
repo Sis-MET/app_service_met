@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/screens/calibracion/inicio_servicio/inicio_servicio_screen.dart';
 import '../../../database/app_database.dart';
 import '../../../models/balanza_model.dart';
-import '../../../provider/balanza_provider.dart';
+import '../../../providers/balanza_provider.dart';
 import 'precarga_controller.dart';
 import 'widgets/step_indicator.dart';
 import 'widgets/cliente_step.dart';

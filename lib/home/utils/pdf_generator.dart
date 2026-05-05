@@ -6,7 +6,7 @@ import '../models/servicio_model.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class PdfGenerator {
-  static Future<Uint8List> generateCalibracionPdf(ServicioSeca servicio) async {
+  static Future<Uint8List> generateCalibracionPdf(ServicioResumen servicio) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoExtraLight();
     final fontBold = await PdfGoogleFonts.nunitoExtraBold();
@@ -17,7 +17,7 @@ class PdfGenerator {
 
     // Obtener datos del encabezado (del primer registro)
     final firstRecord =
-        servicio.balanzas.isNotEmpty ? servicio.balanzas.first : {};
+        servicio.items.isNotEmpty ? servicio.items.first : {};
     final String cliente = firstRecord['cliente']?.toString() ?? '';
     final String razonSocial = firstRecord['razon_social']?.toString() ?? '';
     final String planta = firstRecord['planta']?.toString() ?? '';
@@ -27,7 +27,7 @@ class PdfGenerator {
         '';
 
     // Filtrar y deduplicar: solo balanzas calibradas o con datos reales
-    final records = _filterCalibracion(servicio.balanzas);
+    final records = _filterCalibracion(servicio.items);
 
     pdf.addPage(
       pw.MultiPage(
@@ -46,7 +46,7 @@ class PdfGenerator {
                 planta,
                 dirPlanta,
                 tecResponsable,
-                'RESUMEN DE CALIBRACIÓN - SECA ${servicio.seca}',
+                'RESUMEN DE CALIBRACIÓN - SECA ${servicio.codigo}',
                 logo),
             pw.SizedBox(height: 10),
             _buildCalibracionTable(records, font),
@@ -58,7 +58,7 @@ class PdfGenerator {
     return pdf.save();
   }
 
-  static Future<Uint8List> generateSoportePdf(ServicioOtst servicio) async {
+  static Future<Uint8List> generateSoportePdf(ServicioResumen servicio) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoExtraLight();
     final fontBold = await PdfGoogleFonts.nunitoExtraBold();
@@ -69,7 +69,7 @@ class PdfGenerator {
 
     // Obtener datos del encabezado
     final firstRecord =
-        servicio.servicios.isNotEmpty ? servicio.servicios.first : {};
+        servicio.items.isNotEmpty ? servicio.items.first : {};
     final String cliente = firstRecord['cliente']?.toString() ?? '';
     final String razonSocial = firstRecord['razon_social']?.toString() ?? '';
     final String planta = firstRecord['planta']?.toString() ?? '';
@@ -79,7 +79,7 @@ class PdfGenerator {
         '';
 
     // Filtrar y deduplicar registros completos
-    final records = _filterSoporte(servicio.servicios);
+    final records = _filterSoporte(servicio.items);
 
     pdf.addPage(
       pw.MultiPage(
@@ -98,7 +98,7 @@ class PdfGenerator {
                 planta,
                 dirPlanta,
                 tecResponsable,
-                'RESUMEN DE SOPORTE TÉCNICO - OTST ${servicio.otst}',
+                'RESUMEN DE SOPORTE TÉCNICO - OTST ${servicio.codigo}',
                 logo),
             pw.SizedBox(height: 10),
             _buildSoporteTable(records, font),

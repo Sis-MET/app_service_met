@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+import 'package:service_met/providers/balanza_provider.dart';
 import 'package:service_met/screens/soporte/modulos/ajuste_verificaciones/fin_servicio_ajustes_verificaciones.dart';
 import 'models/ajuste_verificaciones_model.dart';
 import 'controllers/ajuste_verificaciones_controller.dart';

@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:service_met/provider/balanza_provider.dart';
+import 'package:service_met/providers/balanza_provider.dart';
 import 'package:service_met/screens/soporte/modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/models/mnt_prv_avanzado_stac_model.dart';
 import 'package:service_met/screens/soporte/modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/utils/constants.dart';
 import 'package:service_met/screens/soporte/modulos/mnt_prv_avanzado/mnt_prv_avanzado_stac/widgets/steps/paso_estado_final.dart';

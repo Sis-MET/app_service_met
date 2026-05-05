@@ -9,7 +9,7 @@ import 'package:csv/csv.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:service_met/home/home_screen.dart';
+import 'package:service_met/home/screens/home_screen.dart';
 import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
 import '../../../../database/soporte_tecnico/database_helper_ajustes.dart';
 

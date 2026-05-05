@@ -10,10 +10,10 @@ import 'package:sqflite/sqflite.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'configuracion_screen.dart';
-import 'otros_apartados_screen.dart';
-import 'servicios_screen.dart';
-import 'tabs/home_dashboard_tab.dart';
-import 'widgets/home_bottom_bar.dart';
+import '../tabs/otros_apartados_tab.dart';
+import '../tabs/servicios_tab.dart';
+import '../tabs/home_dashboard_tab.dart';
+import '../widgets/home_bottom_bar.dart';
 
 class HomeScreen extends StatefulWidget {
   final String dbName;
@@ -66,8 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut);
             }),
-        ServiciosScreen(userName: userName),
-        OtrosApartadosScreen(userName: userName),
+        ServiciosTab(userName: userName),
+        OtrosApartadosTab(userName: userName),
       ];
 
   Future<void> _fetchUserData() async {
