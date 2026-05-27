@@ -6,22 +6,26 @@ class StepData {
   final String title;
   final String subtitle;
   final IconData icon;
+  final bool isAccessible;
 
   const StepData({
     required this.title,
     required this.subtitle,
     required this.icon,
+    this.isAccessible = true,
   });
 }
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
   final List<StepData> steps;
+  final ValueChanged<int>? onStepTapped;
 
   const StepIndicator({
     super.key,
     required this.currentStep,
     required this.steps,
+    this.onStepTapped,
   });
 
   @override
@@ -101,22 +105,35 @@ class StepIndicator extends StatelessWidget {
             children: List.generate(steps.length, (i) {
               final isCompleted = i < safeStep;
               final isCurrent = i == safeStep;
+              final isAccessible = steps[i].isAccessible;
 
               return Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  height: 3,
-                  margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
-                  decoration: BoxDecoration(
-                    color: isCompleted
-                        ? primaryColor
-                        : isCurrent
-                            ? primaryColor.withOpacity(0.55)
-                            : (isDark
-                                ? Colors.white12
-                                : Colors.black.withOpacity(0.08)),
-                    borderRadius: BorderRadius.circular(2),
+                child: GestureDetector(
+                  onTap: () {
+                    if (isAccessible && onStepTapped != null) {
+                      onStepTapped!(i);
+                    }
+                  },
+                  child: Container(
+                    height: 12, // Taller touch area
+                    color: Colors.transparent,
+                    alignment: Alignment.center,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      height: 3,
+                      margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                      decoration: BoxDecoration(
+                        color: isCompleted
+                            ? primaryColor
+                            : isCurrent
+                                ? primaryColor.withOpacity(0.55)
+                                : (isAccessible 
+                                    ? (isDark ? Colors.white24 : Colors.black.withOpacity(0.15))
+                                    : (isDark ? Colors.white12 : Colors.black.withOpacity(0.05))),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
                 ),
               );

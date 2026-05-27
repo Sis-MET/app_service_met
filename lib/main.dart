@@ -16,6 +16,7 @@ import 'database/soporte_tecnico/database_helper_verificaciones.dart';
 import 'package:service_met/providers/balanza_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/settings_provider.dart';
+import 'package:service_met/providers/service_session_provider.dart';
 import 'login/screens/initial_setup_screen.dart';
 import 'login/screens/login_screen.dart';
 import 'theme/app_theme.dart';
@@ -69,6 +70,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BalanzaProvider()),
         ChangeNotifierProvider(
           create: (_) => CalibrationProvider(CalibrationRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ServiceSessionProvider(CalibrationRepository()),
         ),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],

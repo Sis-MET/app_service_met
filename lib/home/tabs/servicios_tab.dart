@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/screens/calibracion/precarga/precarga_screen.dart';
+import 'package:service_met/screens/calibracion/calibration_workspace_screen.dart';
 import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
 
 class ServiciosTab extends StatelessWidget {
@@ -42,7 +42,7 @@ class ServiciosTab extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PrecargaScreen(userName: userName),
+                    builder: (context) => CalibrationWorkspaceScreen(userName: userName),
                   ),
                 );
               },

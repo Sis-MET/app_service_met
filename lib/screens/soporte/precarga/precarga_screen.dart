@@ -31,7 +31,7 @@ import 'widgets/planta_step.dart';
 import 'widgets/seca_step.dart';
 import 'widgets/balanza_step.dart';
 import 'widgets/tipo_servicio_step.dart';
-import '../../calibracion/precarga/widgets/qr_scanner_screen.dart';
+import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/models/balanza_model.dart';
 import 'package:service_met/providers/balanza_provider.dart';
 

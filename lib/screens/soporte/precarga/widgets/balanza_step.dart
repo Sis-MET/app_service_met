@@ -9,7 +9,7 @@ import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../precarga_controller.dart';
-import '../../../calibracion/precarga/widgets/qr_scanner_screen.dart';
+import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'servicio_incompleto_dialog.dart';
 
 class BalanzaStep extends StatefulWidget {
