@@ -30,21 +30,26 @@ class CalibrationWorkspaceScreen extends StatefulWidget {
   });
 
   @override
-  State<CalibrationWorkspaceScreen> createState() => _CalibrationWorkspaceScreenState();
+  State<CalibrationWorkspaceScreen> createState() =>
+      _CalibrationWorkspaceScreenState();
 }
 
-class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen> {
+class _CalibrationWorkspaceScreenState
+    extends State<CalibrationWorkspaceScreen> {
   final PageController _pageController = PageController();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ServiceSessionProvider>().initialize(
-        userName: widget.userName,
-        secaValue: widget.secaValue,
-        sessionId: widget.sessionId,
-      ).then((_) {
+      context
+          .read<ServiceSessionProvider>()
+          .initialize(
+            userName: widget.userName,
+            secaValue: widget.secaValue,
+            sessionId: widget.sessionId,
+          )
+          .then((_) {
         // Sync page controller with loaded step
         final step = context.read<ServiceSessionProvider>().currentStep;
         if (_pageController.hasClients && step > 0) {
@@ -63,39 +68,86 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ServiceSessionProvider>();
-    
+
     if (provider.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final session = provider.session;
     if (session == null) {
-      return const Scaffold(body: Center(child: Text("Error al cargar la sesión")));
+      return const Scaffold(
+          body: Center(child: Text("Error al cargar la sesión")));
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // Validate accessibility for steps
     bool hasSeca = session.metadata.secaConfirmed;
-    
+
     final steps = [
-      StepData(title: 'Cliente', subtitle: session.cliente?.nombreComercial ?? 'Seleccione cliente', icon: Icons.business),
-      StepData(title: 'Planta', subtitle: session.planta?.nombre ?? 'Seleccione planta', icon: Icons.factory),
-      StepData(title: 'SECA', subtitle: session.sessionInfo.seca ?? 'Ingresar SECA', icon: Icons.qr_code),
-      StepData(title: 'Instrumento', subtitle: session.balanza?.codMetrica ?? 'Seleccionar balanza', icon: Icons.scale, isAccessible: hasSeca),
-      StepData(title: 'Inspección', subtitle: 'Visual', icon: Icons.visibility, isAccessible: hasSeca),
-      StepData(title: 'Precarga/Ajuste', subtitle: 'Datos', icon: Icons.settings, isAccessible: hasSeca),
-      StepData(title: 'Excentricidad', subtitle: 'Prueba', icon: Icons.center_focus_strong, isAccessible: hasSeca),
-      StepData(title: 'Repetibilidad', subtitle: 'Prueba', icon: Icons.repeat, isAccessible: hasSeca),
-      StepData(title: 'Linealidad', subtitle: 'Prueba', icon: Icons.show_chart, isAccessible: hasSeca),
-      StepData(title: 'Foto Carga', subtitle: 'Evidencia', icon: Icons.camera_alt, isAccessible: hasSeca),
-      StepData(title: 'Final', subtitle: 'Condiciones', icon: Icons.check_circle, isAccessible: hasSeca),
-      StepData(title: 'Exportar', subtitle: 'Reporte', icon: Icons.download, isAccessible: hasSeca),
+      StepData(
+          title: 'Cliente',
+          subtitle: session.cliente?.nombreComercial ?? 'Seleccione cliente',
+          icon: Icons.business),
+      StepData(
+          title: 'Planta',
+          subtitle: session.planta?.nombre ?? 'Seleccione planta',
+          icon: Icons.factory),
+      StepData(
+          title: 'SECA',
+          subtitle: session.sessionInfo.seca ?? 'Ingresar SECA',
+          icon: Icons.qr_code),
+      StepData(
+          title: 'Instrumento',
+          subtitle: session.balanza?.codMetrica ?? 'Seleccionar balanza',
+          icon: Icons.scale,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Inspección',
+          subtitle: 'Visual',
+          icon: Icons.visibility,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Precarga/Ajuste',
+          subtitle: 'Datos',
+          icon: Icons.settings,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Excentricidad',
+          subtitle: 'Prueba',
+          icon: Icons.center_focus_strong,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Repetibilidad',
+          subtitle: 'Prueba',
+          icon: Icons.repeat,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Linealidad',
+          subtitle: 'Prueba',
+          icon: Icons.show_chart,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Foto Carga',
+          subtitle: 'Evidencia',
+          icon: Icons.camera_alt,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Final',
+          subtitle: 'Condiciones',
+          icon: Icons.check_circle,
+          isAccessible: hasSeca),
+      StepData(
+          title: 'Exportar',
+          subtitle: 'Reporte',
+          icon: Icons.download,
+          isAccessible: hasSeca),
     ];
 
     // Sync page controller if provider step changed externally
-    if (_pageController.hasClients && _pageController.page?.round() != provider.currentStep) {
-      // Usamos jumpToPage porque el usuario prefirió IndexedStack/PageView sin scroll/animación visible, 
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != provider.currentStep) {
+      // Usamos jumpToPage porque el usuario prefirió IndexedStack/PageView sin scroll/animación visible,
       // pero PageView permite inicialización diferida de widgets.
       _pageController.jumpToPage(provider.currentStep);
     }
@@ -109,8 +161,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
               child: Padding(
                 padding: EdgeInsets.only(right: 16.0),
                 child: SizedBox(
-                  width: 20, height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
                 ),
               ),
             )
@@ -144,7 +198,8 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
           Expanded(
             child: PageView(
               controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(), // Desactivamos swipe manual para obligar uso del UI de navegación
+              physics:
+                  const NeverScrollableScrollPhysics(), // Desactivamos swipe manual para obligar uso del UI de navegación
               children: const [
                 ClienteStep(),
                 PlantaStep(),
@@ -176,7 +231,8 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                 child: const Text('Anterior'),
               ),
               ElevatedButton(
-                onPressed: provider.currentStep < steps.length - 1 && provider.canGoToStep(provider.currentStep + 1)
+                onPressed: provider.currentStep < steps.length - 1 &&
+                        provider.canGoToStep(provider.currentStep + 1)
                     ? () => provider.nextStep()
                     : null,
                 child: const Text('Siguiente'),
@@ -190,8 +246,8 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
               onPressed: () {
                 // TODO: Show balanza info dialog
               },
-              child: const Icon(Icons.info_outline),
               mini: true,
+              child: const Icon(Icons.info_outline),
             )
           : null,
     );

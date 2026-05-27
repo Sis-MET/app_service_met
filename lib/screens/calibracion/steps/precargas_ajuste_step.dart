@@ -14,17 +14,17 @@ class PrecargasAjusteStep extends StatefulWidget {
 }
 
 class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
-  final _horaCtrl    = TextEditingController();
-  final _tiCtrl      = TextEditingController();
-  final _hriCtrl     = TextEditingController();
-  final _patmiCtrl   = TextEditingController();
-  final _cargasCtrl  = TextEditingController();
+  final _horaCtrl = TextEditingController();
+  final _tiCtrl = TextEditingController();
+  final _hriCtrl = TextEditingController();
+  final _patmiCtrl = TextEditingController();
+  final _cargasCtrl = TextEditingController();
 
   // Rows: list of [precarga, indicacion] controllers
   List<List<TextEditingController>> _rows = [];
 
   bool _ajusteRealizado = false;
-  bool _ajusteExterno   = false;
+  bool _ajusteExterno = false;
   String? _tipoAjuste;
 
   @override
@@ -37,20 +37,22 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
     final provider = context.read<ServiceSessionProvider>();
     final pa = provider.session?.precargasAjuste;
     if (pa != null) {
-      _horaCtrl.text   = pa.hora   ?? _currentTime();
-      _tiCtrl.text     = pa.ti     ?? '';
-      _hriCtrl.text    = pa.hri    ?? '';
-      _patmiCtrl.text  = pa.patmi  ?? '';
+      _horaCtrl.text = pa.hora ?? _currentTime();
+      _tiCtrl.text = pa.ti ?? '';
+      _hriCtrl.text = pa.hri ?? '';
+      _patmiCtrl.text = pa.patmi ?? '';
       _cargasCtrl.text = pa.cargasPesas ?? '';
       setState(() {
         _ajusteRealizado = pa.ajusteRealizado ?? false;
-        _tipoAjuste      = pa.tipoAjuste;
-        _ajusteExterno   = pa.tipoAjuste == 'Externo';
+        _tipoAjuste = pa.tipoAjuste;
+        _ajusteExterno = pa.tipoAjuste == 'Externo';
         // Build rows
-        _rows = pa.precargas.map((r) => [
-          TextEditingController(text: r.precarga ?? ''),
-          TextEditingController(text: r.pIndicador ?? ''),
-        ]).toList();
+        _rows = pa.precargas
+            .map((r) => [
+                  TextEditingController(text: r.precarga ?? ''),
+                  TextEditingController(text: r.pIndicador ?? ''),
+                ])
+            .toList();
         if (_rows.isEmpty) _addRow();
       });
     } else {
@@ -60,14 +62,17 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   }
 
   void _addRow() {
-    setState(() => _rows.add([TextEditingController(), TextEditingController()]));
+    setState(
+        () => _rows.add([TextEditingController(), TextEditingController()]));
   }
 
   void _removeRow() {
     if (_rows.length > 1) {
       setState(() {
         final removed = _rows.removeLast();
-        for (final c in removed) c.dispose();
+        for (final c in removed) {
+          c.dispose();
+        }
       });
       _saveToProvider();
     }
@@ -80,28 +85,36 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
 
   void _saveToProvider() {
     final provider = context.read<ServiceSessionProvider>();
-    final precargas = _rows.map((r) => PrecargaRow(
-      precarga:   r[0].text,
-      pIndicador: r[1].text,
-    )).toList();
+    final precargas = _rows
+        .map((r) => PrecargaRow(
+              precarga: r[0].text,
+              pIndicador: r[1].text,
+            ))
+        .toList();
 
     provider.updatePrecargasAjuste(PrecargasAjuste(
-      precargas:       precargas,
+      precargas: precargas,
       ajusteRealizado: _ajusteRealizado,
-      tipoAjuste:      _tipoAjuste,
-      cargasPesas:     _cargasCtrl.text,
-      hora:            _horaCtrl.text,
-      ti:              _tiCtrl.text,
-      hri:             _hriCtrl.text,
-      patmi:           _patmiCtrl.text,
+      tipoAjuste: _tipoAjuste,
+      cargasPesas: _cargasCtrl.text,
+      hora: _horaCtrl.text,
+      ti: _tiCtrl.text,
+      hri: _hriCtrl.text,
+      patmi: _patmiCtrl.text,
     ));
   }
 
   @override
   void dispose() {
-    for (final row in _rows) for (final c in row) c.dispose();
-    _horaCtrl.dispose(); _tiCtrl.dispose(); _hriCtrl.dispose();
-    _patmiCtrl.dispose(); _cargasCtrl.dispose();
+    for (final row in _rows)
+      for (final c in row) {
+        c.dispose();
+      }
+    _horaCtrl.dispose();
+    _tiCtrl.dispose();
+    _hriCtrl.dispose();
+    _patmiCtrl.dispose();
+    _cargasCtrl.dispose();
     super.dispose();
   }
 
@@ -117,7 +130,10 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               Center(
                 child: Text(
                   'PRECARGAS DE AJUSTE',
-                  style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.orange[700]),
+                  style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[700]),
                 ).animate().fadeIn(duration: 600.ms),
               ),
               const SizedBox(height: 24),
@@ -127,8 +143,14 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.orange), onPressed: _addRow),
-                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: Colors.orange), onPressed: _removeRow),
+                  IconButton(
+                      icon: const Icon(Icons.add_circle_outline,
+                          color: Colors.orange),
+                      onPressed: _addRow),
+                  IconButton(
+                      icon: const Icon(Icons.remove_circle_outline,
+                          color: Colors.orange),
+                      onPressed: _removeRow),
                 ],
               ),
               ...List.generate(_rows.length, (i) => _buildRow(i, provider)),
@@ -139,7 +161,16 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               SwitchListTile(
                 title: Text('¿Se realizó Ajuste?', style: GoogleFonts.inter()),
                 value: _ajusteRealizado,
-                onChanged: (v) { setState(() { _ajusteRealizado = v; if (!v) { _tipoAjuste = null; _ajusteExterno = false; } }); _saveToProvider(); },
+                onChanged: (v) {
+                  setState(() {
+                    _ajusteRealizado = v;
+                    if (!v) {
+                      _tipoAjuste = null;
+                      _ajusteExterno = false;
+                    }
+                  });
+                  _saveToProvider();
+                },
                 activeThumbColor: Colors.orange,
               ),
               if (_ajusteRealizado) ...[
@@ -152,7 +183,13 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                     DropdownMenuItem(value: 'Interno', child: Text('Interno')),
                     DropdownMenuItem(value: 'Externo', child: Text('Externo')),
                   ],
-                  onChanged: (v) { setState(() { _tipoAjuste = v; _ajusteExterno = v == 'Externo'; }); _saveToProvider(); },
+                  onChanged: (v) {
+                    setState(() {
+                      _tipoAjuste = v;
+                      _ajusteExterno = v == 'Externo';
+                    });
+                    _saveToProvider();
+                  },
                 ),
                 if (_ajusteExterno) ...[
                   const SizedBox(height: 10),
@@ -172,12 +209,26 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               ]),
               const SizedBox(height: 10),
               Row(children: [
-                Expanded(child: TextField(controller: _tiCtrl,   onChanged: (_) => _saveToProvider(), keyboardType: TextInputType.number, decoration: _deco('Ti (°C)'))),
+                Expanded(
+                    child: TextField(
+                        controller: _tiCtrl,
+                        onChanged: (_) => _saveToProvider(),
+                        keyboardType: TextInputType.number,
+                        decoration: _deco('Ti (°C)'))),
                 const SizedBox(width: 10),
-                Expanded(child: TextField(controller: _hriCtrl,  onChanged: (_) => _saveToProvider(), keyboardType: TextInputType.number, decoration: _deco('HRi (%)'))),
+                Expanded(
+                    child: TextField(
+                        controller: _hriCtrl,
+                        onChanged: (_) => _saveToProvider(),
+                        keyboardType: TextInputType.number,
+                        decoration: _deco('HRi (%)'))),
               ]),
               const SizedBox(height: 10),
-              TextField(controller: _patmiCtrl, onChanged: (_) => _saveToProvider(), keyboardType: TextInputType.number, decoration: _deco('Patmi (hPa)')),
+              TextField(
+                  controller: _patmiCtrl,
+                  onChanged: (_) => _saveToProvider(),
+                  keyboardType: TextInputType.number,
+                  decoration: _deco('Patmi (hPa)')),
               const SizedBox(height: 20),
             ],
           ),
@@ -191,21 +242,28 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Text('${i + 1}.', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+          Text('${i + 1}.',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
           const SizedBox(width: 8),
-          Expanded(child: TextField(
+          Expanded(
+              child: TextField(
             controller: _rows[i][0],
             onChanged: (_) => _saveToProvider(),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+            ],
             decoration: _deco('Precarga'),
           )),
           const SizedBox(width: 8),
-          Expanded(child: TextField(
+          Expanded(
+              child: TextField(
             controller: _rows[i][1],
             onChanged: (_) => _saveToProvider(),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+            ],
             decoration: _deco('Indicación'),
           )),
         ],
@@ -234,12 +292,16 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(title, style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange[700])),
+      child: Text(title,
+          style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange[700])),
     ).animate().fadeIn();
   }
 
   InputDecoration _deco(String label) => InputDecoration(
-    labelText: label,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-  );
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      );
 }
