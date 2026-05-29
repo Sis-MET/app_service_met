@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:service_met/utils/top_alert.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
@@ -48,10 +49,9 @@ class _FotoCargaStepState extends State<FotoCargaStep> {
         _saveToProvider(photo.path);
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al tomar foto: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        TopAlert.show(context, 'Error al tomar foto: $e', isError: true);
+      }
     }
   }
 

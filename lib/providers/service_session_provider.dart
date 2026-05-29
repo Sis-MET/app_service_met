@@ -15,6 +15,8 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   // D-values cache
   Map<String, double> _dValues = {};
+
+  String _cotizacionSuffix = 'C01';
   
   ServiceSessionProvider(this._repository);
 
@@ -24,6 +26,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
+  String get cotizacionSuffix => _cotizacionSuffix;
 
   // --- Inicialización ---
 
@@ -95,7 +98,32 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   bool canGoToStep(int step) {
-    // Aquí se puede agregar lógica de validación, por ej. no ir al paso 4 si el 3 no está completo.
+    if (_session == null) return false;
+    
+    // Paso 0: Cliente (siempre accesible)
+    if (step == 0) return true;
+
+    // Paso 1: Planta (requiere Cliente seleccionado o nuevo)
+    if (step >= 1) {
+      if (_session!.cliente?.nombreComercial == null || _session!.cliente!.nombreComercial!.isEmpty) {
+        return false;
+      }
+    }
+
+    // Paso 2: SECA (requiere Planta seleccionada o nueva)
+    if (step >= 2) {
+      if (_session!.planta?.nombre == null || _session!.planta!.nombre!.isEmpty) {
+        return false;
+      }
+    }
+
+    // Paso 3+: Instrumento y resto (requiere SECA confirmado)
+    if (step >= 3) {
+      if (!_session!.metadata.secaConfirmed) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -236,8 +264,22 @@ class ServiceSessionProvider extends ChangeNotifier {
     return _repository.getDecimalPlaces(dValue);
   }
 
-  Future<bool> confirmSeca(String seca) async {
+  void setCotizacionSuffix(String val) {
+    _cotizacionSuffix = val;
+    notifyListeners();
+  }
+
+  String getProposedSeca() {
+    final plantaCod = _session?.planta?.codigo ?? 'NNNN-NN';
+    final year = DateTime.now().year.toString().substring(2);
+    final cotizacion = _cotizacionSuffix.isEmpty ? 'C01' : _cotizacionSuffix;
+    return '$plantaCod-$cotizacion-$year';
+  }
+
+  Future<bool> confirmSeca() async {
     if (_session == null) return false;
+    
+    final seca = getProposedSeca();
     
     String sessionId = await _repository.generateSessionId(seca);
     
@@ -249,6 +291,42 @@ class ServiceSessionProvider extends ChangeNotifier {
       metadata: _session!.metadata.copyWith(secaConfirmed: true),
     );
     
+    await flushAutoSave();
+    return true;
+  }
+
+  void setBalanzaConfirmed(bool confirmed) {
+    if (_session == null) return;
+    _session = _session!.copyWith(
+      metadata: _session!.metadata.copyWith(balanzaConfirmed: confirmed),
+    );
+    notifyListeners();
+  }
+
+  String? validateBalanza() {
+    if (_session == null) return "Sesión no inicializada.";
+    
+    final info = _session!.sessionInfo;
+    if (info.nReca == null || info.nReca!.trim().isEmpty) return "Debe ingresar el N° RECA.";
+    if (info.sticker == null || info.sticker!.trim().isEmpty) return "Debe ingresar el N° Sticker.";
+    
+    final b = _session!.balanza;
+    if (b == null) return "Debe seleccionar o registrar una balanza.";
+    if (b.codMetrica == null || b.codMetrica!.trim().isEmpty) return "Falta el Código Métrica.";
+    if (b.tipo == null || b.tipo!.trim().isEmpty) return "Falta el Tipo de Instrumento.";
+    if (b.marca == null || b.marca!.trim().isEmpty) return "Falta la Marca.";
+    if (b.modelo == null || b.modelo!.trim().isEmpty) return "Falta el Modelo.";
+    if (b.serie == null || b.serie!.trim().isEmpty) return "Falta la Serie.";
+    if (b.capMax1 == null || b.capMax1!.trim().isEmpty) return "Falta la Capacidad Máxima (Rango 1).";
+    if (b.d1 == null) return "Falta la división d (Rango 1).";
+    if (b.e1 == null) return "Falta la división e (Rango 1).";
+    
+    return null;
+  }
+
+  Future<bool> confirmBalanza() async {
+    if (_session == null) return false;
+    setBalanzaConfirmed(true);
     await flushAutoSave();
     return true;
   }

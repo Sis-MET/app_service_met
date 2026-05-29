@@ -78,8 +78,8 @@ class ServiceSession {
       if (planta?.codigo != null) 'cod_planta': planta!.codigo,
       // BalanzaInfo
       if (balanza?.categoria != null) 'categoria_balanza': balanza!.categoria,
-      if (balanza?.tecnologia != null) 'tecnologia': balanza!.tecnologia, // Note: not explicitly in app_database schema, maybe skip if not there
-      if (balanza?.clase != null) 'clase': balanza!.clase,
+      // tecnologia: solo visual, no se persiste en la BD
+      // clase: solo visual, no se persiste en la BD
       if (balanza?.tipo != null) 'tipo_equipo': balanza!.tipo,
       if (balanza?.rango != null) 'rango': balanza!.rango,
       if (balanza?.nCeldas != null) 'n_celdas': balanza!.nCeldas,
@@ -286,8 +286,8 @@ class ServiceSession {
       ),
       balanza: BalanzaInfo(
         categoria: map['categoria_balanza'],
-        tecnologia: map['tecnologia'],
-        clase: map['clase'],
+        // tecnologia: solo visual, no se carga desde BD
+        // clase: solo visual, no se carga desde BD
         tipo: map['tipo_equipo'],
         rango: map['rango'],
         nCeldas: map['n_celdas']?.toString(),
@@ -400,15 +400,17 @@ class SessionInfo {
 
 class ClienteInfo {
   final String? id;
+  final String? codigoCliente;
   final String? nombreComercial;
   final String? razonSocial;
   final bool? isNew;
 
-  ClienteInfo({this.id, this.nombreComercial, this.razonSocial, this.isNew});
+  ClienteInfo({this.id, this.codigoCliente, this.nombreComercial, this.razonSocial, this.isNew});
 
-  ClienteInfo copyWith({String? id, String? nombreComercial, String? razonSocial, bool? isNew}) {
+  ClienteInfo copyWith({String? id, String? codigoCliente, String? nombreComercial, String? razonSocial, bool? isNew}) {
     return ClienteInfo(
       id: id ?? this.id,
+      codigoCliente: codigoCliente ?? this.codigoCliente,
       nombreComercial: nombreComercial ?? this.nombreComercial,
       razonSocial: razonSocial ?? this.razonSocial,
       isNew: isNew ?? this.isNew,
@@ -679,15 +681,17 @@ class ExportacionData {
 class SessionMetadata {
   final int currentStep;
   final bool secaConfirmed;
+  final bool balanzaConfirmed;
   final bool isNewBalanza;
   final String hiddenEditedFields;
 
-  SessionMetadata({this.currentStep = 0, this.secaConfirmed = false, this.isNewBalanza = false, this.hiddenEditedFields = ''});
+  SessionMetadata({this.currentStep = 0, this.secaConfirmed = false, this.balanzaConfirmed = false, this.isNewBalanza = false, this.hiddenEditedFields = ''});
 
-  SessionMetadata copyWith({int? currentStep, bool? secaConfirmed, bool? isNewBalanza, String? hiddenEditedFields}) {
+  SessionMetadata copyWith({int? currentStep, bool? secaConfirmed, bool? balanzaConfirmed, bool? isNewBalanza, String? hiddenEditedFields}) {
     return SessionMetadata(
       currentStep: currentStep ?? this.currentStep,
       secaConfirmed: secaConfirmed ?? this.secaConfirmed,
+      balanzaConfirmed: balanzaConfirmed ?? this.balanzaConfirmed,
       isNewBalanza: isNewBalanza ?? this.isNewBalanza,
       hiddenEditedFields: hiddenEditedFields ?? this.hiddenEditedFields,
     );

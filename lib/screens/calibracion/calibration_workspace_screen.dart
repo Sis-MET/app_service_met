@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/screens/calibracion/widgets/step_indicator.dart';
 
 // Import placeholder steps (they will be created in phase 5)
@@ -196,60 +197,182 @@ class _CalibrationWorkspaceScreenState
             },
           ),
           Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics:
-                  const NeverScrollableScrollPhysics(), // Desactivamos swipe manual para obligar uso del UI de navegación
-              children: const [
-                ClienteStep(),
-                PlantaStep(),
-                SecaStep(),
-                BalanzaStep(),
-                InspeccionVisualStep(),
-                PrecargasAjusteStep(),
-                ExcentricidadStep(),
-                RepetibilidadStep(),
-                LinealidadStep(),
-                FotoCargaStep(),
-                CondicionesFinalesStep(),
-                ExportacionStep(),
+            child: Stack(
+              children: [
+                PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: const [
+                    ClienteStep(),
+                    PlantaStep(),
+                    SecaStep(),
+                    BalanzaStep(),
+                    InspeccionVisualStep(),
+                    PrecargasAjusteStep(),
+                    ExcentricidadStep(),
+                    RepetibilidadStep(),
+                    LinealidadStep(),
+                    FotoCargaStep(),
+                    CondicionesFinalesStep(),
+                    ExportacionStep(),
+                  ],
+                ),
+
+                // Floating nav buttons — bottom-right, pill grouped
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: Builder(
+                    builder: (ctx) {
+                      final step = provider.currentStep;
+                      final meta = provider.session?.metadata;
+
+                      String label = 'Siguiente';
+                      Color actionColor = const Color(0xFF498054);
+                      VoidCallback? onNext;
+
+                      if (step == 2 && meta != null && !meta.secaConfirmed) {
+                        label = 'Confirmar SECA';
+                        actionColor = Colors.blue[700]!;
+                        onNext = () async {
+                          await provider.confirmSeca();
+                        };
+                      } else if (step == 3 &&
+                          meta != null &&
+                          !meta.balanzaConfirmed) {
+                        label = 'Guardar Datos';
+                        actionColor = const Color(0xFF3e7732);
+                        onNext = () async {
+                          final error = provider.validateBalanza();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          await provider.confirmBalanza();
+                        };
+                      } else {
+                        onNext = step < steps.length - 1 &&
+                                provider.canGoToStep(step + 1)
+                            ? () => provider.nextStep()
+                            : null;
+                      }
+
+                      final canGoBack = provider.currentStep > 0;
+                      final isDarkMode =
+                          Theme.of(ctx).brightness == Brightness.dark;
+                      final pillBg =
+                          isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+                      final backColor =
+                          isDarkMode ? Colors.white24 : Colors.black12;
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: pillBg,
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.18),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Back button
+                            Tooltip(
+                              message: 'Anterior',
+                              child: InkWell(
+                                onTap: canGoBack
+                                    ? () => provider.previousStep()
+                                    : null,
+                                borderRadius: BorderRadius.circular(50),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: canGoBack
+                                        ? backColor
+                                        : Colors.transparent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    size: 18,
+                                    color: canGoBack
+                                        ? (isDarkMode
+                                            ? Colors.white70
+                                            : Colors.black54)
+                                        : (isDarkMode
+                                            ? Colors.white24
+                                            : Colors.black26),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            // Dynamic action button
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 300),
+                              transitionBuilder: (child, animation) =>
+                                  FadeTransition(
+                                opacity: animation,
+                                child: ScaleTransition(
+                                    scale: animation, child: child),
+                              ),
+                              child: Material(
+                                key: ValueKey<String>(label),
+                                color: onNext != null
+                                    ? actionColor
+                                    : Colors.grey[400],
+                                borderRadius: BorderRadius.circular(50),
+                                child: InkWell(
+                                  onTap: onNext,
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 11),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          label,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        if (label == 'Siguiente') ...[
+                                          const SizedBox(width: 6),
+                                          const Icon(
+                                              Icons.arrow_forward_ios_rounded,
+                                              size: 14,
+                                              color: Colors.white),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              OutlinedButton(
-                onPressed: provider.currentStep > 0
-                    ? () => provider.previousStep()
-                    : null,
-                child: const Text('Anterior'),
-              ),
-              ElevatedButton(
-                onPressed: provider.currentStep < steps.length - 1 &&
-                        provider.canGoToStep(provider.currentStep + 1)
-                    ? () => provider.nextStep()
-                    : null,
-                child: const Text('Siguiente'),
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: hasSeca
-          ? FloatingActionButton(
-              onPressed: () {
-                // TODO: Show balanza info dialog
-              },
-              mini: true,
-              child: const Icon(Icons.info_outline),
-            )
-          : null,
     );
   }
 }

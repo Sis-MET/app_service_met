@@ -106,9 +106,35 @@ class _BalanzaStepState extends State<BalanzaStep> {
   Future<void> _loadBalanzas() async {
     setState(() => _isLoadingBalanzas = true);
     final provider = context.read<ServiceSessionProvider>();
-    final plantaCod = provider.session?.planta?.codigo ?? '';
-    final result = await _repository.getBalanzas(plantaCod);
-    if (mounted) setState(() { _balanzas = result; _isLoadingBalanzas = false; });
+    final clienteCod = provider.session?.cliente?.codigoCliente;
+    final plantaCod = provider.session?.planta?.codigo;
+    final result = await _repository.getBalanzas(clienteCod, plantaCod);
+    if (!mounted) return;
+
+    final savedCodMetrica = provider.session?.balanza?.codMetrica;
+
+    setState(() {
+      _balanzas = result;
+      _isLoadingBalanzas = false;
+
+      // Restore selected balanza state after navigating back to this step
+      if (savedCodMetrica != null && savedCodMetrica.isNotEmpty) {
+        final match = result.firstWhere(
+          (b) => b['cod_metrica']?.toString() == savedCodMetrica,
+          orElse: () => <String, dynamic>{},
+        );
+
+        if (match.isNotEmpty) {
+          // Found it in the DB list → restore as "selected"
+          _selectedBalanza = match;
+          _isNewBalanza = false;
+        } else {
+          // Not in the list → was entered as a new balanza
+          _isNewBalanza = true;
+          _selectedBalanza = null;
+        }
+      }
+    });
   }
 
   void _fillFromMap(Map<String, dynamic> b) {
@@ -117,10 +143,13 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _tecnologiaCtrl.text  = b['tecnologia']?.toString()       ?? '';
     _claseCtrl.text       = b['clase']?.toString()            ?? '';
     _codIntCtrl.text      = b['cod_interno']?.toString()      ?? '';
-    _tipoEquipoCtrl.text  = b['tipo']?.toString()             ?? '';
+    final tipoInst = b['tipo_instrumento']?.toString() ?? '';
+    final inst = b['instrumento']?.toString() ?? '';
+    final tipo = b['tipo']?.toString() ?? '';
+    _tipoEquipoCtrl.text  = tipoInst.isNotEmpty ? tipoInst : (inst.isNotEmpty ? inst : tipo);
     _marcaCtrl.text       = b['marca']?.toString()            ?? '';
     _modeloCtrl.text      = b['modelo']?.toString()           ?? '';
-    _serieCtrl.text       = b['serie']?.toString()            ?? '';
+    _serieCtrl.text       = b['inf_serie']?.toString()        ?? b['serie']?.toString() ?? '';
     _unidadesCtrl.text    = b['unidad']?.toString()           ?? '';
     _ubicacionCtrl.text   = b['ubicacion']?.toString()        ?? '';
     _rangoCtrl.text       = b['rango']?.toString()            ?? '';
@@ -143,8 +172,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     provider.updateBalanza(BalanzaInfo(
       codMetrica: _codMetricaCtrl.text,
       categoria:  _categoriaCtrl.text,
-      tecnologia: _tecnologiaCtrl.text,
-      clase:      _claseCtrl.text,
+      // tecnologia: solo visual, no se persiste
+      // clase: solo visual, no se persiste
       codInterno: _codIntCtrl.text,
       tipo:       _tipoEquipoCtrl.text,
       marca:      _marcaCtrl.text,
@@ -171,6 +200,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       nReca:   _nRecaCtrl.text,
       sticker: _stickerCtrl.text,
     ));
+    provider.setBalanzaConfirmed(false);
   }
 
   @override
@@ -218,8 +248,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 _buildBalanzaForm(provider),
                 const SizedBox(height: 24),
                 _buildRangosSection(),
-                const SizedBox(height: 16),
-                _buildSaveButton(provider),
               ],
             ],
           ),
@@ -369,26 +397,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _buildSaveButton(ServiceSessionProvider provider) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          _saveToProvider(provider);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Datos del instrumento guardados'), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
-          );
-        },
-        icon: const Icon(Icons.save),
-        label: const Text('Guardar Datos del Instrumento'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3e7732), foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
-    ).animate(delay: 600.ms).fadeIn();
-  }
-
   // --- Helpers de widgets ---
 
   Widget _field(TextEditingController ctrl, String label, IconData icon,
@@ -423,14 +431,18 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   Widget _dropdownField(String label, IconData icon, List<String> items,
       TextEditingController ctrl, ServiceSessionProvider provider) {
-    final current = items.contains(ctrl.text) ? ctrl.text : null;
+    final currentList = List<String>.from(items);
+    if (ctrl.text.isNotEmpty && !currentList.contains(ctrl.text)) {
+      currentList.add(ctrl.text);
+    }
+    final current = currentList.contains(ctrl.text) ? ctrl.text : null;
     return DropdownButtonFormField<String>(
       value: current,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      items: items.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+      items: currentList.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
       onChanged: (v) {
         ctrl.text = v ?? '';
         _saveToProvider(provider);

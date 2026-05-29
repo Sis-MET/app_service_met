@@ -34,7 +34,7 @@ class DatabaseHelperPrecarga {
 
   // Obtener la base de datos
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null && _database!.isOpen) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
@@ -241,7 +241,21 @@ class DatabaseHelperPrecarga {
 
   Future<List<Map<String, dynamic>>> getBalanzas() async {
     final db = await database;
-    return await db.query('balanzas');
+    return await db.rawQuery('''
+      SELECT b.*, i.cod_interno, i.instrumento, i.tipo_instrumento, i.marca, i.modelo, i.ubicacion, i.serie as inf_serie
+      FROM balanzas b
+      LEFT JOIN inf i ON b.cod_metrica = i.cod_metrica
+    ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getBalanzasPorPrefix(String prefix) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT b.*, i.cod_interno, i.instrumento, i.tipo_instrumento, i.marca, i.modelo, i.ubicacion, i.serie as inf_serie
+      FROM balanzas b
+      LEFT JOIN inf i ON b.cod_metrica = i.cod_metrica
+      WHERE b.cod_metrica LIKE ?
+    ''', ['$prefix-%']);
   }
 
   Future<List<Map<String, dynamic>>> getInf() async {

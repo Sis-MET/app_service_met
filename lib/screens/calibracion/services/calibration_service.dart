@@ -55,14 +55,18 @@ class CalibrationService {
     }
   }
 
-  Future<void> saveEccentricityData(Map<String, dynamic> data) async {
+  Future<void> saveEccentricityData(
+    String seca,
+    String sessionId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final db = await _dbHelper.database;
       await db.update(
         'registros_calibracion',
         data,
-        where: 'id = ?',
-        whereArgs: [1],
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
       );
     } catch (e) {
       debugPrint('Error al guardar datos de excentricidad: $e');
@@ -70,14 +74,18 @@ class CalibrationService {
     }
   }
 
-  Future<void> saveRepeatabilityData(Map<String, dynamic> data) async {
+  Future<void> saveRepeatabilityData(
+    String seca,
+    String sessionId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final db = await _dbHelper.database;
       await db.update(
         'registros_calibracion',
         data,
-        where: 'id = ?',
-        whereArgs: [1],
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
       );
     } catch (e) {
       debugPrint('Error al guardar datos de repetibilidad: $e');
@@ -85,14 +93,18 @@ class CalibrationService {
     }
   }
 
-  Future<void> saveLinearityData(Map<String, dynamic> data) async {
+  Future<void> saveLinearityData(
+    String seca,
+    String sessionId,
+    Map<String, dynamic> data,
+  ) async {
     try {
       final db = await _dbHelper.database;
       await db.update(
         'registros_calibracion',
         data,
-        where: 'id = ?',
-        whereArgs: [1],
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
       );
     } catch (e) {
       debugPrint('Error al guardar datos de linealidad: $e');

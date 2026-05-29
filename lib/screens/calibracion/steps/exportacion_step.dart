@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:service_met/utils/top_alert.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -59,15 +60,12 @@ class _ExportacionStepState extends State<ExportacionStep> {
     // Trigger CSV Export from Provider if implemented, or show success
     bool success = await provider.exportToCSV();
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Exportación exitosa. Datos guardados.')));
+      TopAlert.show(context, 'Exportación exitosa', isError: false);
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content:
-                Text('Guardado finalizado. Falta implementar CSV writer.')));
+        TopAlert.show(context, 'Guardado finalizado. Falta implementar CSV writer.', isError: true);
         Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const HomeScreen()),
             (r) => false);

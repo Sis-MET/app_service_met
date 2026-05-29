@@ -109,9 +109,19 @@ class CalibrationRepository {
     return allPlantas.where((p) => p['cliente_id'] == clienteId).toList();
   }
 
-  Future<List<Map<String, dynamic>>> getBalanzas(String plantaCodigo) async {
-    // Assuming balanzas are filtered by planta or just returning all for now as per current schema
-    // since balanzas table doesn't have an explicit planta_codigo. We return all from getBalanzas.
+  Future<List<Map<String, dynamic>>> getBalanzas(String? clienteCodigo, String? plantaCodigo) async {
+    if (plantaCodigo != null && plantaCodigo.isNotEmpty) {
+      String prefix;
+      if (plantaCodigo.contains('-')) {
+        prefix = plantaCodigo;
+      } else if (clienteCodigo != null && clienteCodigo.isNotEmpty) {
+        prefix = '$clienteCodigo-$plantaCodigo';
+      } else {
+        // Fallback si no tenemos clienteCodigo pero la planta no tiene guion
+        prefix = plantaCodigo; 
+      }
+      return await _precargaDb.getBalanzasPorPrefix(prefix);
+    }
     return await _precargaDb.getBalanzas();
   }
 

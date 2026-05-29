@@ -25,7 +25,7 @@ class _SecaStepState extends State<SecaStep> {
       } else if (session != null && session.metadata.secaConfirmed) {
          final parts = session.sessionInfo.seca?.split('-') ?? [];
          if (parts.length >= 4) {
-            _cotizacionController.text = parts[3]; // format: XXXX-XX-XXX-C01-24? No wait, XXXX-XX-C01-24. So parts is: [0]:XXXX, [1]:XX, [2]:C01, [3]:24
+            _cotizacionController.text = parts[3]; 
          }
       }
     });
@@ -53,6 +53,8 @@ class _SecaStepState extends State<SecaStep> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, child) {
         final session = provider.session;
@@ -63,19 +65,17 @@ class _SecaStepState extends State<SecaStep> {
         final tieneCodigoTemporal = currentSeca?.contains('NNNN-NN') ?? false;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'CÓDIGO SECA GENERADO',
-                style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF2C3E50)),
-              ).animate().fadeIn(duration: 600.ms),
-              const SizedBox(height: 30),
-              _buildInfoSummary(provider),
-              const SizedBox(height: 30),
-              _buildSecaCard(provider, isConfirmed, currentSeca),
-              const SizedBox(height: 30),
-              _buildAdditionalInfo(isConfirmed, tieneCodigoTemporal),
+              _buildHeader(isDark),
+              const SizedBox(height: 24),
+              _buildInfoSummary(provider, isDark),
+              const SizedBox(height: 24),
+              _buildSecaCard(provider, isConfirmed, currentSeca, isDark),
+              const SizedBox(height: 24),
+              _buildAdditionalInfo(isConfirmed, tieneCodigoTemporal, isDark),
             ],
           ),
         );
@@ -83,84 +83,231 @@ class _SecaStepState extends State<SecaStep> {
     );
   }
 
-  Widget _buildInfoSummary(ServiceSessionProvider provider) {
-    final session = provider.session!;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.blue[200]!)),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.blue[600], size: 24),
-              const SizedBox(width: 12),
-              Text('Resumen de la Información', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue[800])),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSummaryRow('Cliente', session.cliente?.nombreComercial ?? 'N/A'),
-          const SizedBox(height: 8),
-          _buildSummaryRow('Código Planta', session.planta?.codigo ?? 'N/A'),
-          const SizedBox(height: 8),
-          _buildSummaryRow('Técnico', session.sessionInfo.userName ?? 'N/A'),
-          const SizedBox(height: 8),
-          _buildSummaryRow('Fecha', session.sessionInfo.fechaServicio ?? 'N/A'),
-        ],
-      ),
-    ).animate(delay: 200.ms).fadeIn().slideY(begin: -0.3);
-  }
-
-  Widget _buildSummaryRow(String label, String value) {
-    return Row(
+  Widget _buildHeader(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 100, child: Text('$label:', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.blue[700]))),
-        Expanded(child: Text(value, style: GoogleFonts.inter(fontSize: 14, color: Colors.blue[800]))),
+        Text(
+          'Código SECA',
+          style: GoogleFonts.poppins(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+        const SizedBox(height: 4),
+        Text(
+          'Generación del código único del servicio',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+            fontWeight: FontWeight.w400,
+          ),
+        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
       ],
     );
   }
 
-  Widget _buildSecaCard(ServiceSessionProvider provider, bool isConfirmed, String? currentSeca) {
+  Widget _buildInfoSummary(ServiceSessionProvider provider, bool isDark) {
+    final session = provider.session!;
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: isConfirmed ? [Colors.green[100]!, Colors.green[50]!] : [Colors.blue[100]!, Colors.blue[50]!]),
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: isDark ? Colors.white54 : Colors.black54, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Resumen de la Información',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryRow('Cliente', session.cliente?.nombreComercial ?? 'N/A', isDark),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Código Planta', session.planta?.codigo ?? 'N/A', isDark),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Técnico', session.sessionInfo.userName ?? 'N/A', isDark),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Fecha', session.sessionInfo.fechaServicio ?? 'N/A', isDark),
+        ],
+      ),
+    ).animate(delay: 200.ms).fadeIn().slideY(begin: -0.2);
+  }
+
+  Widget _buildSummaryRow(String label, String value, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white54 : Colors.black54,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecaCard(ServiceSessionProvider provider, bool isConfirmed, String? currentSeca, bool isDark) {
+    final accentColor = const Color(0xFFf9e300);
+    final cardColor = isConfirmed 
+        ? (isDark ? accentColor.withOpacity(0.08) : const Color(0xFFFFFDE6))
+        : (isDark ? const Color(0xFF2A2A2A) : Colors.white);
+    
+    final borderColor = isConfirmed
+        ? accentColor.withOpacity(0.5)
+        : (isDark ? Colors.white12 : const Color(0xFFE2E8F0));
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isConfirmed ? Colors.green[300]! : Colors.blue[300]!, width: 2),
-        boxShadow: [BoxShadow(color: (isConfirmed ? Colors.green : Colors.blue).withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: borderColor, width: isConfirmed ? 1.5 : 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isConfirmed ? 0.05 : 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: Column(
         children: [
-          Text(isConfirmed ? 'SECA Confirmado:' : 'SECA Sugerido:', style: GoogleFonts.inter(fontSize: 16, color: isConfirmed ? Colors.green[700] : Colors.blue[700], fontWeight: FontWeight.w500)),
-          const SizedBox(height: 12),
+          Text(
+            isConfirmed ? 'SECA Confirmado' : 'SECA Sugerido',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: isConfirmed 
+                  ? (isDark ? accentColor : const Color(0xFF5A4E00))
+                  : (isDark ? Colors.white54 : Colors.black54),
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 16),
           if (isConfirmed)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green[200]!)),
-              child: Text(currentSeca ?? '', style: GoogleFonts.robotoMono(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.green[800], letterSpacing: 2), textAlign: TextAlign.center),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                currentSeca ?? '',
+                style: GoogleFonts.robotoMono(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ).animate(delay: 300.ms).fadeIn()
           else
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue[200]!)),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_getFixedSecaPart(provider), style: GoogleFonts.robotoMono(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue[800], letterSpacing: 2)),
-                  SizedBox(
-                    width: 60,
+                  Text(
+                    _getFixedSecaPart(provider),
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Container(
+                    width: 70,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: TextField(
                       controller: _cotizacionController,
-                      style: GoogleFonts.robotoMono(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue[800], letterSpacing: 2),
-                      decoration: InputDecoration(border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.blue[300]!, width: 2)), focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.blue[600]!, width: 2)), contentPadding: const EdgeInsets.symmetric(vertical: 8), hintText: 'C01'),
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? accentColor : const Color(0xFF5A4E00),
+                        letterSpacing: 1,
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: isDark ? Colors.black26 : Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: accentColor, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        hintText: 'C01',
+                      ),
                       textAlign: TextAlign.center,
                       maxLength: 3,
                       buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
                       onChanged: (value) {
                          setState(() {}); // refresh proposed SECA
+                         provider.setCotizacionSuffix(value.isEmpty ? 'C01' : value);
                       },
                     ),
                   ),
-                  Text(_getYearPart(), style: GoogleFonts.robotoMono(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue[800], letterSpacing: 2)),
+                  Text(
+                    _getYearPart(),
+                    style: GoogleFonts.robotoMono(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      letterSpacing: 1,
+                    ),
+                  ),
                 ],
               ),
             ).animate(delay: 300.ms).fadeIn(),
@@ -168,90 +315,120 @@ class _SecaStepState extends State<SecaStep> {
           if (isConfirmed)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(color: Colors.green[200], borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green[800], size: 20),
+                  const Icon(Icons.check_circle_rounded, color: Color(0xFF1A1A1A), size: 18),
                   const SizedBox(width: 8),
-                  Text('Confirmado y Registrado', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.green[800], fontSize: 14)),
+                  Text(
+                    'Confirmado y Registrado',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A1A),
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
-            ).animate(delay: 400.ms).fadeIn().scale(begin: const Offset(0.8, 0.8))
-          else
-            ElevatedButton(
-              onPressed: () async {
-                 final secaToConfirm = _generateProposedSeca(provider);
-                 await provider.confirmSeca(secaToConfirm);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
-              child: const Text('Confirmar SECA'),
-            ).animate(delay: 400.ms).fadeIn(),
+            ).animate(delay: 400.ms).fadeIn().scale(begin: const Offset(0.8, 0.8)),
           if (isConfirmed && provider.session?.sessionInfo.sessionId != null) ...[
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.key, color: Colors.green[600], size: 16),
+                  Icon(Icons.key_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 16),
                   const SizedBox(width: 8),
-                  Flexible(child: Text('ID Sesión: ${provider.session!.sessionInfo.sessionId}', style: GoogleFonts.robotoMono(fontSize: 12, color: Colors.green[700], fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
+                  Flexible(
+                    child: Text(
+                      'ID: ${provider.session!.sessionInfo.sessionId}',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 12,
+                        color: isDark ? Colors.white70 : Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ).animate(delay: 500.ms).fadeIn(),
           ],
         ],
       ),
-    ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.3);
+    ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.2);
   }
 
-  Widget _buildAdditionalInfo(bool isConfirmed, bool tieneCodigoTemporal) {
+  Widget _buildAdditionalInfo(bool isConfirmed, bool tieneCodigoTemporal, bool isDark) {
     return Column(
       children: [
         if (tieneCodigoTemporal)
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue[300]!)),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.amber.withOpacity(0.1) : Colors.amber[50],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, color: Colors.blue[700], size: 24),
+                Icon(Icons.info_outline_rounded, color: Colors.amber[600], size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Código Temporal', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[800])),
+                      Text('Código Temporal', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.amber[400] : Colors.amber[800])),
                       const SizedBox(height: 4),
-                      Text('Este SECA contiene "NNNN-NN" porque el cliente o planta es nuevo. El código definitivo se asignará desde el sistema de gestión.', style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[700])),
+                      Text('Este SECA contiene "NNNN-NN" porque el cliente o planta es nuevo. El código definitivo se asignará desde el sistema de gestión.', style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.amber[200] : Colors.amber[900])),
                     ],
                   ),
                 ),
               ],
             ),
           ).animate(delay: 400.ms).fadeIn().scale(begin: const Offset(0.95, 0.95)),
+          
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.orange[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange[200]!)),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+          ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info, color: Colors.orange[600], size: 24),
+              Icon(Icons.help_outline_rounded, color: isDark ? Colors.white54 : Colors.black54, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Formato del Código SECA', style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.orange[800])),
-                    const SizedBox(height: 4),
-                    Text('El código se genera automáticamente usando:\n• Código de planta ${tieneCodigoTemporal ? "(temporal: NNNN-NN)" : "seleccionado"}\n• Numeración correlativa (C01, C02...)\n• Año actual (${DateTime.now().year.toString().substring(2)})', style: GoogleFonts.inter(fontSize: 12, color: Colors.orange[700])),
+                    Text('Formato del Código SECA', style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                    const SizedBox(height: 6),
+                    Text(
+                      'El código se genera automáticamente usando:\n• Código de planta ${tieneCodigoTemporal ? "(temporal)" : "seleccionado"}\n• Numeración correlativa editable (C01)\n• Año actual (${DateTime.now().year.toString().substring(2)})',
+                      style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87, height: 1.5),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-        ).animate(delay: 500.ms).fadeIn().slideX(begin: -0.3),
+        ).animate(delay: 500.ms).fadeIn().slideX(begin: -0.1),
       ],
     );
   }
