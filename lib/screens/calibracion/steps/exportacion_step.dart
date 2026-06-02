@@ -91,7 +91,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

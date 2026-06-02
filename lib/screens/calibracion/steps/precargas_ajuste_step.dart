@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 
 class PrecargasAjusteStep extends StatefulWidget {
   const PrecargasAjusteStep({super.key});
@@ -14,6 +15,9 @@ class PrecargasAjusteStep extends StatefulWidget {
 }
 
 class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
+  static const int _maxRows = 6;
+  static const int _defaultRows = 5;
+
   final _horaCtrl = TextEditingController();
   final _tiCtrl = TextEditingController();
   final _hriCtrl = TextEditingController();
@@ -36,7 +40,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   void _initFromSession() {
     final provider = context.read<ServiceSessionProvider>();
     final pa = provider.session?.precargasAjuste;
-    if (pa != null) {
+    if (pa != null && pa.precargas.isNotEmpty) {
       _horaCtrl.text = pa.hora ?? _currentTime();
       _tiCtrl.text = pa.ti ?? '';
       _hriCtrl.text = pa.hri ?? '';
@@ -53,15 +57,23 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   TextEditingController(text: r.pIndicador ?? ''),
                 ])
             .toList();
-        if (_rows.isEmpty) _addRow();
+        // Ensure we have at least _defaultRows
+        while (_rows.length < _defaultRows) {
+          _rows.add([TextEditingController(), TextEditingController()]);
+        }
       });
     } else {
       _horaCtrl.text = _currentTime();
-      _addRow();
+      // Create default rows
+      for (int i = 0; i < _defaultRows; i++) {
+        _rows.add([TextEditingController(), TextEditingController()]);
+      }
+      setState(() {});
     }
   }
 
   void _addRow() {
+    if (_rows.length >= _maxRows) return;
     setState(
         () => _rows.add([TextEditingController(), TextEditingController()]));
   }
@@ -81,6 +93,35 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   String _currentTime() {
     final now = DateTime.now();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _onPrecargaChanged(int index) {
+    final precargaText = _rows[index][0].text;
+    // Reflejar el valor de precarga en la indicación
+    _rows[index][1].text = precargaText;
+    _saveToProvider();
+  }
+
+  void _showSuggestedValues(int index, bool isDark) {
+    final precargaText = _rows[index][0].text;
+    final precargaValue = double.tryParse(precargaText);
+    if (precargaValue == null) return;
+
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+    if (balanza == null) return;
+
+    SuggestionHelper.showSuggestedValues(
+      context: context,
+      balanza: balanza,
+      baseValue: precargaValue,
+      title: 'Indicación para Precarga ${index + 1}',
+      isDark: isDark,
+    ).then((selected) {
+      if (selected != null) {
+        _rows[index][1].text = selected;
+        _saveToProvider();
+      }
+    });
   }
 
   void _saveToProvider() {
@@ -106,10 +147,11 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
 
   @override
   void dispose() {
-    for (final row in _rows)
+    for (final row in _rows) {
       for (final c in row) {
         c.dispose();
       }
+    }
     _horaCtrl.dispose();
     _tiCtrl.dispose();
     _hriCtrl.dispose();
@@ -120,46 +162,47 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Text(
-                  'PRECARGAS DE AJUSTE',
-                  style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange[700]),
-                ).animate().fadeIn(duration: 600.ms),
-              ),
+              _buildHeader(isDark),
               const SizedBox(height: 24),
 
               // Tabla de precargas
-              _sectionHeader('Precargas'),
+              _sectionHeader('Precargas', isDark),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  if (_rows.length < _maxRows)
+                    IconButton(
+                        icon: Icon(Icons.add_circle_rounded,
+                            color: isDark
+                                ? const Color(0xFF81C784)
+                                : const Color(0xFF2E7D32)),
+                        onPressed: _addRow),
                   IconButton(
-                      icon: const Icon(Icons.add_circle_outline,
-                          color: Colors.orange),
-                      onPressed: _addRow),
-                  IconButton(
-                      icon: const Icon(Icons.remove_circle_outline,
-                          color: Colors.orange),
+                      icon: Icon(Icons.remove_circle_rounded,
+                          color: isDark
+                              ? const Color(0xFFE57373)
+                              : const Color(0xFFD32F2F)),
                       onPressed: _removeRow),
                 ],
               ),
-              ...List.generate(_rows.length, (i) => _buildRow(i, provider)),
+              ...List.generate(
+                  _rows.length, (i) => _buildRow(i, provider, isDark)),
               const SizedBox(height: 20),
 
               // Ajuste
-              _sectionHeader('Ajuste'),
+              _sectionHeader('Ajuste', isDark),
               SwitchListTile(
-                title: Text('¿Se realizó Ajuste?', style: GoogleFonts.inter()),
+                title: Text('¿Se realizó Ajuste?',
+                    style: GoogleFonts.inter()),
                 value: _ajusteRealizado,
                 onChanged: (v) {
                   setState(() {
@@ -171,17 +214,22 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   });
                   _saveToProvider();
                 },
-                activeThumbColor: Colors.orange,
+                activeThumbColor: Colors.green,
               ),
               if (_ajusteRealizado) ...[
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: _tipoAjuste,
-                  decoration: _deco('Tipo de Ajuste'),
+                  decoration: _deco('Tipo de Ajuste', isDark),
                   hint: const Text('Seleccione'),
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor:
+                      isDark ? const Color(0xFF2A2A2A) : Colors.white,
                   items: const [
-                    DropdownMenuItem(value: 'Interno', child: Text('Interno')),
-                    DropdownMenuItem(value: 'Externo', child: Text('Externo')),
+                    DropdownMenuItem(
+                        value: 'Interno', child: Text('Interno')),
+                    DropdownMenuItem(
+                        value: 'Externo', child: Text('Externo')),
                   ],
                   onChanged: (v) {
                     setState(() {
@@ -194,41 +242,58 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 if (_ajusteExterno) ...[
                   const SizedBox(height: 10),
                   TextField(
+                    style: GoogleFonts.inter(
+                        color: isDark
+                            ? Colors.white
+                            : const Color(0xFF1A1A1A)),
                     controller: _cargasCtrl,
                     onChanged: (_) => _saveToProvider(),
-                    decoration: _deco('Cargas de Pesas Patrón Utilizadas'),
+                    decoration: _deco(
+                        'Cargas de Pesas Patrón Utilizadas', isDark),
                   ),
                 ],
               ],
               const SizedBox(height: 20),
 
               // Condiciones Ambientales
-              _sectionHeader('Condiciones Ambientales'),
+              _sectionHeader('Condiciones Ambientales', isDark),
               Row(children: [
-                Expanded(child: _buildHoraField()),
+                Expanded(child: _buildHoraField(isDark)),
               ]),
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(
                     child: TextField(
+                        style: GoogleFonts.inter(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)),
                         controller: _tiCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
-                        decoration: _deco('Ti (°C)'))),
+                        decoration: _deco('Ti (°C)', isDark))),
                 const SizedBox(width: 10),
                 Expanded(
                     child: TextField(
+                        style: GoogleFonts.inter(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)),
                         controller: _hriCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
-                        decoration: _deco('HRi (%)'))),
+                        decoration: _deco('HRi (%)', isDark))),
               ]),
               const SizedBox(height: 10),
               TextField(
+                  style: GoogleFonts.inter(
+                      color: isDark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A)),
                   controller: _patmiCtrl,
                   onChanged: (_) => _saveToProvider(),
                   keyboardType: TextInputType.number,
-                  decoration: _deco('Patmi (hPa)')),
+                  decoration: _deco('Patmi (hPa)', isDark)),
               const SizedBox(height: 20),
             ],
           ),
@@ -237,49 +302,108 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
     );
   }
 
-  Widget _buildRow(int i, ServiceSessionProvider provider) {
+  Widget _buildRow(int i, ServiceSessionProvider provider, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Text('${i + 1}.',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 8),
+          SizedBox(
+            width: 28,
+            child: Text('${i + 1}.',
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.bold,
+                    color:
+                        isDark ? Colors.white70 : Colors.black87)),
+          ),
+          const SizedBox(width: 4),
           Expanded(
               child: TextField(
+            style: GoogleFonts.inter(
+                color:
+                    isDark ? Colors.white : const Color(0xFF1A1A1A)),
             controller: _rows[i][0],
-            onChanged: (_) => _saveToProvider(),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => _onPrecargaChanged(i),
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+              FilteringTextInputFormatter.allow(
+                  RegExp(r'^\d*\.?\d*'))
             ],
-            decoration: _deco('Precarga'),
+            decoration: _deco('Precarga', isDark),
           )),
           const SizedBox(width: 8),
           Expanded(
-              child: TextField(
-            controller: _rows[i][1],
-            onChanged: (_) => _saveToProvider(),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-            ],
-            decoration: _deco('Indicación'),
-          )),
+            child: GestureDetector(
+              onTap: () {
+                if (_rows[i][0].text.isNotEmpty) {
+                  _showSuggestedValues(i, isDark);
+                }
+              },
+              child: AbsorbPointer(
+                child: TextField(
+                  style: GoogleFonts.inter(
+                      color: isDark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A)),
+                  controller: _rows[i][1],
+                  decoration: InputDecoration(
+                    labelText: 'Indicación',
+                    labelStyle: GoogleFonts.inter(
+                        color: isDark
+                            ? Colors.white70
+                            : Colors.black87),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? Colors.white24
+                                : Colors.black26)),
+                    enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: isDark
+                                ? Colors.white12
+                                : Colors.black12)),
+                    suffixIcon: _rows[i][0].text.isNotEmpty
+                        ? Icon(Icons.unfold_more_rounded,
+                            color: isDark
+                                ? const Color(0xFFf9e300)
+                                : const Color(0xFF5A4E00),
+                            size: 20)
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHoraField() {
+  Widget _buildHoraField(bool isDark) {
     return TextField(
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _horaCtrl,
       readOnly: true,
       decoration: InputDecoration(
         labelText: 'Hora de Pruebas',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.black87),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white24 : Colors.black26)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: IconButton(
-          icon: const Icon(Icons.access_time),
+          icon: Icon(Icons.access_time_filled_rounded,
+              color: isDark
+                  ? const Color(0xFFf9e300)
+                  : const Color(0xFF5A4E00)),
           onPressed: () {
             _horaCtrl.text = _currentTime();
             _saveToProvider();
@@ -289,19 +413,55 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
     );
   }
 
-  Widget _sectionHeader(String title) {
+  Widget _buildHeader(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Precargas y Ajuste',
+          style: GoogleFonts.poppins(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+        const SizedBox(height: 4),
+        Text(
+          'Registro de ensayos previos a la calibración',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+            fontWeight: FontWeight.w400,
+          ),
+        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+      ],
+    );
+  }
+
+  Widget _sectionHeader(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(title,
           style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.orange[700])),
+              color:
+                  isDark ? Colors.white : const Color(0xFF1A1A1A))),
     ).animate().fadeIn();
   }
 
-  InputDecoration _deco(String label) => InputDecoration(
+  InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.black87),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white24 : Colors.black26)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white12 : Colors.black12)),
       );
 }

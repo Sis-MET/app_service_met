@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 
 class RepetibilidadStep extends StatefulWidget {
   const RepetibilidadStep({super.key});
@@ -89,7 +90,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -192,7 +193,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                               child: Padding(
                                   padding:
                                       const EdgeInsets.symmetric(horizontal: 3),
-                                  child: _numField(_indCtrls[i][j]))),
+                                  child: _indicationField(i, j))),
                           Expanded(
                               child: Padding(
                                   padding:
@@ -208,6 +209,54 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         .animate(delay: Duration(milliseconds: 200 + i * 100))
         .fadeIn()
         .slideY(begin: 0.2);
+  }
+
+  Widget _indicationField(int cargaIdx, int medIdx) {
+    final hasBase = _cargasCtrls[cargaIdx].text.isNotEmpty;
+    return GestureDetector(
+      onTap: hasBase ? () => _showIndicacionSuggestion(cargaIdx, medIdx) : null,
+      child: AbsorbPointer(
+        child: TextField(
+          controller: _indCtrls[cargaIdx][medIdx],
+          onChanged: (_) => _saveToProvider(),
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
+          ],
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showIndicacionSuggestion(int cargaIdx, int medIdx) {
+    final cargaText = _cargasCtrls[cargaIdx].text;
+    final cargaValue = double.tryParse(cargaText);
+    if (cargaValue == null) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final balanza =
+        context.read<ServiceSessionProvider>().session?.balanza;
+    if (balanza == null) return;
+
+    SuggestionHelper.showSuggestedValues(
+      context: context,
+      balanza: balanza,
+      baseValue: cargaValue,
+      title: 'Indicación - Carga ${cargaIdx + 1}, Medición ${medIdx + 1}',
+      isDark: isDark,
+    ).then((selected) {
+      if (selected != null) {
+        _indCtrls[cargaIdx][medIdx].text = selected;
+        _saveToProvider();
+      }
+    });
   }
 
   Widget _headerCell(String text) => Expanded(

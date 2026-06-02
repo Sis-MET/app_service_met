@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,42 +24,72 @@ class _ClienteStepState extends State<ClienteStep> {
   bool _isNewClient = false;
   List<Map<String, dynamic>>? _allClientes;
   List<Map<String, dynamic>>? _filteredClientes;
+  Timer? _debounce;
+  bool _isSearchEmpty = true;
 
   @override
   void initState() {
     super.initState();
     _loadClientes();
     _searchController.addListener(() {
-      setState(() {}); // rebuild to show/hide clear icon
+      final isEmpty = _searchController.text.isEmpty;
+      if (isEmpty != _isSearchEmpty) {
+        setState(() {
+          _isSearchEmpty = isEmpty;
+        });
+      }
     });
   }
 
   Future<void> _loadClientes() async {
     final clientes = await _repository.getClientes();
-    setState(() {
-      _allClientes = clientes;
-      _filteredClientes = clientes;
+    
+    // Pre-procesar los clientes para una búsqueda más rápida (solo una vez)
+    final processedClientes = clientes.map((c) {
+      final newMap = Map<String, dynamic>.from(c);
+      final nombre = c['cliente']?.toString().toLowerCase() ?? '';
+      final razon = c['razonsocial']?.toString().toLowerCase() ?? '';
+      newMap['_searchKey'] = '$nombre $razon';
+      return newMap;
+    }).toList();
+
+    if (mounted) {
+      setState(() {
+        _allClientes = processedClientes;
+        _filteredClientes = processedClientes;
+      });
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      _filterClientes(query);
     });
   }
 
   void _filterClientes(String query) {
     if (_allClientes == null) return;
-    setState(() {
-      if (query.isEmpty) {
+    
+    final search = query.toLowerCase().trim();
+    if (search.isEmpty) {
+      setState(() {
         _filteredClientes = _allClientes;
-      } else {
-        _filteredClientes = _allClientes!.where((c) {
-          final nombre = c['cliente']?.toString().toLowerCase() ?? '';
-          final razon = c['razonsocial']?.toString().toLowerCase() ?? '';
-          final search = query.toLowerCase();
-          return nombre.contains(search) || razon.contains(search);
-        }).toList();
-      }
+      });
+      return;
+    }
+
+    setState(() {
+      _filteredClientes = _allClientes!.where((c) {
+        final searchKey = c['_searchKey'] as String? ?? '';
+        return searchKey.contains(search);
+      }).toList();
     });
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _searchController.dispose();
     _nombreComercialController.dispose();
     _razonSocialController.dispose();
@@ -241,18 +272,18 @@ class _ClienteStepState extends State<ClienteStep> {
           ),
           child: TextField(
             controller: _searchController,
-            onChanged: _filterClientes,
+            onChanged: _onSearchChanged,
             style: GoogleFonts.inter(fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Buscar por nombre o razón social...',
               hintStyle: GoogleFonts.inter(color: isDark ? Colors.white38 : Colors.black38, fontSize: 14),
               prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black38, size: 20),
-              suffixIcon: _searchController.text.isNotEmpty
+              suffixIcon: !_isSearchEmpty
                   ? IconButton(
                       icon: Icon(Icons.close_rounded, size: 18, color: isDark ? Colors.white54 : Colors.black38),
                       onPressed: () {
                         _searchController.clear();
-                        _filterClientes('');
+                        _onSearchChanged('');
                       },
                     )
                   : null,

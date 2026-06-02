@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
-import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -239,7 +239,9 @@ class _FinServicioMntPrvStilScreenState
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        savedPath.replaceAll(fileName, '').replaceAll(RegExp(r'/$'), ''),
+                        savedPath
+                            .replaceAll(fileName, '')
+                            .replaceAll(RegExp(r'/$'), ''),
                         style: const TextStyle(
                             color: Colors.white70, fontSize: 12),
                         overflow: TextOverflow.ellipsis,

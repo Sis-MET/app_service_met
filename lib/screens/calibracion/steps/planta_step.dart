@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
-import 'package:service_met/utils/top_alert.dart';
 
 class PlantaStep extends StatefulWidget {
   const PlantaStep({super.key});
@@ -36,7 +35,7 @@ class _PlantaStepState extends State<PlantaStep> {
   void _loadPlantas() async {
     final provider = context.read<ServiceSessionProvider>();
     final cliente = provider.session?.cliente;
-    
+
     // Si el cliente es nuevo, forzamos la creación de planta nueva
     if (cliente?.isNew == true) {
       setState(() {
@@ -81,7 +80,8 @@ class _PlantaStepState extends State<PlantaStep> {
         final cliente = provider.session?.cliente;
         final isNewClient = cliente?.isNew ?? false;
         final selectedPlanta = provider.session?.planta;
-        final hasSelection = selectedPlanta?.codigo != null || selectedPlanta?.nombre != null;
+        final hasSelection =
+            selectedPlanta?.codigo != null || selectedPlanta?.nombre != null;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
@@ -149,14 +149,17 @@ class _PlantaStepState extends State<PlantaStep> {
   }
 
   Widget _buildClienteBanner(ClienteInfo? cliente, bool isDark) {
-    if (cliente == null || cliente.nombreComercial == null) return const SizedBox.shrink();
+    if (cliente == null || cliente.nombreComercial == null) {
+      return const SizedBox.shrink();
+    }
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -173,7 +176,8 @@ class _PlantaStepState extends State<PlantaStep> {
               color: isDark ? Colors.white12 : const Color(0xFFF0F2F5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.business_rounded, color: isDark ? Colors.white70 : Colors.black54, size: 20),
+            child: Icon(Icons.business_rounded,
+                color: isDark ? Colors.white70 : Colors.black54, size: 20),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -182,12 +186,18 @@ class _PlantaStepState extends State<PlantaStep> {
               children: [
                 Text(
                   'Cliente para este servicio',
-                  style: GoogleFonts.inter(fontSize: 11, color: isDark ? Colors.white54 : Colors.black45, fontWeight: FontWeight.w500),
+                  style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                      fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   cliente.nombreComercial!,
-                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                  style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                 ),
               ],
             ),
@@ -201,7 +211,10 @@ class _PlantaStepState extends State<PlantaStep> {
               ),
               child: Text(
                 'NUEVO',
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.orange[700]),
+                style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.orange[700]),
               ),
             ),
         ],
@@ -265,25 +278,34 @@ class _PlantaStepState extends State<PlantaStep> {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFf9e300)
-                : Colors.transparent,
+            color: isActive ? const Color(0xFFf9e300) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: isActive
-                ? [BoxShadow(color: const Color(0xFFf9e300).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))]
+                ? [
+                    BoxShadow(
+                        color: const Color(0xFFf9e300).withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3))
+                  ]
                 : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isActive ? const Color(0xFF1A1A1A) : (isDark ? Colors.white54 : Colors.black45)),
+              Icon(icon,
+                  size: 18,
+                  color: isActive
+                      ? const Color(0xFF1A1A1A)
+                      : (isDark ? Colors.white54 : Colors.black45)),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                  color: isActive ? const Color(0xFF1A1A1A) : (isDark ? Colors.white54 : Colors.black45),
+                  color: isActive
+                      ? const Color(0xFF1A1A1A)
+                      : (isDark ? Colors.white54 : Colors.black45),
                 ),
               ),
             ],
@@ -293,16 +315,20 @@ class _PlantaStepState extends State<PlantaStep> {
     );
   }
 
-  Widget _buildExistingPlantaSection(ServiceSessionProvider provider, bool isDark) {
+  Widget _buildExistingPlantaSection(
+      ServiceSessionProvider provider, bool isDark) {
     if (_isLoading) {
       return const Padding(
+        key: ValueKey('planta_loading'),
         padding: EdgeInsets.symmetric(vertical: 40),
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_plantas == null || _plantas!.isEmpty) {
-      return const SizedBox.shrink(); // Handled by forced _isNewPlanta state
+      return const SizedBox.shrink(
+          key:
+              ValueKey('planta_empty')); // Handled by forced _isNewPlanta state
     }
 
     return Column(
@@ -316,7 +342,8 @@ class _PlantaStepState extends State<PlantaStep> {
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, index) {
             final planta = _plantas![index];
-            final isSelected = provider.session?.planta?.codigo == planta['codigo_planta'];
+            final isSelected =
+                provider.session?.planta?.codigo == planta['codigo_planta'];
             final nombre = planta['planta']?.toString() ?? 'Planta sin nombre';
             final direccion = planta['dir']?.toString() ?? '';
             final departamento = planta['dep']?.toString() ?? '';
@@ -326,7 +353,8 @@ class _PlantaStepState extends State<PlantaStep> {
             return GestureDetector(
               onTap: () {
                 provider.updatePlanta(PlantaInfo(
-                  id: planta['planta_id']?.toString() ?? planta['unique_key']?.toString(),
+                  id: planta['planta_id']?.toString() ??
+                      planta['unique_key']?.toString(),
                   codigo: codigo,
                   nombre: nombre,
                   direccion: direccion,
@@ -336,10 +364,13 @@ class _PlantaStepState extends State<PlantaStep> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? (isDark ? const Color(0xFFf9e300).withOpacity(0.08) : const Color(0xFFFFFDE6))
+                      ? (isDark
+                          ? const Color(0xFFf9e300).withOpacity(0.08)
+                          : const Color(0xFFFFFDE6))
                       : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
@@ -365,7 +396,9 @@ class _PlantaStepState extends State<PlantaStep> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFFf9e300)
-                            : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
+                            : (isDark
+                                ? Colors.white12
+                                : const Color(0xFFF0F2F5)),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -374,7 +407,9 @@ class _PlantaStepState extends State<PlantaStep> {
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
-                            color: isSelected ? const Color(0xFF1A1A1A) : (isDark ? Colors.white60 : Colors.black45),
+                            color: isSelected
+                                ? const Color(0xFF1A1A1A)
+                                : (isDark ? Colors.white60 : Colors.black45),
                           ),
                         ),
                       ),
@@ -390,8 +425,12 @@ class _PlantaStepState extends State<PlantaStep> {
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                               color: isSelected
-                                  ? (isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00))
-                                  : (isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                                  ? (isDark
+                                      ? const Color(0xFFf9e300)
+                                      : const Color(0xFF5A4E00))
+                                  : (isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A1A)),
                             ),
                           ),
                           if (codigo.isNotEmpty) ...[
@@ -405,10 +444,14 @@ class _PlantaStepState extends State<PlantaStep> {
                               ),
                             ),
                           ],
-                          if (direccion.isNotEmpty || departamento.isNotEmpty) ...[
+                          if (direccion.isNotEmpty ||
+                              departamento.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
-                              [if (direccion.isNotEmpty) direccion, if (departamento.isNotEmpty) departamento].join(', '),
+                              [
+                                if (direccion.isNotEmpty) direccion,
+                                if (departamento.isNotEmpty) departamento
+                              ].join(', '),
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 color: isDark ? Colors.white38 : Colors.black45,
@@ -431,7 +474,8 @@ class _PlantaStepState extends State<PlantaStep> {
                                 color: Color(0xFFf9e300),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check_rounded, size: 14, color: Color(0xFF1A1A1A)),
+                              child: const Icon(Icons.check_rounded,
+                                  size: 14, color: Color(0xFF1A1A1A)),
                             )
                           : Icon(
                               key: const ValueKey('arrow'),
@@ -443,14 +487,18 @@ class _PlantaStepState extends State<PlantaStep> {
                   ],
                 ),
               ),
-            ).animate(delay: Duration(milliseconds: 50 * index)).fadeIn().slideX(begin: 0.05);
+            )
+                .animate(delay: Duration(milliseconds: 50 * index))
+                .fadeIn()
+                .slideX(begin: 0.05);
           },
         ),
       ],
     );
   }
 
-  Widget _buildNewPlantaSection(ServiceSessionProvider provider, bool isDark, bool isNewClient) {
+  Widget _buildNewPlantaSection(
+      ServiceSessionProvider provider, bool isDark, bool isNewClient) {
     return Column(
       key: const ValueKey('new_planta'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,11 +514,12 @@ class _PlantaStepState extends State<PlantaStep> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded, size: 18, color: Colors.blue[600]),
+                Icon(Icons.info_outline_rounded,
+                    size: 18, color: Colors.blue[600]),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    isNewClient 
+                    isNewClient
                         ? 'Como el cliente es nuevo, debe registrar al menos una planta.'
                         : 'Este cliente aún no tiene plantas registradas. Registre una nueva.',
                     style: GoogleFonts.inter(
@@ -494,7 +543,7 @@ class _PlantaStepState extends State<PlantaStep> {
           onChanged: (value) => _updateNewPlanta(provider),
         ).animate(delay: 300.ms).fadeIn().slideX(begin: -0.1),
         const SizedBox(height: 12),
-        
+
         _inputField(
           controller: _plantaDirController,
           label: 'Dirección',
@@ -515,7 +564,7 @@ class _PlantaStepState extends State<PlantaStep> {
           required: true,
           onChanged: (value) => _updateNewPlanta(provider),
         ).animate(delay: 460.ms).fadeIn().slideX(begin: -0.1),
-        
+
         const SizedBox(height: 16),
         // Info banner about temporary code
         Container(
@@ -528,7 +577,8 @@ class _PlantaStepState extends State<PlantaStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded, size: 18, color: Colors.amber[600]),
+              Icon(Icons.warning_amber_rounded,
+                  size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -542,7 +592,10 @@ class _PlantaStepState extends State<PlantaStep> {
               ),
             ],
           ),
-        ).animate(delay: 540.ms).fadeIn().scale(begin: const Offset(0.97, 0.97)),
+        )
+            .animate(delay: 540.ms)
+            .fadeIn()
+            .scale(begin: const Offset(0.97, 0.97)),
       ],
     );
   }
@@ -571,19 +624,30 @@ class _PlantaStepState extends State<PlantaStep> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+        style: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         decoration: InputDecoration(
           labelText: required ? '$label *' : label,
-          labelStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white54 : Colors.black45),
+          labelStyle: GoogleFonts.inter(
+              fontSize: 13, color: isDark ? Colors.white54 : Colors.black45),
           hintText: hint,
-          hintStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white24 : Colors.black26),
-          prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white38 : Colors.black38),
+          hintStyle: GoogleFonts.inter(
+              fontSize: 13, color: isDark ? Colors.white24 : Colors.black26),
+          prefixIcon: Icon(icon,
+              size: 20, color: isDark ? Colors.white38 : Colors.black38),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -596,19 +660,23 @@ class _PlantaStepState extends State<PlantaStep> {
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
         ),
       ),
     );
   }
 
-  Widget _buildSelectedPlantaCard(ServiceSessionProvider provider, bool isDark) {
+  Widget _buildSelectedPlantaCard(
+      ServiceSessionProvider provider, bool isDark) {
     final planta = provider.session!.planta!;
     final isNew = planta.isNew == true;
     final accentColor = isNew ? Colors.orange[700]! : const Color(0xFFf9e300);
     final bgColor = isNew
         ? (isDark ? Colors.orange.withOpacity(0.08) : Colors.orange[50]!)
-        : (isDark ? const Color(0xFFf9e300).withOpacity(0.08) : const Color(0xFFFFFDE6));
+        : (isDark
+            ? const Color(0xFFf9e300).withOpacity(0.08)
+            : const Color(0xFFFFFDE6));
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -644,7 +712,11 @@ class _PlantaStepState extends State<PlantaStep> {
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: isNew ? accentColor : (isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00)),
+                        color: isNew
+                            ? accentColor
+                            : (isDark
+                                ? const Color(0xFFf9e300)
+                                : const Color(0xFF5A4E00)),
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -671,9 +743,9 @@ class _PlantaStepState extends State<PlantaStep> {
               ),
             ],
           ),
-          
-          if ((planta.direccion != null && planta.direccion!.isNotEmpty) || 
-              (planta.departamento != null && planta.departamento!.isNotEmpty)) ...[
+          if ((planta.direccion != null && planta.direccion!.isNotEmpty) ||
+              (planta.departamento != null &&
+                  planta.departamento!.isNotEmpty)) ...[
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -687,20 +759,38 @@ class _PlantaStepState extends State<PlantaStep> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.location_on_rounded, size: 14, color: accentColor.withOpacity(0.8)),
+                        Icon(Icons.location_on_rounded,
+                            size: 14, color: accentColor.withOpacity(0.8)),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(planta.direccion!, style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87))),
+                        Expanded(
+                            child: Text(planta.direccion!,
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black87))),
                       ],
                     ),
-                  if (planta.direccion != null && planta.direccion!.isNotEmpty && planta.departamento != null && planta.departamento!.isNotEmpty)
+                  if (planta.direccion != null &&
+                      planta.direccion!.isNotEmpty &&
+                      planta.departamento != null &&
+                      planta.departamento!.isNotEmpty)
                     const SizedBox(height: 6),
-                  if (planta.departamento != null && planta.departamento!.isNotEmpty)
+                  if (planta.departamento != null &&
+                      planta.departamento!.isNotEmpty)
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.map_rounded, size: 14, color: accentColor.withOpacity(0.8)),
+                        Icon(Icons.map_rounded,
+                            size: 14, color: accentColor.withOpacity(0.8)),
                         const SizedBox(width: 8),
-                        Expanded(child: Text(planta.departamento!, style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87))),
+                        Expanded(
+                            child: Text(planta.departamento!,
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black87))),
                       ],
                     ),
                 ],

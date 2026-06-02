@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 
 class LinealidadStep extends StatefulWidget {
   const LinealidadStep({super.key});
@@ -100,7 +101,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -189,7 +190,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                           child: Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 3),
-                              child: _numField(_rows[i][1]))),
+                              child: _indicationField(i))),
                       Expanded(
                           child: Padding(
                               padding:
@@ -208,6 +209,58 @@ class _LinealidadStepState extends State<LinealidadStep> {
         ],
       ),
     );
+  }
+
+  Widget _indicationField(int i) {
+    final hasBase = _rows[i][0].text.isNotEmpty;
+    return GestureDetector(
+      onTap: hasBase ? () => _showIndicacionSuggestion(i) : null,
+      child: AbsorbPointer(
+        child: TextField(
+          controller: _rows[i][1],
+          onChanged: (_) => _saveToProvider(),
+          keyboardType:
+              const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
+          ],
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            border: const OutlineInputBorder(),
+            suffixIcon: hasBase
+                ? Icon(Icons.unfold_more_rounded,
+                    color: Colors.indigo, size: 20)
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showIndicacionSuggestion(int rowIdx) {
+    final cargaText = _rows[rowIdx][0].text;
+    final cargaValue = double.tryParse(cargaText);
+    if (cargaValue == null) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final balanza =
+        context.read<ServiceSessionProvider>().session?.balanza;
+    if (balanza == null) return;
+
+    SuggestionHelper.showSuggestedValues(
+      context: context,
+      balanza: balanza,
+      baseValue: cargaValue,
+      title: 'Indicación - Fila ${rowIdx + 1}',
+      isDark: isDark,
+    ).then((selected) {
+      if (selected != null) {
+        _rows[rowIdx][1].text = selected;
+        _saveToProvider();
+      }
+    });
   }
 
   Widget _hdr(String t) => Expanded(

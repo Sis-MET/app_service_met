@@ -324,6 +324,35 @@ class ServiceSessionProvider extends ChangeNotifier {
     return null;
   }
 
+  String? validateExcentricidad() {
+    if (_session == null) return "Sesión no inicializada.";
+
+    final exc = _session!.excentricidad;
+    if (exc == null) return "Debe completar las pruebas de excentricidad.";
+    if (exc.tipoPlataforma == null || exc.tipoPlataforma!.trim().isEmpty) {
+      return "Debe seleccionar el Tipo de Plataforma.";
+    }
+    if (exc.puntosIndicacion == null || exc.puntosIndicacion!.trim().isEmpty) {
+      return "Debe seleccionar el N° de Puntos de Indicación.";
+    }
+    if (exc.carga == null || exc.carga!.trim().isEmpty) {
+      return "Debe ingresar la Carga (kg).";
+    }
+    if (exc.posiciones.isEmpty) {
+      return "Debe agregar posiciones de medición.";
+    }
+    for (var i = 0; i < exc.posiciones.length; i++) {
+      final p = exc.posiciones[i];
+      if (p.indicacion == null || p.indicacion!.trim().isEmpty) {
+        return "Falta la Indicación en Posición ${i + 1}.";
+      }
+      if (p.retorno == null || p.retorno!.trim().isEmpty) {
+        return "Falta el Retorno en Posición ${i + 1}.";
+      }
+    }
+    return null;
+  }
+
   Future<bool> confirmBalanza() async {
     if (_session == null) return false;
     setBalanzaConfirmed(true);

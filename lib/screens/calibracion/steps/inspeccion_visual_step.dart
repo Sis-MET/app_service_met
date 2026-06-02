@@ -59,6 +59,10 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
       for (final k in {..._entornoFields.keys, ..._balanzaFields.keys}) {
         campos[k] = 'Bueno';
       }
+    } else {
+      for (final k in {..._entornoFields.keys, ..._balanzaFields.keys}) {
+        campos.remove(k);
+      }
     }
     _updateInspeccion(provider, campos: campos);
   }
@@ -107,6 +111,8 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
         final insp = provider.session?.inspeccion;
@@ -114,30 +120,24 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
         final comentarios = insp?.comentarios ?? {};
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Text(
-                  'REGISTRO DE CONDICIONES\nDEL EQUIPO A CALIBRAR',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white : const Color(0xFF2C3E50)),
-                ).animate().fadeIn(duration: 600.ms),
-              ),
+              _buildHeader(isDark),
               const SizedBox(height: 24),
 
               // Hora inicio
-              _buildHoraInicio(insp?.horaInicio ?? _currentTime()),
+              _buildHoraInicio(insp?.horaInicio ?? _currentTime(), isDark),
               const SizedBox(height: 20),
 
               // Tiempos
               DropdownButtonFormField<String>(
                 value: _validarOpcion(insp?.tiempoEstab),
-                decoration: _deco('Tiempo de estabilización de Pesas (minutos)'),
+                decoration: _deco('Tiempo de estabilización de Pesas (minutos)', isDark),
                 hint: const Text('Seleccione una opción'),
+                borderRadius: BorderRadius.circular(12),
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: _tiemposOpciones.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                 onChanged: (v) {
                   final curr = insp;
@@ -153,8 +153,10 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _validarOpcion(insp?.tiempoOperacion),
-                decoration: _deco('Tiempo previo a operación de la Balanza'),
+                decoration: _deco('Tiempo previo a operación de la Balanza', isDark),
                 hint: const Text('Seleccione una opción'),
+                borderRadius: BorderRadius.circular(12),
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: _tiemposOpciones.map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                 onChanged: (v) {
                   final curr = insp;
@@ -170,7 +172,7 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
               const SizedBox(height: 24),
 
               // Sección: Entorno
-              _sectionHeader('ENTORNO DE INSTALACIÓN'),
+              _sectionHeader('Entorno de Instalación', isDark),
               SwitchListTile(
                 title: Text('Establecer todo en Buen Estado', style: GoogleFonts.inter()),
                 value: _setAllToGood,
@@ -183,14 +185,14 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
               ),
               const SizedBox(height: 12),
               ..._entornoFields.entries.map((e) => _buildInspeccionField(
-                provider, e.key, e.value, campos, comentarios,
+                provider, e.key, e.value, campos, comentarios, isDark,
               )),
 
               const SizedBox(height: 24),
-              _sectionHeader('ESTADO GENERAL DE LA BALANZA'),
+              _sectionHeader('Estado General de la Balanza', isDark),
               const SizedBox(height: 12),
               ..._balanzaFields.entries.map((e) => _buildInspeccionField(
-                provider, e.key, e.value, campos, comentarios,
+                provider, e.key, e.value, campos, comentarios, isDark,
               )),
 
               const SizedBox(height: 20),
@@ -201,25 +203,57 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
     );
   }
 
-  Widget _buildHoraInicio(String hora) {
+  Widget _buildHeader(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Inspección Visual',
+          style: GoogleFonts.poppins(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+        const SizedBox(height: 4),
+        Text(
+          'Registro de condiciones del equipo a calibrar',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+            fontWeight: FontWeight.w400,
+          ),
+        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+      ],
+    );
+  }
+
+  Widget _buildHoraInicio(String hora, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4))
+        ],
       ),
       child: Row(
         children: [
-          Icon(Icons.access_time, color: Colors.blue[600]),
-          const SizedBox(width: 12),
+          Icon(Icons.access_time_filled_rounded, color: isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00), size: 28),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Hora de inicio de la Calibración',
-                  style: GoogleFonts.inter(fontSize: 12, color: Colors.blue[600])),
+              Text('Hora de inicio',
+                  style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white54 : Colors.black54, fontWeight: FontWeight.w500)),
               Text(hora, style: GoogleFonts.robotoMono(
-                  fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue[800])),
+                  fontSize: 22, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
             ],
           ),
         ],
@@ -229,32 +263,34 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
 
   Widget _buildInspeccionField(
       ServiceSessionProvider provider, String key, String label,
-      Map<String, String> campos, Map<String, String> comentarios) {
+      Map<String, String> campos, Map<String, String> comentarios, bool isDark) {
     final comentarioKey = '${key}_comentario';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-        color: Theme.of(context).cardColor,
+        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8F9FA),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Expanded(child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
+            Expanded(child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1A1A1A)))),
             DropdownButton<String>(
               value: _opciones.contains(campos[key]) ? campos[key] : null,
-              hint: const Text('Estado'),
+              hint: Text('Estado', style: GoogleFonts.inter(color: isDark ? Colors.white38 : Colors.black38)),
+              dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
               underline: const SizedBox(),
               items: _opciones.map((v) => DropdownMenuItem(
                 value: v,
                 child: Text(v, style: TextStyle(
-                  color: v == 'Bueno' ? Colors.green[700]
-                       : v == 'Regular' ? Colors.orange[700]
-                       : v == 'Malo' ? Colors.red[700]
-                       : Colors.grey[600],
+                  color: v == 'Bueno' ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32))
+                       : v == 'Regular' ? (isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00))
+                       : v == 'Malo' ? (isDark ? const Color(0xFFE57373) : const Color(0xFFD32F2F))
+                       : (isDark ? Colors.white54 : Colors.black54),
                   fontWeight: FontWeight.w600,
                 )),
               )).toList(),
@@ -262,36 +298,50 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
             ),
           ]),
           if (campos[key] != null && campos[key] != 'Bueno') ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             TextField(
+              style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               decoration: InputDecoration(
                 hintText: 'Comentario (opcional)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                hintStyle: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0))
+                ),
+                filled: true,
+                fillColor: isDark ? Colors.black12 : Colors.white,
                 isDense: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               controller: TextEditingController(text: comentarios[comentarioKey] ?? '')
                 ..selection = TextSelection.fromPosition(
                     TextPosition(offset: (comentarios[comentarioKey] ?? '').length)),
               onChanged: (v) => _setComentario(provider, comentarioKey, v),
             ),
+            const SizedBox(height: 8),
           ],
         ],
       ),
     );
   }
 
-  Widget _sectionHeader(String title) {
+  Widget _sectionHeader(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(title, style: GoogleFonts.poppins(
-          fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue[700])),
+          fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
     ).animate().fadeIn().slideX(begin: -0.3);
   }
 
-  InputDecoration _deco(String label) => InputDecoration(
+  InputDecoration _deco(String label, bool isDark) => InputDecoration(
     labelText: label,
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    labelStyle: GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
   );
 
   static const _tiemposValidos = ['Mayor a 15 minutos', 'Mayor a 30 minutos'];

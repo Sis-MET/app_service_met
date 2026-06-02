@@ -252,6 +252,17 @@ class _CalibrationWorkspaceScreenState
                           }
                           await provider.confirmBalanza();
                         };
+                      } else if (step == 6) {
+                        onNext = () {
+                          final error = provider.validateExcentricidad();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          provider.nextStep();
+                        };
                       } else {
                         onNext = step < steps.length - 1 &&
                                 provider.canGoToStep(step + 1)
