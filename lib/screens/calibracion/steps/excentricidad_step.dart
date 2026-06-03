@@ -19,6 +19,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
   String? _tipoPlataforma;
   String? _puntosIndicacion;
+  int? _selectedPosition;
+  String? _posicionIndicador;
   final _cargaCtrl = TextEditingController();
   final _notaCtrl = TextEditingController();
   List<List<TextEditingController>> _rows = []; // [indicacion, retorno]
@@ -33,6 +35,59 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         return ['4', '5'];
       case 'Triangular':
         return ['4'];
+      default:
+        return [];
+    }
+  }
+
+  List<Offset> _getPositionCoords(int n) {
+    switch (_tipoPlataforma) {
+      case 'Cuadrada':
+        return const [
+          Offset(0.5, 0.5),
+          Offset(0.15, 0.15),
+          Offset(0.85, 0.15),
+          Offset(0.15, 0.85),
+          Offset(0.85, 0.85),
+        ];
+      case 'Rectangular':
+        if (n == 3) {
+          return const [
+            Offset(0.5, 0.5),
+            Offset(0.12, 0.5),
+            Offset(0.88, 0.5),
+          ];
+        }
+        return const [
+          Offset(0.5, 0.5),
+          Offset(0.12, 0.22),
+          Offset(0.88, 0.22),
+          Offset(0.12, 0.78),
+          Offset(0.88, 0.78),
+        ];
+      case 'Circular':
+        if (n == 4) {
+          return const [
+            Offset(0.5, 0.5),
+            Offset(0.5, 0.1),
+            Offset(0.9, 0.5),
+            Offset(0.5, 0.9),
+          ];
+        }
+        return const [
+          Offset(0.5, 0.5),
+          Offset(0.5, 0.1),
+          Offset(0.9, 0.5),
+          Offset(0.5, 0.9),
+          Offset(0.1, 0.5),
+        ];
+      case 'Triangular':
+        return const [
+          Offset(0.5, 0.55),
+          Offset(0.5, 0.1),
+          Offset(0.1, 0.9),
+          Offset(0.9, 0.9),
+        ];
       default:
         return [];
     }
@@ -193,8 +248,14 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                       .toList(),
                   onChanged: _onPuntosChanged,
                 ).animate(delay: 300.ms).fadeIn(),
+                const SizedBox(height: 12),
+                _buildDirectionButtons(isDark),
                 const SizedBox(height: 16),
               ],
+
+              _buildPlatformDiagram(isDark),
+
+              const SizedBox(height: 16),
 
               TextField(
                 style: GoogleFonts.inter(
@@ -211,6 +272,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 ],
                 decoration: _deco('Carga (kg)', isDark),
               ).animate(delay: 450.ms).fadeIn(),
+
               const SizedBox(height: 24),
 
               if (_rows.isNotEmpty) ...[
@@ -313,6 +375,170 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     );
   }
 
+  Widget _buildPlatformDiagram(bool isDark) {
+    if (_tipoPlataforma == null || _puntosIndicacion == null) {
+      return const SizedBox.shrink();
+    }
+    final n = int.tryParse(_puntosIndicacion!) ?? 0;
+    if (n == 0) return const SizedBox.shrink();
+
+    final coords = _getPositionCoords(n);
+    if (coords.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionHeader('Diagrama de Posiciones', isDark),
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF2A2A2A) : Colors.grey[50],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: CustomPaint(
+                  painter: _PlatformPainter(
+                    tipo: _tipoPlataforma!,
+                    posicionIndicador: _posicionIndicador,
+                    isDark: isDark,
+                  ),
+                  child: Stack(
+                    children: [
+                      for (var i = 0; i < coords.length; i++)
+                        Positioned(
+                          left: coords[i].dx * 220 - 20,
+                          top: coords[i].dy * 220 - 20,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedPosition = i + 1);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _selectedPosition == i + 1
+                                    ? Colors.teal
+                                    : (isDark ? Colors.grey[700] : Colors.grey[300]),
+                                border: Border.all(
+                                  color: _selectedPosition == i + 1
+                                      ? Colors.tealAccent
+                                      : (isDark ? Colors.white38 : Colors.black26),
+                                  width: _selectedPosition == i + 1 ? 3 : 2,
+                                ),
+                                boxShadow: _selectedPosition == i + 1
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.teal.withOpacity(0.4),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    color: _selectedPosition == i + 1
+                                        ? Colors.white
+                                        : (isDark ? Colors.white : Colors.black87),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_selectedPosition != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Center(
+                child: Text(
+                  'Posición $_selectedPosition seleccionada',
+                  style: TextStyle(
+                    color: Colors.teal,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDirectionButtons(bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _dirBtn('atras', Icons.arrow_upward, 'Atrás', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('frente', Icons.arrow_downward, 'Frente', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('izquierda', Icons.arrow_back, 'Izq', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('derecha', Icons.arrow_forward, 'Der', isDark),
+      ],
+    );
+  }
+
+  Widget _dirBtn(String key, IconData icon, String label, bool isDark) {
+    final selected = _posicionIndicador == key;
+    return GestureDetector(
+      onTap: () => setState(() => _posicionIndicador = key),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        constraints: const BoxConstraints(minWidth: 60),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.teal : (isDark ? const Color(0xFF2A2A2A) : Colors.grey[100]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? Colors.tealAccent : (isDark ? Colors.white24 : Colors.black12),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16,
+              color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black54)),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black54))),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _sectionHeader(String title, bool isDark) {
     return Text(title,
             style: GoogleFonts.poppins(
@@ -325,38 +551,36 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
   Widget _indicationField(int i, bool isDark) {
     final hasBase = _cargaCtrl.text.isNotEmpty;
-    return GestureDetector(
-      onTap: hasBase ? () => _showIndicacionSuggestion(i) : null,
-      child: AbsorbPointer(
-        child: TextField(
-          style: GoogleFonts.inter(
-              color:
-                  isDark ? Colors.white : const Color(0xFF1A1A1A)),
-          controller: _rows[i][0],
-          onChanged: (_) => _saveToProvider(),
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-          ],
-          decoration: InputDecoration(
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: isDark ? Colors.white24 : Colors.black26)),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                    color: isDark ? Colors.white12 : Colors.black12)),
-            suffixIcon: hasBase
-                ? Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20)
-                : null,
-          ),
-        ),
+    return TextField(
+      style: GoogleFonts.inter(
+          color:
+              isDark ? Colors.white : const Color(0xFF1A1A1A)),
+      controller: _rows[i][0],
+      onChanged: (_) => _saveToProvider(),
+      keyboardType:
+          const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
+      ],
+      decoration: InputDecoration(
+        isDense: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white24 : Colors.black26)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+                color: isDark ? Colors.white12 : Colors.black12)),
+        suffixIcon: hasBase
+            ? InkWell(
+                onTap: () => _showIndicacionSuggestion(i),
+                child: Icon(Icons.unfold_more_rounded,
+                    color: Colors.teal, size: 20),
+              )
+            : null,
       ),
     );
   }
@@ -422,4 +646,110 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
+}
+
+class _PlatformPainter extends CustomPainter {
+  final String tipo;
+  final String? posicionIndicador;
+  final bool isDark;
+
+  _PlatformPainter({
+    required this.tipo,
+    required this.isDark,
+    this.posicionIndicador,
+  });
+
+  Offset _getIndicatorPos(String posicion, double w, double h) {
+    switch (tipo) {
+      case 'Cuadrada':
+        switch (posicion) {
+          case 'frente': return Offset(w * 0.5, h * 0.85);
+          case 'atras':  return Offset(w * 0.5, h * 0.15);
+          case 'izquierda': return Offset(w * 0.15, h * 0.5);
+          case 'derecha':   return Offset(w * 0.85, h * 0.5);
+        }
+      case 'Rectangular':
+        switch (posicion) {
+          case 'frente': return Offset(w * 0.5, h * 0.75);
+          case 'atras':  return Offset(w * 0.5, h * 0.25);
+          case 'izquierda': return Offset(w * 0.12, h * 0.5);
+          case 'derecha':   return Offset(w * 0.88, h * 0.5);
+        }
+      case 'Circular':
+        switch (posicion) {
+          case 'frente': return Offset(w * 0.5, h * 0.90);
+          case 'atras':  return Offset(w * 0.5, h * 0.10);
+          case 'izquierda': return Offset(w * 0.10, h * 0.5);
+          case 'derecha':   return Offset(w * 0.90, h * 0.5);
+        }
+      case 'Triangular':
+        switch (posicion) {
+          case 'frente': return Offset(w * 0.5, h * 0.90);
+          case 'atras':  return Offset(w * 0.5, h * 0.10);
+          case 'izquierda': return Offset(w * 0.10, h * 0.90);
+          case 'derecha':   return Offset(w * 0.90, h * 0.90);
+        }
+    }
+    return Offset.zero;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = isDark ? Colors.white38 : Colors.black38
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    final w = size.width;
+    final h = size.height;
+
+    switch (tipo) {
+      case 'Cuadrada':
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.15, h * 0.15, w * 0.70, h * 0.70),
+            const Radius.circular(4),
+          ),
+          paint,
+        );
+      case 'Rectangular':
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.12, h * 0.25, w * 0.76, h * 0.50),
+            const Radius.circular(4),
+          ),
+          paint,
+        );
+      case 'Circular':
+        canvas.drawOval(
+          Rect.fromLTWH(w * 0.10, h * 0.10, w * 0.80, h * 0.80),
+          paint,
+        );
+      case 'Triangular':
+        final path = Path()
+          ..moveTo(w * 0.5, h * 0.10)
+          ..lineTo(w * 0.90, h * 0.90)
+          ..lineTo(w * 0.10, h * 0.90)
+          ..close();
+        canvas.drawPath(path, paint);
+    }
+
+    if (posicionIndicador != null) {
+      final pos = _getIndicatorPos(posicionIndicador!, w, h);
+      final r = Rect.fromCenter(center: pos, width: 28, height: 16);
+      final ip = Paint()
+        ..color = Colors.teal
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), ip);
+      ip
+        ..color = Colors.teal.withOpacity(0.25)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5;
+      canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(7)), ip);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PlatformPainter old) =>
+      old.tipo != tipo || old.isDark != isDark || old.posicionIndicador != posicionIndicador;
 }
