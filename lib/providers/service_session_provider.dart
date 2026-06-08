@@ -324,6 +324,88 @@ class ServiceSessionProvider extends ChangeNotifier {
     return null;
   }
 
+  String? validateInspeccionVisual() {
+    if (_session == null) return "Sesión no inicializada.";
+
+    final insp = _session!.inspeccion;
+    if (insp == null) return "Debe completar la inspección visual.";
+
+    if (insp.tiempoEstab == null || insp.tiempoEstab!.trim().isEmpty) {
+      return "Seleccione el tiempo de estabilización de pesas.";
+    }
+    if (insp.tiempoOperacion == null || insp.tiempoOperacion!.trim().isEmpty) {
+      return "Seleccione el tiempo previo a operación de la balanza.";
+    }
+
+    const entornoFields = [
+      'vibracion', 'polvo', 'temp', 'humedad',
+      'mesada', 'iluminacion', 'limp_foza', 'estado_drenaje',
+    ];
+    const balanzaFields = [
+      'limp_general', 'golpes_terminal', 'nivelacion',
+      'limp_recepto', 'golpes_receptor', 'encendido',
+    ];
+    const fieldLabels = {
+      'vibracion':      'Vibración',
+      'polvo':          'Polvo',
+      'temp':           'Temperatura',
+      'humedad':        'Humedad',
+      'mesada':         'Mesada',
+      'iluminacion':    'Iluminación',
+      'limp_foza':      'Limpieza de Fosa',
+      'estado_drenaje': 'Estado de Drenaje',
+      'limp_general':   'Limpieza General',
+      'golpes_terminal':'Golpes al Terminal',
+      'nivelacion':     'Nivelación',
+      'limp_recepto':   'Limpieza Receptor',
+      'golpes_receptor':'Golpes al Receptor de Carga',
+      'encendido':      'Encendido',
+    };
+
+    for (final key in [...entornoFields, ...balanzaFields]) {
+      final val = insp.campos[key];
+      if (val == null || val.trim().isEmpty) {
+        return "Falta el estado de: ${fieldLabels[key] ?? key}.";
+      }
+    }
+
+    return null;
+  }
+
+  String? validatePrecargasAjuste() {
+    if (_session == null) return "Sesión no inicializada.";
+
+    final pa = _session!.precargasAjuste;
+    if (pa == null) return "Debe completar las precargas y condiciones ambientales.";
+
+    // Al menos una fila de precarga debe estar completa
+    final tienePrecargas = pa.precargas.any(
+      (r) => (r.precarga?.trim().isNotEmpty ?? false),
+    );
+    if (!tienePrecargas) {
+      return "Debe ingresar al menos una precarga.";
+    }
+
+    // Condiciones ambientales obligatorias
+    if (pa.ti == null || pa.ti!.trim().isEmpty) {
+      return "Debe ingresar la Temperatura inicial (Ti).";
+    }
+    if (pa.hri == null || pa.hri!.trim().isEmpty) {
+      return "Debe ingresar la Humedad Relativa inicial (HRi).";
+    }
+    if (pa.patmi == null || pa.patmi!.trim().isEmpty) {
+      return "Debe ingresar la Presión Atmosférica inicial (Patmi).";
+    }
+
+    // Si se realizó ajuste, debe indicar el tipo
+    if ((pa.ajusteRealizado ?? false) &&
+        (pa.tipoAjuste == null || pa.tipoAjuste!.trim().isEmpty)) {
+      return "Debe seleccionar el Tipo de Ajuste.";
+    }
+
+    return null;
+  }
+
   String? validateExcentricidad() {
     if (_session == null) return "Sesión no inicializada.";
 

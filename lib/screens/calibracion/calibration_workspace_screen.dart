@@ -252,6 +252,28 @@ class _CalibrationWorkspaceScreenState
                           }
                           await provider.confirmBalanza();
                         };
+                      } else if (step == 4) {
+                        onNext = () {
+                          final error = provider.validateInspeccionVisual();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          provider.nextStep();
+                        };
+                      } else if (step == 5) {
+                        onNext = () {
+                          final error = provider.validatePrecargasAjuste();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          provider.nextStep();
+                        };
                       } else if (step == 6) {
                         onNext = () {
                           final error = provider.validateExcentricidad();

@@ -47,14 +47,14 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: widget.isError ? 7 : 3),
-      reverseDuration: const Duration(milliseconds: 300),
+      duration: const Duration(seconds: 3),
+      reverseDuration: const Duration(milliseconds: 250),
     );
 
     _slideAnimation = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.05, curve: Curves.easeOutCubic),
+        curve: const Interval(0.0, 0.06, curve: Curves.easeOutCubic),
         reverseCurve: Curves.easeInCubic,
       ),
     );
@@ -73,7 +73,7 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
     setState(() {
       _isDismissing = true;
     });
-    
+
     _controller.reverse().then((_) {
       widget.onDismiss();
     });
@@ -88,18 +88,19 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = widget.isError ? (isDark ? Colors.redAccent : Colors.red[700]!) : (isDark ? Colors.greenAccent : Colors.green[700]!);
-    final bgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final textColor = isDark ? Colors.white : Colors.black87;
-    final iconCloseColor = isDark ? Colors.grey[400] : Colors.grey[600];
+    final color = widget.isError
+        ? (isDark ? Colors.redAccent : const Color(0xFFD32F2F))
+        : (isDark ? Colors.greenAccent : const Color(0xFF2E7D32));
+    final bgColor = isDark ? const Color(0xFF252525) : Colors.white;
+    final textColor = isDark ? Colors.white70 : const Color(0xFF2C2C2C);
 
     return Positioned(
-      top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+      top: MediaQuery.of(context).padding.top + kToolbarHeight + 10,
       left: 0,
       right: 0,
       child: Center(
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 340),
+          constraints: const BoxConstraints(maxWidth: 280),
           child: SlideTransition(
             position: _slideAnimation,
             child: Material(
@@ -108,44 +109,56 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(50),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 10,
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 14,
                       offset: const Offset(0, 4),
                     ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
-                  border: Border.all(color: color.withOpacity(0.3)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            widget.isError ? Icons.error_outline : Icons.check_circle_outline,
+                            widget.isError
+                                ? Icons.error_rounded
+                                : Icons.check_circle_rounded,
                             color: color,
+                            size: 16,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
+                          const SizedBox(width: 8),
+                          Flexible(
                             child: Text(
                               widget.message,
                               style: GoogleFonts.inter(
-                                fontSize: 13,
+                                fontSize: 12,
                                 color: textColor,
                                 fontWeight: FontWeight.w500,
+                                height: 1.3,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           GestureDetector(
                             onTap: _dismiss,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(Icons.close, size: 20, color: iconCloseColor),
+                            child: Icon(
+                              Icons.close_rounded,
+                              size: 15,
+                              color: textColor.withOpacity(0.4),
                             ),
                           ),
                         ],
@@ -154,12 +167,18 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                     AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        final progress = 1.0 - ((_controller.value - 0.05) / 0.95).clamp(0.0, 1.0);
-                        return LinearProgressIndicator(
-                          value: _isDismissing ? 0.0 : progress,
-                          backgroundColor: Colors.transparent,
-                          valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.5)),
-                          minHeight: 4,
+                        final progress = 1.0 - ((_controller.value - 0.06) / 0.94).clamp(0.0, 1.0);
+                        return ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(50),
+                            bottomRight: Radius.circular(50),
+                          ),
+                          child: LinearProgressIndicator(
+                            value: _isDismissing ? 0.0 : progress,
+                            backgroundColor: Colors.transparent,
+                            valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.35)),
+                            minHeight: 2,
+                          ),
                         );
                       },
                     ),

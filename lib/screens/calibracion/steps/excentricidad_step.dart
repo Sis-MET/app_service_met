@@ -44,49 +44,49 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     switch (_tipoPlataforma) {
       case 'Cuadrada':
         return const [
-          Offset(0.5, 0.5),
-          Offset(0.15, 0.15),
-          Offset(0.85, 0.15),
-          Offset(0.15, 0.85),
-          Offset(0.85, 0.85),
+          Offset(0.50, 0.50),
+          Offset(0.73, 0.27),
+          Offset(0.73, 0.73),
+          Offset(0.27, 0.73),
+          Offset(0.27, 0.27),
         ];
       case 'Rectangular':
         if (n == 3) {
           return const [
-            Offset(0.5, 0.5),
-            Offset(0.12, 0.5),
-            Offset(0.88, 0.5),
+            Offset(0.50, 0.50),
+            Offset(0.22, 0.50),
+            Offset(0.78, 0.50),
           ];
         }
         return const [
-          Offset(0.5, 0.5),
-          Offset(0.12, 0.22),
-          Offset(0.88, 0.22),
-          Offset(0.12, 0.78),
-          Offset(0.88, 0.78),
+          Offset(0.50, 0.50),
+          Offset(0.78, 0.35),
+          Offset(0.78, 0.65),
+          Offset(0.22, 0.65),
+          Offset(0.22, 0.35),
         ];
       case 'Circular':
         if (n == 4) {
           return const [
-            Offset(0.5, 0.5),
-            Offset(0.5, 0.1),
-            Offset(0.9, 0.5),
-            Offset(0.5, 0.9),
+            Offset(0.50, 0.50),
+            Offset(0.691, 0.309),
+            Offset(0.50, 0.77),
+            Offset(0.309, 0.309),
           ];
         }
         return const [
-          Offset(0.5, 0.5),
-          Offset(0.5, 0.1),
-          Offset(0.9, 0.5),
-          Offset(0.5, 0.9),
-          Offset(0.1, 0.5),
+          Offset(0.50, 0.50),
+          Offset(0.691, 0.309),
+          Offset(0.691, 0.691),
+          Offset(0.309, 0.691),
+          Offset(0.309, 0.309),
         ];
       case 'Triangular':
         return const [
-          Offset(0.5, 0.55),
-          Offset(0.5, 0.1),
-          Offset(0.1, 0.9),
-          Offset(0.9, 0.9),
+          Offset(0.50, 0.53),
+          Offset(0.50, 0.30),
+          Offset(0.66, 0.66),
+          Offset(0.34, 0.66),
         ];
       default:
         return [];
@@ -375,6 +375,14 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     );
   }
 
+  String _getBalanceUnit() {
+    try {
+      return context.read<ServiceSessionProvider>().session?.balanza?.unidad ?? 'kg';
+    } catch (_) {
+      return 'kg';
+    }
+  }
+
   Widget _buildPlatformDiagram(bool isDark) {
     if (_tipoPlataforma == null || _puntosIndicacion == null) {
       return const SizedBox.shrink();
@@ -384,6 +392,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
     final coords = _getPositionCoords(n);
     if (coords.isEmpty) return const SizedBox.shrink();
+
+    final unidad = _getBalanceUnit();
+    final cargaValue = _cargaCtrl.text.isEmpty ? '0' : _cargaCtrl.text;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -414,6 +425,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                     tipo: _tipoPlataforma!,
                     posicionIndicador: _posicionIndicador,
                     isDark: isDark,
+                    cargaValue: cargaValue,
+                    unidad: unidad,
                   ),
                   child: Stack(
                     children: [
@@ -652,11 +665,15 @@ class _PlatformPainter extends CustomPainter {
   final String tipo;
   final String? posicionIndicador;
   final bool isDark;
+  final String cargaValue;
+  final String unidad;
 
   _PlatformPainter({
     required this.tipo,
     required this.isDark,
     this.posicionIndicador,
+    this.cargaValue = '0',
+    this.unidad = 'kg',
   });
 
   Offset _getIndicatorPos(String posicion, double w, double h) {
@@ -736,20 +753,41 @@ class _PlatformPainter extends CustomPainter {
 
     if (posicionIndicador != null) {
       final pos = _getIndicatorPos(posicionIndicador!, w, h);
-      final r = Rect.fromCenter(center: pos, width: 28, height: 16);
+      final label = '$cargaValue $unidad';
+      final tp = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final pw = (tp.width + 16).clamp(40.0, 100.0);
+      final ph = (tp.height + 10).clamp(22.0, 36.0);
+      final r = Rect.fromCenter(center: pos, width: pw, height: ph);
+
       final ip = Paint()
         ..color = Colors.teal
         ..style = PaintingStyle.fill;
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(3)), ip);
+      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), ip);
       ip
         ..color = Colors.teal.withOpacity(0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
-      canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(7)), ip);
+      canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(8)), ip);
+
+      tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
     }
   }
 
   @override
   bool shouldRepaint(covariant _PlatformPainter old) =>
-      old.tipo != tipo || old.isDark != isDark || old.posicionIndicador != posicionIndicador;
+      old.tipo != tipo ||
+      old.isDark != isDark ||
+      old.posicionIndicador != posicionIndicador ||
+      old.cargaValue != cargaValue ||
+      old.unidad != unidad;
 }

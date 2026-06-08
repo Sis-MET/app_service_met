@@ -172,7 +172,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(isDark),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Tabla de precargas
               _sectionHeader('Precargas', isDark),
@@ -201,8 +201,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               // Ajuste
               _sectionHeader('Ajuste', isDark),
               SwitchListTile(
-                title: Text('¿Se realizó Ajuste?',
-                    style: GoogleFonts.inter()),
+                title: Text('¿Se realizó Ajuste?', style: GoogleFonts.inter()),
                 value: _ajusteRealizado,
                 onChanged: (v) {
                   setState(() {
@@ -226,10 +225,8 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   dropdownColor:
                       isDark ? const Color(0xFF2A2A2A) : Colors.white,
                   items: const [
-                    DropdownMenuItem(
-                        value: 'Interno', child: Text('Interno')),
-                    DropdownMenuItem(
-                        value: 'Externo', child: Text('Externo')),
+                    DropdownMenuItem(value: 'Interno', child: Text('Interno')),
+                    DropdownMenuItem(value: 'Externo', child: Text('Externo')),
                   ],
                   onChanged: (v) {
                     setState(() {
@@ -243,13 +240,11 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   const SizedBox(height: 10),
                   TextField(
                     style: GoogleFonts.inter(
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF1A1A1A)),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                     controller: _cargasCtrl,
                     onChanged: (_) => _saveToProvider(),
-                    decoration: _deco(
-                        'Cargas de Pesas Patrón Utilizadas', isDark),
+                    decoration:
+                        _deco('Cargas de Pesas Patrón Utilizadas', isDark),
                   ),
                 ],
               ],
@@ -287,9 +282,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               const SizedBox(height: 10),
               TextField(
                   style: GoogleFonts.inter(
-                      color: isDark
-                          ? Colors.white
-                          : const Color(0xFF1A1A1A)),
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                   controller: _patmiCtrl,
                   onChanged: (_) => _saveToProvider(),
                   keyboardType: TextInputType.number,
@@ -312,22 +305,18 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
             child: Text('${i + 1}.',
                 style: GoogleFonts.inter(
                     fontWeight: FontWeight.bold,
-                    color:
-                        isDark ? Colors.white70 : Colors.black87)),
+                    color: isDark ? Colors.white70 : Colors.black87)),
           ),
           const SizedBox(width: 4),
           Expanded(
               child: TextField(
             style: GoogleFonts.inter(
-                color:
-                    isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
             controller: _rows[i][0],
             onChanged: (_) => _onPrecargaChanged(i),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                  RegExp(r'^\d*\.?\d*'))
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
             ],
             decoration: _deco('Precarga', isDark),
           )),
@@ -342,28 +331,20 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               child: AbsorbPointer(
                 child: TextField(
                   style: GoogleFonts.inter(
-                      color: isDark
-                          ? Colors.white
-                          : const Color(0xFF1A1A1A)),
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                   controller: _rows[i][1],
                   decoration: InputDecoration(
                     labelText: 'Indicación',
                     labelStyle: GoogleFonts.inter(
-                        color: isDark
-                            ? Colors.white70
-                            : Colors.black87),
+                        color: isDark ? Colors.white70 : Colors.black87),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: isDark
-                                ? Colors.white24
-                                : Colors.black26)),
+                            color: isDark ? Colors.white24 : Colors.black26)),
                     enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                            color: isDark
-                                ? Colors.white12
-                                : Colors.black12)),
+                            color: isDark ? Colors.white12 : Colors.black12)),
                     suffixIcon: _rows[i][0].text.isNotEmpty
                         ? Icon(Icons.unfold_more_rounded,
                             color: isDark
@@ -389,21 +370,20 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
       readOnly: true,
       decoration: InputDecoration(
         labelText: 'Hora de Pruebas',
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: IconButton(
           icon: Icon(Icons.access_time_filled_rounded,
-              color: isDark
-                  ? const Color(0xFFf9e300)
-                  : const Color(0xFF5A4E00)),
+              color:
+                  isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00)),
           onPressed: () {
             _horaCtrl.text = _currentTime();
             _saveToProvider();
@@ -446,22 +426,21 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
           style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color:
-                  isDark ? Colors.white : const Color(0xFF1A1A1A))),
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
     ).animate().fadeIn();
   }
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
 }
