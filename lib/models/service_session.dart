@@ -156,8 +156,12 @@ class ServiceSession {
       if (linealidad?.filas != null)
         for (int i = 0; i < linealidad!.filas.length; i++) ...{
           'lin${i + 1}': linealidad!.filas[i].carga,
+          'mp_lin${i + 1}': linealidad!.filas[i].masaPatron,
+          'cs_lin${i + 1}': linealidad!.filas[i].cargaSustitutiva,
+          'ms_lin${i + 1}': linealidad!.filas[i].metodSustitucion,
           'ind${i + 1}': linealidad!.filas[i].indicacion,
           'retorno_lin${i + 1}': linealidad!.filas[i].retorno,
+          'err_lin${i + 1}': linealidad!.filas[i].error,
         },
       // Condiciones Finales
       if (condicionesFinales?.horaFin != null) 'hora_fin': condicionesFinales!.horaFin,
@@ -223,11 +227,15 @@ class ServiceSession {
     }
 
     List<FilaLinealidad> filasLin = [];
-    for(int i=1; i<=60; i++) {
+    for(int i=1; i<=12; i++) {
        filasLin.add(FilaLinealidad(
           carga: map['lin$i'],
+          masaPatron: map['mp_lin$i'],
+          cargaSustitutiva: map['cs_lin$i'],
+          metodSustitucion: map['ms_lin$i'],
           indicacion: map['ind$i'],
           retorno: map['retorno_lin$i'],
+          error: map['err_lin$i'],
        ));
     }
 
@@ -608,29 +616,22 @@ class RepetibilidadData {
 }
 
 class FilaLinealidad {
-  final String? carga, indicacion, retorno;
-  FilaLinealidad({this.carga, this.indicacion, this.retorno});
+  final String? carga, masaPatron, cargaSustitutiva, metodSustitucion, indicacion, retorno, error;
+  FilaLinealidad({this.carga, this.masaPatron, this.cargaSustitutiva, this.metodSustitucion, this.indicacion, this.retorno, this.error});
 }
 
 class LinealidadData {
   final String? metodo, metodoCarga, nota;
   final List<FilaLinealidad> filas;
-  final String? iLsubn, lsubn, io, ltn, cp, iCp;
 
-  LinealidadData({this.metodo, this.metodoCarga, this.nota, this.filas = const [], this.iLsubn, this.lsubn, this.io, this.ltn, this.cp, this.iCp});
+  LinealidadData({this.metodo, this.metodoCarga, this.nota, this.filas = const []});
 
-  LinealidadData copyWith({String? metodo, String? metodoCarga, String? nota, List<FilaLinealidad>? filas, String? iLsubn, String? lsubn, String? io, String? ltn, String? cp, String? iCp}) {
+  LinealidadData copyWith({String? metodo, String? metodoCarga, String? nota, List<FilaLinealidad>? filas}) {
     return LinealidadData(
       metodo: metodo ?? this.metodo,
       metodoCarga: metodoCarga ?? this.metodoCarga,
       nota: nota ?? this.nota,
       filas: filas ?? this.filas,
-      iLsubn: iLsubn ?? this.iLsubn,
-      lsubn: lsubn ?? this.lsubn,
-      io: io ?? this.io,
-      ltn: ltn ?? this.ltn,
-      cp: cp ?? this.cp,
-      iCp: iCp ?? this.iCp,
     );
   }
 }
