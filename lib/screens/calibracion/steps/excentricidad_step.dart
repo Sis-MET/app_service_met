@@ -155,8 +155,23 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     _saveToProvider();
   }
 
+  String _formatValueWithPrecision(String value) {
+    final v = double.tryParse(value);
+    if (v == null) return value;
+    try {
+      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+      if (balanza == null) return value;
+      final d = SuggestionHelper.getDivisionForValue(balanza, v);
+      if (d == 0) return value;
+      final decimals = SuggestionHelper.getDecimalPlaces(d);
+      return v.toStringAsFixed(decimals);
+    } catch (_) {
+      return value;
+    }
+  }
+
   void _reflectCargaToIndicaciones() {
-    final value = _cargaCtrl.text;
+    final value = _formatValueWithPrecision(_cargaCtrl.text);
     for (final row in _rows) {
       row[0].text = value;
     }

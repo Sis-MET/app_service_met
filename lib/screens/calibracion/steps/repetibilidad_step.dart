@@ -15,23 +15,20 @@ class RepetibilidadStep extends StatefulWidget {
 }
 
 class _RepetibilidadStepState extends State<RepetibilidadStep> {
-  // 3 cargas, cada una con hasta 10 indicaciones/retornos
-  final int _numCargas = 3;
-  final int _numMediciones = 10;
+  static const _cargasOptions = ['1', '2', '3'];
+  static const _medicionesOptions = ['3', '5', '10'];
 
-  late List<TextEditingController> _cargasCtrls;
-  late List<List<TextEditingController>> _indCtrls;
-  late List<List<TextEditingController>> _retCtrls;
+  String? _cargasCount;
+  String? _medicionesCount;
+
+  List<TextEditingController> _cargasCtrls = [];
+  List<List<TextEditingController>> _indCtrls = [];
+  List<List<TextEditingController>> _retCtrls = [];
   final _notaCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _cargasCtrls = List.generate(_numCargas, (_) => TextEditingController());
-    _indCtrls = List.generate(_numCargas,
-        (_) => List.generate(_numMediciones, (_) => TextEditingController()));
-    _retCtrls = List.generate(_numCargas,
-        (_) => List.generate(_numMediciones, (_) => TextEditingController()));
     WidgetsBinding.instance.addPostFrameCallback((_) => _initFromSession());
   }
 
@@ -40,197 +37,343 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     final rep = provider.session?.repetibilidad;
     if (rep == null) return;
     _notaCtrl.text = rep.nota ?? '';
-    for (int i = 0; i < rep.cargas.length && i < _numCargas; i++) {
-      _cargasCtrls[i].text = rep.cargas[i].carga ?? '';
-      for (int j = 0;
-          j < rep.cargas[i].indicaciones.length && j < _numMediciones;
-          j++) {
-        _indCtrls[i][j].text = rep.cargas[i].indicaciones[j] ?? '';
-        _retCtrls[i][j].text = rep.cargas[i].retornos[j] ?? '';
+    if (rep.cargas.isNotEmpty) {
+      final nCargas = rep.cargas.length.clamp(1, 3);
+      final nMediciones = rep.cargas
+          .map((c) => (c.indicaciones.length).clamp(3, 10))
+          .fold(3, (a, b) => a > b ? a : b);
+      _cargasCount = nCargas.toString();
+      _medicionesCount = nMediciones.toString();
+      _buildControllers(nCargas, nMediciones);
+      for (int i = 0; i < nCargas; i++) {
+        _cargasCtrls[i].text = rep.cargas[i].carga ?? '';
+        for (int j = 0; j < nMediciones; j++) {
+          if (j < rep.cargas[i].indicaciones.length) {
+            _indCtrls[i][j].text = rep.cargas[i].indicaciones[j] ?? '';
+          }
+          if (j < rep.cargas[i].retornos.length) {
+            _retCtrls[i][j].text = rep.cargas[i].retornos[j] ?? '';
+          }
+        }
       }
     }
-    setState(() {});
+  }
+
+  void _buildControllers(int nCargas, int nMediciones) {
+    for (final c in _cargasCtrls) { c.dispose(); }
+    for (final row in _indCtrls) { for (final c in row) { c.dispose(); } }
+    for (final row in _retCtrls) { for (final c in row) { c.dispose(); } }
+
+    _cargasCtrls = List.generate(nCargas, (_) => TextEditingController());
+    _indCtrls = List.generate(
+        nCargas, (_) => List.generate(nMediciones, (_) => TextEditingController()));
+    _retCtrls = List.generate(
+        nCargas, (_) => List.generate(nMediciones, (_) => TextEditingController(text: '0')));
+  }
+
+  void _onCargasChanged(String? v) {
+    final n = int.tryParse(v ?? '1') ?? 1;
+    final med = int.tryParse(_medicionesCount ?? '3') ?? 3;
+    setState(() {
+      _cargasCount = v;
+      _buildControllers(n, med);
+    });
+  }
+
+  void _onMedicionesChanged(String? v) {
+    final med = int.tryParse(v ?? '3') ?? 3;
+    final n = int.tryParse(_cargasCount ?? '1') ?? 1;
+    setState(() {
+      _medicionesCount = v;
+      _buildControllers(n, med);
+    });
   }
 
   void _saveToProvider() {
+    final n = int.tryParse(_cargasCount ?? '1') ?? 1;
     final provider = context.read<ServiceSessionProvider>();
     provider.updateRepetibilidad(RepetibilidadData(
       nota: _notaCtrl.text,
-      cargas: List.generate(
-          _numCargas,
-          (i) => CargaRepetibilidad(
-                carga: _cargasCtrls[i].text,
-                indicaciones: _indCtrls[i]
-                    .map((c) => c.text.isEmpty ? null : c.text)
-                    .toList(),
-                retornos: _retCtrls[i]
-                    .map((c) => c.text.isEmpty ? null : c.text)
-                    .toList(),
-              )),
+      cargas: List.generate(n, (i) => CargaRepetibilidad(
+        carga: _cargasCtrls[i].text,
+        indicaciones: _indCtrls[i]
+            .map((c) => c.text.isEmpty ? null : c.text)
+            .toList(),
+        retornos: _retCtrls[i]
+            .map((c) => c.text.isEmpty ? null : c.text)
+            .toList(),
+      )),
     ));
+  }
+
+  String _formatValueWithPrecision(String value) {
+    final v = double.tryParse(value);
+    if (v == null) return value;
+    try {
+      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+      if (balanza == null) return value;
+      final d = SuggestionHelper.getDivisionForValue(balanza, v);
+      if (d == 0) return value;
+      final decimals = SuggestionHelper.getDecimalPlaces(d);
+      return v.toStringAsFixed(decimals);
+    } catch (_) {
+      return value;
+    }
   }
 
   @override
   void dispose() {
-    for (final c in _cargasCtrls) {
-      c.dispose();
-    }
-    for (final row in _indCtrls)
-      for (final c in row) {
-        c.dispose();
-      }
-    for (final row in _retCtrls)
-      for (final c in row) {
-        c.dispose();
-      }
+    for (final c in _cargasCtrls) { c.dispose(); }
+    for (final row in _indCtrls) { for (final c in row) { c.dispose(); } }
+    for (final row in _retCtrls) { for (final c in row) { c.dispose(); } }
     _notaCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-              child: Text(
-            'PRUEBAS DE REPETIBILIDAD',
-            style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple[700]),
-          ).animate().fadeIn(duration: 600.ms)),
-          const SizedBox(height: 24),
-          ...List.generate(_numCargas, (i) => _buildCargaCard(i)),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _notaCtrl,
-            onChanged: (_) => _saveToProvider(),
-            maxLines: 3,
-            decoration: _deco('Nota / Comentario (opcional)'),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Consumer<ServiceSessionProvider>(
+      builder: (context, provider, _) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(isDark),
+              const SizedBox(height: 24),
+
+              DropdownButtonFormField<String>(
+                value: _cargasCount,
+                decoration: _deco('N° de Cargas', isDark),
+                hint: Text('Seleccione',
+                    style: GoogleFonts.inter(
+                        color: isDark ? Colors.white54 : Colors.black45)),
+                dropdownColor:
+                    isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                items: _cargasOptions
+                    .map((v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(v,
+                            style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A)))))
+                    .toList(),
+                onChanged: _onCargasChanged,
+              ).animate(delay: 200.ms).fadeIn(),
+              const SizedBox(height: 16),
+
+              if (_cargasCount != null) ...[
+                DropdownButtonFormField<String>(
+                  value: _medicionesCount,
+                  decoration: _deco('N° de Mediciones por Carga', isDark),
+                  hint: Text('Seleccione',
+                      style: GoogleFonts.inter(
+                          color: isDark ? Colors.white54 : Colors.black45)),
+                  dropdownColor:
+                      isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                  items: _medicionesOptions
+                      .map((v) => DropdownMenuItem(
+                          value: v,
+                          child: Text(v,
+                              style: GoogleFonts.inter(
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A1A)))))
+                      .toList(),
+                  onChanged: _onMedicionesChanged,
+                ).animate(delay: 300.ms).fadeIn(),
+                const SizedBox(height: 24),
+              ],
+
+              if (_cargasCount != null && _medicionesCount != null) ...[
+                ...List.generate(
+                    int.tryParse(_cargasCount!) ?? 1,
+                    (i) => _buildCargaCard(i, isDark)),
+                const SizedBox(height: 20),
+              ],
+
+              TextField(
+                style: GoogleFonts.inter(
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                controller: _notaCtrl,
+                onChanged: (_) => _saveToProvider(),
+                maxLines: 3,
+                decoration: _deco('Nota / Comentario (opcional)', isDark),
+              ).animate(delay: 600.ms).fadeIn(),
+              const SizedBox(height: 20),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildCargaCard(int i) {
-    final colors = [Colors.blue, Colors.orange, Colors.green];
-    final color = colors[i % colors.length];
+  Widget _buildHeader(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pruebas de Repetibilidad',
+          style: GoogleFonts.poppins(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+        const SizedBox(height: 4),
+        Text(
+          'Registro de ensayos de repetibilidad',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+            fontWeight: FontWeight.w400,
+          ),
+        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+      ],
+    );
+  }
+
+  Widget _buildCargaCard(int i, bool isDark) {
+    final nMediciones = int.tryParse(_medicionesCount ?? '3') ?? 3;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.4)),
-        color: color.withOpacity(0.03),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(children: [
-              Icon(Icons.scale, color: color, size: 18),
-              const SizedBox(width: 8),
-              Text('CARGA ${i + 1}',
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold, color: color)),
-              const SizedBox(width: 16),
-              Expanded(
-                  child: SizedBox(
-                height: 40,
-                child: TextField(
-                  controller: _cargasCtrls[i],
-                  onChanged: (_) => _saveToProvider(),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-                  ],
-                  decoration: InputDecoration(
-                    hintText: 'Valor carga (kg)',
-                    isDense: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              )),
-            ]),
-          ),
+          _sectionHeader('Carga ${i + 1}', isDark),
+          const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(children: [
-              // Encabezado
-              Row(children: [
-                const SizedBox(width: 28),
-                _headerCell('N°'),
-                _headerCell('Indicación'),
-                _headerCell('Retorno'),
-              ]),
-              const SizedBox(height: 6),
-              ...List.generate(
-                  _numMediciones,
-                  (j) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(children: [
-                          SizedBox(
-                              width: 28,
-                              child: Text('${j + 1}',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.inter(
-                                      fontSize: 12, color: Colors.grey[600]))),
-                          Expanded(
-                              child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 3),
-                                  child: _indicationField(i, j))),
-                          Expanded(
-                              child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 3),
-                                  child: _numField(_retCtrls[i][j]))),
-                        ]),
-                      )),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TextField(
+              style: GoogleFonts.inter(
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+              controller: _cargasCtrls[i],
+              onChanged: (val) {
+                final formatted = _formatValueWithPrecision(val);
+                for (int j = 0; j < nMediciones; j++) {
+                  _indCtrls[i][j].text = formatted;
+                }
+                _saveToProvider();
+              },
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
+              ],
+              decoration: _deco('Valor de carga', isDark),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(children: [
+              const SizedBox(width: 30),
+              Expanded(
+                  child: Text('Indicación',
+                      style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isDark
+                              ? Colors.white70
+                              : Colors.grey[600]),
+                      textAlign: TextAlign.center)),
+              Expanded(
+                  child: Text('Retorno',
+                      style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isDark
+                              ? Colors.white70
+                              : Colors.grey[600]),
+                      textAlign: TextAlign.center)),
             ]),
           ),
+          const SizedBox(height: 8),
+          ...List.generate(
+              nMediciones,
+              (j) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 4),
+                    child: Row(children: [
+                      SizedBox(
+                          width: 30,
+                          child: Text('${j + 1}',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black87))),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: _indicationField(i, j, isDark)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: _numField(_retCtrls[i][j], isDark)),
+                    ]),
+                  )),
+          const SizedBox(height: 12),
         ],
       ),
-    )
-        .animate(delay: Duration(milliseconds: 200 + i * 100))
-        .fadeIn()
-        .slideY(begin: 0.2);
+    ).animate(delay: Duration(milliseconds: 400 + i * 100)).fadeIn();
   }
 
-  Widget _indicationField(int cargaIdx, int medIdx) {
+  InputDecoration _fieldDecoration(bool isDark, {Widget? suffixIcon}) {
+    return InputDecoration(
+      isDense: true,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  Widget _indicationField(int cargaIdx, int medIdx, bool isDark) {
     final hasBase = _cargasCtrls[cargaIdx].text.isNotEmpty;
-    return GestureDetector(
-      onTap: hasBase ? () => _showIndicacionSuggestion(cargaIdx, medIdx) : null,
-      child: AbsorbPointer(
-        child: TextField(
-          controller: _indCtrls[cargaIdx][medIdx],
-          onChanged: (_) => _saveToProvider(),
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-          ],
-          decoration: const InputDecoration(
-            isDense: true,
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            border: OutlineInputBorder(),
-          ),
-        ),
+    return TextField(
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+      controller: _indCtrls[cargaIdx][medIdx],
+      onChanged: (_) => _saveToProvider(),
+      keyboardType:
+          const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
+      ],
+      decoration: _fieldDecoration(isDark,
+        suffixIcon: hasBase
+            ? InkWell(
+                onTap: () => _showIndicacionSuggestion(cargaIdx, medIdx),
+                child: Icon(Icons.unfold_more_rounded,
+                    color: Colors.teal, size: 20),
+              )
+            : null,
       ),
     );
   }
@@ -259,30 +402,40 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     });
   }
 
-  Widget _headerCell(String text) => Expanded(
-      child: Text(text,
-          style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600]),
-          textAlign: TextAlign.center));
-
-  Widget _numField(TextEditingController ctrl) => TextField(
+  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+        style: GoogleFonts.inter(
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
         onChanged: (_) => _saveToProvider(),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
         ],
-        decoration: const InputDecoration(
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          border: OutlineInputBorder(),
-        ),
+        decoration: _fieldDecoration(isDark),
       );
 
-  InputDecoration _deco(String label) => InputDecoration(
+  Widget _sectionHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(title,
+          style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+    );
+  }
+
+  InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
 }
