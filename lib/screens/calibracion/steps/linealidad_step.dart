@@ -15,20 +15,21 @@ class LinealidadStep extends StatefulWidget {
 }
 
 class _LinealidadStepState extends State<LinealidadStep> {
-  static const _metodoCargaOptions = ['Ascenso evaluando a ceros', 'Ascenso Continuo por pasos'];
-  static const _metodoSustOptions = ['Método 1', 'Método 2'];
-  static const _maxPatron = 500.0;
+  static const _metodoCargaOptions = [
+    'Sin metodo de carga',
+    'Ascenso evaluando a ceros',
+    'Ascenso Continuo por pasos',
+  ];
+  static const _maxPuntos = 60;
 
   String? _metodoCarga;
-  String? _metodoSust;
+  bool _cargasValidadas = false;
+  int _cargasPatronValidadas = 0;
   final _notaCtrl = TextEditingController();
 
   List<TextEditingController> _cargaCtrls = [];
-  List<TextEditingController> _masaPatronCtrls = [];
-  List<TextEditingController> _cargaSustCtrls = [];
   List<TextEditingController> _indCtrls = [];
   List<TextEditingController> _retCtrls = [];
-  List<TextEditingController> _errorCtrls = [];
 
   @override
   void initState() {
@@ -40,38 +41,66 @@ class _LinealidadStepState extends State<LinealidadStep> {
     final provider = context.read<ServiceSessionProvider>();
     final lin = provider.session?.linealidad;
     if (lin == null) return;
+
     _notaCtrl.text = lin.nota ?? '';
     _metodoCarga = lin.metodo;
-    _metodoSust = lin.metodoCarga;
+    _parseValidationState(lin.metodoCarga);
+
     if (lin.filas.isNotEmpty) {
-      _buildControllers(lin.filas.length);
-      for (int i = 0; i < lin.filas.length; i++) {
+      _buildControllers(lin.filas.length.clamp(1, _maxPuntos));
+      for (int i = 0; i < _cargaCtrls.length; i++) {
         _cargaCtrls[i].text = lin.filas[i].carga ?? '';
-        _masaPatronCtrls[i].text = lin.filas[i].masaPatron ?? '';
-        _cargaSustCtrls[i].text = lin.filas[i].cargaSustitutiva ?? '';
         _indCtrls[i].text = lin.filas[i].indicacion ?? '';
-        _retCtrls[i].text = lin.filas[i].retorno ?? '';
-        _errorCtrls[i].text = lin.filas[i].error ?? '';
+        _retCtrls[i].text = (lin.filas[i].retorno?.isNotEmpty ?? false)
+            ? lin.filas[i].retorno!
+            : '0';
       }
     } else {
       _buildControllers(12);
     }
+
+    if (_cargasValidadas && _cargasPatronValidadas <= 0) {
+      _cargasPatronValidadas = _filledPatronRowsCount();
+    }
+
+    if (mounted) setState(() {});
   }
 
+  void _parseValidationState(String? raw) {
+    _cargasValidadas = false;
+    _cargasPatronValidadas = 0;
+    if (raw == null) return;
+
+    final match = RegExp(r'cargas_validadas:(\d+)').firstMatch(raw);
+    if (match != null) {
+      _cargasValidadas = true;
+      _cargasPatronValidadas = int.tryParse(match.group(1) ?? '') ?? 0;
+      return;
+    }
+
+    if (raw.contains('Metodo') || raw.contains('validada')) {
+      _cargasValidadas = true;
+    }
+  }
+
+  String get _validationStateForSave => _cargasValidadas
+      ? 'cargas_validadas:$_cargasPatronValidadas'
+      : 'validacion_pesas_pendiente';
+
   void _buildControllers(int count) {
-    for (final c in _cargaCtrls) { c.dispose(); }
-    for (final c in _masaPatronCtrls) { c.dispose(); }
-    for (final c in _cargaSustCtrls) { c.dispose(); }
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
-    for (final c in _errorCtrls) { c.dispose(); }
+    for (final c in _cargaCtrls) {
+      c.dispose();
+    }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
 
     _cargaCtrls = List.generate(count, (_) => TextEditingController());
-    _masaPatronCtrls = List.generate(count, (_) => TextEditingController());
-    _cargaSustCtrls = List.generate(count, (_) => TextEditingController());
     _indCtrls = List.generate(count, (_) => TextEditingController());
     _retCtrls = List.generate(count, (_) => TextEditingController(text: '0'));
-    _errorCtrls = List.generate(count, (_) => TextEditingController());
   }
 
   void _onMetodoCargaChanged(String? v) {
@@ -79,60 +108,52 @@ class _LinealidadStepState extends State<LinealidadStep> {
     _saveToProvider();
   }
 
-  void _onMetodoSustChanged(String? v) {
-    setState(() => _metodoSust = v);
-    _saveToProvider();
-  }
-
   void _addRow() {
+    if (_cargaCtrls.length >= _maxPuntos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximo 60 puntos permitidos')),
+      );
+      return;
+    }
+
     setState(() {
       _cargaCtrls.add(TextEditingController());
-      _masaPatronCtrls.add(TextEditingController());
-      _cargaSustCtrls.add(TextEditingController());
       _indCtrls.add(TextEditingController());
       _retCtrls.add(TextEditingController(text: '0'));
-      _errorCtrls.add(TextEditingController());
     });
   }
 
   void _removeRow() {
-    if (_cargaCtrls.length > 1) {
-      setState(() {
-        _cargaCtrls.removeLast().dispose();
-        _masaPatronCtrls.removeLast().dispose();
-        _cargaSustCtrls.removeLast().dispose();
-        _indCtrls.removeLast().dispose();
-        _retCtrls.removeLast().dispose();
-        _errorCtrls.removeLast().dispose();
-      });
-      _saveToProvider();
-    }
+    if (_cargaCtrls.length <= 1) return;
+
+    setState(() {
+      _cargaCtrls.removeLast().dispose();
+      _indCtrls.removeLast().dispose();
+      _retCtrls.removeLast().dispose();
+      if (_cargasPatronValidadas > _cargaCtrls.length) {
+        _cargasPatronValidadas = _cargaCtrls.length;
+      }
+      if (_cargasPatronValidadas == 0) _cargasValidadas = false;
+    });
+    _saveToProvider();
   }
 
   void _onCargaChanged(int i, String val) {
-    final objetivo = double.tryParse(val) ?? 0.0;
-    final masaPatron = objetivo < _maxPatron ? objetivo : _maxPatron;
-    final cargaSust = objetivo > _maxPatron ? objetivo - _maxPatron : 0.0;
-
-    _masaPatronCtrls[i].text = _fmt(masaPatron);
-    _cargaSustCtrls[i].text = _fmt(cargaSust);
-    _indCtrls[i].text = _formatValueWithPrecision(val);
-
-    _recalcError(i);
+    if (!_cargasValidadas || i < _cargasPatronValidadas) {
+      _indCtrls[i].text = _formatValueWithPrecision(val);
+    }
     _saveToProvider();
+    setState(() {});
   }
 
   void _onIndicacionChanged(int i, String val) {
-    _recalcError(i);
     _saveToProvider();
+    setState(() {});
   }
 
-  void _recalcError(int i) {
-    final indicacion = double.tryParse(_indCtrls[i].text) ?? 0.0;
-    final masaPatron = double.tryParse(_masaPatronCtrls[i].text) ?? 0.0;
-    final cargaSust = double.tryParse(_cargaSustCtrls[i].text) ?? 0.0;
-    final error = indicacion - (masaPatron + cargaSust);
-    _errorCtrls[i].text = error.toStringAsFixed(2);
+  void _onRetornoChanged() {
+    _saveToProvider();
+    setState(() {});
   }
 
   String _fmt(double v) {
@@ -155,33 +176,80 @@ class _LinealidadStepState extends State<LinealidadStep> {
     }
   }
 
+  String _errorText(int i) {
+    final cargaReal = double.tryParse(_cargaCtrls[i].text);
+    final indicacion = double.tryParse(_indCtrls[i].text);
+    if (cargaReal == null || indicacion == null) return '';
+    return _fmt(indicacion - cargaReal);
+  }
+
+  int _filledPatronRowsCount() {
+    int count = 0;
+    for (int i = 0; i < _cargaCtrls.length; i++) {
+      final hasCarga = _cargaCtrls[i].text.trim().isNotEmpty;
+      final hasInd = _indCtrls[i].text.trim().isNotEmpty;
+      if (hasCarga && hasInd) count = i + 1;
+    }
+    return count;
+  }
+
+  void _validatePatronLoads() {
+    final count = _filledPatronRowsCount();
+    if (count <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registre al menos una carga patron con indicacion.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _cargasValidadas = true;
+      _cargasPatronValidadas = count;
+    });
+    _saveToProvider();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cargas patron validadas: $count')),
+    );
+  }
+
+  void _resetValidation() {
+    setState(() {
+      _cargasValidadas = false;
+      _cargasPatronValidadas = 0;
+    });
+    _saveToProvider();
+  }
+
   void _saveToProvider() {
-    final n = _cargaCtrls.length;
     final provider = context.read<ServiceSessionProvider>();
     provider.updateLinealidad(LinealidadData(
       metodo: _metodoCarga,
-      metodoCarga: _metodoSust,
+      metodoCarga: _validationStateForSave,
       nota: _notaCtrl.text,
-      filas: List.generate(n, (i) => FilaLinealidad(
-        carga: _cargaCtrls[i].text,
-        masaPatron: _masaPatronCtrls[i].text,
-        cargaSustitutiva: _cargaSustCtrls[i].text,
-        metodSustitucion: _metodoSust,
-        indicacion: _indCtrls[i].text,
-        retorno: _retCtrls[i].text,
-        error: _errorCtrls[i].text,
-      )),
+      filas: List.generate(_cargaCtrls.length, (i) {
+        return FilaLinealidad(
+          carga: _cargaCtrls[i].text,
+          indicacion: _indCtrls[i].text,
+          retorno: _retCtrls[i].text.isEmpty ? '0' : _retCtrls[i].text,
+        );
+      }),
     ));
   }
 
   @override
   void dispose() {
-    for (final c in _cargaCtrls) { c.dispose(); }
-    for (final c in _masaPatronCtrls) { c.dispose(); }
-    for (final c in _cargaSustCtrls) { c.dispose(); }
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
-    for (final c in _errorCtrls) { c.dispose(); }
+    for (final c in _cargaCtrls) {
+      c.dispose();
+    }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
     _notaCtrl.dispose();
     super.dispose();
   }
@@ -199,35 +267,35 @@ class _LinealidadStepState extends State<LinealidadStep> {
             children: [
               _buildHeader(isDark),
               const SizedBox(height: 24),
-
               DropdownButtonFormField<String>(
                 value: _metodoCarga,
-                decoration: _deco('Método de Carga', isDark),
+                decoration: _deco('Metodo de Carga', isDark),
                 hint: Text('Seleccione',
                     style: GoogleFonts.inter(
                         color: isDark ? Colors.white54 : Colors.black45)),
-                dropdownColor:
-                    isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: _metodoCargaOptions
                     .map((v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(v,
-                            style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A)))))
+                          value: v,
+                          child: Text(v,
+                              style: GoogleFonts.inter(
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A1A))),
+                        ))
                     .toList(),
                 onChanged: _onMetodoCargaChanged,
               ).animate(delay: 200.ms).fadeIn(),
               const SizedBox(height: 16),
-
               if (_metodoCarga != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    _metodoCarga == 'Ascenso evaluando a ceros'
-                        ? 'El ensayo retorna a cero después de cada medición.'
-                        : 'El ensayo aplica carga de forma continua sin retornos intermedios.',
+                    _metodoCarga == 'Sin metodo de carga'
+                        ? 'Registro sin metodo de carga definido.'
+                        : _metodoCarga == 'Ascenso evaluando a ceros'
+                            ? 'El ensayo retorna a cero despues de cada medicion.'
+                            : 'El ensayo aplica carga de forma continua sin retornos intermedios.',
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
@@ -235,36 +303,12 @@ class _LinealidadStepState extends State<LinealidadStep> {
                     ),
                   ).animate(delay: 250.ms).fadeIn(),
                 ),
-
-              DropdownButtonFormField<String>(
-                value: _metodoSust,
-                decoration: _deco('Método de Cargas Sustitutivas', isDark),
-                hint: Text('Seleccione',
-                    style: GoogleFonts.inter(
-                        color: isDark ? Colors.white54 : Colors.black45)),
-                dropdownColor:
-                    isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                items: _metodoSustOptions
-                    .map((v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(v,
-                            style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A)))))
-                    .toList(),
-                onChanged: _onMetodoSustChanged,
-              ).animate(delay: 300.ms).fadeIn(),
-              const SizedBox(height: 16),
-
-              if (_metodoSust != null) _buildSustitucionHelp(isDark),
-
-              if (_metodoCarga != null && _metodoSust != null) ...[
+              if (_metodoCarga != null) ...[
+                _buildValidationHelp(isDark),
                 const SizedBox(height: 8),
                 _buildPuntosSection(isDark),
                 const SizedBox(height: 20),
               ],
-
               TextField(
                 style: GoogleFonts.inter(
                     color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
@@ -296,7 +340,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
         ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
         const SizedBox(height: 4),
         Text(
-          'Registro de ensayos de linealidad con cargas sustitutivas',
+          'Registro de cargas patron y cargas sustitutivas',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: isDark ? Colors.white54 : Colors.black45,
@@ -307,177 +351,203 @@ class _LinealidadStepState extends State<LinealidadStep> {
     );
   }
 
-  Widget _buildSustitucionHelp(bool isDark) {
-    final isMetodo1 = _metodoSust == 'Método 1';
-    final title = isMetodo1 ? 'Método 1 — Sustitución Única' : 'Método 2 — Sustituciones Sucesivas';
-    final desc = isMetodo1
-        ? 'Para cada punto que supere los $_maxPatron kg de masa patrón, la carga sustitutiva se calcula como:\n\n'
-            '    Carga Sustitutiva = Carga Objetivo − $_maxPatron kg\n\n'
-            'Ejemplo: Para 700 kg → Masa Patrón = 500 kg + Carga Sustitutiva = 200 kg\n'
-            'Cada sustitución es independiente del punto anterior.'
-        : 'Cada nuevo punto de calibración parte de la sustitución acumulada del punto anterior:\n\n'
-            'Paso 1: Cargue $_maxPatron kg de masa patrón.\n'
-            'Paso 2: Reemplace las masas patrón por material de sustitución hasta obtener la misma indicación.\n'
-            'Paso 3: Agregue masa patrón sobre la sustitución para alcanzar el siguiente punto.\n'
-            'Repita el proceso para cada punto sucesivo.';
-
+  Widget _buildValidationHelp(bool isDark) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.teal.withOpacity(0.08)
             : Colors.teal.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.teal.withOpacity(0.3) : Colors.teal.withOpacity(0.2),
+          color: isDark
+              ? Colors.teal.withOpacity(0.3)
+              : Colors.teal.withOpacity(0.2),
         ),
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.info_outline_rounded, size: 18, color: Colors.teal),
-            const SizedBox(width: 8),
-            Text(title,
-                style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal)),
-          ]),
-          const SizedBox(height: 10),
-          Text(desc,
+          Icon(
+            _cargasValidadas
+                ? Icons.check_circle_outline_rounded
+                : Icons.info_outline_rounded,
+            size: 18,
+            color: Colors.teal,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _cargasValidadas
+                  ? 'Cargas patron validadas: $_cargasPatronValidadas. Ya puede agregar cargas sustitutivas usando el asistente.'
+                  : 'Primero registre y revise las cargas de sus pesas patron. Cuando termine, pulse Validar cargas para habilitar el calculo de cargas sustitutivas.',
               style: GoogleFonts.inter(
-                  fontSize: 12,
-                  height: 1.5,
-                  color: isDark ? Colors.white70 : Colors.black87)),
+                fontSize: 12,
+                height: 1.45,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          ),
         ],
       ),
-    ).animate(delay: 350.ms).fadeIn();
+    ).animate(delay: 300.ms).fadeIn();
   }
 
   Widget _buildPuntosSection(bool isDark) {
-    final showRetorno = _metodoCarga == 'Ascenso evaluando a ceros';
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _sectionHeader('Puntos de Calibración', isDark),
-            Row(children: [
-              IconButton(
-                icon: Icon(Icons.add_circle_outline_rounded,
-                    color: Colors.teal, size: 22),
-                onPressed: _addRow,
-                tooltip: 'Agregar fila',
-              ),
-              IconButton(
-                icon: Icon(Icons.remove_circle_outline_rounded,
-                    color: Colors.teal, size: 22),
-                onPressed: _removeRow,
-                tooltip: 'Eliminar última fila',
-              ),
-            ]),
+            _sectionHeader('Puntos de Calibracion', isDark),
+            Wrap(
+              spacing: 4,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline_rounded,
+                      color: Colors.teal, size: 22),
+                  onPressed: _addRow,
+                  tooltip: 'Agregar fila',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle_outline_rounded,
+                      color: Colors.teal, size: 22),
+                  onPressed: _removeRow,
+                  tooltip: 'Eliminar ultima fila',
+                ),
+                if (_cargasValidadas)
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded,
+                        color: Colors.teal, size: 22),
+                    onPressed: _resetValidation,
+                    tooltip: 'Volver a validar cargas',
+                  ),
+              ],
+            ),
           ],
         ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _cargasValidadas ? null : _validatePatronLoads,
+                icon: const Icon(Icons.verified_outlined, size: 18),
+                label: const Text('Validar cargas'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.teal,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(children: [
-                  const SizedBox(width: 30),
-                  Expanded(flex: 2, child: _headerText('Carga\nObjetivo', isDark)),
-                  Expanded(flex: 2, child: _headerText('Masa\nPatrón', isDark)),
-                  Expanded(flex: 2, child: _headerText('Carga\nSust.', isDark)),
-                  Expanded(flex: 2, child: _headerText('Indicación', isDark)),
-                  if (showRetorno)
-                    Expanded(flex: 2, child: _headerText('Retorno', isDark)),
-                  Expanded(flex: 2, child: _headerText('Error', isDark)),
-                ]),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
+                icon: const Icon(Icons.calculate_outlined, size: 18),
+                label: const Text('Carga sustitutiva'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
-              const SizedBox(height: 4),
-              ...List.generate(
-                  _cargaCtrls.length,
-                  (i) => Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 3),
-                        child: Row(children: [
-                          SizedBox(
-                              width: 30,
-                              child: Text('${i + 1}',
-                                  textAlign: TextAlign.center,
-                                  style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : Colors.black87))),
-                          Expanded(
-                              flex: 2,
-                              child: _cargaField(i, isDark)),
-                          Expanded(
-                              flex: 2,
-                              child: _readonlyField(
-                                  _masaPatronCtrls[i], isDark)),
-                          Expanded(
-                              flex: 2,
-                              child: _readonlyField(
-                                  _cargaSustCtrls[i], isDark)),
-                          Expanded(
-                              flex: 2,
-                              child: _indicationField(i, isDark)),
-                          if (showRetorno)
-                            Expanded(
-                                flex: 2,
-                                child: _retornoField(i, isDark)),
-                          Expanded(
-                              flex: 2,
-                              child: _readonlyField(
-                                  _errorCtrls[i], isDark)),
-                        ]),
-                      )),
-              const SizedBox(height: 12),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Column(
+          children: List.generate(
+            _cargaCtrls.length,
+            (i) => _buildPuntoRows(i, isDark),
           ),
         ).animate(delay: 400.ms).fadeIn(),
       ],
     );
   }
 
-  Widget _headerText(String text, bool isDark) {
-    return Text(text,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.inter(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            height: 1.3,
-            color: isDark ? Colors.white70 : Colors.grey[600]));
+  Widget _buildPuntoRows(int i, bool isDark) {
+    final isSustitutiva = _cargasValidadas && i >= _cargasPatronValidadas;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Carga ${i + 1}',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+              if (isSustitutiva) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.withOpacity(isDark ? 0.18 : 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Sustitutiva',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Divider(
+                  color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                  thickness: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _cargaField(i, isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _indicationField(i, isDark)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _retornoField(i, isDark)),
+              const SizedBox(width: 10),
+              Expanded(child: _errorField(i, isDark)),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
-  InputDecoration _fieldDecoration(bool isDark, {Widget? suffixIcon}) {
+  InputDecoration _fieldDecoration(
+    bool isDark, {
+    String? labelText,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       isDense: true,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      labelText: labelText,
+      labelStyle: GoogleFonts.inter(
+        fontSize: 12,
+        color: isDark ? Colors.white54 : Colors.black54,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
@@ -487,32 +557,21 @@ class _LinealidadStepState extends State<LinealidadStep> {
           borderSide:
               BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       suffixIcon: suffixIcon,
+      suffixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
     );
   }
 
   Widget _cargaField(int i, bool isDark) {
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 12,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _cargaCtrls[i],
       onChanged: (val) => _onCargaChanged(i, val),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
       ],
-      decoration: _fieldDecoration(isDark),
-    );
-  }
-
-  Widget _readonlyField(TextEditingController ctrl, bool isDark) {
-    return TextField(
-      style: GoogleFonts.inter(
-          fontSize: 12,
-          color: isDark ? Colors.white38 : Colors.black45),
-      controller: ctrl,
-      readOnly: true,
-      decoration: _fieldDecoration(isDark),
+      decoration: _fieldDecoration(isDark, labelText: 'Carga real'),
     );
   }
 
@@ -520,20 +579,21 @@ class _LinealidadStepState extends State<LinealidadStep> {
     final hasBase = _cargaCtrls[i].text.isNotEmpty;
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 12,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[i],
       onChanged: (val) => _onIndicacionChanged(i, val),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
       ],
-      decoration: _fieldDecoration(isDark,
+      decoration: _fieldDecoration(
+        isDark,
+        labelText: 'Indicacion',
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 18),
+                child: const Icon(Icons.unfold_more_rounded,
+                    color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -543,15 +603,28 @@ class _LinealidadStepState extends State<LinealidadStep> {
   Widget _retornoField(int i, bool isDark) {
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 12,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _retCtrls[i],
-      onChanged: (_) => _saveToProvider(),
+      onChanged: (_) => _onRetornoChanged(),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
       ],
-      decoration: _fieldDecoration(isDark),
+      decoration: _fieldDecoration(isDark, labelText: 'Retorno a cero'),
+    );
+  }
+
+  Widget _errorField(int i, bool isDark) {
+    final error = _errorText(i);
+    return InputDecorator(
+      decoration: _fieldDecoration(isDark, labelText: 'Error'),
+      child: Text(
+        error.isEmpty ? '-' : error,
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          color: isDark ? Colors.white60 : Colors.black54,
+        ),
+      ),
     );
   }
 
@@ -568,7 +641,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
       context: context,
       balanza: balanza,
       baseValue: cargaValue,
-      title: 'Indicación - Punto ${rowIdx + 1}',
+      title: 'Indicacion - Punto ${rowIdx + 1}',
       isDark: isDark,
     ).then((selected) {
       if (selected != null) {
@@ -576,6 +649,370 @@ class _LinealidadStepState extends State<LinealidadStep> {
         _onIndicacionChanged(rowIdx, selected);
       }
     });
+  }
+
+  void _showCargaSustitutivaSheet() {
+    if (!_cargasValidadas || _cargasPatronValidadas <= 0) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final indicacionCtrl = TextEditingController();
+    final validatedLoads = _referenceLoads();
+    final baseLoads = _baseLoads();
+    if (validatedLoads.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay cargas patron validas para usar.'),
+        ),
+      );
+      indicacionCtrl.dispose();
+      return;
+    }
+    if (baseLoads.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No hay cargas base validadas para sumar.'),
+        ),
+      );
+      indicacionCtrl.dispose();
+      return;
+    }
+    int selectedBaseIndex = baseLoads.last.index;
+    int selectedLoadIndex = validatedLoads.last.index;
+    bool referenceSelectedManually = false;
+
+    showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            final indicacion = double.tryParse(indicacionCtrl.text) ?? 0.0;
+            final selectedLoad = validatedLoads.firstWhere(
+              (load) => load.index == selectedLoadIndex,
+              orElse: () => validatedLoads.last,
+            );
+            final selectedBase = baseLoads.firstWhere(
+              (load) => load.index == selectedBaseIndex,
+              orElse: () => baseLoads.last,
+            );
+            final patronCarga = selectedLoad.carga;
+            final patronError = selectedLoad.error;
+            final cargaRealSustitutiva = indicacion - patronError;
+            final acumulado = selectedBase.carga + cargaRealSustitutiva;
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sheetHandle(isDark),
+                  _sheetTitle('Carga sustitutiva', isDark),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ingrese la indicacion obtenida con la carga sustitutiva. Elija la carga base que se sumara; el error se toma de la referencia mas cercana a la indicacion.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      height: 1.4,
+                      color: isDark ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<int>(
+                    isExpanded: true,
+                    value: selectedBaseIndex,
+                    decoration: _deco('Carga base para sumar', isDark),
+                    dropdownColor:
+                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                    selectedItemBuilder: (context) => baseLoads
+                        .map(
+                          (load) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Carga ${load.index + 1}: ${_fmt(load.carga)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    items: baseLoads
+                        .map(
+                          (load) => DropdownMenuItem(
+                            value: load.index,
+                            child: Text(
+                              'Carga ${load.index + 1}: ${_fmt(load.carga)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setSheetState(() => selectedBaseIndex = value);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    isExpanded: true,
+                    value: selectedLoadIndex,
+                    decoration:
+                        _deco('Carga de referencia para correccion', isDark),
+                    dropdownColor:
+                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                    selectedItemBuilder: (context) => validatedLoads
+                        .map(
+                          (load) => Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Carga ${load.index + 1}: ${_fmt(load.carga)} | Err ${_fmt(load.error)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    items: validatedLoads
+                        .map(
+                          (load) => DropdownMenuItem(
+                            value: load.index,
+                            child: Text(
+                              'Carga ${load.index + 1}: ${_fmt(load.carga)} | Ind ${_fmt(load.indicacion)} | Error ${_fmt(load.error)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setSheetState(() {
+                        selectedLoadIndex = value;
+                        referenceSelectedManually = true;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  _sheetNumberField(
+                    controller: indicacionCtrl,
+                    label: 'Indicacion carga sustitutiva',
+                    isDark: isDark,
+                    onChanged: (value) {
+                      final reference = double.tryParse(value);
+                      setSheetState(() {
+                        if (!referenceSelectedManually && reference != null) {
+                          selectedLoadIndex =
+                              _nearestReferenceLoad(reference, validatedLoads)
+                                  .index;
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  _sheetResult(
+                    'Carga base a sumar: ${_fmt(selectedBase.carga)}\n'
+                    'Referencia elegida: ${_fmt(patronCarga)}\n'
+                    'Error referencia: ${_fmt(patronError)}\n'
+                    'Carga real sustitutiva: ${_fmt(cargaRealSustitutiva)}\n'
+                    'Carga acumulada a registrar: ${_fmt(acumulado)}',
+                    isDark,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: indicacionCtrl.text.trim().isEmpty
+                          ? null
+                          : () => Navigator.pop(ctx, _fmt(acumulado)),
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('Guardar carga sustitutiva'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).then((selected) {
+      if (selected != null) _appendSustitutiveRow(selected);
+    });
+  }
+
+  void _appendSustitutiveRow(String carga) {
+    final targetIndex = _firstEmptyRowFrom(_cargasPatronValidadas);
+    if (targetIndex == null && _cargaCtrls.length >= _maxPuntos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximo 60 puntos permitidos')),
+      );
+      return;
+    }
+
+    final formattedCarga = _formatValueWithPrecision(carga);
+    setState(() {
+      if (targetIndex != null) {
+        _cargaCtrls[targetIndex].text = formattedCarga;
+        _indCtrls[targetIndex].clear();
+        _retCtrls[targetIndex].text = '0';
+      } else {
+        _cargaCtrls.add(TextEditingController(text: formattedCarga));
+        _indCtrls.add(TextEditingController());
+        _retCtrls.add(TextEditingController(text: '0'));
+      }
+    });
+    _saveToProvider();
+  }
+
+  int? _firstEmptyRowFrom(int startIndex) {
+    for (int i = startIndex; i < _cargaCtrls.length; i++) {
+      final hasCarga = _cargaCtrls[i].text.trim().isNotEmpty;
+      final hasInd = _indCtrls[i].text.trim().isNotEmpty;
+      if (!hasCarga && !hasInd) return i;
+    }
+    return null;
+  }
+
+  List<_ValidatedLoad> _referenceLoads() {
+    final loads = <_ValidatedLoad>[];
+    for (int i = 0; i < _cargaCtrls.length; i++) {
+      final carga = double.tryParse(_cargaCtrls[i].text);
+      final indicacion = double.tryParse(_indCtrls[i].text);
+      if (carga == null || indicacion == null) continue;
+      loads.add(_ValidatedLoad(
+        index: i,
+        carga: carga,
+        indicacion: indicacion,
+        error: indicacion - carga,
+      ));
+    }
+    return loads;
+  }
+
+  List<_ValidatedLoad> _baseLoads() {
+    final loads = <_ValidatedLoad>[];
+    for (int i = 0; i < _cargasPatronValidadas && i < _cargaCtrls.length; i++) {
+      final carga = double.tryParse(_cargaCtrls[i].text);
+      final indicacion = double.tryParse(_indCtrls[i].text);
+      if (carga == null || indicacion == null) continue;
+      loads.add(_ValidatedLoad(
+        index: i,
+        carga: carga,
+        indicacion: indicacion,
+        error: indicacion - carga,
+      ));
+    }
+    return loads;
+  }
+
+  _ValidatedLoad _nearestReferenceLoad(
+    double reference,
+    List<_ValidatedLoad> loads,
+  ) {
+    _ValidatedLoad nearest = loads.first;
+    for (final load in loads.skip(1)) {
+      if ((reference - load.indicacion).abs() <
+          (reference - nearest.indicacion).abs()) {
+        nearest = load;
+      }
+    }
+    return nearest;
+  }
+
+  Widget _sheetHandle(bool isDark) {
+    return Center(
+      child: Container(
+        width: 40,
+        height: 4,
+        margin: const EdgeInsets.only(bottom: 14),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white24 : Colors.black26,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  Widget _sheetTitle(String title, bool isDark) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+      ),
+    );
+  }
+
+  Widget _sheetNumberField({
+    required TextEditingController controller,
+    required String label,
+    required bool isDark,
+    required ValueChanged<String> onChanged,
+  }) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
+      ],
+      decoration: _deco(label, isDark),
+    );
+  }
+
+  Widget _sheetResult(String text, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.teal.withOpacity(0.12)
+            : Colors.teal.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.teal.withOpacity(0.25)),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.robotoMono(
+          fontSize: 13,
+          height: 1.5,
+          color: isDark ? Colors.white70 : Colors.black87,
+        ),
+      ),
+    );
   }
 
   Widget _sectionHeader(String title, bool isDark) {
@@ -602,4 +1039,18 @@ class _LinealidadStepState extends State<LinealidadStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
+}
+
+class _ValidatedLoad {
+  final int index;
+  final double carga;
+  final double indicacion;
+  final double error;
+
+  const _ValidatedLoad({
+    required this.index,
+    required this.carga,
+    required this.indicacion,
+    required this.error,
+  });
 }

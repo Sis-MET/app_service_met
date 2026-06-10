@@ -15,7 +15,12 @@ class ExcentricidadStep extends StatefulWidget {
 }
 
 class _ExcentricidadStepState extends State<ExcentricidadStep> {
-  static const _plataformas = ['Cuadrada', 'Rectangular', 'Circular', 'Triangular'];
+  static const _plataformas = [
+    'Cuadrada',
+    'Rectangular',
+    'Circular',
+    'Triangular'
+  ];
 
   String? _tipoPlataforma;
   String? _puntosIndicacion;
@@ -221,15 +226,13 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
             children: [
               _buildHeader(isDark),
               const SizedBox(height: 24),
-
               DropdownButtonFormField<String>(
                 value: _tipoPlataforma,
                 decoration: _deco('Tipo de Plataforma', isDark),
                 hint: Text('Seleccione',
                     style: GoogleFonts.inter(
                         color: isDark ? Colors.white54 : Colors.black45)),
-                dropdownColor:
-                    isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: _plataformas
                     .map((v) => DropdownMenuItem(
                         value: v,
@@ -242,7 +245,6 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 onChanged: _onPlataformaChanged,
               ).animate(delay: 200.ms).fadeIn(),
               const SizedBox(height: 16),
-
               if (_tipoPlataforma != null) ...[
                 DropdownButtonFormField<String>(
                   value: _puntosIndicacion,
@@ -267,15 +269,11 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 _buildDirectionButtons(isDark),
                 const SizedBox(height: 16),
               ],
-
               _buildPlatformDiagram(isDark),
-
               const SizedBox(height: 16),
-
               TextField(
                 style: GoogleFonts.inter(
-                    color:
-                        isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                 controller: _cargaCtrl,
                 onChanged: (_) {
                   _reflectCargaToIndicaciones();
@@ -285,11 +283,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
                 ],
-                decoration: _deco('Carga (kg)', isDark),
+                decoration: _deco('Carga', isDark),
               ).animate(delay: 450.ms).fadeIn(),
-
               const SizedBox(height: 24),
-
               if (_rows.isNotEmpty) ...[
                 _sectionHeader('Posiciones', isDark),
                 const SizedBox(height: 12),
@@ -300,18 +296,16 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                           style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: isDark
-                                  ? Colors.white70
-                                  : Colors.grey[600]),
+                              color:
+                                  isDark ? Colors.white70 : Colors.grey[600]),
                           textAlign: TextAlign.center)),
                   Expanded(
                       child: Text('Retorno',
                           style: GoogleFonts.inter(
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
-                              color: isDark
-                                  ? Colors.white70
-                                  : Colors.grey[600]),
+                              color:
+                                  isDark ? Colors.white70 : Colors.grey[600]),
                           textAlign: TextAlign.center)),
                 ]),
                 const SizedBox(height: 8),
@@ -345,12 +339,10 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                           ]),
                         )).animate(delay: 500.ms).fadeIn(),
               ],
-
               const SizedBox(height: 20),
               TextField(
                 style: GoogleFonts.inter(
-                    color:
-                        isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                 controller: _notaCtrl,
                 onChanged: (_) => _saveToProvider(),
                 maxLines: 3,
@@ -392,7 +384,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
   String _getBalanceUnit() {
     try {
-      return context.read<ServiceSessionProvider>().session?.balanza?.unidad ?? 'kg';
+      return context.read<ServiceSessionProvider>().session?.balanza?.unidad ??
+          'kg';
     } catch (_) {
       return 'kg';
     }
@@ -461,11 +454,15 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                                 shape: BoxShape.circle,
                                 color: _selectedPosition == i + 1
                                     ? Colors.teal
-                                    : (isDark ? Colors.grey[700] : Colors.grey[300]),
+                                    : (isDark
+                                        ? Colors.grey[700]
+                                        : Colors.grey[300]),
                                 border: Border.all(
                                   color: _selectedPosition == i + 1
                                       ? Colors.tealAccent
-                                      : (isDark ? Colors.white38 : Colors.black26),
+                                      : (isDark
+                                          ? Colors.white38
+                                          : Colors.black26),
                                   width: _selectedPosition == i + 1 ? 3 : 2,
                                 ),
                                 boxShadow: _selectedPosition == i + 1
@@ -484,7 +481,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                                   style: TextStyle(
                                     color: _selectedPosition == i + 1
                                         ? Colors.white
-                                        : (isDark ? Colors.white : Colors.black87),
+                                        : (isDark
+                                            ? Colors.white
+                                            : Colors.black87),
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -543,24 +542,33 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         height: 44,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: selected ? Colors.teal : (isDark ? const Color(0xFF2A2A2A) : Colors.grey[100]),
+          color: selected
+              ? Colors.teal
+              : (isDark ? const Color(0xFF2A2A2A) : Colors.grey[100]),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: selected ? Colors.tealAccent : (isDark ? Colors.white24 : Colors.black12),
+            color: selected
+                ? Colors.tealAccent
+                : (isDark ? Colors.white24 : Colors.black12),
             width: selected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16,
-              color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black54)),
+            Icon(icon,
+                size: 16,
+                color: selected
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.black54)),
             const SizedBox(width: 4),
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
                     fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                    color: selected ? Colors.white : (isDark ? Colors.white70 : Colors.black54))),
+                    color: selected
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : Colors.black54))),
           ],
         ),
       ),
@@ -581,27 +589,24 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     final hasBase = _cargaCtrl.text.isNotEmpty;
     return TextField(
       style: GoogleFonts.inter(
-          color:
-              isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _rows[i][0],
       onChanged: (_) => _saveToProvider(),
-      keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
       ],
       decoration: InputDecoration(
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
@@ -619,8 +624,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     if (cargaValue == null) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final balanza =
-        context.read<ServiceSessionProvider>().session?.balanza;
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
     if (balanza == null) return;
 
     SuggestionHelper.showSuggestedValues(
@@ -652,12 +656,12 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
               const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white24 : Colors.black26)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : Colors.black12)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         ),
       );
 
@@ -695,31 +699,47 @@ class _PlatformPainter extends CustomPainter {
     switch (tipo) {
       case 'Cuadrada':
         switch (posicion) {
-          case 'frente': return Offset(w * 0.5, h * 0.85);
-          case 'atras':  return Offset(w * 0.5, h * 0.15);
-          case 'izquierda': return Offset(w * 0.15, h * 0.5);
-          case 'derecha':   return Offset(w * 0.85, h * 0.5);
+          case 'frente':
+            return Offset(w * 0.5, h * 0.85);
+          case 'atras':
+            return Offset(w * 0.5, h * 0.15);
+          case 'izquierda':
+            return Offset(w * 0.15, h * 0.5);
+          case 'derecha':
+            return Offset(w * 0.85, h * 0.5);
         }
       case 'Rectangular':
         switch (posicion) {
-          case 'frente': return Offset(w * 0.5, h * 0.75);
-          case 'atras':  return Offset(w * 0.5, h * 0.25);
-          case 'izquierda': return Offset(w * 0.12, h * 0.5);
-          case 'derecha':   return Offset(w * 0.88, h * 0.5);
+          case 'frente':
+            return Offset(w * 0.5, h * 0.75);
+          case 'atras':
+            return Offset(w * 0.5, h * 0.25);
+          case 'izquierda':
+            return Offset(w * 0.12, h * 0.5);
+          case 'derecha':
+            return Offset(w * 0.88, h * 0.5);
         }
       case 'Circular':
         switch (posicion) {
-          case 'frente': return Offset(w * 0.5, h * 0.90);
-          case 'atras':  return Offset(w * 0.5, h * 0.10);
-          case 'izquierda': return Offset(w * 0.10, h * 0.5);
-          case 'derecha':   return Offset(w * 0.90, h * 0.5);
+          case 'frente':
+            return Offset(w * 0.5, h * 0.90);
+          case 'atras':
+            return Offset(w * 0.5, h * 0.10);
+          case 'izquierda':
+            return Offset(w * 0.10, h * 0.5);
+          case 'derecha':
+            return Offset(w * 0.90, h * 0.5);
         }
       case 'Triangular':
         switch (posicion) {
-          case 'frente': return Offset(w * 0.5, h * 0.90);
-          case 'atras':  return Offset(w * 0.5, h * 0.10);
-          case 'izquierda': return Offset(w * 0.10, h * 0.90);
-          case 'derecha':   return Offset(w * 0.90, h * 0.90);
+          case 'frente':
+            return Offset(w * 0.5, h * 0.90);
+          case 'atras':
+            return Offset(w * 0.5, h * 0.10);
+          case 'izquierda':
+            return Offset(w * 0.10, h * 0.90);
+          case 'derecha':
+            return Offset(w * 0.90, h * 0.90);
         }
     }
     return Offset.zero;
@@ -787,12 +807,14 @@ class _PlatformPainter extends CustomPainter {
       final ip = Paint()
         ..color = Colors.teal
         ..style = PaintingStyle.fill;
-      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(5)), ip);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(r, const Radius.circular(5)), ip);
       ip
         ..color = Colors.teal.withOpacity(0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
-      canvas.drawRRect(RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(8)), ip);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(8)), ip);
 
       tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
     }

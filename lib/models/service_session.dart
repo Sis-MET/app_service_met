@@ -156,12 +156,8 @@ class ServiceSession {
       if (linealidad?.filas != null)
         for (int i = 0; i < linealidad!.filas.length; i++) ...{
           'lin${i + 1}': linealidad!.filas[i].carga,
-          'mp_lin${i + 1}': linealidad!.filas[i].masaPatron,
-          'cs_lin${i + 1}': linealidad!.filas[i].cargaSustitutiva,
-          'ms_lin${i + 1}': linealidad!.filas[i].metodSustitucion,
           'ind${i + 1}': linealidad!.filas[i].indicacion,
           'retorno_lin${i + 1}': linealidad!.filas[i].retorno,
-          'err_lin${i + 1}': linealidad!.filas[i].error,
         },
       // Condiciones Finales
       if (condicionesFinales?.horaFin != null) 'hora_fin': condicionesFinales!.horaFin,
@@ -227,7 +223,21 @@ class ServiceSession {
     }
 
     List<FilaLinealidad> filasLin = [];
-    for(int i=1; i<=12; i++) {
+    int lastLinealidadIndex = 0;
+    for (int i = 1; i <= 60; i++) {
+      final hasData = [
+        map['lin$i'],
+        map['ind$i'],
+        map['retorno_lin$i'],
+        map['mp_lin$i'],
+        map['cs_lin$i'],
+        map['ms_lin$i'],
+        map['err_lin$i'],
+      ].any((value) => value != null && value.toString().isNotEmpty);
+      if (hasData) lastLinealidadIndex = i;
+    }
+
+    for(int i=1; i<=lastLinealidadIndex; i++) {
        filasLin.add(FilaLinealidad(
           carga: map['lin$i'],
           masaPatron: map['mp_lin$i'],
