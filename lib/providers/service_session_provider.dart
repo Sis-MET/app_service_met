@@ -5,7 +5,7 @@ import 'package:service_met/repositories/calibration_repository.dart';
 
 class ServiceSessionProvider extends ChangeNotifier {
   final CalibrationRepository _repository;
-  
+
   ServiceSession? _session;
   int _currentStep = 0;
   bool _isLoading = false;
@@ -17,7 +17,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   Map<String, double> _dValues = {};
 
   String _cotizacionSuffix = 'C01';
-  
+
   ServiceSessionProvider(this._repository);
 
   // --- Getters ---
@@ -41,8 +41,8 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (secaValue != null && sessionId != null) {
       await loadExistingSession(secaValue, sessionId);
       if (_session == null) {
-         // Fallback if not found
-         await createNewSession(userName, secaValue: secaValue);
+        // Fallback if not found
+        await createNewSession(userName, secaValue: secaValue);
       }
     } else {
       await createNewSession(userName);
@@ -77,9 +77,8 @@ class ServiceSessionProvider extends ChangeNotifier {
   void goToStep(int step) {
     if (step >= 0 && step < 12 && _session != null) {
       _currentStep = step;
-      _session = _session!.copyWith(
-        metadata: _session!.metadata.copyWith(currentStep: step)
-      );
+      _session = _session!
+          .copyWith(metadata: _session!.metadata.copyWith(currentStep: step));
       notifyListeners();
       _scheduleAutoSave();
     }
@@ -99,20 +98,22 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   bool canGoToStep(int step) {
     if (_session == null) return false;
-    
+
     // Paso 0: Cliente (siempre accesible)
     if (step == 0) return true;
 
     // Paso 1: Planta (requiere Cliente seleccionado o nuevo)
     if (step >= 1) {
-      if (_session!.cliente?.nombreComercial == null || _session!.cliente!.nombreComercial!.isEmpty) {
+      if (_session!.cliente?.nombreComercial == null ||
+          _session!.cliente!.nombreComercial!.isEmpty) {
         return false;
       }
     }
 
     // Paso 2: SECA (requiere Planta seleccionada o nueva)
     if (step >= 2) {
-      if (_session!.planta?.nombre == null || _session!.planta!.nombre!.isEmpty) {
+      if (_session!.planta?.nombre == null ||
+          _session!.planta!.nombre!.isEmpty) {
         return false;
       }
     }
@@ -228,7 +229,9 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   Future<void> _autoSave() async {
-    if (_session == null || _session!.sessionInfo.seca == null || _session!.sessionInfo.sessionId == null) {
+    if (_session == null ||
+        _session!.sessionInfo.seca == null ||
+        _session!.sessionInfo.sessionId == null) {
       return;
     }
 
@@ -236,14 +239,12 @@ class ServiceSessionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.saveSession(
-        _session!.sessionInfo.seca!,
-        _session!.sessionInfo.sessionId!,
-        _session!
-      );
+      await _repository.saveSession(_session!.sessionInfo.seca!,
+          _session!.sessionInfo.sessionId!, _session!);
       _lastSaveSuccessful = true;
       // Actualizar dValues
-      _dValues = await _repository.getDValues(_session!.sessionInfo.seca!, _session!.sessionInfo.sessionId!);
+      _dValues = await _repository.getDValues(
+          _session!.sessionInfo.seca!, _session!.sessionInfo.sessionId!);
     } catch (e) {
       _lastSaveSuccessful = false;
       debugPrint('Error en auto-save: $e');
@@ -278,11 +279,11 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   Future<bool> confirmSeca() async {
     if (_session == null) return false;
-    
+
     final seca = getProposedSeca();
-    
+
     String sessionId = await _repository.generateSessionId(seca);
-    
+
     _session = _session!.copyWith(
       sessionInfo: _session!.sessionInfo.copyWith(
         seca: seca,
@@ -290,7 +291,7 @@ class ServiceSessionProvider extends ChangeNotifier {
       ),
       metadata: _session!.metadata.copyWith(secaConfirmed: true),
     );
-    
+
     await flushAutoSave();
     return true;
   }
@@ -304,23 +305,63 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateBalanza() {
-    if (_session == null) return "Sesión no inicializada.";
-    
+    if (_session == null) {
+      return "Sesion no inicializada.";
+    }
+
     final info = _session!.sessionInfo;
-    if (info.nReca == null || info.nReca!.trim().isEmpty) return "Debe ingresar el N° RECA.";
-    if (info.sticker == null || info.sticker!.trim().isEmpty) return "Debe ingresar el N° Sticker.";
-    
+    if (info.nReca == null || info.nReca!.trim().isEmpty) {
+      return "Debe ingresar el Nro. RECA.";
+    }
+    if (info.sticker == null || info.sticker!.trim().isEmpty) {
+      return "Debe ingresar el Nro. Sticker.";
+    }
+
     final b = _session!.balanza;
-    if (b == null) return "Debe seleccionar o registrar una balanza.";
-    if (b.codMetrica == null || b.codMetrica!.trim().isEmpty) return "Falta el Código Métrica.";
-    if (b.tipo == null || b.tipo!.trim().isEmpty) return "Falta el Tipo de Instrumento.";
-    if (b.marca == null || b.marca!.trim().isEmpty) return "Falta la Marca.";
-    if (b.modelo == null || b.modelo!.trim().isEmpty) return "Falta el Modelo.";
-    if (b.serie == null || b.serie!.trim().isEmpty) return "Falta la Serie.";
-    if (b.capMax1 == null || b.capMax1!.trim().isEmpty) return "Falta la Capacidad Máxima (Rango 1).";
-    if (b.d1 == null) return "Falta la división d (Rango 1).";
-    if (b.e1 == null) return "Falta la división e (Rango 1).";
-    
+    if (b == null) {
+      return "Debe seleccionar o registrar una balanza.";
+    }
+    if (b.codMetrica == null || b.codMetrica!.trim().isEmpty) {
+      return "Falta el Codigo Metrica.";
+    }
+    if (b.tipo == null || b.tipo!.trim().isEmpty) {
+      return "Falta el Tipo de Instrumento.";
+    }
+    if (b.marca == null || b.marca!.trim().isEmpty) {
+      return "Falta la Marca.";
+    }
+    if (b.modelo == null || b.modelo!.trim().isEmpty) {
+      return "Falta el Modelo.";
+    }
+    if (b.serie == null || b.serie!.trim().isEmpty) {
+      return "Falta la Serie.";
+    }
+    if (b.capMax1 == null || b.capMax1!.trim().isEmpty) {
+      return "Falta la Capacidad Maxima (Rango 1).";
+    }
+    if (b.d1 == null) {
+      return "Falta la division d (Rango 1).";
+    }
+    if (b.e1 == null) {
+      return "Falta la division e (Rango 1).";
+    }
+
+    final pesas = _session!.equipos.where((e) {
+      final tipo = e.tipo?.toLowerCase() ?? '';
+      return tipo.contains('pesa') ||
+          tipo.contains('masa') ||
+          tipo.contains('patron') ||
+          tipo.contains('patr');
+    }).length;
+    final medicion = _session!.equipos.length - pesas;
+
+    if (pesas < 1) {
+      return "Debe seleccionar al menos una pesa patron.";
+    }
+    if (medicion < 1) {
+      return "Debe seleccionar al menos un termohigrometro, barometro o instrumento de medicion.";
+    }
+
     return null;
   }
 
@@ -338,28 +379,38 @@ class ServiceSessionProvider extends ChangeNotifier {
     }
 
     const entornoFields = [
-      'vibracion', 'polvo', 'temp', 'humedad',
-      'mesada', 'iluminacion', 'limp_foza', 'estado_drenaje',
+      'vibracion',
+      'polvo',
+      'temp',
+      'humedad',
+      'mesada',
+      'iluminacion',
+      'limp_foza',
+      'estado_drenaje',
     ];
     const balanzaFields = [
-      'limp_general', 'golpes_terminal', 'nivelacion',
-      'limp_recepto', 'golpes_receptor', 'encendido',
+      'limp_general',
+      'golpes_terminal',
+      'nivelacion',
+      'limp_recepto',
+      'golpes_receptor',
+      'encendido',
     ];
     const fieldLabels = {
-      'vibracion':      'Vibración',
-      'polvo':          'Polvo',
-      'temp':           'Temperatura',
-      'humedad':        'Humedad',
-      'mesada':         'Mesada',
-      'iluminacion':    'Iluminación',
-      'limp_foza':      'Limpieza de Fosa',
+      'vibracion': 'Vibración',
+      'polvo': 'Polvo',
+      'temp': 'Temperatura',
+      'humedad': 'Humedad',
+      'mesada': 'Mesada',
+      'iluminacion': 'Iluminación',
+      'limp_foza': 'Limpieza de Fosa',
       'estado_drenaje': 'Estado de Drenaje',
-      'limp_general':   'Limpieza General',
-      'golpes_terminal':'Golpes al Terminal',
-      'nivelacion':     'Nivelación',
-      'limp_recepto':   'Limpieza Receptor',
-      'golpes_receptor':'Golpes al Receptor de Carga',
-      'encendido':      'Encendido',
+      'limp_general': 'Limpieza General',
+      'golpes_terminal': 'Golpes al Terminal',
+      'nivelacion': 'Nivelación',
+      'limp_recepto': 'Limpieza Receptor',
+      'golpes_receptor': 'Golpes al Receptor de Carga',
+      'encendido': 'Encendido',
     };
 
     for (final key in [...entornoFields, ...balanzaFields]) {
@@ -376,7 +427,9 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (_session == null) return "Sesión no inicializada.";
 
     final pa = _session!.precargasAjuste;
-    if (pa == null) return "Debe completar las precargas y condiciones ambientales.";
+    if (pa == null) {
+      return "Debe completar las precargas y condiciones ambientales.";
+    }
 
     // Al menos una fila de precarga debe estar completa
     final tienePrecargas = pa.precargas.any(
@@ -443,7 +496,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   // --- Exportación ---
-  
+
   Future<List<Map<String, dynamic>>> prepareExportData() async {
     if (_session == null) return [];
     return [_session!.toMap()];

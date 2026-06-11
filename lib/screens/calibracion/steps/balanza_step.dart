@@ -48,7 +48,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
   final _stickerCtrl = TextEditingController();
 
   List<Map<String, dynamic>> _balanzas = [];
+  List<Map<String, dynamic>> _equipamientos = [];
+  List<EquipoInfo> _selectedPesas = [];
+  List<EquipoInfo> _selectedMedicion = [];
   bool _isLoadingBalanzas = false;
+  bool _isLoadingEquipamientos = false;
   bool _isNewBalanza = false;
   Map<String, dynamic>? _selectedBalanza;
 
@@ -67,6 +71,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadBalanzas();
+      _loadEquipamientos();
       _initFromSession();
     });
   }
@@ -107,6 +112,20 @@ class _BalanzaStepState extends State<BalanzaStep> {
     final si = session.sessionInfo;
     _nRecaCtrl.text = si.nReca ?? '';
     _stickerCtrl.text = si.sticker ?? '';
+    _initEquiposFromSession(session.equipos);
+  }
+
+  void _initEquiposFromSession(List<EquipoInfo> equipos) {
+    _selectedPesas = [];
+    _selectedMedicion = [];
+    for (int i = 0; i < equipos.length; i++) {
+      final equipo = equipos[i];
+      if (_isPesaTipo(equipo.tipo) || i < 5) {
+        if (_selectedPesas.length < 5) _selectedPesas.add(equipo);
+      } else if (_selectedMedicion.length < 2) {
+        _selectedMedicion.add(equipo);
+      }
+    }
   }
 
   Future<void> _loadBalanzas() async {
@@ -115,19 +134,21 @@ class _BalanzaStepState extends State<BalanzaStep> {
     final clienteCod = provider.session?.cliente?.codigoCliente;
     final plantaCod = provider.session?.planta?.codigo;
     final result = await _repository.getBalanzas(clienteCod, plantaCod);
-    
+
     // Convertir a una lista mutable ya que sqflite devuelve una lista de solo lectura
     final mutableResult = List<Map<String, dynamic>>.from(result);
-    
+
     // Ordenamiento natural (numérico y alfabético) por cod_metrica
     mutableResult.sort((a, b) {
       final codeA = a['cod_metrica']?.toString() ?? '';
       final codeB = b['cod_metrica']?.toString() ?? '';
-      
+
       final RegExp regExp = RegExp(r'(\d+)|(\D+)');
-      final matchesA = regExp.allMatches(codeA).map((m) => m.group(0)!).toList();
-      final matchesB = regExp.allMatches(codeB).map((m) => m.group(0)!).toList();
-      
+      final matchesA =
+          regExp.allMatches(codeA).map((m) => m.group(0)!).toList();
+      final matchesB =
+          regExp.allMatches(codeB).map((m) => m.group(0)!).toList();
+
       for (var i = 0; i < matchesA.length && i < matchesB.length; i++) {
         final partA = matchesA[i];
         final partB = matchesB[i];
@@ -168,6 +189,25 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _selectedBalanza = null;
         }
       }
+    });
+  }
+
+  Future<void> _loadEquipamientos() async {
+    setState(() => _isLoadingEquipamientos = true);
+    final result = await _repository.getEquipos();
+    final mutableResult = List<Map<String, dynamic>>.from(result);
+    mutableResult.sort((a, b) {
+      final typeA = a['instrumento']?.toString() ?? '';
+      final typeB = b['instrumento']?.toString() ?? '';
+      final codeA = a['cod_instrumento']?.toString() ?? '';
+      final codeB = b['cod_instrumento']?.toString() ?? '';
+      final typeCompare = typeA.compareTo(typeB);
+      return typeCompare != 0 ? typeCompare : codeA.compareTo(codeB);
+    });
+    if (!mounted) return;
+    setState(() {
+      _equipamientos = mutableResult;
+      _isLoadingEquipamientos = false;
     });
   }
 
@@ -235,7 +275,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
     provider.updateSessionInfo(provider.session!.sessionInfo.copyWith(
       nReca: _nRecaCtrl.text,
       sticker: _stickerCtrl.text,
+      codMetrica: _codMetricaCtrl.text,
     ));
+    provider.updateEquipos([..._selectedPesas, ..._selectedMedicion]);
     provider.setBalanzaConfirmed(false);
   }
 
@@ -302,6 +344,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 _buildBalanzaForm(provider, isDark),
                 const SizedBox(height: 24),
                 _buildRangosSection(isDark),
+                const SizedBox(height: 24),
+                _buildEquipamientosSection(provider, isDark),
               ],
             ],
           ),
@@ -380,7 +424,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 _isNewBalanza = true;
                 _selectedBalanza = null;
               });
-              _codMetricaCtrl.clear();
+              _codMetricaCtrl.text = _suggestNewCodMetrica();
               _capMax2Ctrl.text = '0';
               _d2Ctrl.text = '0';
               _e2Ctrl.text = '0';
@@ -389,6 +433,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               _d3Ctrl.text = '0';
               _e3Ctrl.text = '0';
               _dec3Ctrl.text = '0';
+              _saveToProvider(provider);
             },
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nuevo'),
@@ -409,7 +454,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withOpacity(0.03),
@@ -423,17 +469,33 @@ class _BalanzaStepState extends State<BalanzaStep> {
           Row(
             children: [
               Icon(
-                _isNewBalanza ? Icons.add_circle_outline_rounded : Icons.check_circle_outline_rounded,
-                color: _isNewBalanza ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFF64B5F6) : const Color(0xFF1565C0)),
+                _isNewBalanza
+                    ? Icons.add_circle_outline_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: _isNewBalanza
+                    ? (isDark
+                        ? const Color(0xFF81C784)
+                        : const Color(0xFF2E7D32))
+                    : (isDark
+                        ? const Color(0xFF64B5F6)
+                        : const Color(0xFF1565C0)),
                 size: 22,
               ),
               const SizedBox(width: 8),
               Text(
-                _isNewBalanza ? 'Nuevo Instrumento' : 'Instrumento Seleccionado',
+                _isNewBalanza
+                    ? 'Nuevo Instrumento'
+                    : 'Instrumento Seleccionado',
                 style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _isNewBalanza ? (isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFF64B5F6) : const Color(0xFF1565C0))),
+                    color: _isNewBalanza
+                        ? (isDark
+                            ? const Color(0xFF81C784)
+                            : const Color(0xFF2E7D32))
+                        : (isDark
+                            ? const Color(0xFF64B5F6)
+                            : const Color(0xFF1565C0))),
               ),
             ],
           ),
@@ -493,7 +555,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
       children: [
         Row(
           children: [
-            Icon(Icons.tune_rounded, color: isDark ? Colors.white54 : Colors.black54, size: 20),
+            Icon(Icons.tune_rounded,
+                color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
             Text('Rangos de Intervalo',
                 style: GoogleFonts.poppins(
@@ -503,13 +566,152 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ],
         ),
         const SizedBox(height: 16),
-        _rangoCard('Rango 1', _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark),
+        _rangoCard(
+            'Rango 1', _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark),
         const SizedBox(height: 12),
-        _rangoCard('Rango 2', _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark),
+        _rangoCard(
+            'Rango 2', _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark),
         const SizedBox(height: 12),
-        _rangoCard('Rango 3', _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark),
+        _rangoCard(
+            'Rango 3', _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark),
       ],
     ).animate(delay: 500.ms).fadeIn();
+  }
+
+  Widget _buildEquipamientosSection(
+      ServiceSessionProvider provider, bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.inventory_2_outlined,
+                color: isDark ? Colors.white54 : Colors.black54, size: 20),
+            const SizedBox(width: 8),
+            Text('Equipamiento del Servicio',
+                style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isLoadingEquipamientos
+                    ? null
+                    : () => _showEquipamientosDialog(
+                          provider: provider,
+                          isPesas: true,
+                        ),
+                icon: const Icon(Icons.fitness_center, size: 18),
+                label: Text('Pesas (${_selectedPesas.length}/5)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF365666),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isLoadingEquipamientos
+                    ? null
+                    : () => _showEquipamientosDialog(
+                          provider: provider,
+                          isPesas: false,
+                        ),
+                icon: const Icon(Icons.thermostat, size: 18),
+                label: Text('Ambiente (${_selectedMedicion.length}/2)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF326677),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_selectedPesas.isEmpty && _selectedMedicion.isEmpty)
+          _emptyEquiposHint(isDark)
+        else ...[
+          ..._selectedPesas
+              .map((e) => _selectedEquipoTile(e, true, provider, isDark)),
+          ..._selectedMedicion
+              .map((e) => _selectedEquipoTile(e, false, provider, isDark)),
+        ],
+      ],
+    ).animate(delay: 550.ms).fadeIn();
+  }
+
+  Widget _emptyEquiposHint(bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color:
+            isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+      ),
+      child: Text(
+        'Seleccione al menos una pesa patron y un termohigometro, barometro o instrumento de medicion.',
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          color: isDark ? Colors.white60 : Colors.black54,
+        ),
+      ),
+    );
+  }
+
+  Widget _selectedEquipoTile(
+    EquipoInfo equipo,
+    bool isPesa,
+    ServiceSessionProvider provider,
+    bool isDark,
+  ) {
+    final cert = _certStatus(equipo.certFecha);
+    return Card(
+      color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Icon(
+          isPesa ? Icons.fitness_center : Icons.thermostat,
+          color: cert.color,
+        ),
+        title: Text(equipo.codInstrumento ?? 'Sin codigo'),
+        subtitle: Text(
+          '${equipo.tipo ?? 'Instrumento'} | Cert: ${equipo.certFecha ?? 'S/F'} | ${cert.label}',
+        ),
+        trailing: Wrap(
+          spacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Cant. ${equipo.cantidad ?? '1'}'),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              onPressed: () => _editCantidad(equipo, isPesa, provider),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              onPressed: () {
+                setState(() {
+                  final target = isPesa ? _selectedPesas : _selectedMedicion;
+                  target.removeWhere(
+                      (e) => e.codInstrumento == equipo.codInstrumento);
+                });
+                _saveToProvider(provider);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _rangoCard(
@@ -522,9 +724,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8F9FA),
+        color:
+            isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,7 +741,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
             ),
             child: Text(title,
                 style: GoogleFonts.inter(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87)),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white70 : Colors.black87)),
           ),
           const SizedBox(height: 16),
           Row(children: [
@@ -615,6 +821,308 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
+  String _suggestNewCodMetrica() {
+    final provider = context.read<ServiceSessionProvider>();
+    final cliente = provider.session?.cliente?.codigoCliente?.trim() ?? '';
+    final plantaRaw = provider.session?.planta?.codigo?.trim() ?? '';
+    final planta =
+        plantaRaw.contains('-') ? plantaRaw.split('-').last : plantaRaw;
+    final now = DateTime.now();
+    final stamp = '${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${(now.year % 100).toString().padLeft(2, '0')}';
+    if (cliente.isEmpty && planta.isEmpty) return 'NUEVO-$stamp';
+    if (plantaRaw.contains('-')) return '$plantaRaw-($stamp)';
+    return '$cliente-$planta-($stamp)';
+  }
+
+  bool _isPesaTipo(String? value) {
+    final v = value?.toLowerCase() ?? '';
+    return v.contains('pesa') ||
+        v.contains('masa') ||
+        v.contains('patron') ||
+        v.contains('patr');
+  }
+
+  String _instrumentType(Map<String, dynamic> eq) {
+    final instrumento = eq['instrumento']?.toString() ?? '';
+    final tipo = eq['tipo_instrumento']?.toString() ?? '';
+    return instrumento.isNotEmpty ? instrumento : tipo;
+  }
+
+  _CertStatus _certStatus(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return _CertStatus('Sin fecha', Colors.grey, 999999);
+    }
+    final date = DateTime.tryParse(raw.trim());
+    if (date == null) return _CertStatus('Fecha invalida', Colors.grey, 999999);
+    final elapsed = DateTime.now().difference(date).inDays;
+    final remaining = 365 - elapsed;
+    if (elapsed > 365) return _CertStatus('Vencido', Colors.red, remaining);
+    if (remaining <= 90) {
+      return _CertStatus(
+          'Por vencer ($remaining dias)', Colors.amber[800]!, remaining);
+    }
+    return _CertStatus('Vigente ($remaining dias)', Colors.green, remaining);
+  }
+
+  EquipoInfo _equipoFromMap(Map<String, dynamic> eq) {
+    final cert = _certStatus(eq['cert_fecha']?.toString());
+    return EquipoInfo(
+      codInstrumento: eq['cod_instrumento']?.toString() ?? '',
+      tipo: _instrumentType(eq),
+      cantidad: '1',
+      certFecha: eq['cert_fecha']?.toString() ?? '',
+      enteCalibrador: eq['ente_calibrador']?.toString() ?? '',
+      estado: cert.label,
+    );
+  }
+
+  void _saveEquipoSelection(
+    Map<String, dynamic> eq,
+    bool isPesas,
+    ServiceSessionProvider provider,
+  ) {
+    final equipo = _equipoFromMap(eq);
+    final cert = _certStatus(equipo.certFecha);
+    setState(() {
+      final target = isPesas ? _selectedPesas : _selectedMedicion;
+      final max = isPesas ? 5 : 2;
+      if (target.any((e) => e.codInstrumento == equipo.codInstrumento)) {
+        target.removeWhere((e) => e.codInstrumento == equipo.codInstrumento);
+      } else if (target.length < max) {
+        target.add(equipo);
+      }
+    });
+    _saveToProvider(provider);
+    if (cert.remainingDays < 0 && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${equipo.codInstrumento} tiene certificado vencido.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _editCantidad(
+    EquipoInfo equipo,
+    bool isPesas,
+    ServiceSessionProvider provider,
+  ) async {
+    final ctrl = TextEditingController(text: equipo.cantidad ?? '1');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cantidad'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(labelText: 'Cantidad a llevar'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text),
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (value == null || value.trim().isEmpty) return;
+    setState(() {
+      final target = isPesas ? _selectedPesas : _selectedMedicion;
+      final idx =
+          target.indexWhere((e) => e.codInstrumento == equipo.codInstrumento);
+      if (idx >= 0) target[idx] = target[idx].copyWith(cantidad: value);
+    });
+    _saveToProvider(provider);
+  }
+
+  void _showEquipamientosDialog({
+    required ServiceSessionProvider provider,
+    required bool isPesas,
+  }) {
+    final searchCtrl = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final title = isPesas ? 'Seleccionar Pesas Patron' : 'Seleccionar Ambiente';
+    final filteredBase = _equipamientos.where((eq) {
+      final type = _instrumentType(eq);
+      return isPesas ? _isPesaTipo(type) : !_isPesaTipo(type);
+    }).toList();
+    List<Map<String, dynamic>> filtered = List.from(filteredBase);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Buscar por codigo o tipo...',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFF0F2F5),
+                ),
+                onChanged: (q) => setSheet(() {
+                  final low = q.toLowerCase();
+                  filtered = filteredBase.where((eq) {
+                    final code =
+                        eq['cod_instrumento']?.toString().toLowerCase() ?? '';
+                    final type = _instrumentType(eq).toLowerCase();
+                    return code.contains(low) || type.contains(low);
+                  }).toList();
+                }),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Sin resultados',
+                          style: GoogleFonts.inter(
+                            color: isDark ? Colors.white54 : Colors.black54,
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) {
+                          final eq = filtered[i];
+                          final code =
+                              eq['cod_instrumento']?.toString() ?? 'Sin codigo';
+                          final type = _instrumentType(eq);
+                          final cert =
+                              _certStatus(eq['cert_fecha']?.toString());
+                          final target =
+                              isPesas ? _selectedPesas : _selectedMedicion;
+                          final selected =
+                              target.any((e) => e.codInstrumento == code);
+                          final canSelect =
+                              selected || target.length < (isPesas ? 5 : 2);
+                          return InkWell(
+                            onTap: canSelect
+                                ? () {
+                                    _saveEquipoSelection(eq, isPesas, provider);
+                                    setSheet(() {});
+                                  }
+                                : null,
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF2A2A2A)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: selected
+                                      ? Colors.teal
+                                      : (isDark
+                                          ? Colors.white12
+                                          : const Color(0xFFE2E8F0)),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    selected
+                                        ? Icons.check_circle
+                                        : Icons.circle_outlined,
+                                    color: selected ? Colors.teal : cert.color,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          code,
+                                          style: GoogleFonts.inter(
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark
+                                                ? Colors.white
+                                                : const Color(0xFF1A1A1A),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(type,
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                color: isDark
+                                                    ? Colors.white60
+                                                    : Colors.black54)),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Cert: ${eq['cert_fecha'] ?? 'S/F'} | ${cert.label}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: cert.color,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
   // --- Diálogo de búsqueda ---
 
   void _showSearchDialog(ServiceSessionProvider provider) {
@@ -660,21 +1168,31 @@ class _BalanzaStepState extends State<BalanzaStep> {
               const SizedBox(height: 16),
               TextField(
                 controller: searchCtrl,
-                style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                 decoration: InputDecoration(
                   hintText: 'Buscar por código, serie o marca...',
-                  hintStyle: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white38 : Colors.black38),
-                  prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black38, size: 20),
+                  hintStyle: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: isDark ? Colors.white38 : Colors.black38),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: isDark ? Colors.white54 : Colors.black38,
+                      size: 20),
                   suffixIcon: searchCtrl.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.close_rounded, color: isDark ? Colors.white54 : Colors.black38, size: 18),
+                          icon: Icon(Icons.close_rounded,
+                              color: isDark ? Colors.white54 : Colors.black38,
+                              size: 18),
                           onPressed: () {
                             searchCtrl.clear();
                             setSheet(() => filtered = List.from(_balanzas));
                           })
                       : null,
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+                  fillColor: isDark
+                      ? const Color(0xFF2A2A2A)
+                      : const Color(0xFFF0F2F5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -685,10 +1203,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
                       ? List.from(_balanzas)
                       : _balanzas.where((b) {
                           final low = q.toLowerCase();
-                          return (b['cod_metrica']?.toString().toLowerCase() ?? '').contains(low) ||
-                              (b['serie']?.toString().toLowerCase() ?? '').contains(low) ||
-                              (b['marca']?.toString().toLowerCase() ?? '').contains(low) ||
-                              (b['cod_interno']?.toString().toLowerCase() ?? '').contains(low);
+                          return (b['cod_metrica']?.toString().toLowerCase() ??
+                                      '')
+                                  .contains(low) ||
+                              (b['serie']?.toString().toLowerCase() ?? '')
+                                  .contains(low) ||
+                              (b['marca']?.toString().toLowerCase() ?? '')
+                                  .contains(low) ||
+                              (b['cod_interno']?.toString().toLowerCase() ?? '')
+                                  .contains(low);
                         }).toList();
                 }),
               ),
@@ -699,7 +1222,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.search_off_rounded, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+                            Icon(Icons.search_off_rounded,
+                                size: 48,
+                                color:
+                                    isDark ? Colors.white24 : Colors.black26),
                             const SizedBox(height: 12),
                             Text(
                               'Sin resultados',
@@ -716,11 +1242,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
                         separatorBuilder: (_, __) => const SizedBox(height: 12),
                         itemBuilder: (_, i) {
                           final b = filtered[i];
-                          final codMetrica = b['cod_metrica']?.toString() ?? 'Sin código';
-                          final marca = b['marca']?.toString() ?? 'No especificada';
-                          final codInterno = b['cod_interno']?.toString() ?? 'No especificado';
-                          final serie = b['serie']?.toString() ?? 'No especificada';
-                          
+                          final codMetrica =
+                              b['cod_metrica']?.toString() ?? 'Sin código';
+                          final marca =
+                              b['marca']?.toString() ?? 'No especificada';
+                          final codInterno =
+                              b['cod_interno']?.toString() ?? 'No especificado';
+                          final serie =
+                              b['serie']?.toString() ?? 'No especificada';
+
                           return GestureDetector(
                             onTap: () {
                               setState(() {
@@ -734,9 +1264,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                                color: isDark
+                                    ? const Color(0xFF2A2A2A)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                                border: Border.all(
+                                    color: isDark
+                                        ? Colors.white12
+                                        : const Color(0xFFE2E8F0)),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withOpacity(0.03),
@@ -750,20 +1285,24 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           codMetrica,
                                           style: GoogleFonts.inter(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
-                                            color: isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00),
+                                            color: isDark
+                                                ? const Color(0xFFf9e300)
+                                                : const Color(0xFF5A4E00),
                                           ),
                                         ),
                                         const SizedBox(height: 8),
                                         _infoSearchRow('Marca', marca, isDark),
                                         const SizedBox(height: 4),
-                                        _infoSearchRow('Cód. Interno', codInterno, isDark),
+                                        _infoSearchRow(
+                                            'Cód. Interno', codInterno, isDark),
                                         const SizedBox(height: 4),
                                         _infoSearchRow('Serie', serie, isDark),
                                       ],
@@ -771,7 +1310,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
-                                    child: Icon(Icons.chevron_right_rounded, color: isDark ? Colors.white24 : Colors.black26),
+                                    child: Icon(Icons.chevron_right_rounded,
+                                        color: isDark
+                                            ? Colors.white24
+                                            : Colors.black26),
                                   ),
                                 ],
                               ),
@@ -816,4 +1358,12 @@ class _BalanzaStepState extends State<BalanzaStep> {
       ],
     );
   }
+}
+
+class _CertStatus {
+  final String label;
+  final Color color;
+  final int remainingDays;
+
+  const _CertStatus(this.label, this.color, this.remainingDays);
 }

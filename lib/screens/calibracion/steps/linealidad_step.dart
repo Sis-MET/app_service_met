@@ -921,15 +921,15 @@ class _LinealidadStepState extends State<LinealidadStep> {
 
   List<_ValidatedLoad> _baseLoads() {
     final loads = <_ValidatedLoad>[];
-    for (int i = 0; i < _cargasPatronValidadas && i < _cargaCtrls.length; i++) {
+    for (int i = 0; i < _cargaCtrls.length; i++) {
       final carga = double.tryParse(_cargaCtrls[i].text);
       final indicacion = double.tryParse(_indCtrls[i].text);
-      if (carga == null || indicacion == null) continue;
+      if (carga == null) continue;
       loads.add(_ValidatedLoad(
         index: i,
         carga: carga,
-        indicacion: indicacion,
-        error: indicacion - carga,
+        indicacion: indicacion ?? carga,
+        error: indicacion == null ? 0 : indicacion - carga,
       ));
     }
     return loads;
