@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class LinealidadStep extends StatefulWidget {
   const LinealidadStep({super.key});
@@ -110,9 +111,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
 
   void _addRow() {
     if (_cargaCtrls.length >= _maxPuntos) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximo 60 puntos permitidos')),
-      );
+      TopAlert.show(context, 'Maximo 60 puntos permitidos', isError: true);
       return;
     }
 
@@ -196,10 +195,9 @@ class _LinealidadStepState extends State<LinealidadStep> {
   void _validatePatronLoads() {
     final count = _filledPatronRowsCount();
     if (count <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registre al menos una carga patron con indicacion.'),
-        ),
+      TopAlert.show(
+        context, 'Registre al menos una carga patron con indicacion.',
+        isError: true,
       );
       return;
     }
@@ -210,8 +208,9 @@ class _LinealidadStepState extends State<LinealidadStep> {
     });
     _saveToProvider();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Cargas patron validadas: $count')),
+    TopAlert.show(
+      context, 'Cargas patron validadas: $count',
+      isError: false,
     );
   }
 
@@ -260,66 +259,86 @@ class _LinealidadStepState extends State<LinealidadStep> {
 
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(isDark),
-              const SizedBox(height: 24),
-              DropdownButtonFormField<String>(
-                value: _metodoCarga,
-                decoration: _deco('Metodo de Carga', isDark),
-                hint: Text('Seleccione',
-                    style: GoogleFonts.inter(
-                        color: isDark ? Colors.white54 : Colors.black45)),
-                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                items: _metodoCargaOptions
-                    .map((v) => DropdownMenuItem(
-                          value: v,
-                          child: Text(v,
-                              style: GoogleFonts.inter(
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1A1A1A))),
-                        ))
-                    .toList(),
-                onChanged: _onMetodoCargaChanged,
-              ).animate(delay: 200.ms).fadeIn(),
-              const SizedBox(height: 16),
-              if (_metodoCarga != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    _metodoCarga == 'Sin metodo de carga'
-                        ? 'Registro sin metodo de carga definido.'
-                        : _metodoCarga == 'Ascenso evaluando a ceros'
-                            ? 'El ensayo retorna a cero despues de cada medicion.'
-                            : 'El ensayo aplica carga de forma continua sin retornos intermedios.',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: isDark ? Colors.white54 : Colors.black54,
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(isDark),
+                  const SizedBox(height: 24),
+                  DropdownButtonFormField<String>(
+                    value: _metodoCarga,
+                    decoration: _deco('Metodo de Carga', isDark),
+                    hint: Text('Seleccione',
+                        style: GoogleFonts.inter(
+                            color: isDark ? Colors.white54 : Colors.black45)),
+                    dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                    items: _metodoCargaOptions
+                        .map((v) => DropdownMenuItem(
+                              value: v,
+                              child: Text(v,
+                                  style: GoogleFonts.inter(
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1A))),
+                            ))
+                        .toList(),
+                    onChanged: _onMetodoCargaChanged,
+                  ).animate(delay: 200.ms).fadeIn(),
+                  const SizedBox(height: 16),
+                  if (_metodoCarga != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        _metodoCarga == 'Sin metodo de carga'
+                            ? 'Registro sin metodo de carga definido.'
+                            : _metodoCarga == 'Ascenso evaluando a ceros'
+                                ? 'El ensayo retorna a cero despues de cada medicion.'
+                                : 'El ensayo aplica carga de forma continua sin retornos intermedios.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                      ).animate(delay: 250.ms).fadeIn(),
                     ),
-                  ).animate(delay: 250.ms).fadeIn(),
-                ),
-              if (_metodoCarga != null) ...[
-                _buildValidationHelp(isDark),
-                const SizedBox(height: 8),
-                _buildPuntosSection(isDark),
-                const SizedBox(height: 20),
-              ],
-              TextField(
-                style: GoogleFonts.inter(
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                controller: _notaCtrl,
-                onChanged: (_) => _saveToProvider(),
-                maxLines: 3,
-                decoration: _deco('Nota / Comentario (opcional)', isDark),
-              ).animate(delay: 600.ms).fadeIn(),
-              const SizedBox(height: 20),
-            ],
-          ),
+                  if (_metodoCarga != null) ...[
+                    _buildValidationHelp(isDark),
+                    const SizedBox(height: 8),
+                    _buildPuntosSection(isDark),
+                    const SizedBox(height: 20),
+                  ],
+                  TextField(
+                    style: GoogleFonts.inter(
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                    controller: _notaCtrl,
+                    onChanged: (_) => _saveToProvider(),
+                    maxLines: 3,
+                    decoration: _deco('Nota / Comentario (opcional)', isDark),
+                  ).animate(delay: 600.ms).fadeIn(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+            if (_metodoCarga != null)
+              Positioned(
+                right: 20,
+                bottom: 120,
+                child: FloatingActionButton.small(
+                  heroTag: 'add_linealidad_row',
+                  onPressed: _addRow,
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  child: const Icon(Icons.add_circle_outline_rounded,
+                      size: 22),
+                ).animate(delay: 500.ms).fadeIn().scale(),
+              ),
+          ],
         );
       },
     );
@@ -659,19 +678,17 @@ class _LinealidadStepState extends State<LinealidadStep> {
     final validatedLoads = _referenceLoads();
     final baseLoads = _baseLoads();
     if (validatedLoads.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay cargas patron validas para usar.'),
-        ),
+      TopAlert.show(
+        context, 'No hay cargas patron validas para usar.',
+        isError: true,
       );
       indicacionCtrl.dispose();
       return;
     }
     if (baseLoads.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay cargas base validadas para sumar.'),
-        ),
+      TopAlert.show(
+        context, 'No hay cargas base validadas para sumar.',
+        isError: true,
       );
       indicacionCtrl.dispose();
       return;
@@ -873,9 +890,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
   void _appendSustitutiveRow(String carga) {
     final targetIndex = _firstEmptyRowFrom(_cargasPatronValidadas);
     if (targetIndex == null && _cargaCtrls.length >= _maxPuntos) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximo 60 puntos permitidos')),
-      );
+      TopAlert.show(context, 'Maximo 60 puntos permitidos', isError: true);
       return;
     }
 

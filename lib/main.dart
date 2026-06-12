@@ -86,11 +86,14 @@ class MyApp extends StatelessWidget {
 
   const MyApp({super.key, required this.setupCompleted});
 
+  static final GlobalKey _appKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return MaterialApp(
+          key: _appKey,
           title: 'ServiceMET',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.buildLightTheme(context),

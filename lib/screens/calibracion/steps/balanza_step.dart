@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class BalanzaStep extends StatefulWidget {
   const BalanzaStep({super.key});
@@ -332,7 +333,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               const SizedBox(height: 24),
 
               // RECA + Sticker
-              _buildRecaStickerRow(provider),
+              _buildRecaStickerRow(provider, isDark),
               const SizedBox(height: 24),
 
               // Botones de acción
@@ -380,16 +381,16 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _buildRecaStickerRow(ServiceSessionProvider provider) {
+  Widget _buildRecaStickerRow(ServiceSessionProvider provider, bool isDark) {
     return Row(
       children: [
         Expanded(
             child: _field(_nRecaCtrl, 'N° RECA *', Icons.assignment,
-                onChanged: (_) => _saveToProvider(provider))),
+                onChanged: (_) => _saveToProvider(provider), isDark: isDark)),
         const SizedBox(width: 12),
         Expanded(
             child: _field(_stickerCtrl, 'N° Sticker *', Icons.local_offer,
-                onChanged: (_) => _saveToProvider(provider))),
+                onChanged: (_) => _saveToProvider(provider), isDark: isDark)),
       ],
     ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2);
   }
@@ -502,48 +503,49 @@ class _BalanzaStepState extends State<BalanzaStep> {
           const SizedBox(height: 20),
           _field(_codMetricaCtrl, 'Código Métrica', Icons.qr_code,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Categoría', Icons.category, _categorias,
-              _categoriaCtrl, provider),
+              _categoriaCtrl, provider, isDark: isDark),
           const SizedBox(height: 12),
           _field(_tecnologiaCtrl, 'Tecnología', Icons.memory,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_claseCtrl, 'Clase', Icons.class_,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_codIntCtrl, 'Código Interno', Icons.tag,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Tipo de Equipo', Icons.scale, _tiposEquipo,
-              _tipoEquipoCtrl, provider),
+              _tipoEquipoCtrl, provider, isDark: isDark),
           const SizedBox(height: 12),
           _field(_marcaCtrl, 'Marca', Icons.business,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_modeloCtrl, 'Modelo', Icons.precision_manufacturing,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_serieCtrl, 'Serie', Icons.confirmation_number,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField(
-              'Unidad', Icons.straighten, _unidades, _unidadesCtrl, provider),
+              'Unidad', Icons.straighten, _unidades, _unidadesCtrl, provider,
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_ubicacionCtrl, 'Ubicación', Icons.location_on,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_rangoCtrl, 'Rango', Icons.linear_scale,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_nCeldasCtrl, 'N° Celdas', Icons.grid_view,
               readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider)),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
         ],
       ),
     ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
@@ -611,6 +613,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF365666),
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                      const Color(0xFF365666).withOpacity(0.45),
+                  disabledForegroundColor: Colors.white70,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -629,6 +634,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF326677),
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                      const Color(0xFF326677).withOpacity(0.45),
+                  disabledForegroundColor: Colors.white70,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -747,15 +755,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _numField(capCtrl, 'Cap. Max')),
+            Expanded(child: _numField(capCtrl, 'Cap. Max', isDark: isDark)),
             const SizedBox(width: 12),
-            Expanded(child: _numField(dCtrl, 'd')),
+            Expanded(child: _numField(dCtrl, 'd', isDark: isDark)),
           ]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _numField(eCtrl, 'e')),
+            Expanded(child: _numField(eCtrl, 'e', isDark: isDark)),
             const SizedBox(width: 12),
-            Expanded(child: _numField(decCtrl, 'Dec.')),
+            Expanded(child: _numField(decCtrl, 'Dec.', isDark: isDark)),
           ]),
         ],
       ),
@@ -765,31 +773,62 @@ class _BalanzaStepState extends State<BalanzaStep> {
   // --- Helpers de widgets ---
 
   Widget _field(TextEditingController ctrl, String label, IconData icon,
-      {bool readOnly = false, void Function(String)? onChanged}) {
+      {bool readOnly = false, void Function(String)? onChanged,
+      required bool isDark}) {
     return TextField(
       controller: ctrl,
       readOnly: readOnly,
       onChanged: onChanged,
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.black87),
+        prefixIcon: Icon(icon,
+            color: isDark ? Colors.white54 : Colors.black54),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+        ),
         filled: readOnly,
-        fillColor: readOnly ? Colors.grey.withOpacity(0.05) : null,
+        fillColor: readOnly
+            ? (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05))
+            : null,
       ),
     );
   }
 
-  Widget _numField(TextEditingController ctrl, String label) {
+  Widget _numField(TextEditingController ctrl, String label,
+      {required bool isDark}) {
     return TextField(
       controller: ctrl,
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
       ],
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        labelStyle: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.black87),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+        ),
         isDense: true,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -798,7 +837,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Widget _dropdownField(String label, IconData icon, List<String> items,
-      TextEditingController ctrl, ServiceSessionProvider provider) {
+      TextEditingController ctrl, ServiceSessionProvider provider,
+      {required bool isDark}) {
     final currentList = List<String>.from(items);
     if (ctrl.text.isNotEmpty && !currentList.contains(ctrl.text)) {
       currentList.add(ctrl.text);
@@ -806,13 +846,34 @@ class _BalanzaStepState extends State<BalanzaStep> {
     final current = currentList.contains(ctrl.text) ? ctrl.text : null;
     return DropdownButtonFormField<String>(
       value: current,
+      dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+      style: GoogleFonts.inter(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: GoogleFonts.inter(
+            color: isDark ? Colors.white70 : Colors.black87),
+        prefixIcon: Icon(icon,
+            color: isDark ? Colors.white54 : Colors.black54),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide:
+              BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+        ),
       ),
       items: currentList
-          .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+          .map((v) => DropdownMenuItem(
+              value: v,
+              child: Text(v,
+                  style: GoogleFonts.inter(
+                      color: isDark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A)))))
           .toList(),
       onChanged: (v) {
         ctrl.text = v ?? '';
@@ -898,11 +959,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
     });
     _saveToProvider(provider);
     if (cert.remainingDays < 0 && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${equipo.codInstrumento} tiene certificado vencido.'),
-          backgroundColor: Colors.red,
-        ),
+      TopAlert.show(
+        context,
+        '${equipo.codInstrumento} tiene certificado vencido.',
+        isError: true,
       );
     }
   }
@@ -913,29 +973,53 @@ class _BalanzaStepState extends State<BalanzaStep> {
     ServiceSessionProvider provider,
   ) async {
     final ctrl = TextEditingController(text: equipo.cantidad ?? '1');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cantidad'),
+        title: Text('Cantidad',
+            style: GoogleFonts.inter(
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
         content: TextField(
           controller: ctrl,
+          style: GoogleFonts.inter(
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: const InputDecoration(labelText: 'Cantidad a llevar'),
+          decoration: InputDecoration(
+            labelText: 'Cantidad a llevar',
+            labelStyle: GoogleFonts.inter(
+                color: isDark ? Colors.white70 : Colors.black87),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+            ),
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
+            child: Text('Cancelar',
+                style: GoogleFonts.inter(
+                    color: isDark ? Colors.white70 : Colors.black54)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF326677),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Guardar'),
           ),
         ],
       ),
     );
-    ctrl.dispose();
     if (value == null || value.trim().isEmpty) return;
     setState(() {
       final target = isPesas ? _selectedPesas : _selectedMedicion;
