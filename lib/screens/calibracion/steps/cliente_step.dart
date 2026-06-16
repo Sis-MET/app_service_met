@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class ClienteStep extends StatefulWidget {
   const ClienteStep({super.key});
@@ -17,11 +19,13 @@ class ClienteStep extends StatefulWidget {
 
 class _ClienteStepState extends State<ClienteStep> {
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _nombreComercialController = TextEditingController();
+  final TextEditingController _nombreComercialController =
+      TextEditingController();
   final TextEditingController _razonSocialController = TextEditingController();
   final CalibrationRepository _repository = CalibrationRepository();
 
   bool _isNewClient = false;
+  bool _showQrBanner = true;
   List<Map<String, dynamic>>? _allClientes;
   List<Map<String, dynamic>>? _filteredClientes;
   Timer? _debounce;
@@ -43,7 +47,7 @@ class _ClienteStepState extends State<ClienteStep> {
 
   Future<void> _loadClientes() async {
     final clientes = await _repository.getClientes();
-    
+
     // Pre-procesar los clientes para una búsqueda más rápida (solo una vez)
     final processedClientes = clientes.map((c) {
       final newMap = Map<String, dynamic>.from(c);
@@ -70,7 +74,7 @@ class _ClienteStepState extends State<ClienteStep> {
 
   void _filterClientes(String query) {
     if (_allClientes == null) return;
-    
+
     final search = query.toLowerCase().trim();
     if (search.isEmpty) {
       setState(() {
@@ -113,6 +117,12 @@ class _ClienteStepState extends State<ClienteStep> {
               // Header
               _buildHeader(isDark),
               const SizedBox(height: 24),
+
+              // QR Banner
+              if (_showQrBanner) ...[
+                _buildQrBanner(provider, isDark),
+                const SizedBox(height: 20),
+              ],
 
               // Mode selector (segmented)
               _buildModeSelector(provider, isDark),
@@ -201,6 +211,13 @@ class _ClienteStepState extends State<ClienteStep> {
               });
             },
           ),
+          // Separador visual
+          Container(
+            width: 1,
+            height: 24,
+            color: isDark ? Colors.white12 : Colors.black12,
+          ),
+          _qrTab(provider, isDark),
         ],
       ),
     ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2);
@@ -221,25 +238,34 @@ class _ClienteStepState extends State<ClienteStep> {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFFf9e300)
-                : Colors.transparent,
+            color: isActive ? const Color(0xFFf9e300) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: isActive
-                ? [BoxShadow(color: const Color(0xFFf9e300).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 3))]
+                ? [
+                    BoxShadow(
+                        color: const Color(0xFFf9e300).withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3))
+                  ]
                 : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isActive ? const Color(0xFF1A1A1A) : (isDark ? Colors.white54 : Colors.black45)),
+              Icon(icon,
+                  size: 18,
+                  color: isActive
+                      ? const Color(0xFF1A1A1A)
+                      : (isDark ? Colors.white54 : Colors.black45)),
               const SizedBox(width: 8),
               Text(
                 label,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                  color: isActive ? const Color(0xFF1A1A1A) : (isDark ? Colors.white54 : Colors.black45),
+                  color: isActive
+                      ? const Color(0xFF1A1A1A)
+                      : (isDark ? Colors.white54 : Colors.black45),
                 ),
               ),
             ],
@@ -249,7 +275,123 @@ class _ClienteStepState extends State<ClienteStep> {
     );
   }
 
-  Widget _buildExistingClientSection(ServiceSessionProvider provider, bool isDark) {
+  Widget _qrTab(ServiceSessionProvider provider, bool isDark) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _scanQrAndProcess(provider),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF04376E).withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.qr_code_scanner,
+                  size: 18, color: const Color(0xFFFFFFFF)),
+              const SizedBox(width: 6),
+              Text(
+                'QR',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFFFFFFF),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQrBanner(ServiceSessionProvider provider, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF001B36), const Color(0xFF0A1628)]
+              : [const Color(0xFFE3F2FD), const Color(0xFFE8EAF6)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF04376E).withOpacity(0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF04376E).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.qr_code_scanner,
+                size: 28, color: Color(0xFFFFFFFF)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '¿Tienes el código QR del instrumento?',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Escanea para auto-completar cliente, planta e instrumento',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () => _scanQrAndProcess(provider),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF04376E),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Escaneá',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          GestureDetector(
+            onTap: () => setState(() => _showQrBanner = false),
+            child: Icon(
+              Icons.close_rounded,
+              size: 20,
+              color: isDark ? Colors.white38 : Colors.black38,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2);
+  }
+
+  Widget _buildExistingClientSection(
+      ServiceSessionProvider provider, bool isDark) {
     return Column(
       key: const ValueKey('existing'),
       children: [
@@ -276,11 +418,16 @@ class _ClienteStepState extends State<ClienteStep> {
             style: GoogleFonts.inter(fontSize: 14),
             decoration: InputDecoration(
               hintText: 'Buscar por nombre o razón social...',
-              hintStyle: GoogleFonts.inter(color: isDark ? Colors.white38 : Colors.black38, fontSize: 14),
-              prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black38, size: 20),
+              hintStyle: GoogleFonts.inter(
+                  color: isDark ? Colors.white38 : Colors.black38,
+                  fontSize: 14),
+              prefixIcon: Icon(Icons.search_rounded,
+                  color: isDark ? Colors.white54 : Colors.black38, size: 20),
               suffixIcon: !_isSearchEmpty
                   ? IconButton(
-                      icon: Icon(Icons.close_rounded, size: 18, color: isDark ? Colors.white54 : Colors.black38),
+                      icon: Icon(Icons.close_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white54 : Colors.black38),
                       onPressed: () {
                         _searchController.clear();
                         _onSearchChanged('');
@@ -299,7 +446,8 @@ class _ClienteStepState extends State<ClienteStep> {
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+              contentPadding:
+                  const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
             ),
           ),
         ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.2),
@@ -324,7 +472,8 @@ class _ClienteStepState extends State<ClienteStep> {
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Icon(Icons.search_off_rounded, size: 48, color: isDark ? Colors.white24 : Colors.black26),
+          Icon(Icons.search_off_rounded,
+              size: 48, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 12),
           Text(
             'Sin resultados',
@@ -335,7 +484,8 @@ class _ClienteStepState extends State<ClienteStep> {
           ),
           Text(
             'Intenta con otro término de búsqueda',
-            style: GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
+            style: GoogleFonts.inter(
+                fontSize: 12, color: isDark ? Colors.white38 : Colors.black38),
           ),
         ],
       ),
@@ -350,7 +500,8 @@ class _ClienteStepState extends State<ClienteStep> {
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final cliente = _filteredClientes![index];
-        final isSelected = provider.session?.cliente?.id == cliente['cliente_id']?.toString();
+        final isSelected =
+            provider.session?.cliente?.id == cliente['cliente_id']?.toString();
         final nombre = cliente['cliente'] ?? 'Cliente desconocido';
         final razon = cliente['razonsocial'] ?? '';
         final initials = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
@@ -370,7 +521,9 @@ class _ClienteStepState extends State<ClienteStep> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: isSelected
-                  ? (isDark ? const Color(0xFFf9e300).withOpacity(0.08) : const Color(0xFFFFFDE6))
+                  ? (isDark
+                      ? const Color(0xFFf9e300).withOpacity(0.08)
+                      : const Color(0xFFFFFDE6))
                   : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
@@ -405,7 +558,9 @@ class _ClienteStepState extends State<ClienteStep> {
                       style: GoogleFonts.poppins(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: isSelected ? const Color(0xFF1A1A1A) : (isDark ? Colors.white60 : Colors.black45),
+                        color: isSelected
+                            ? const Color(0xFF1A1A1A)
+                            : (isDark ? Colors.white60 : Colors.black45),
                       ),
                     ),
                   ),
@@ -421,8 +576,12 @@ class _ClienteStepState extends State<ClienteStep> {
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                           color: isSelected
-                              ? (isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00))
-                              : (isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                              ? (isDark
+                                  ? const Color(0xFFf9e300)
+                                  : const Color(0xFF5A4E00))
+                              : (isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A)),
                         ),
                       ),
                       if (razon.isNotEmpty) ...[
@@ -451,7 +610,8 @@ class _ClienteStepState extends State<ClienteStep> {
                             color: Color(0xFFf9e300),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_rounded, size: 14, color: Color(0xFF1A1A1A)),
+                          child: const Icon(Icons.check_rounded,
+                              size: 14, color: Color(0xFF1A1A1A)),
                         )
                       : Icon(
                           key: const ValueKey('arrow'),
@@ -463,7 +623,10 @@ class _ClienteStepState extends State<ClienteStep> {
               ],
             ),
           ),
-        ).animate(delay: Duration(milliseconds: 50 * index)).fadeIn().slideX(begin: 0.05);
+        )
+            .animate(delay: Duration(milliseconds: 50 * index))
+            .fadeIn()
+            .slideX(begin: 0.05);
       },
     );
   }
@@ -515,7 +678,8 @@ class _ClienteStepState extends State<ClienteStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: Colors.amber[600]),
+              Icon(Icons.info_outline_rounded,
+                  size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -529,9 +693,62 @@ class _ClienteStepState extends State<ClienteStep> {
               ),
             ],
           ),
-        ).animate(delay: 460.ms).fadeIn().scale(begin: const Offset(0.97, 0.97)),
+        )
+            .animate(delay: 460.ms)
+            .fadeIn()
+            .scale(begin: const Offset(0.97, 0.97)),
       ],
     );
+  }
+
+  Future<void> _scanQrAndProcess(ServiceSessionProvider provider) async {
+    final codMetrica = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (codMetrica == null || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFF667EEA)),
+            const SizedBox(height: 16),
+            Text(
+              'Identificando instrumento...\n$codMetrica',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    String? error;
+    try {
+      error = await provider.processQrCode(codMetrica);
+    } catch (e) {
+      provider.clearQrMode();
+      error = 'Error al procesar QR: $e';
+    }
+
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (error != null) {
+      TopAlert.show(context, error, isError: true);
+    } else {
+      _showQrBanner = false;
+      TopAlert.show(
+        context,
+        'Cliente y planta identificados\nConfirme el SECA para continuar',
+        isError: false,
+      );
+    }
   }
 
   Widget _inputField({
@@ -547,19 +764,30 @@ class _ClienteStepState extends State<ClienteStep> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6, offset: const Offset(0, 2))],
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2))
+        ],
       ),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        style: GoogleFonts.inter(fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+        style: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         decoration: InputDecoration(
           labelText: required ? '$label *' : label,
-          labelStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white54 : Colors.black45),
+          labelStyle: GoogleFonts.inter(
+              fontSize: 13, color: isDark ? Colors.white54 : Colors.black45),
           hintText: hint,
-          hintStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? Colors.white24 : Colors.black26),
-          prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white38 : Colors.black38),
+          hintStyle: GoogleFonts.inter(
+              fontSize: 13, color: isDark ? Colors.white24 : Colors.black26),
+          prefixIcon: Icon(icon,
+              size: 20, color: isDark ? Colors.white38 : Colors.black38),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -572,19 +800,23 @@ class _ClienteStepState extends State<ClienteStep> {
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
         ),
       ),
     );
   }
 
-  Widget _buildSelectedClientCard(ServiceSessionProvider provider, bool isDark) {
+  Widget _buildSelectedClientCard(
+      ServiceSessionProvider provider, bool isDark) {
     final cliente = provider.session!.cliente!;
     final isNew = cliente.isNew == true;
     final accentColor = isNew ? Colors.orange[700]! : const Color(0xFFf9e300);
     final bgColor = isNew
         ? (isDark ? Colors.orange.withOpacity(0.08) : Colors.orange[50]!)
-        : (isDark ? const Color(0xFFf9e300).withOpacity(0.08) : const Color(0xFFFFFDE6));
+        : (isDark
+            ? const Color(0xFFf9e300).withOpacity(0.08)
+            : const Color(0xFFFFFDE6));
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -618,7 +850,11 @@ class _ClienteStepState extends State<ClienteStep> {
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isNew ? accentColor : (isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00)),
+                    color: isNew
+                        ? accentColor
+                        : (isDark
+                            ? const Color(0xFFf9e300)
+                            : const Color(0xFF5A4E00)),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -631,7 +867,8 @@ class _ClienteStepState extends State<ClienteStep> {
                     color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                   ),
                 ),
-                if (cliente.razonSocial != null && cliente.razonSocial!.isNotEmpty)
+                if (cliente.razonSocial != null &&
+                    cliente.razonSocial!.isNotEmpty)
                   Text(
                     cliente.razonSocial!,
                     style: GoogleFonts.inter(

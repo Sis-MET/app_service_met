@@ -18,6 +18,10 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   String _cotizacionSuffix = 'C01';
 
+  // QR mode
+  bool _isQrMode = false;
+  String? _qrCodMetrica;
+
   ServiceSessionProvider(this._repository);
 
   // --- Getters ---
@@ -27,6 +31,8 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool get isSaving => _isSaving;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
   String get cotizacionSuffix => _cotizacionSuffix;
+  bool get isQrMode => _isQrMode;
+  String? get qrCodMetrica => _qrCodMetrica;
 
   // --- Inicialización ---
 
@@ -53,6 +59,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   Future<void> createNewSession(String userName, {String? secaValue}) async {
+    clearQrMode();
     _session = ServiceSession(
       sessionInfo: SessionInfo(
         userName: userName,
@@ -294,6 +301,130 @@ class ServiceSessionProvider extends ChangeNotifier {
 
     await flushAutoSave();
     return true;
+  }
+
+  // ==================== MÉTODOS QR ====================
+
+  Future<String?> processQrCode(String codMetrica) async {
+    _isQrMode = true;
+    _qrCodMetrica = codMetrica;
+
+    final parts = codMetrica.trim().split('-');
+    if (parts.length < 3) {
+      _isQrMode = false;
+      _qrCodMetrica = null;
+      return 'Formato de código QR inválido: $codMetrica';
+    }
+
+    // El QR puede contener texto extra después del código métrica
+    // Ej: "0032-11-020 Balanza X Marca Y" → limpiamos
+    final suffix = RegExp(r'^\d+').stringMatch(parts[2]) ?? '';
+    final codigoCliente = parts[0];
+    final codigoPlanta = '${parts[0]}-${parts[1]}';
+    final cleanMetrica = '${parts[0]}-${parts[1]}-$suffix';
+    _qrCodMetrica = cleanMetrica;
+
+    // 1. Buscar y auto-seleccionar cliente
+    final clientes = await _repository.getClientes();
+    final clienteMatch = clientes.cast<Map<String, dynamic>?>().firstWhere(
+      (c) => c?['codigo_cliente']?.toString().trim() == codigoCliente,
+      orElse: () => null,
+    );
+
+    if (clienteMatch == null) {
+      _isQrMode = false;
+      _qrCodMetrica = null;
+      return 'No se encontró cliente con código: $codigoCliente';
+    }
+
+    updateCliente(ClienteInfo(
+      id: clienteMatch['cliente_id']?.toString(),
+      codigoCliente: codigoCliente,
+      nombreComercial: clienteMatch['cliente']?.toString(),
+      razonSocial: clienteMatch['razonsocial']?.toString(),
+      isNew: false,
+    ));
+
+    // 2. Buscar y auto-seleccionar planta
+    final allPlantas = await _repository.getPlantas(clienteMatch['cliente_id']?.toString() ?? '');
+
+    final plantaMatch = allPlantas.cast<Map<String, dynamic>?>().firstWhere(
+      (p) => p?['codigo_planta']?.toString().trim() == codigoPlanta,
+      orElse: () => null,
+    );
+
+    if (plantaMatch == null) {
+      _isQrMode = false;
+      _qrCodMetrica = null;
+      return 'No se encontró planta con código: $codigoPlanta';
+    }
+
+    updatePlanta(PlantaInfo(
+      id: plantaMatch['planta_id']?.toString() ?? plantaMatch['unique_key']?.toString(),
+      codigo: codigoPlanta,
+      nombre: plantaMatch['planta']?.toString(),
+      direccion: plantaMatch['dir']?.toString(),
+      departamento: plantaMatch['dep']?.toString(),
+      isNew: false,
+    ));
+
+    // 3. Avanzar al paso SECA
+    goToStep(2);
+
+    return null;
+  }
+
+  Future<String?> autoSelectBalanzaFromQr() async {
+    if (!_isQrMode || _qrCodMetrica == null) return null;
+
+    final clienteCod = _session?.cliente?.codigoCliente;
+    final plantaCod = _session?.planta?.codigo;
+    final balanzas = await _repository.getBalanzas(clienteCod, plantaCod);
+
+    final balanzaMatch = balanzas.cast<Map<String, dynamic>?>().firstWhere(
+      (b) => b?['cod_metrica']?.toString().trim() == _qrCodMetrica?.trim(),
+      orElse: () => null,
+    );
+
+    if (balanzaMatch == null) {
+      return 'No se encontró balanza con código: $_qrCodMetrica';
+    }
+
+    updateBalanza(BalanzaInfo(
+      codMetrica: balanzaMatch['cod_metrica']?.toString(),
+      categoria: balanzaMatch['categoria']?.toString(),
+      tecnologia: balanzaMatch['tecnologia']?.toString(),
+      clase: balanzaMatch['clase']?.toString(),
+      codInterno: balanzaMatch['cod_interno']?.toString(),
+      tipo: balanzaMatch['tipo_instrumento']?.toString() ?? balanzaMatch['instrumento']?.toString(),
+      marca: balanzaMatch['marca']?.toString(),
+      modelo: balanzaMatch['modelo']?.toString(),
+      serie: balanzaMatch['inf_serie']?.toString() ?? balanzaMatch['serie']?.toString(),
+      unidad: balanzaMatch['unidad']?.toString(),
+      ubicacion: balanzaMatch['ubicacion']?.toString(),
+      rango: balanzaMatch['rango']?.toString(),
+      nCeldas: balanzaMatch['n_celdas']?.toString(),
+      capMax1: balanzaMatch['cap_max1']?.toString(),
+      d1: double.tryParse(balanzaMatch['d1']?.toString() ?? ''),
+      e1: double.tryParse(balanzaMatch['e1']?.toString() ?? ''),
+      dec1: double.tryParse(balanzaMatch['dec1']?.toString() ?? ''),
+      capMax2: balanzaMatch['cap_max2']?.toString(),
+      d2: double.tryParse(balanzaMatch['d2']?.toString() ?? ''),
+      e2: double.tryParse(balanzaMatch['e2']?.toString() ?? ''),
+      dec2: double.tryParse(balanzaMatch['dec2']?.toString() ?? ''),
+      capMax3: balanzaMatch['cap_max3']?.toString(),
+      d3: double.tryParse(balanzaMatch['d3']?.toString() ?? ''),
+      e3: double.tryParse(balanzaMatch['e3']?.toString() ?? ''),
+      dec3: double.tryParse(balanzaMatch['dec3']?.toString() ?? ''),
+    ));
+
+    return null;
+  }
+
+  void clearQrMode() {
+    _isQrMode = false;
+    _qrCodMetrica = null;
+    notifyListeners();
   }
 
   void setBalanzaConfirmed(bool confirmed) {

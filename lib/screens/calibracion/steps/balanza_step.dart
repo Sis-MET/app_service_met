@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class BalanzaStep extends StatefulWidget {
@@ -55,6 +56,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   bool _isLoadingBalanzas = false;
   bool _isLoadingEquipamientos = false;
   bool _isNewBalanza = false;
+  bool _didQrAutoFill = false;
   Map<String, dynamic>? _selectedBalanza;
 
   static const List<String> _categorias = ['STAC', 'STIL'];
@@ -245,6 +247,34 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _dec3Ctrl.text = b['dec3']?.toString() ?? '0';
   }
 
+  void _fillFromBalanzaInfo(BalanzaInfo b) {
+    _codMetricaCtrl.text = b.codMetrica ?? '';
+    _categoriaCtrl.text = b.categoria ?? '';
+    _tecnologiaCtrl.text = b.tecnologia ?? '';
+    _claseCtrl.text = b.clase ?? '';
+    _codIntCtrl.text = b.codInterno ?? '';
+    _tipoEquipoCtrl.text = b.tipo ?? '';
+    _marcaCtrl.text = b.marca ?? '';
+    _modeloCtrl.text = b.modelo ?? '';
+    _serieCtrl.text = b.serie ?? '';
+    _unidadesCtrl.text = b.unidad ?? '';
+    _ubicacionCtrl.text = b.ubicacion ?? '';
+    _rangoCtrl.text = b.rango ?? '';
+    _nCeldasCtrl.text = b.nCeldas ?? '';
+    _capMax1Ctrl.text = b.capMax1 ?? '';
+    _d1Ctrl.text = b.d1?.toString() ?? '';
+    _e1Ctrl.text = b.e1?.toString() ?? '';
+    _dec1Ctrl.text = b.dec1?.toString() ?? '';
+    _capMax2Ctrl.text = b.capMax2 ?? '0';
+    _d2Ctrl.text = b.d2?.toString() ?? '0';
+    _e2Ctrl.text = b.e2?.toString() ?? '0';
+    _dec2Ctrl.text = b.dec2?.toString() ?? '0';
+    _capMax3Ctrl.text = b.capMax3 ?? '0';
+    _d3Ctrl.text = b.d3?.toString() ?? '0';
+    _e3Ctrl.text = b.e3?.toString() ?? '0';
+    _dec3Ctrl.text = b.dec3?.toString() ?? '0';
+  }
+
   void _saveToProvider(ServiceSessionProvider provider) {
     provider.updateBalanza(BalanzaInfo(
       codMetrica: _codMetricaCtrl.text,
@@ -290,12 +320,18 @@ class _BalanzaStepState extends State<BalanzaStep> {
     void chk(String col, String cur, String? dbVal) {
       if (cur != (dbVal ?? '') && cur.isNotEmpty) fields.add(col);
     }
+
     final orig = _isNewBalanza ? <String, dynamic>{} : (_selectedBalanza ?? {});
     chk('cod_int', _codIntCtrl.text, orig['cod_int']?.toString());
-    chk('tipo_equipo', _tipoEquipoCtrl.text, orig['tipo_instrumento']?.toString() ?? orig['tipo_equipo']?.toString());
+    chk(
+        'tipo_equipo',
+        _tipoEquipoCtrl.text,
+        orig['tipo_instrumento']?.toString() ??
+            orig['tipo_equipo']?.toString());
     chk('marca', _marcaCtrl.text, orig['marca']?.toString());
     chk('modelo', _modeloCtrl.text, orig['modelo']?.toString());
-    chk('serie', _serieCtrl.text, orig['serie']?.toString() ?? orig['inf_serie']?.toString());
+    chk('serie', _serieCtrl.text,
+        orig['serie']?.toString() ?? orig['inf_serie']?.toString());
     chk('unidades', _unidadesCtrl.text, orig['unidad']?.toString());
     chk('ubicacion', _ubicacionCtrl.text, orig['ubicacion']?.toString());
     chk('rango', _rangoCtrl.text, orig['rango']?.toString());
@@ -357,6 +393,41 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
+        // QR auto-detect: cuando el provider tiene una balanza del QR
+        // que aún no se ha reflejado en el formulario local
+        if (!_didQrAutoFill &&
+            provider.qrCodMetrica != null &&
+            provider.session?.balanza?.codMetrica != null &&
+            provider.session!.balanza!.codMetrica!.isNotEmpty &&
+            _codMetricaCtrl.text != provider.session!.balanza!.codMetrica) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final balanzaFromProvider = provider.session!.balanza!;
+            final match = _balanzas.cast<Map<String, dynamic>?>().firstWhere(
+                  (b) =>
+                      b?['cod_metrica']?.toString().trim() ==
+                      balanzaFromProvider.codMetrica?.trim(),
+                  orElse: () => null,
+                );
+            setState(() {
+              _didQrAutoFill = true;
+              if (match != null) {
+                _selectedBalanza = match;
+                _isNewBalanza = false;
+              } else {
+                _isNewBalanza = true;
+                _selectedBalanza = null;
+              }
+            });
+            if (match != null) {
+              _fillFromMap(match);
+            } else {
+              _fillFromBalanzaInfo(balanzaFromProvider);
+            }
+            _saveToProvider(provider);
+          });
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           child: Column(
@@ -432,6 +503,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return Row(
       children: [
         Expanded(
+          flex: 3,
           child: ElevatedButton.icon(
             onPressed:
                 _isLoadingBalanzas ? null : () => _showSearchDialog(provider),
@@ -450,13 +522,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
             ),
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
+          flex: 3,
           child: ElevatedButton.icon(
             onPressed: () {
               setState(() {
                 _isNewBalanza = true;
                 _selectedBalanza = null;
+                _didQrAutoFill = false;
               });
               _codMetricaCtrl.text = _suggestNewCodMetrica();
               _capMax2Ctrl.text = '0';
@@ -473,6 +547,21 @@ class _BalanzaStepState extends State<BalanzaStep> {
             label: const Text('Nuevo'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF327734),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            onPressed:
+                _isLoadingBalanzas ? null : () => _scanQrForBalanza(provider),
+            icon: const Icon(Icons.qr_code_scanner, size: 18),
+            label: const Text('QR'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF04376E),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -536,25 +625,28 @@ class _BalanzaStepState extends State<BalanzaStep> {
           const SizedBox(height: 20),
           _field(_codMetricaCtrl, 'Código Métrica', Icons.qr_code,
               readOnly: true,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Categoría', Icons.category, _categorias,
-              _categoriaCtrl, provider, isDark: isDark),
+              _categoriaCtrl, provider,
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_tecnologiaCtrl, 'Tecnología', Icons.memory,
-              readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_claseCtrl, 'Clase', Icons.class_,
-              readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_codIntCtrl, 'Código Interno', Icons.tag,
-              readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Tipo de Equipo', Icons.scale, _tiposEquipo,
-              _tipoEquipoCtrl, provider, isDark: isDark),
+              _tipoEquipoCtrl, provider,
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_marcaCtrl, 'Marca', Icons.business,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
@@ -573,12 +665,12 @@ class _BalanzaStepState extends State<BalanzaStep> {
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_rangoCtrl, 'Rango', Icons.linear_scale,
-              readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
           const SizedBox(height: 12),
           _field(_nCeldasCtrl, 'N° Celdas', Icons.grid_view,
-              readOnly: !_isNewBalanza,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider),
+              isDark: isDark),
         ],
       ),
     ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
@@ -806,7 +898,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
   // --- Helpers de widgets ---
 
   Widget _field(TextEditingController ctrl, String label, IconData icon,
-      {bool readOnly = false, void Function(String)? onChanged,
+      {bool readOnly = false,
+      void Function(String)? onChanged,
       required bool isDark}) {
     return TextField(
       controller: ctrl,
@@ -816,10 +909,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
-        prefixIcon: Icon(icon,
-            color: isDark ? Colors.white54 : Colors.black54),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+        prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -832,7 +924,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
         ),
         filled: readOnly,
         fillColor: readOnly
-            ? (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05))
+            ? (isDark
+                ? Colors.white.withOpacity(0.05)
+                : Colors.grey.withOpacity(0.05))
             : null,
       ),
     );
@@ -850,8 +944,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
       ],
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
@@ -884,10 +978,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
-        prefixIcon: Icon(icon,
-            color: isDark ? Colors.white54 : Colors.black54),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+        prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -904,9 +997,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               value: v,
               child: Text(v,
                   style: GoogleFonts.inter(
-                      color: isDark
-                          ? Colors.white
-                          : const Color(0xFF1A1A1A)))))
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)))))
           .toList(),
       onChanged: (v) {
         ctrl.text = v ?? '';
@@ -932,6 +1023,34 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return '$cliente-$planta-($stamp)';
   }
 
+  Future<void> _scanQrForBalanza(ServiceSessionProvider provider) async {
+    final codMetrica = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+    if (codMetrica == null || !mounted) return;
+
+    final match = _balanzas.cast<Map<String, dynamic>?>().firstWhere(
+          (b) => b?['cod_metrica']?.toString().trim() == codMetrica.trim(),
+          orElse: () => null,
+        );
+
+    if (match == null) {
+      TopAlert.show(context, 'No se encontró balanza con código: $codMetrica',
+          isError: true);
+      return;
+    }
+
+    setState(() {
+      _selectedBalanza = match;
+      _isNewBalanza = false;
+      _didQrAutoFill = true;
+    });
+    _fillFromMap(match);
+    _saveToProvider(provider);
+    TopAlert.show(context, 'Instrumento identificado: $codMetrica');
+  }
+
   bool _isPesaTipo(String? value) {
     final v = value?.toLowerCase() ?? '';
     return v.contains('pesa') ||
@@ -949,7 +1068,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
   String _instrumentSection(String type) {
     final t = type.toLowerCase();
     if (_isPesaTipo(t)) return 'Pesas Patrón';
-    if (t.contains('termo') || t.contains('higro') || t.contains('temp') || t.contains('humedad')) return 'Termohigrómetros';
+    if (t.contains('termo') ||
+        t.contains('higro') ||
+        t.contains('temp') ||
+        t.contains('humedad')) return 'Termohigrómetros';
     if (t.contains('baro')) return 'Barómetros';
     return 'Otros Instrumentos';
   }
@@ -1038,7 +1160,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
           children: [
             Icon(
               selected ? Icons.check_circle : Icons.circle_outlined,
-              color: selected ? (isDark ? Colors.tealAccent : Colors.teal) : cert.color,
+              color: selected
+                  ? (isDark ? Colors.tealAccent : Colors.teal)
+                  : cert.color,
               size: 24,
             ),
             const SizedBox(width: 12),
@@ -1061,7 +1185,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
                   const SizedBox(height: 6),
                   // Cert badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: cert.color.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(6),

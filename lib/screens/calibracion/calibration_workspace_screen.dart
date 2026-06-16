@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/screens/calibracion/widgets/step_indicator.dart';
 
-// Import placeholder steps (they will be created in phase 5)
 import 'steps/cliente_step.dart';
 import 'steps/planta_step.dart';
 import 'steps/seca_step.dart';
@@ -38,6 +40,8 @@ class CalibrationWorkspaceScreen extends StatefulWidget {
 class _CalibrationWorkspaceScreenState
     extends State<CalibrationWorkspaceScreen> {
   final PageController _pageController = PageController();
+  bool _infoButtonVisible = true;
+  Timer? _showButtonTimer;
 
   @override
   void initState() {
@@ -62,6 +66,7 @@ class _CalibrationWorkspaceScreenState
 
   @override
   void dispose() {
+    _showButtonTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -81,6 +86,15 @@ class _CalibrationWorkspaceScreenState
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Reset info button visibility when entering a technical step
+    if (provider.currentStep >= 5 && !_infoButtonVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && provider.currentStep >= 5) {
+          setState(() => _infoButtonVisible = true);
+        }
+      });
+    }
 
     // Validate accessibility for steps
     bool hasSeca = session.metadata.secaConfirmed;
@@ -202,21 +216,39 @@ class _CalibrationWorkspaceScreenState
                 PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
-                  children: const [
-                    ClienteStep(),
-                    PlantaStep(),
-                    SecaStep(),
-                    BalanzaStep(),
-                    InspeccionVisualStep(),
-                    PrecargasAjusteStep(),
-                    ExcentricidadStep(),
-                    RepetibilidadStep(),
-                    LinealidadStep(),
-                    FotoCargaStep(),
-                    CondicionesFinalesStep(),
-                    ExportacionStep(),
+                  children: [
+                    const ClienteStep(),
+                    const PlantaStep(),
+                    const SecaStep(),
+                    const BalanzaStep(),
+                    const InspeccionVisualStep(),
+                    _scrollHide(const PrecargasAjusteStep()),
+                    _scrollHide(const ExcentricidadStep()),
+                    _scrollHide(const RepetibilidadStep()),
+                    _scrollHide(const LinealidadStep()),
+                    _scrollHide(const FotoCargaStep()),
+                    _scrollHide(const CondicionesFinalesStep()),
+                    _scrollHide(const ExportacionStep()),
                   ],
                 ),
+
+                // Info button — visible on technical steps, hides on scroll
+                if (session.balanza != null && provider.currentStep >= 5)
+                  Positioned(
+                    bottom: 88,
+                    right: 20,
+                    child: AnimatedOpacity(
+                      opacity: _infoButtonVisible ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: AnimatedSlide(
+                        offset: _infoButtonVisible
+                            ? Offset.zero
+                            : const Offset(0, 0.3),
+                        duration: const Duration(milliseconds: 200),
+                        child: _buildBalanzaInfoButton(provider, isDark),
+                      ),
+                    ),
+                  ),
 
                 // Floating nav buttons — bottom-right, pill grouped
                 Positioned(
@@ -237,6 +269,28 @@ class _CalibrationWorkspaceScreenState
                         onNext = () async {
                           await provider.confirmSeca();
                         };
+                      } else if (step == 2 &&
+                          meta != null &&
+                          meta.secaConfirmed) {
+                        label = 'Siguiente';
+                        actionColor = const Color(0xFF498054);
+                        onNext = () async {
+                          if (provider.isQrMode) {
+                            final error =
+                                await provider.autoSelectBalanzaFromQr();
+                            if (error != null) {
+                              if (ctx.mounted) {
+                                TopAlert.show(ctx, error, isError: true);
+                              }
+                              return;
+                            }
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx,
+                                  'Instrumento identificado automáticamente');
+                            }
+                          }
+                          provider.nextStep();
+                        };
                       } else if (step == 3 &&
                           meta != null &&
                           !meta.balanzaConfirmed) {
@@ -256,52 +310,103 @@ class _CalibrationWorkspaceScreenState
                           final eq = session?.equipos ?? [];
                           final pesas = eq.where((e) {
                             final t = e.tipo?.toLowerCase() ?? '';
-                            return t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr');
+                            return t.contains('pesa') ||
+                                t.contains('masa') ||
+                                t.contains('patron') ||
+                                t.contains('patr');
                           }).toList();
                           final otros = eq.where((e) {
                             final t = e.tipo?.toLowerCase() ?? '';
-                            return !(t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr'));
+                            return !(t.contains('pesa') ||
+                                t.contains('masa') ||
+                                t.contains('patron') ||
+                                t.contains('patr'));
                           }).toList();
                           final confirm = await showDialog<bool>(
                             context: ctx,
                             builder: (ctx2) {
-                              final isDark = Theme.of(ctx2).brightness == Brightness.dark;
+                              final isDark =
+                                  Theme.of(ctx2).brightness == Brightness.dark;
                               return AlertDialog(
                                 title: Row(
                                   children: [
-                                    Icon(Icons.info_outline, color: isDark ? Colors.amber[300] : Colors.amber[800], size: 22),
+                                    Icon(Icons.info_outline,
+                                        color: isDark
+                                            ? Colors.amber[300]
+                                            : Colors.amber[800],
+                                        size: 22),
                                     const SizedBox(width: 8),
-                                    Expanded(child: Text('Verificar datos', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1A1A1A)))),
+                                    Expanded(
+                                        child: Text('Verificar datos',
+                                            style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(
+                                                        0xFF1A1A1A)))),
                                   ],
                                 ),
                                 content: SingleChildScrollView(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('Revise la información antes de guardar.', style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54)),
+                                      Text(
+                                          'Revise la información antes de guardar.',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? Colors.white60
+                                                  : Colors.black54)),
                                       const SizedBox(height: 12),
-                                      _summaryRow('RECA', session?.sessionInfo.nReca ?? '-', isDark),
-                                      _summaryRow('Sticker', session?.sessionInfo.sticker ?? '-', isDark),
+                                      _summaryRow(
+                                          'RECA',
+                                          session?.sessionInfo.nReca ?? '-',
+                                          isDark),
+                                      _summaryRow(
+                                          'Sticker',
+                                          session?.sessionInfo.sticker ?? '-',
+                                          isDark),
                                       const Divider(height: 16),
-                                      _summaryRow('Cód. Métrica', b?.codMetrica ?? '-', isDark),
-                                      _summaryRow('Tipo', b?.tipo ?? '-', isDark),
-                                      _summaryRow('Marca', b?.marca ?? '-', isDark),
-                                      _summaryRow('Modelo', b?.modelo ?? '-', isDark),
-                                      _summaryRow('Serie', b?.serie ?? '-', isDark),
+                                      _summaryRow('Cód. Métrica',
+                                          b?.codMetrica ?? '-', isDark),
+                                      _summaryRow(
+                                          'Tipo', b?.tipo ?? '-', isDark),
+                                      _summaryRow(
+                                          'Marca', b?.marca ?? '-', isDark),
+                                      _summaryRow(
+                                          'Modelo', b?.modelo ?? '-', isDark),
+                                      _summaryRow(
+                                          'Serie', b?.serie ?? '-', isDark),
                                       const Divider(height: 16),
-                                      Text('Pesas Patrón (${pesas.length}): ${pesas.map((e) => e.codInstrumento ?? '?').join(', ')}',
-                                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+                                      Text(
+                                          'Pesas Patrón (${pesas.length}): ${pesas.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87)),
                                       const SizedBox(height: 4),
-                                      Text('Ambiente (${otros.length}): ${otros.map((e) => e.codInstrumento ?? '?').join(', ')}',
-                                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+                                      Text(
+                                          'Ambiente (${otros.length}): ${otros.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                          style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87)),
                                     ],
                                   ),
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx2, false),
-                                    child: Text('Cancelar', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+                                    child: Text('Cancelar',
+                                        style: TextStyle(
+                                            color: isDark
+                                                ? Colors.white60
+                                                : Colors.black54)),
                                   ),
                                   ElevatedButton(
                                     onPressed: () => Navigator.pop(ctx2, true),
@@ -473,7 +578,256 @@ class _CalibrationWorkspaceScreenState
           ),
         ],
       ),
-      );
+    );
+  }
+
+  Widget _scrollHide(Widget child) {
+    return NotificationListener<ScrollUpdateNotification>(
+      onNotification: (n) {
+        // Ocultar inmediatamente en cualquier movimiento de scroll
+        _showButtonTimer?.cancel();
+        if (_infoButtonVisible) {
+          setState(() => _infoButtonVisible = false);
+        }
+        return false;
+      },
+      child: NotificationListener<ScrollEndNotification>(
+        onNotification: (n) {
+          // Solo volver a mostrar si el usuario regresó al tope,
+          // con un delay para evitar que reaparezca por rebote.
+          if (n.metrics.pixels <= 10) {
+            _showButtonTimer?.cancel();
+            _showButtonTimer = Timer(const Duration(milliseconds: 500), () {
+              if (mounted && !_infoButtonVisible) {
+                setState(() => _infoButtonVisible = true);
+              }
+            });
+          }
+          return false;
+        },
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildBalanzaInfoButton(ServiceSessionProvider provider, bool isDark) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFF04376E),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: const Icon(Icons.info_outline, color: Colors.white, size: 22),
+        onPressed: () {
+          final b = provider.session?.balanza;
+          final eq = provider.session?.equipos ?? [];
+          if (b != null) _showBalanzaInfo(context, b, eq, isDark);
+        },
+      ),
+    );
+  }
+
+  void _showBalanzaInfo(
+      BuildContext context, BalanzaInfo b, List<EquipoInfo> equipos, bool isDark) {
+    final pesas = equipos.where((e) {
+      final t = e.tipo?.toLowerCase() ?? '';
+      return t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr');
+    }).toList();
+    final otros = equipos.where((e) {
+      final t = e.tipo?.toLowerCase() ?? '';
+      return !(t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr'));
+    }).toList();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black26,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(Icons.scale, size: 22, color: isDark ? Colors.white : const Color(0xFF04376E)),
+                  const SizedBox(width: 10),
+                  Text('Información del Instrumento',
+                      style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: ListView(
+                  children: [
+                    _infoSectionHeader('Identificación', isDark),
+                    _infoRow('Código Métrica', b.codMetrica ?? '-', isDark),
+                    _infoRow('Tipo', b.tipo ?? '-', isDark),
+                    _infoRow('Categoría', b.categoria ?? '-', isDark),
+                    const Divider(height: 24),
+
+                    _infoSectionHeader('Fabricante', isDark),
+                    _infoRow('Marca', b.marca ?? '-', isDark),
+                    _infoRow('Modelo', b.modelo ?? '-', isDark),
+                    _infoRow('Serie', b.serie ?? '-', isDark),
+                    const Divider(height: 24),
+
+                    _infoSectionHeader('Características', isDark),
+                    _infoRow('Tecnología', b.tecnologia ?? '-', isDark),
+                    _infoRow('Clase', b.clase ?? '-', isDark),
+                    _infoRow('Código Interno', b.codInterno ?? '-', isDark),
+                    _infoRow('Unidad', b.unidad ?? '-', isDark),
+                    _infoRow('Ubicación', b.ubicacion ?? '-', isDark),
+                    _infoRow('Rango', b.rango ?? '-', isDark),
+                    _infoRow('N° Celdas', b.nCeldas ?? '-', isDark),
+                    const Divider(height: 24),
+
+                    _infoSectionHeader('Rangos de Intervalo', isDark),
+                    _infoRow(
+                        'Rango 1',
+                        'Cap.Max: ${b.capMax1 ?? '-'} | d: ${b.d1 ?? '-'} | e: ${b.e1 ?? '-'} | Dec: ${b.dec1 ?? '-'}',
+                        isDark),
+                    _infoRow(
+                        'Rango 2',
+                        'Cap.Max: ${b.capMax2 ?? '-'} | d: ${b.d2 ?? '-'} | e: ${b.e2 ?? '-'} | Dec: ${b.dec2 ?? '-'}',
+                        isDark),
+                    _infoRow(
+                        'Rango 3',
+                        'Cap.Max: ${b.capMax3 ?? '-'} | d: ${b.d3 ?? '-'} | e: ${b.e3 ?? '-'} | Dec: ${b.dec3 ?? '-'}',
+                        isDark),
+                    const Divider(height: 24),
+
+                    _infoSectionHeader('Equipamiento del Servicio', isDark),
+                    if (pesas.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text('Sin pesas patrón seleccionadas',
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: isDark ? Colors.white38 : Colors.black38)),
+                      )
+                    else ...[
+                      Text('Pesas Patrón (${pesas.length})',
+                          style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.black54)),
+                      const SizedBox(height: 4),
+                      ...pesas.map((e) => Padding(
+                        padding: const EdgeInsets.only(left: 12, bottom: 4),
+                        child: Text('${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                      )),
+                    ],
+                    const SizedBox(height: 8),
+                    if (otros.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text('Sin instrumentos de ambiente seleccionados',
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: isDark ? Colors.white38 : Colors.black38)),
+                      )
+                    else ...[
+                      Text('Ambiente (${otros.length})',
+                          style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white70 : Colors.black54)),
+                      const SizedBox(height: 4),
+                      ...otros.map((e) => Padding(
+                        padding: const EdgeInsets.only(left: 12, bottom: 4),
+                        child: Text('${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                      )),
+                    ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoSectionHeader(String label, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : const Color(0xFF04376E),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white54 : Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ponytail: summary helper for confirmation dialog
