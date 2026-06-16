@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         if (!_modoDemo)
                           IconButton(
-                            icon: Icon(FontAwesomeIcons.gear,
+                            icon: FaIcon(FontAwesomeIcons.gear,
                                 size: 18, color: iconColor),
                             onPressed: () {
                               Navigator.push(

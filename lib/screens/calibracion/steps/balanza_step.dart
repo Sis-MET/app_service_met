@@ -272,6 +272,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       d3: double.tryParse(_d3Ctrl.text),
       e3: double.tryParse(_e3Ctrl.text),
       dec3: double.tryParse(_dec3Ctrl.text),
+      infBal: _computeInfBal(),
     ));
     provider.updateSessionInfo(provider.session!.sessionInfo.copyWith(
       nReca: _nRecaCtrl.text,
@@ -280,6 +281,38 @@ class _BalanzaStepState extends State<BalanzaStep> {
     ));
     provider.updateEquipos([..._selectedPesas, ..._selectedMedicion]);
     provider.setBalanzaConfirmed(false);
+  }
+
+  // ponytail: diffs current controllers against original DB values or empty for new
+  String _computeInfBal() {
+    final fields = <String>[];
+    // ignore: unused_local_variable
+    void chk(String col, String cur, String? dbVal) {
+      if (cur != (dbVal ?? '') && cur.isNotEmpty) fields.add(col);
+    }
+    final orig = _isNewBalanza ? <String, dynamic>{} : (_selectedBalanza ?? {});
+    chk('cod_int', _codIntCtrl.text, orig['cod_int']?.toString());
+    chk('tipo_equipo', _tipoEquipoCtrl.text, orig['tipo_instrumento']?.toString() ?? orig['tipo_equipo']?.toString());
+    chk('marca', _marcaCtrl.text, orig['marca']?.toString());
+    chk('modelo', _modeloCtrl.text, orig['modelo']?.toString());
+    chk('serie', _serieCtrl.text, orig['serie']?.toString() ?? orig['inf_serie']?.toString());
+    chk('unidades', _unidadesCtrl.text, orig['unidad']?.toString());
+    chk('ubicacion', _ubicacionCtrl.text, orig['ubicacion']?.toString());
+    chk('rango', _rangoCtrl.text, orig['rango']?.toString());
+    chk('n_celdas', _nCeldasCtrl.text, orig['n_celdas']?.toString());
+    chk('cap_max1', _capMax1Ctrl.text, orig['cap_max1']?.toString());
+    chk('d1', _d1Ctrl.text, orig['d1']?.toString());
+    chk('e1', _e1Ctrl.text, orig['e1']?.toString());
+    chk('dec1', _dec1Ctrl.text, orig['dec1']?.toString());
+    chk('cap_max2', _capMax2Ctrl.text, orig['cap_max2']?.toString());
+    chk('d2', _d2Ctrl.text, orig['d2']?.toString());
+    chk('e2', _e2Ctrl.text, orig['e2']?.toString());
+    chk('dec2', _dec2Ctrl.text, orig['dec2']?.toString());
+    chk('cap_max3', _capMax3Ctrl.text, orig['cap_max3']?.toString());
+    chk('d3', _d3Ctrl.text, orig['d3']?.toString());
+    chk('e3', _e3Ctrl.text, orig['e3']?.toString());
+    chk('dec3', _dec3Ctrl.text, orig['dec3']?.toString());
+    return fields.join(',');
   }
 
   @override
@@ -502,7 +535,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ),
           const SizedBox(height: 20),
           _field(_codMetricaCtrl, 'Código Métrica', Icons.qr_code,
-              readOnly: !_isNewBalanza,
+              readOnly: true,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Categoría', Icons.category, _categorias,
@@ -913,6 +946,144 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return instrumento.isNotEmpty ? instrumento : tipo;
   }
 
+  String _instrumentSection(String type) {
+    final t = type.toLowerCase();
+    if (_isPesaTipo(t)) return 'Pesas Patrón';
+    if (t.contains('termo') || t.contains('higro') || t.contains('temp') || t.contains('humedad')) return 'Termohigrómetros';
+    if (t.contains('baro')) return 'Barómetros';
+    return 'Otros Instrumentos';
+  }
+
+  Widget _buildEquiposGroupedList(
+    List<Map<String, dynamic>> items,
+    bool isPesas,
+    bool isDark,
+    ServiceSessionProvider provider,
+    void Function(VoidCallback) setSheet,
+  ) {
+    // Ponytail: group ambiente items by sub-type, keep pesas flat
+    final displayItems = <dynamic>[];
+    if (isPesas) {
+      displayItems.addAll(items);
+    } else {
+      final groups = <String, List<Map<String, dynamic>>>{};
+      for (final eq in items) {
+        final section = _instrumentSection(_instrumentType(eq));
+        groups.putIfAbsent(section, () => []).add(eq);
+      }
+      for (final entry in groups.entries) {
+        displayItems.add({'_header': true, '_label': entry.key});
+        displayItems.addAll(entry.value);
+      }
+    }
+
+    return ListView.separated(
+      itemCount: displayItems.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (_, i) {
+        final item = displayItems[i];
+        if (item is Map<String, dynamic> && item['_header'] == true) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              item['_label'] as String,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          );
+        }
+        final eq = item as Map<String, dynamic>;
+        return _buildEquipoCard(eq, isPesas, isDark, provider, setSheet);
+      },
+    );
+  }
+
+  Widget _buildEquipoCard(
+    Map<String, dynamic> eq,
+    bool isPesas,
+    bool isDark,
+    ServiceSessionProvider provider,
+    void Function(VoidCallback) setSheet,
+  ) {
+    final code = eq['cod_instrumento']?.toString() ?? 'Sin codigo';
+    final type = _instrumentType(eq);
+    final cert = _certStatus(eq['cert_fecha']?.toString());
+    final target = isPesas ? _selectedPesas : _selectedMedicion;
+    final selected = target.any((e) => e.codInstrumento == code);
+    final canSelect = selected || target.length < (isPesas ? 5 : 2);
+
+    return InkWell(
+      onTap: canSelect
+          ? () {
+              _saveEquipoSelection(eq, isPesas, provider);
+              setSheet(() {});
+            }
+          : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected
+                ? (isDark ? Colors.tealAccent : Colors.teal)
+                : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.check_circle : Icons.circle_outlined,
+              color: selected ? (isDark ? Colors.tealAccent : Colors.teal) : cert.color,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    code,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(type,
+                      style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? Colors.white60 : Colors.black54)),
+                  const SizedBox(height: 6),
+                  // Cert badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: cert.color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Cert: ${eq['cert_fecha'] ?? 'S/F'} | ${cert.label}',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: cert.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   _CertStatus _certStatus(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
       return _CertStatus('Sin fecha', Colors.grey, 999999);
@@ -1070,7 +1241,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 ),
               ),
               Text(
-                title,
+                '$title (${isPesas ? _selectedPesas.length : _selectedMedicion.length}/${isPesas ? 5 : 2})',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -1113,92 +1284,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
                           ),
                         ),
                       )
-                    : ListView.separated(
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final eq = filtered[i];
-                          final code =
-                              eq['cod_instrumento']?.toString() ?? 'Sin codigo';
-                          final type = _instrumentType(eq);
-                          final cert =
-                              _certStatus(eq['cert_fecha']?.toString());
-                          final target =
-                              isPesas ? _selectedPesas : _selectedMedicion;
-                          final selected =
-                              target.any((e) => e.codInstrumento == code);
-                          final canSelect =
-                              selected || target.length < (isPesas ? 5 : 2);
-                          return InkWell(
-                            onTap: canSelect
-                                ? () {
-                                    _saveEquipoSelection(eq, isPesas, provider);
-                                    setSheet(() {});
-                                  }
-                                : null,
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? const Color(0xFF2A2A2A)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: selected
-                                      ? Colors.teal
-                                      : (isDark
-                                          ? Colors.white12
-                                          : const Color(0xFFE2E8F0)),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    selected
-                                        ? Icons.check_circle
-                                        : Icons.circle_outlined,
-                                    color: selected ? Colors.teal : cert.color,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          code,
-                                          style: GoogleFonts.inter(
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark
-                                                ? Colors.white
-                                                : const Color(0xFF1A1A1A),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(type,
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                color: isDark
-                                                    ? Colors.white60
-                                                    : Colors.black54)),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Cert: ${eq['cert_fecha'] ?? 'S/F'} | ${cert.label}',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            color: cert.color,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                    : _buildEquiposGroupedList(
+                        filtered, isPesas, isDark, provider, setSheet),
               ),
             ],
           ),
@@ -1389,6 +1476,13 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                             'Cód. Interno', codInterno, isDark),
                                         const SizedBox(height: 4),
                                         _infoSearchRow('Serie', serie, isDark),
+                                        const SizedBox(height: 4),
+                                        _infoSearchRow(
+                                            'Tipo',
+                                            b['tipo_instrumento']?.toString() ??
+                                                b['instrumento']?.toString() ??
+                                                'No especificado',
+                                            isDark),
                                       ],
                                     ),
                                   ),

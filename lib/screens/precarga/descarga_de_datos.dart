@@ -468,7 +468,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(FontAwesomeIcons.server, color: accent, size: 20),
+                        FaIcon(FontAwesomeIcons.server, color: accent, size: 20),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -535,7 +535,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
   }
 
   Widget _buildMiniStat({
-    required IconData icon,
+    required dynamic icon,
     required String value,
     required String label,
     required Color accent,
@@ -549,7 +549,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
             color: accent.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 16, color: accent),
+          child: icon is IconData ? Icon(icon, size: 16, color: accent) : FaIcon(icon, size: 16, color: accent),
         ),
         const SizedBox(height: 8),
         Text(

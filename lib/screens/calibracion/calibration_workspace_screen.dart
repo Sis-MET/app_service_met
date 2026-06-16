@@ -250,7 +250,74 @@ class _CalibrationWorkspaceScreenState
                             }
                             return;
                           }
-                          await provider.confirmBalanza();
+                          if (!ctx.mounted) return;
+                          final session = provider.session;
+                          final b = session?.balanza;
+                          final eq = session?.equipos ?? [];
+                          final pesas = eq.where((e) {
+                            final t = e.tipo?.toLowerCase() ?? '';
+                            return t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr');
+                          }).toList();
+                          final otros = eq.where((e) {
+                            final t = e.tipo?.toLowerCase() ?? '';
+                            return !(t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr'));
+                          }).toList();
+                          final confirm = await showDialog<bool>(
+                            context: ctx,
+                            builder: (ctx2) {
+                              final isDark = Theme.of(ctx2).brightness == Brightness.dark;
+                              return AlertDialog(
+                                title: Row(
+                                  children: [
+                                    Icon(Icons.info_outline, color: isDark ? Colors.amber[300] : Colors.amber[800], size: 22),
+                                    const SizedBox(width: 8),
+                                    Expanded(child: Text('Verificar datos', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: isDark ? Colors.white : const Color(0xFF1A1A1A)))),
+                                  ],
+                                ),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text('Revise la información antes de guardar.', style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54)),
+                                      const SizedBox(height: 12),
+                                      _summaryRow('RECA', session?.sessionInfo.nReca ?? '-', isDark),
+                                      _summaryRow('Sticker', session?.sessionInfo.sticker ?? '-', isDark),
+                                      const Divider(height: 16),
+                                      _summaryRow('Cód. Métrica', b?.codMetrica ?? '-', isDark),
+                                      _summaryRow('Tipo', b?.tipo ?? '-', isDark),
+                                      _summaryRow('Marca', b?.marca ?? '-', isDark),
+                                      _summaryRow('Modelo', b?.modelo ?? '-', isDark),
+                                      _summaryRow('Serie', b?.serie ?? '-', isDark),
+                                      const Divider(height: 16),
+                                      Text('Pesas Patrón (${pesas.length}): ${pesas.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+                                      const SizedBox(height: 4),
+                                      Text('Ambiente (${otros.length}): ${otros.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87)),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx2, false),
+                                    child: Text('Cancelar', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(ctx2, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3e7732),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Confirmar y Guardar'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                          if (confirm == true) {
+                            await provider.confirmBalanza();
+                          }
                         };
                       } else if (step == 4) {
                         onNext = () {
@@ -402,6 +469,38 @@ class _CalibrationWorkspaceScreenState
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+      );
+  }
+
+  // ponytail: summary helper for confirmation dialog
+  Widget _summaryRow(String label, String value, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: isDark ? Colors.white54 : Colors.black54,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
             ),
           ),
         ],

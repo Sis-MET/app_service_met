@@ -299,7 +299,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           ),
           Row(
             children: [
-              Icon(
+              FaIcon(
                 FontAwesomeIcons.cloudArrowDown,
                 size: 13,
                 color: isDark ? Colors.white38 : Colors.black38,
@@ -331,7 +331,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildStatItem({
-    required IconData icon,
+    required dynamic icon,
     required String value,
     required String label,
     required Color accent,
@@ -350,7 +350,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               color: accent.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 15, color: accent),
+            child: icon is IconData ? Icon(icon, size: 15, color: accent) : FaIcon(icon, size: 15, color: accent),
           ),
           const SizedBox(height: 10),
           Text(
@@ -408,7 +408,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
 
   Widget _buildEmptyState({
     required BuildContext context,
-    required IconData icon,
+    required dynamic icon,
     required String title,
     required String subtitle,
   }) {
@@ -424,7 +424,9 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       ),
       child: Column(
         children: [
-          Icon(icon,
+          icon is IconData ? Icon(icon,
+              size: 40,
+              color: isDark ? Colors.white24 : Colors.black26) : FaIcon(icon,
               size: 40,
               color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 16),

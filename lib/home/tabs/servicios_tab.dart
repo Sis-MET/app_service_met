@@ -110,7 +110,7 @@ class ServiciosTab extends StatelessWidget {
 
   Widget _buildServiceCard(
     BuildContext context, {
-    required IconData icon,
+    required dynamic icon,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -149,7 +149,7 @@ class ServiciosTab extends StatelessWidget {
                   color: accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(icon, size: 22, color: accent),
+                child: icon is IconData ? Icon(icon, size: 22, color: accent) : FaIcon(icon, size: 22, color: accent),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -215,7 +215,7 @@ class ServiciosTab extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(FontAwesomeIcons.lightbulb, color: accent, size: 18),
+          FaIcon(FontAwesomeIcons.lightbulb, color: accent, size: 18),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

@@ -851,7 +851,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(FontAwesomeIcons.triangleExclamation,
+                    const FaIcon(FontAwesomeIcons.triangleExclamation,
                         color: Colors.orange, size: 16),
                     const SizedBox(width: 8),
                     Expanded(

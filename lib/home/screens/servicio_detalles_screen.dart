@@ -107,7 +107,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(FontAwesomeIcons.circleCheck,
+                const FaIcon(FontAwesomeIcons.circleCheck,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Archivo guardado en: ${file.path}')),
@@ -126,7 +126,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(FontAwesomeIcons.circleXmark,
+                const FaIcon(FontAwesomeIcons.circleXmark,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar: $e')),
@@ -173,7 +173,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(FontAwesomeIcons.circleCheck,
+                const FaIcon(FontAwesomeIcons.circleCheck,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('PDF guardado en: ${file.path}')),
@@ -192,7 +192,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(FontAwesomeIcons.circleXmark,
+                const FaIcon(FontAwesomeIcons.circleXmark,
                     color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar PDF: $e')),
@@ -217,7 +217,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
-    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
@@ -243,7 +243,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 color: primaryColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: primaryColor, size: 20),
+              child: FaIcon(icon, color: primaryColor, size: 20),
             ),
             const SizedBox(width: 14),
             // ─ Info principal ───────────────────────────────────────
@@ -317,7 +317,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
-    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
@@ -370,7 +370,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         color: primaryColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(icon, color: primaryColor, size: 20),
+                      child: FaIcon(icon, color: primaryColor, size: 20),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -512,7 +512,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _exportarPDF,
-                  icon: const Icon(FontAwesomeIcons.filePdf,
+                  icon: const FaIcon(FontAwesomeIcons.filePdf,
                       size: 16, color: Colors.red),
                   label: Text(
                     'Exportar PDF',
@@ -533,7 +533,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _exportarCSV,
-                  icon: const Icon(FontAwesomeIcons.fileArrowDown,
+                  icon: const FaIcon(FontAwesomeIcons.fileArrowDown,
                       size: 16, color: Colors.white),
                   label: Text(
                     'Respaldo CSV',
@@ -560,7 +560,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(FontAwesomeIcons.boxOpen,
+                  FaIcon(FontAwesomeIcons.boxOpen,
                       size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
@@ -591,7 +591,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor) {
     final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final primerDato =
         itemsEditados.isNotEmpty ? itemsEditados.first : {};
@@ -621,7 +621,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   color: accent.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: accent, size: 20),
+                child: FaIcon(icon, color: accent, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -805,7 +805,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   }
 
   Widget _buildAction(
-      {required IconData icon,
+      {required dynamic icon,
       required Color color,
       required VoidCallback onPressed,
       required String tooltip}) {
@@ -817,7 +817,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           color: color.withOpacity(0.12),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: color, size: 17),
+        child: icon is IconData ? Icon(icon, color: color, size: 17) : FaIcon(icon, color: color, size: 17),
       ),
       onPressed: onPressed,
     );
@@ -850,7 +850,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 color: primaryColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
+              child: FaIcon(
                 FontAwesomeIcons.penToSquare,
                 color: primaryColor,
                 size: 18,
@@ -941,7 +941,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 SnackBar(
                   content: Row(
                     children: [
-                      const Icon(FontAwesomeIcons.circleCheck,
+                      const FaIcon(FontAwesomeIcons.circleCheck,
                           color: Colors.white, size: 20),
                       const SizedBox(width: 12),
                       const Text('Cambios guardados correctamente'),

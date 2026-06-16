@@ -113,6 +113,7 @@ class ServiceSession {
       if (balanza?.dec1 != null) 'dec1': balanza!.dec1,
       if (balanza?.dec2 != null) 'dec2': balanza!.dec2,
       if (balanza?.dec3 != null) 'dec3': balanza!.dec3,
+      if (balanza?.infBal != null && balanza!.infBal!.isNotEmpty) 'inf_bal': balanza!.infBal,
       // Equipos: pesas patron en 1-5, instrumentos de medicion en 6-7
       for (int i = 0; i < pesas.length; i++) ...{
         'equipo${i + 1}': pesas[i].codInstrumento,
@@ -370,6 +371,7 @@ class ServiceSession {
         dec1: double.tryParse(map['dec1']?.toString() ?? ''),
         dec2: double.tryParse(map['dec2']?.toString() ?? ''),
         dec3: double.tryParse(map['dec3']?.toString() ?? ''),
+        infBal: map['inf_bal'],
       ),
       equipos: equiposParsed,
       inspeccion: InspeccionVisual(
@@ -550,6 +552,7 @@ class BalanzaInfo {
   final String? serie;
   final String? capMax1, capMax2, capMax3;
   final double? d1, d2, d3, e1, e2, e3, dec1, dec2, dec3, exc;
+  final String? infBal;
 
   BalanzaInfo({
     this.codMetrica,
@@ -578,6 +581,7 @@ class BalanzaInfo {
     this.dec2,
     this.dec3,
     this.exc,
+    this.infBal,
   });
 
   BalanzaInfo copyWith({
@@ -607,6 +611,7 @@ class BalanzaInfo {
     double? dec2,
     double? dec3,
     double? exc,
+    String? infBal,
   }) {
     return BalanzaInfo(
       codMetrica: codMetrica ?? this.codMetrica,
@@ -635,6 +640,7 @@ class BalanzaInfo {
       dec2: dec2 ?? this.dec2,
       dec3: dec3 ?? this.dec3,
       exc: exc ?? this.exc,
+      infBal: infBal ?? this.infBal,
     );
   }
 }

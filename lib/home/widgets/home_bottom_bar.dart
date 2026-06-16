@@ -115,7 +115,8 @@ class HomeBottomBar extends StatelessWidget {
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(item.icon,
+                        child: item.icon is IconData ? Icon(item.icon,
+                            size: 18, color: iconColor) : FaIcon(item.icon,
                             size: 18, color: iconColor),
                       ),
                       const SizedBox(height: 3),
@@ -143,7 +144,7 @@ class HomeBottomBar extends StatelessWidget {
 }
 
 class _NavItem {
-  final IconData icon;
+  final dynamic icon;
   final String label;
   final int index;
   _NavItem({required this.icon, required this.label, required this.index});

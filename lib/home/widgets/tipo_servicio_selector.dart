@@ -58,7 +58,7 @@ class TipoServicioSelector extends StatelessWidget {
   Widget _buildTab({
     required BuildContext context,
     required int index,
-    required IconData icon,
+    required dynamic icon,
     required String label,
     required bool isSelected,
     required Color accent,
@@ -87,7 +87,13 @@ class TipoServicioSelector extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              icon is IconData ? Icon(
+                icon,
+                size: 14,
+                color: isSelected
+                    ? Colors.white
+                    : (isDark ? Colors.white38 : Colors.black38),
+              ) : FaIcon(
                 icon,
                 size: 14,
                 color: isSelected

@@ -20,7 +20,7 @@ class ServiceCard extends StatelessWidget {
         ? const [Color(0xFF667EEA), Color(0xFF764BA2)]
         : const [Color(0xFF4CAF50), Color(0xFF45a049)];
     final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
-    final IconData icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     final String labelSuffix = isCalibracion ? 'calibrada' : 'técnico';
     final String pluralSuffixItem = servicio.cantidad != 1 ? 's' : '';
     final String pluralSuffixLabel = servicio.cantidad != 1 ? 's' : '';
@@ -63,7 +63,7 @@ class ServiceCard extends StatelessWidget {
                           gradient: LinearGradient(colors: gradientColors),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(icon, color: Colors.white, size: 20),
+                        child: FaIcon(icon, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -119,7 +119,7 @@ class ServiceCard extends StatelessWidget {
                               ),
                             );
                           },
-                          icon: const Icon(FontAwesomeIcons.eye, size: 16),
+                          icon: const FaIcon(FontAwesomeIcons.eye, size: 16),
                           label: const Text('Ver detalles'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: primaryColor,
