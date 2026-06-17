@@ -60,6 +60,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   bool _didQrAutoFill = false;
   Map<String, dynamic>? _selectedBalanza;
   List<String> _fotosPaths = [];
+  Set<String> _completedCodMetricas = {};
 
   static const List<String> _categorias = ['STAC', 'STIL'];
   static const List<String> _unidades = ['kg', 'g', 'mg', 't', 'lb', 'N'];
@@ -157,9 +158,22 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
     if (!mounted) return;
 
+    // Cargar balanzas completadas del SECA actual
+    final seca = provider.session?.sessionInfo.seca;
+    Set<String> completed = {};
+    if (seca != null && seca.isNotEmpty) {
+      final registros = await provider.getRegistrosCompletos(seca);
+      completed = registros
+          .where((r) => r['estado_servicio_bal']?.toString() == 'Balanza Calibrada')
+          .map((r) => r['cod_metrica']?.toString() ?? '')
+          .where((c) => c.isNotEmpty)
+          .toSet();
+    }
+
     final savedCodMetrica = provider.session?.balanza?.codMetrica;
 
     setState(() {
+      _completedCodMetricas = completed;
       _balanzas = mutableResult;
       _isLoadingBalanzas = false;
 
@@ -1293,15 +1307,46 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          codMetrica,
-                                          style: GoogleFonts.inter(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark
-                                                ? const Color(0xFFf9e300)
-                                                : const Color(0xFF5A4E00),
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              codMetrica,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? const Color(0xFFf9e300)
+                                                    : const Color(0xFF5A4E00),
+                                              ),
+                                            ),
+                                            if (_completedCodMetricas
+                                                .contains(codMetrica)) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets
+                                                    .symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green
+                                                      .withOpacity(0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                      color: Colors.green
+                                                          .withOpacity(0.4)),
+                                                ),
+                                                child: Text(
+                                                  'Calibrada',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.green[700],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                         const SizedBox(height: 8),
                                         _infoSearchRow('Marca', marca, isDark),

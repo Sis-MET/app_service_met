@@ -226,6 +226,35 @@ class AppDatabase {
     }
   }
 
+  Future<void> marcarBalanzaCompleta(String seca, String sessionId) async {
+    try {
+      final db = await database;
+      await db.update(
+        'registros_calibracion',
+        {'estado_servicio_bal': 'Balanza Calibrada'},
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+      );
+    } catch (e) {
+      debugPrint('Error al marcar balanza completa: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
+    try {
+      final db = await database;
+      return await db.query(
+        'registros_calibracion',
+        where: 'seca = ?',
+        whereArgs: [seca],
+        orderBy: 'fecha_servicio DESC, session_id DESC',
+      );
+    } catch (e) {
+      debugPrint('Error al obtener registros por SECA: $e');
+      return [];
+    }
+  }
+
   Future<void> upsertRegistroCalibracion(Map<String, dynamic> registro) async {
     try {
       final db = await database;

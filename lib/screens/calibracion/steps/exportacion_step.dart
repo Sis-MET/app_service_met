@@ -50,27 +50,162 @@ class _ExportacionStepState extends State<ExportacionStep> {
     ));
   }
 
-  Future<void> _exportar(ServiceSessionProvider provider) async {
-    // Save latest
-    _saveToProvider();
+  Future<void> _seleccionarOtraBalanza(ServiceSessionProvider provider) async {
+    await provider.marcarBalanzaCompleta();
+    provider.resetearParaNuevaBalanza();
+  }
 
-    // Auto save all
+  Future<void> _exportar(ServiceSessionProvider provider) async {
+    _saveToProvider();
     await provider.flushAutoSave();
 
-    // Trigger CSV Export from Provider if implemented, or show success
-    bool success = await provider.exportToCSV();
-    if (success && mounted) {
-      TopAlert.show(context, 'Exportación exitosa', isError: false);
+    final seca = provider.session?.sessionInfo.seca;
+    if (seca == null || seca.isEmpty) {
+      if (mounted) TopAlert.show(context, 'SECA no disponible', isError: true);
+      return;
+    }
+
+    final registrosHoy =
+        await provider.getRegistrosCompletos(seca, soloHoy: true);
+    final registrosTodas =
+        await provider.getRegistrosCompletos(seca, soloHoy: false);
+
+    if (!mounted) return;
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final opcion = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.file_download_rounded,
+                color: isDark ? Colors.green[300] : Colors.green[700],
+                size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Text('Exportar datos',
+                    style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? Colors.white
+                            : const Color(0xFF1A1A1A)))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '¿Qué balanzas desea exportar?',
+              style: TextStyle(
+                  fontSize: 14,
+                  color: isDark ? Colors.white70 : Colors.black87),
+            ),
+            const SizedBox(height: 16),
+            _opcionExportacion(
+              ctx,
+              icon: Icons.today_rounded,
+              titulo: 'Solo las de hoy',
+              subtitulo: '${registrosHoy.length} balanza(s)',
+              isDark: isDark,
+              onTap: () => Navigator.pop(ctx, 'hoy'),
+            ),
+            const SizedBox(height: 12),
+            _opcionExportacion(
+              ctx,
+              icon: Icons.calendar_month_rounded,
+              titulo: 'Todas las del SECA',
+              subtitulo: '${registrosTodas.length} balanza(s)',
+              isDark: isDark,
+              onTap: () => Navigator.pop(ctx, 'todas'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar',
+                style: TextStyle(
+                    color: isDark ? Colors.white60 : Colors.black54)),
+          ),
+        ],
+      ),
+    );
+
+    if (opcion == null || !mounted) return;
+
+    final registros =
+        opcion == 'hoy' ? registrosHoy : registrosTodas;
+    if (registros.isEmpty) {
+      TopAlert.show(context, 'No hay registros para exportar', isError: true);
+      return;
+    }
+
+    final success = await provider.exportToCSV(registros);
+    if (!mounted) return;
+
+    if (success) {
+      TopAlert.show(context,
+          'Exportación exitosa: ${registros.length} balanza(s) exportada(s)',
+          isError: false);
       Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
     } else {
-      if (mounted) {
-        TopAlert.show(context, 'Guardado finalizado. Falta implementar CSV writer.', isError: true);
-        Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-            (r) => false);
-      }
+      TopAlert.show(context, 'Error al exportar CSV', isError: true);
     }
+  }
+
+  Widget _opcionExportacion(
+    BuildContext ctx, {
+    required IconData icon,
+    required String titulo,
+    required String subtitulo,
+    required bool isDark,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                color: isDark ? Colors.white54 : Colors.black54, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo,
+                      style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF1A1A1A))),
+                  const SizedBox(height: 2),
+                  Text(subtitulo,
+                      style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: isDark ? Colors.white60 : Colors.black54)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: isDark ? Colors.white24 : Colors.black26),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -95,71 +230,16 @@ class _ExportacionStepState extends State<ExportacionStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                  child: Text(
-                'DATOS DE EXPORTACIÓN',
-                style: GoogleFonts.poppins(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF667EEA)),
-              ).animate().fadeIn(duration: 600.ms)),
+              _buildHeader(isDark),
+              const SizedBox(height: 20),
+              _buildResumenCard(seca, cod, isDark),
               const SizedBox(height: 24),
-
-              // Resumen
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.blueGrey[900] : Colors.blue[50],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                ),
-                child: Column(children: [
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('SECA',
-                            style:
-                                GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                        Text(seca,
-                            style: GoogleFonts.inter(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.bold)),
-                      ]),
-                  const Divider(),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Código Métrica',
-                            style:
-                                GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                        Text(cod,
-                            style: GoogleFonts.inter(
-                                color: Colors.blue[800],
-                                fontWeight: FontWeight.bold)),
-                      ]),
-                  const Divider(),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Fecha',
-                            style:
-                                GoogleFonts.inter(fontWeight: FontWeight.bold)),
-                        Text(DateFormat('dd MMM yyyy').format(DateTime.now()),
-                            style: GoogleFonts.inter(color: Colors.blue[800])),
-                      ]),
-                ]),
-              ).animate(delay: 200.ms).fadeIn(),
-              const SizedBox(height: 30),
-
-              // Formulario
-              Text('Datos para el Certificado',
-                  style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold, fontSize: 16)),
+              _sectionHeader('Datos para el Certificado', isDark),
               const SizedBox(height: 12),
-
               DropdownButtonFormField<String>(
                 value: _emp,
-                decoration: _deco('EMP NB 23001'),
+                decoration: _deco('EMP NB 23001', isDark),
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: ['Sí', 'No']
                     .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                     .toList(),
@@ -172,22 +252,31 @@ class _ExportacionStepState extends State<ExportacionStep> {
               Row(children: [
                 Expanded(
                     child: TextField(
+                        style: GoogleFonts.inter(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)),
                         controller: _indicarCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
-                        decoration: _deco('Indicar (%)'))),
+                        decoration: _deco('Indicar (%)', isDark))),
                 const SizedBox(width: 12),
                 Expanded(
                     child: TextField(
+                        style: GoogleFonts.inter(
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)),
                         controller: _factorCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
-                        decoration: _deco('Factor Seguridad'))),
+                        decoration: _deco('Factor Seguridad', isDark))),
               ]),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _regla,
-                decoration: _deco('Regla de Aceptación'),
+                decoration: _deco('Regla de Aceptación', isDark),
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: ['Ninguna', 'Simple', 'Conservadora']
                     .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                     .toList(),
@@ -196,9 +285,25 @@ class _ExportacionStepState extends State<ExportacionStep> {
                   _saveToProvider();
                 },
               ),
-              const SizedBox(height: 32),
-
-              // Boton
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () => _seleccionarOtraBalanza(provider),
+                  icon: const Icon(Icons.add_circle_outline_rounded),
+                  label: const Text('SELECCIONAR OTRA BALANZA',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF326677),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ).animate(delay: 300.ms).fadeIn().scale(),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -206,10 +311,10 @@ class _ExportacionStepState extends State<ExportacionStep> {
                   onPressed: () => _exportar(provider),
                   icon: const Icon(Icons.file_download),
                   label: const Text('FINALIZAR Y EXPORTAR',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
+                    backgroundColor: const Color(0xFF3e7732),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -223,8 +328,129 @@ class _ExportacionStepState extends State<ExportacionStep> {
     );
   }
 
-  InputDecoration _deco(String label) => InputDecoration(
+  Widget _buildHeader(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Exportación',
+          style: GoogleFonts.poppins(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+        const SizedBox(height: 4),
+        Text(
+          'Finalización del servicio y descarga de datos',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: isDark ? Colors.white54 : Colors.black45,
+            fontWeight: FontWeight.w400,
+          ),
+        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+      ],
+    );
+  }
+
+  Widget _buildResumenCard(String seca, String cod, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.summarize_rounded,
+                  color: isDark ? Colors.white54 : Colors.black54, size: 20),
+              const SizedBox(width: 10),
+              Text(
+                'Resumen del Servicio',
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _row('SECA', seca, isDark),
+          const SizedBox(height: 8),
+          _row('Código Métrica', cod, isDark),
+          const SizedBox(height: 8),
+          _row('Fecha', DateFormat('dd MMM yyyy').format(DateTime.now()),
+              isDark),
+        ],
+      ),
+    ).animate(delay: 200.ms).fadeIn();
+  }
+
+  Widget _row(String label, String value, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white54 : Colors.black54,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionHeader(String title, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(title,
+          style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+    ).animate().fadeIn();
+  }
+
+  InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
 }

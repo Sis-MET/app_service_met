@@ -152,6 +152,14 @@ class CalibrationRepository {
     return await _db.esServicioCompleto(seca, sessionId);
   }
 
+  Future<void> marcarBalanzaCompleta(String seca, String sessionId) async {
+    await _db.marcarBalanzaCompleta(seca, sessionId);
+  }
+
+  Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
+    return await _db.getRegistrosPorSeca(seca);
+  }
+
   Future<void> createBackup(String testType) async {
     final mainPath = join(await getDatabasesPath(), 'metrica_service.db');
     final backupPath = join(await getDatabasesPath(), 'metrica_service_${testType}_backup.db');

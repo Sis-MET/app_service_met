@@ -464,7 +464,7 @@ class _CalibrationWorkspaceScreenState
                           provider.nextStep();
                         };
                       } else if (step == 10) {
-                        onNext = () {
+                        onNext = () async {
                           provider.returnToCondicionesFinales = false;
                           final error = provider.validateCondicionesFinales();
                           if (error != null) {
@@ -477,7 +477,7 @@ class _CalibrationWorkspaceScreenState
                           if (mismatch != null && ctx.mounted) {
                             final isDark =
                                 Theme.of(ctx).brightness == Brightness.dark;
-                            showDialog(
+                            final accion = await showDialog<String>(
                               context: ctx,
                               builder: (ctx2) => AlertDialog(
                                 title: Row(
@@ -525,11 +525,7 @@ class _CalibrationWorkspaceScreenState
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () {
-                                      provider.returnToCondicionesFinales = true;
-                                      Navigator.pop(ctx2);
-                                      provider.goToStep(5);
-                                    },
+                                    onPressed: () => Navigator.pop(ctx2, 'editar'),
                                     child: Text('Editar condiciones iniciales',
                                         style: TextStyle(
                                             color: isDark
@@ -537,10 +533,7 @@ class _CalibrationWorkspaceScreenState
                                                 : Colors.amber[800])),
                                   ),
                                   ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(ctx2);
-                                      provider.nextStep();
-                                    },
+                                    onPressed: () => Navigator.pop(ctx2, 'ignorar'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF3e7732),
                                       foregroundColor: Colors.white,
@@ -550,8 +543,14 @@ class _CalibrationWorkspaceScreenState
                                 ],
                               ),
                             );
-                            return;
+                            if (accion == 'editar') {
+                              provider.returnToCondicionesFinales = true;
+                              provider.goToStep(5);
+                              return;
+                            }
+                            if (accion == null) return;
                           }
+                          await provider.marcarBalanzaCompleta();
                           provider.nextStep();
                         };
                       } else {

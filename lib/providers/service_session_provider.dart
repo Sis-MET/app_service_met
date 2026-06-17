@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 
@@ -26,6 +29,9 @@ class ServiceSessionProvider extends ChangeNotifier {
   // vuelve directo a condiciones finales (paso 10) en vez de paso 6
   bool _returnToCondicionesFinales = false;
 
+  // Navigation flag: indica que el usuario agregó otra balanza desde exportación
+  bool _addingNuevaBalanza = false;
+
   ServiceSessionProvider(this._repository);
 
   // --- Getters ---
@@ -40,6 +46,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool get returnToCondicionesFinales => _returnToCondicionesFinales;
   set returnToCondicionesFinales(bool v) {
     _returnToCondicionesFinales = v;
+    notifyListeners();
+  }
+
+  bool get addingNuevaBalanza => _addingNuevaBalanza;
+  set addingNuevaBalanza(bool v) {
+    _addingNuevaBalanza = v;
     notifyListeners();
   }
 
@@ -680,16 +692,98 @@ class ServiceSessionProvider extends ChangeNotifier {
     return true;
   }
 
-  // --- Exportación ---
+  // --- Marcar balanza completa ---
 
-  Future<List<Map<String, dynamic>>> prepareExportData() async {
-    if (_session == null) return [];
-    return [_session!.toMap()];
+  Future<void> marcarBalanzaCompleta() async {
+    final seca = _session?.sessionInfo.seca;
+    final sessionId = _session?.sessionInfo.sessionId;
+    if (seca == null || sessionId == null) return;
+    await flushAutoSave();
+    await _repository.marcarBalanzaCompleta(seca, sessionId);
   }
 
-  Future<bool> exportToCSV() async {
-    // Implementar lógica de exportación usando el repositorio
-    return true; // Placeholder
+  // --- Resetear sesión para nueva balanza (conserva cliente, planta, seca) ---
+
+  void resetearParaNuevaBalanza() {
+    final old = _session;
+    if (old == null) return;
+    _session = ServiceSession(
+      sessionInfo: SessionInfo(
+        seca: old.sessionInfo.seca,
+        sessionId: old.sessionInfo.sessionId,
+        fechaServicio: old.sessionInfo.fechaServicio,
+        userName: old.sessionInfo.userName,
+      ),
+      cliente: old.cliente,
+      planta: old.planta,
+      metadata: SessionMetadata(currentStep: 3),
+    );
+    _currentStep = 3;
+    _dValues = {};
+    notifyListeners();
+  }
+
+  // --- Exportación ---
+
+  Future<List<Map<String, dynamic>>> getRegistrosCompletos(String seca,
+      {bool soloHoy = false}) async {
+    final registros = await _repository.getRegistrosPorSeca(seca);
+    if (soloHoy) {
+      final hoy = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      return registros
+          .where((r) => r['fecha_servicio']?.toString() == hoy)
+          .toList();
+    }
+    return registros;
+  }
+
+  Future<bool> exportToCSV(
+    List<Map<String, dynamic>> registros,
+  ) async {
+    if (registros.isEmpty) return false;
+
+    try {
+      final columnas = registros.first.keys.toList();
+      final buffer = StringBuffer();
+
+      // Header
+      buffer.writeln(columnas.join(';'));
+
+      // Data rows
+      for (final row in registros) {
+        final valores = columnas.map((c) {
+          final v = row[c];
+          if (v == null) return '';
+          final s = v.toString();
+          // Escapar punto y coma y comillas
+          if (s.contains(';') || s.contains('"')) {
+            return '"${s.replaceAll('"', '""')}"';
+          }
+          return s;
+        });
+        buffer.writeln(valores.join(';'));
+      }
+
+      final bytes = buffer.toString().codeUnits;
+
+      // Guardar en directorio de descargas
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      final fecha = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final seca = _session?.sessionInfo.seca ?? 'SIN_SECA';
+      final fileName = '${seca}_$fecha.csv';
+      final file = File(p.join(downloadsDir.path, fileName));
+      await file.writeAsBytes(bytes);
+
+      debugPrint('CSV exportado exitosamente: ${file.path}');
+      return true;
+    } catch (e) {
+      debugPrint('Error exportando CSV: $e');
+      return false;
+    }
   }
 
   @override
