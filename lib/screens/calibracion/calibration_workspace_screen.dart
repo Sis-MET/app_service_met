@@ -55,6 +55,7 @@ class _CalibrationWorkspaceScreenState
             sessionId: widget.sessionId,
           )
           .then((_) {
+        if (!mounted) return;
         // Sync page controller with loaded step
         final step = context.read<ServiceSessionProvider>().currentStep;
         if (_pageController.hasClients && step > 0) {
@@ -444,7 +445,12 @@ class _CalibrationWorkspaceScreenState
                             }
                             return;
                           }
-                          provider.nextStep();
+                          if (provider.returnToCondicionesFinales) {
+                            provider.returnToCondicionesFinales = false;
+                            provider.goToStep(10);
+                          } else {
+                            provider.nextStep();
+                          }
                         };
                       } else if (step == 6) {
                         onNext = () {
@@ -453,6 +459,97 @@ class _CalibrationWorkspaceScreenState
                             if (ctx.mounted) {
                               TopAlert.show(ctx, error, isError: true);
                             }
+                            return;
+                          }
+                          provider.nextStep();
+                        };
+                      } else if (step == 10) {
+                        onNext = () {
+                          provider.returnToCondicionesFinales = false;
+                          final error = provider.validateCondicionesFinales();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          final mismatch = provider.validarCondicionesAmbientales();
+                          if (mismatch != null && ctx.mounted) {
+                            final isDark =
+                                Theme.of(ctx).brightness == Brightness.dark;
+                            showDialog(
+                              context: ctx,
+                              builder: (ctx2) => AlertDialog(
+                                title: Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded,
+                                        color: isDark
+                                            ? Colors.amber[300]
+                                            : Colors.amber[800],
+                                        size: 22),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                        child: Text('Valores ambientales fuera de rango',
+                                            style: TextStyle(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? Colors.white
+                                                    : const Color(0xFF1A1A1A)))),
+                                  ],
+                                ),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        mismatch,
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : Colors.black87),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        'Puede editar las condiciones iniciales o ignorar y continuar.',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      provider.returnToCondicionesFinales = true;
+                                      Navigator.pop(ctx2);
+                                      provider.goToStep(5);
+                                    },
+                                    child: Text('Editar condiciones iniciales',
+                                        style: TextStyle(
+                                            color: isDark
+                                                ? Colors.amber[300]
+                                                : Colors.amber[800])),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(ctx2);
+                                      provider.nextStep();
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF3e7732),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Ignorar y continuar'),
+                                  ),
+                                ],
+                              ),
+                            );
                             return;
                           }
                           provider.nextStep();

@@ -553,6 +553,7 @@ class BalanzaInfo {
   final String? capMax1, capMax2, capMax3;
   final double? d1, d2, d3, e1, e2, e3, dec1, dec2, dec3, exc;
   final String? infBal;
+  final List<String> fotosPaths;
 
   BalanzaInfo({
     this.codMetrica,
@@ -582,6 +583,7 @@ class BalanzaInfo {
     this.dec3,
     this.exc,
     this.infBal,
+    this.fotosPaths = const [],
   });
 
   BalanzaInfo copyWith({
@@ -612,6 +614,7 @@ class BalanzaInfo {
     double? dec3,
     double? exc,
     String? infBal,
+    List<String>? fotosPaths,
   }) {
     return BalanzaInfo(
       codMetrica: codMetrica ?? this.codMetrica,
@@ -641,6 +644,7 @@ class BalanzaInfo {
       dec3: dec3 ?? this.dec3,
       exc: exc ?? this.exc,
       infBal: infBal ?? this.infBal,
+      fotosPaths: fotosPaths ?? this.fotosPaths,
     );
   }
 }

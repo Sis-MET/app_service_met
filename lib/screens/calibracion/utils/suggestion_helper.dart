@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 
 class SuggestionHelper {
-  static double getDivisionForValue(BalanzaInfo balanza, double value) {
+  static List<Map<String, double>> getValidCapacities(BalanzaInfo balanza) {
     final rangos = <Map<String, double>>[];
 
     final capMax1 = double.tryParse(balanza.capMax1 ?? '') ?? 0;
@@ -24,9 +24,13 @@ class SuggestionHelper {
       rangos.add({'capMax': capMax3, 'd': d3});
     }
 
-    if (rangos.isEmpty) return 0;
-
     rangos.sort((a, b) => a['capMax']!.compareTo(b['capMax']!));
+    return rangos;
+  }
+
+  static double getDivisionForValue(BalanzaInfo balanza, double value) {
+    final rangos = getValidCapacities(balanza);
+    if (rangos.isEmpty) return 0;
 
     for (final rango in rangos) {
       if (value <= rango['capMax']!) {
@@ -35,6 +39,11 @@ class SuggestionHelper {
     }
 
     return rangos.last['d']!;
+  }
+
+  static double roundToNearestMultiple(double value, double multiple) {
+    if (multiple == 0) return value;
+    return (value / multiple).roundToDouble() * multiple;
   }
 
   static int getDecimalPlaces(double d) {

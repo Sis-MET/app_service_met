@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/foto_storage_dialog.dart';
 
 class FotoCargaStep extends StatefulWidget {
   const FotoCargaStep({super.key});
@@ -38,16 +40,35 @@ class _FotoCargaStepState extends State<FotoCargaStep> {
   }
 
   Future<void> _takePhoto() async {
+    if (!await FotoHelper.isConfigured()) {
+      if (!mounted) return;
+      final configured = await FotoStorageDialog.show(context);
+      if (!configured || !mounted) return;
+    }
+
     try {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
       );
 
-      if (photo != null) {
-        setState(() => _photoPath = photo.path);
-        _saveToProvider(photo.path);
+      if (photo == null || !mounted) return;
+
+      final provider = context.read<ServiceSessionProvider>();
+      final seca = provider.session?.sessionInfo.seca;
+      final codMetrica = provider.session?.sessionInfo.codMetrica;
+
+      String savedPath;
+      if (seca != null && seca.isNotEmpty &&
+          codMetrica != null && codMetrica.isNotEmpty) {
+        savedPath = await FotoHelper.saveFoto(seca, codMetrica, photo.path);
+      } else {
+        savedPath = photo.path;
       }
+
+      if (!mounted) return;
+      setState(() => _photoPath = savedPath);
+      _saveToProvider(savedPath);
     } catch (e) {
       if (mounted) {
         TopAlert.show(context, 'Error al tomar foto: $e', isError: true);

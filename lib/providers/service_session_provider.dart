@@ -22,6 +22,10 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool _isQrMode = false;
   String? _qrCodMetrica;
 
+  // Navigation flag: si se activa, al presionar "Siguiente" en paso 5,
+  // vuelve directo a condiciones finales (paso 10) en vez de paso 6
+  bool _returnToCondicionesFinales = false;
+
   ServiceSessionProvider(this._repository);
 
   // --- Getters ---
@@ -33,6 +37,11 @@ class ServiceSessionProvider extends ChangeNotifier {
   String get cotizacionSuffix => _cotizacionSuffix;
   bool get isQrMode => _isQrMode;
   String? get qrCodMetrica => _qrCodMetrica;
+  bool get returnToCondicionesFinales => _returnToCondicionesFinales;
+  set returnToCondicionesFinales(bool v) {
+    _returnToCondicionesFinales = v;
+    notifyListeners();
+  }
 
   // --- Inicialización ---
 
@@ -477,6 +486,12 @@ class ServiceSessionProvider extends ChangeNotifier {
       return "Falta la division e (Rango 1).";
     }
 
+    return null;
+  }
+
+  String? validateCondicionesFinales() {
+    if (_session == null) return "Sesión no inicializada.";
+
     final pesas = _session!.equipos.where((e) {
       final tipo = e.tipo?.toLowerCase() ?? '';
       return tipo.contains('pesa') ||
@@ -494,6 +509,45 @@ class ServiceSessionProvider extends ChangeNotifier {
     }
 
     return null;
+  }
+
+  String? validarCondicionesAmbientales() {
+    if (_session == null) return null;
+    final iniciales = _session!.precargasAjuste;
+    final finales = _session!.condicionesFinales;
+    if (iniciales == null || finales == null) return null;
+
+    final errors = <String>[];
+
+    final hriInicial = double.tryParse(iniciales.hri ?? '');
+    final hriFinal = double.tryParse(finales.hriFin ?? '');
+    if (hriInicial != null && hriFinal != null) {
+      if ((hriFinal - hriInicial).abs() > 5) {
+        errors.add(
+            'HRi varió de ${hriInicial.toStringAsFixed(1)}% a ${hriFinal.toStringAsFixed(1)}% (máx ±5%)');
+      }
+    }
+
+    final tiInicial = double.tryParse(iniciales.ti ?? '');
+    final tiFinal = double.tryParse(finales.tiFin ?? '');
+    if (tiInicial != null && tiFinal != null) {
+      if ((tiFinal - tiInicial).abs() > 2) {
+        errors.add(
+            'Ti varió de ${tiInicial.toStringAsFixed(1)}°C a ${tiFinal.toStringAsFixed(1)}°C (máx ±2°C)');
+      }
+    }
+
+    final patmiInicial = double.tryParse(iniciales.patmi ?? '');
+    final patmiFinal = double.tryParse(finales.patmiFin ?? '');
+    if (patmiInicial != null && patmiFinal != null) {
+      if ((patmiFinal - patmiInicial).abs() > 5) {
+        errors.add(
+            'Patmi varió de ${patmiInicial.toStringAsFixed(1)} hPa a ${patmiFinal.toStringAsFixed(1)} hPa (máx ±5 hPa)');
+      }
+    }
+
+    if (errors.isEmpty) return null;
+    return 'Los valores finales difieren significativamente de los iniciales:\n${errors.join('\n')}';
   }
 
   String? validateInspeccionVisual() {

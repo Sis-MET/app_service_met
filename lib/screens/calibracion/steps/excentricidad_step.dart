@@ -285,6 +285,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 ],
                 decoration: _deco('Carga', isDark),
               ).animate(delay: 450.ms).fadeIn(),
+              if (_cargaCtrl.text.isEmpty) _buildSuggestedLoadChips(isDark),
               const SizedBox(height: 24),
               if (_rows.isNotEmpty) ...[
                 _sectionHeader('Posiciones', isDark),
@@ -678,6 +679,62 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
+
+  Widget _buildSuggestedLoadChips(bool isDark) {
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+    if (balanza == null) return const SizedBox.shrink();
+
+    final rangos = SuggestionHelper.getValidCapacities(balanza);
+    if (rangos.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(rangos.length, (index) {
+          final pmax = rangos[index]['capMax']!;
+          final d = rangos[index]['d']!;
+          
+          final suggested = SuggestionHelper.roundToNearestMultiple(pmax / 3, d);
+          final decimals = SuggestionHelper.getDecimalPlaces(d);
+          final formatted = suggested.toStringAsFixed(decimals);
+          final unidad = _getBalanceUnit();
+          final label = rangos.length > 1 ? 'Max${index + 1}' : 'Pmax';
+
+          return GestureDetector(
+            onTap: () {
+              _cargaCtrl.text = formatted;
+              _reflectCargaToIndicaciones();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(isDark ? 0.15 : 0.1),
+                border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lightbulb_outline_rounded, size: 14, color: Colors.teal),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Sugerido: $formatted $unidad (⅓ $label)',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    ).animate().fadeIn();
+  }
 }
 
 class _PlatformPainter extends CustomPainter {

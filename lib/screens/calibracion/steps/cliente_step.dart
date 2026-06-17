@@ -30,6 +30,8 @@ class _ClienteStepState extends State<ClienteStep> {
   List<Map<String, dynamic>>? _filteredClientes;
   Timer? _debounce;
   bool _isSearchEmpty = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -46,22 +48,42 @@ class _ClienteStepState extends State<ClienteStep> {
   }
 
   Future<void> _loadClientes() async {
-    final clientes = await _repository.getClientes();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    // Pre-procesar los clientes para una búsqueda más rápida (solo una vez)
-    final processedClientes = clientes.map((c) {
-      final newMap = Map<String, dynamic>.from(c);
-      final nombre = c['cliente']?.toString().toLowerCase() ?? '';
-      final razon = c['razonsocial']?.toString().toLowerCase() ?? '';
-      newMap['_searchKey'] = '$nombre $razon';
-      return newMap;
-    }).toList();
+    try {
+      final clientes = await _repository.getClientes();
 
-    if (mounted) {
-      setState(() {
-        _allClientes = processedClientes;
-        _filteredClientes = processedClientes;
-      });
+      final processedClientes = clientes.map((c) {
+        final newMap = Map<String, dynamic>.from(c);
+        final nombre = c['cliente']?.toString().toLowerCase() ?? '';
+        final razon = c['razonsocial']?.toString().toLowerCase() ?? '';
+        newMap['_searchKey'] = '$nombre $razon';
+        return newMap;
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _allClientes = processedClientes;
+          _filteredClientes = processedClientes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _allClientes = [];
+          _filteredClientes = [];
+          _errorMessage = 'Error al cargar clientes: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -454,17 +476,88 @@ class _ClienteStepState extends State<ClienteStep> {
         const SizedBox(height: 12),
 
         // Client list
-        if (_filteredClientes == null)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 40),
-            child: Center(child: CircularProgressIndicator()),
-          )
+        if (_isLoading)
+          _buildLoadingState(isDark)
+        else if (_errorMessage != null)
+          _buildErrorState(isDark)
         else if (_filteredClientes!.isEmpty)
           _buildEmptyState(isDark)
         else
           _buildClientList(provider, isDark),
       ],
     );
+  }
+
+  Widget _buildLoadingState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(
+            'Cargando clientes...',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: isDark ? Colors.white54 : Colors.black45,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn();
+  }
+
+  Widget _buildErrorState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        children: [
+          Icon(Icons.error_outline_rounded,
+              size: 48, color: isDark ? Colors.red[300] : Colors.red[400]),
+          const SizedBox(height: 12),
+          Text(
+            'Error al cargar clientes',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white54 : Colors.black45,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              _errorMessage ?? '',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () {
+              _loadClientes();
+            },
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: Text(
+              'Reintentar',
+              style: GoogleFonts.inter(fontSize: 13),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF04376E),
+              side: const BorderSide(color: Color(0xFF04376E)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn();
   }
 
   Widget _buildEmptyState(bool isDark) {

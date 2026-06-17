@@ -1,13 +1,18 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
+import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class BalanzaStep extends StatefulWidget {
@@ -50,14 +55,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
   final _stickerCtrl = TextEditingController();
 
   List<Map<String, dynamic>> _balanzas = [];
-  List<Map<String, dynamic>> _equipamientos = [];
-  List<EquipoInfo> _selectedPesas = [];
-  List<EquipoInfo> _selectedMedicion = [];
   bool _isLoadingBalanzas = false;
-  bool _isLoadingEquipamientos = false;
   bool _isNewBalanza = false;
   bool _didQrAutoFill = false;
   Map<String, dynamic>? _selectedBalanza;
+  List<String> _fotosPaths = [];
 
   static const List<String> _categorias = ['STAC', 'STIL'];
   static const List<String> _unidades = ['kg', 'g', 'mg', 't', 'lb', 'N'];
@@ -74,7 +76,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadBalanzas();
-      _loadEquipamientos();
       _initFromSession();
     });
   }
@@ -111,24 +112,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
       _d3Ctrl.text = b.d3?.toString() ?? '0';
       _e3Ctrl.text = b.e3?.toString() ?? '0';
       _dec3Ctrl.text = b.dec3?.toString() ?? '0';
+      _fotosPaths = List.from(b.fotosPaths);
     }
     final si = session.sessionInfo;
     _nRecaCtrl.text = si.nReca ?? '';
     _stickerCtrl.text = si.sticker ?? '';
-    _initEquiposFromSession(session.equipos);
-  }
-
-  void _initEquiposFromSession(List<EquipoInfo> equipos) {
-    _selectedPesas = [];
-    _selectedMedicion = [];
-    for (int i = 0; i < equipos.length; i++) {
-      final equipo = equipos[i];
-      if (_isPesaTipo(equipo.tipo) || i < 5) {
-        if (_selectedPesas.length < 5) _selectedPesas.add(equipo);
-      } else if (_selectedMedicion.length < 2) {
-        _selectedMedicion.add(equipo);
-      }
-    }
   }
 
   Future<void> _loadBalanzas() async {
@@ -192,25 +180,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _selectedBalanza = null;
         }
       }
-    });
-  }
-
-  Future<void> _loadEquipamientos() async {
-    setState(() => _isLoadingEquipamientos = true);
-    final result = await _repository.getEquipos();
-    final mutableResult = List<Map<String, dynamic>>.from(result);
-    mutableResult.sort((a, b) {
-      final typeA = a['instrumento']?.toString() ?? '';
-      final typeB = b['instrumento']?.toString() ?? '';
-      final codeA = a['cod_instrumento']?.toString() ?? '';
-      final codeB = b['cod_instrumento']?.toString() ?? '';
-      final typeCompare = typeA.compareTo(typeB);
-      return typeCompare != 0 ? typeCompare : codeA.compareTo(codeB);
-    });
-    if (!mounted) return;
-    setState(() {
-      _equipamientos = mutableResult;
-      _isLoadingEquipamientos = false;
     });
   }
 
@@ -303,13 +272,13 @@ class _BalanzaStepState extends State<BalanzaStep> {
       e3: double.tryParse(_e3Ctrl.text),
       dec3: double.tryParse(_dec3Ctrl.text),
       infBal: _computeInfBal(),
+      fotosPaths: _fotosPaths,
     ));
     provider.updateSessionInfo(provider.session!.sessionInfo.copyWith(
       nReca: _nRecaCtrl.text,
       sticker: _stickerCtrl.text,
       codMetrica: _codMetricaCtrl.text,
     ));
-    provider.updateEquipos([..._selectedPesas, ..._selectedMedicion]);
     provider.setBalanzaConfirmed(false);
   }
 
@@ -450,7 +419,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 const SizedBox(height: 24),
                 _buildRangosSection(isDark),
                 const SizedBox(height: 24),
-                _buildEquipamientosSection(provider, isDark),
+                _buildFotosSection(isDark),
               ],
             ],
           ),
@@ -705,148 +674,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
     ).animate(delay: 500.ms).fadeIn();
   }
 
-  Widget _buildEquipamientosSection(
-      ServiceSessionProvider provider, bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.inventory_2_outlined,
-                color: isDark ? Colors.white54 : Colors.black54, size: 20),
-            const SizedBox(width: 8),
-            Text('Equipamiento del Servicio',
-                style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoadingEquipamientos
-                    ? null
-                    : () => _showEquipamientosDialog(
-                          provider: provider,
-                          isPesas: true,
-                        ),
-                icon: const Icon(Icons.fitness_center, size: 18),
-                label: Text('Pesas (${_selectedPesas.length}/5)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF365666),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor:
-                      const Color(0xFF365666).withOpacity(0.45),
-                  disabledForegroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoadingEquipamientos
-                    ? null
-                    : () => _showEquipamientosDialog(
-                          provider: provider,
-                          isPesas: false,
-                        ),
-                icon: const Icon(Icons.thermostat, size: 18),
-                label: Text('Ambiente (${_selectedMedicion.length}/2)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF326677),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor:
-                      const Color(0xFF326677).withOpacity(0.45),
-                  disabledForegroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_selectedPesas.isEmpty && _selectedMedicion.isEmpty)
-          _emptyEquiposHint(isDark)
-        else ...[
-          ..._selectedPesas
-              .map((e) => _selectedEquipoTile(e, true, provider, isDark)),
-          ..._selectedMedicion
-              .map((e) => _selectedEquipoTile(e, false, provider, isDark)),
-        ],
-      ],
-    ).animate(delay: 550.ms).fadeIn();
-  }
-
-  Widget _emptyEquiposHint(bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color:
-            isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-      ),
-      child: Text(
-        'Seleccione al menos una pesa patron y un termohigometro, barometro o instrumento de medicion.',
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          color: isDark ? Colors.white60 : Colors.black54,
-        ),
-      ),
-    );
-  }
-
-  Widget _selectedEquipoTile(
-    EquipoInfo equipo,
-    bool isPesa,
-    ServiceSessionProvider provider,
-    bool isDark,
-  ) {
-    final cert = _certStatus(equipo.certFecha);
-    return Card(
-      color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(
-          isPesa ? Icons.fitness_center : Icons.thermostat,
-          color: cert.color,
-        ),
-        title: Text(equipo.codInstrumento ?? 'Sin codigo'),
-        subtitle: Text(
-          '${equipo.tipo ?? 'Instrumento'} | Cert: ${equipo.certFecha ?? 'S/F'} | ${cert.label}',
-        ),
-        trailing: Wrap(
-          spacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text('Cant. ${equipo.cantidad ?? '1'}'),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              onPressed: () => _editCantidad(equipo, isPesa, provider),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () {
-                setState(() {
-                  final target = isPesa ? _selectedPesas : _selectedMedicion;
-                  target.removeWhere(
-                      (e) => e.codInstrumento == equipo.codInstrumento);
-                });
-                _saveToProvider(provider);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _rangoCard(
       String title,
       TextEditingController capCtrl,
@@ -893,6 +720,257 @@ class _BalanzaStepState extends State<BalanzaStep> {
         ],
       ),
     );
+  }
+
+  // ── Fotos del Instrumento ─────────────────────────────────────────────
+
+  Widget _buildFotosSection(bool isDark) {
+    final seca =
+        context.read<ServiceSessionProvider>().session?.sessionInfo.seca;
+    final codMetrica = _codMetricaCtrl.text;
+    final canTakePhoto = _fotosPaths.length < 5 &&
+        seca != null &&
+        seca.isNotEmpty &&
+        codMetrica.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.camera_alt_outlined,
+                color: isDark ? Colors.white54 : Colors.black54, size: 20),
+            const SizedBox(width: 8),
+            Text('Fotos del Instrumento',
+                style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+            const Spacer(),
+            Text('${_fotosPaths.length}/5',
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: isDark ? Colors.white38 : Colors.black45)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_fotosPaths.isEmpty)
+          _emptyFotosHint(isDark, canTakePhoto)
+        else
+          _buildFotosGrid(isDark, canTakePhoto),
+      ],
+    ).animate(delay: 600.ms).fadeIn();
+  }
+
+  Widget _emptyFotosHint(bool isDark, bool canTakePhoto) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color:
+            isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.camera_alt_outlined, size: 40,
+              color: isDark ? Colors.white24 : Colors.black26),
+          const SizedBox(height: 10),
+          Text(
+            'Tome fotografías del instrumento',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: canTakePhoto ? _takeInstrumentoFoto : null,
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text('Tomar Foto'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF04376E),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor:
+                  const Color(0xFF04376E).withOpacity(0.4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotosGrid(bool isDark, bool canTakePhoto) {
+    return Column(
+      children: [
+        if (canTakePhoto)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _takeInstrumentoFoto,
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Agregar Fotografía'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF04376E),
+                  side: const BorderSide(color: Color(0xFF04376E)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(_fotosPaths.length, (i) {
+            final path = _fotosPaths[i];
+            final exists = File(path).existsSync();
+            return GestureDetector(
+              onTap: exists ? () => _viewFoto(path, isDark) : null,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDark ? Colors.grey[900] : Colors.grey[200],
+                      image: exists
+                          ? DecorationImage(
+                              image: FileImage(File(path)),
+                              fit: BoxFit.cover)
+                          : null,
+                    ),
+                    child: !exists
+                        ? Icon(Icons.broken_image_outlined,
+                            color: isDark ? Colors.white24 : Colors.black26)
+                        : null,
+                  ),
+                  if (exists)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () => _deleteFoto(i),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${i + 1}',
+                        style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _takeInstrumentoFoto() async {
+    final provider = context.read<ServiceSessionProvider>();
+    final seca = provider.session?.sessionInfo.seca;
+    final codMetrica = _codMetricaCtrl.text;
+
+    if (seca == null || seca.isEmpty || codMetrica.isEmpty) {
+      TopAlert.show(
+          context, 'Debe seleccionar un instrumento primero', isError: true);
+      return;
+    }
+
+    if (!await FotoHelper.isConfigured()) {
+      if (!mounted) return;
+      final configured = await FotoStorageDialog.show(context);
+      if (!configured || !mounted) return;
+    }
+
+    try {
+      final XFile? photo = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (photo == null || !mounted) return;
+
+      final savedPath =
+          await FotoHelper.saveFoto(seca, codMetrica, photo.path);
+      if (!mounted) return;
+
+      setState(() {
+        _fotosPaths.add(savedPath);
+      });
+      _saveToProvider(provider);
+    } catch (e) {
+      if (mounted) {
+        TopAlert.show(context, 'Error al tomar foto: $e', isError: true);
+      }
+    }
+  }
+
+  void _viewFoto(String path, bool isDark) {
+    if (!File(path).existsSync()) {
+      TopAlert.show(
+          context, 'La foto ya no existe en el dispositivo', isError: true);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Container(
+            color: Colors.black,
+            child: PhotoView(imageProvider: FileImage(File(path))),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteFoto(int index) async {
+    final path = _fotosPaths[index];
+    await FotoHelper.deleteFoto(path);
+    if (!mounted) return;
+    setState(() {
+      _fotosPaths.removeAt(index);
+    });
+    _saveToProvider(context.read<ServiceSessionProvider>());
   }
 
   // --- Helpers de widgets ---
@@ -1051,374 +1129,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
     TopAlert.show(context, 'Instrumento identificado: $codMetrica');
   }
 
-  bool _isPesaTipo(String? value) {
-    final v = value?.toLowerCase() ?? '';
-    return v.contains('pesa') ||
-        v.contains('masa') ||
-        v.contains('patron') ||
-        v.contains('patr');
-  }
-
-  String _instrumentType(Map<String, dynamic> eq) {
-    final instrumento = eq['instrumento']?.toString() ?? '';
-    final tipo = eq['tipo_instrumento']?.toString() ?? '';
-    return instrumento.isNotEmpty ? instrumento : tipo;
-  }
-
-  String _instrumentSection(String type) {
-    final t = type.toLowerCase();
-    if (_isPesaTipo(t)) return 'Pesas Patrón';
-    if (t.contains('termo') ||
-        t.contains('higro') ||
-        t.contains('temp') ||
-        t.contains('humedad')) return 'Termohigrómetros';
-    if (t.contains('baro')) return 'Barómetros';
-    return 'Otros Instrumentos';
-  }
-
-  Widget _buildEquiposGroupedList(
-    List<Map<String, dynamic>> items,
-    bool isPesas,
-    bool isDark,
-    ServiceSessionProvider provider,
-    void Function(VoidCallback) setSheet,
-  ) {
-    // Ponytail: group ambiente items by sub-type, keep pesas flat
-    final displayItems = <dynamic>[];
-    if (isPesas) {
-      displayItems.addAll(items);
-    } else {
-      final groups = <String, List<Map<String, dynamic>>>{};
-      for (final eq in items) {
-        final section = _instrumentSection(_instrumentType(eq));
-        groups.putIfAbsent(section, () => []).add(eq);
-      }
-      for (final entry in groups.entries) {
-        displayItems.add({'_header': true, '_label': entry.key});
-        displayItems.addAll(entry.value);
-      }
-    }
-
-    return ListView.separated(
-      itemCount: displayItems.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (_, i) {
-        final item = displayItems[i];
-        if (item is Map<String, dynamic> && item['_header'] == true) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Text(
-              item['_label'] as String,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          );
-        }
-        final eq = item as Map<String, dynamic>;
-        return _buildEquipoCard(eq, isPesas, isDark, provider, setSheet);
-      },
-    );
-  }
-
-  Widget _buildEquipoCard(
-    Map<String, dynamic> eq,
-    bool isPesas,
-    bool isDark,
-    ServiceSessionProvider provider,
-    void Function(VoidCallback) setSheet,
-  ) {
-    final code = eq['cod_instrumento']?.toString() ?? 'Sin codigo';
-    final type = _instrumentType(eq);
-    final cert = _certStatus(eq['cert_fecha']?.toString());
-    final target = isPesas ? _selectedPesas : _selectedMedicion;
-    final selected = target.any((e) => e.codInstrumento == code);
-    final canSelect = selected || target.length < (isPesas ? 5 : 2);
-
-    return InkWell(
-      onTap: canSelect
-          ? () {
-              _saveEquipoSelection(eq, isPesas, provider);
-              setSheet(() {});
-            }
-          : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? (isDark ? Colors.tealAccent : Colors.teal)
-                : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected ? Icons.check_circle : Icons.circle_outlined,
-              color: selected
-                  ? (isDark ? Colors.tealAccent : Colors.teal)
-                  : cert.color,
-              size: 24,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    code,
-                    style: GoogleFonts.inter(
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(type,
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: isDark ? Colors.white60 : Colors.black54)),
-                  const SizedBox(height: 6),
-                  // Cert badge
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: cert.color.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'Cert: ${eq['cert_fecha'] ?? 'S/F'} | ${cert.label}',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: cert.color,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  _CertStatus _certStatus(String? raw) {
-    if (raw == null || raw.trim().isEmpty) {
-      return _CertStatus('Sin fecha', Colors.grey, 999999);
-    }
-    final date = DateTime.tryParse(raw.trim());
-    if (date == null) return _CertStatus('Fecha invalida', Colors.grey, 999999);
-    final elapsed = DateTime.now().difference(date).inDays;
-    final remaining = 365 - elapsed;
-    if (elapsed > 365) return _CertStatus('Vencido', Colors.red, remaining);
-    if (remaining <= 90) {
-      return _CertStatus(
-          'Por vencer ($remaining dias)', Colors.amber[800]!, remaining);
-    }
-    return _CertStatus('Vigente ($remaining dias)', Colors.green, remaining);
-  }
-
-  EquipoInfo _equipoFromMap(Map<String, dynamic> eq) {
-    final cert = _certStatus(eq['cert_fecha']?.toString());
-    return EquipoInfo(
-      codInstrumento: eq['cod_instrumento']?.toString() ?? '',
-      tipo: _instrumentType(eq),
-      cantidad: '1',
-      certFecha: eq['cert_fecha']?.toString() ?? '',
-      enteCalibrador: eq['ente_calibrador']?.toString() ?? '',
-      estado: cert.label,
-    );
-  }
-
-  void _saveEquipoSelection(
-    Map<String, dynamic> eq,
-    bool isPesas,
-    ServiceSessionProvider provider,
-  ) {
-    final equipo = _equipoFromMap(eq);
-    final cert = _certStatus(equipo.certFecha);
-    setState(() {
-      final target = isPesas ? _selectedPesas : _selectedMedicion;
-      final max = isPesas ? 5 : 2;
-      if (target.any((e) => e.codInstrumento == equipo.codInstrumento)) {
-        target.removeWhere((e) => e.codInstrumento == equipo.codInstrumento);
-      } else if (target.length < max) {
-        target.add(equipo);
-      }
-    });
-    _saveToProvider(provider);
-    if (cert.remainingDays < 0 && mounted) {
-      TopAlert.show(
-        context,
-        '${equipo.codInstrumento} tiene certificado vencido.',
-        isError: true,
-      );
-    }
-  }
-
-  Future<void> _editCantidad(
-    EquipoInfo equipo,
-    bool isPesas,
-    ServiceSessionProvider provider,
-  ) async {
-    final ctrl = TextEditingController(text: equipo.cantidad ?? '1');
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final value = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Cantidad',
-            style: GoogleFonts.inter(
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-        content: TextField(
-          controller: ctrl,
-          style: GoogleFonts.inter(
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-            labelText: 'Cantidad a llevar',
-            labelStyle: GoogleFonts.inter(
-                color: isDark ? Colors.white70 : Colors.black87),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: isDark ? Colors.white24 : Colors.black26),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style: GoogleFonts.inter(
-                    color: isDark ? Colors.white70 : Colors.black54)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, ctrl.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF326677),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
-    );
-    if (value == null || value.trim().isEmpty) return;
-    setState(() {
-      final target = isPesas ? _selectedPesas : _selectedMedicion;
-      final idx =
-          target.indexWhere((e) => e.codInstrumento == equipo.codInstrumento);
-      if (idx >= 0) target[idx] = target[idx].copyWith(cantidad: value);
-    });
-    _saveToProvider(provider);
-  }
-
-  void _showEquipamientosDialog({
-    required ServiceSessionProvider provider,
-    required bool isPesas,
-  }) {
-    final searchCtrl = TextEditingController();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final title = isPesas ? 'Seleccionar Pesas Patron' : 'Seleccionar Ambiente';
-    final filteredBase = _equipamientos.where((eq) {
-      final type = _instrumentType(eq);
-      return isPesas ? _isPesaTipo(type) : !_isPesaTipo(type);
-    }).toList();
-    List<Map<String, dynamic>> filtered = List.from(filteredBase);
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.black26,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                '$title (${isPesas ? _selectedPesas.length : _selectedMedicion.length}/${isPesas ? 5 : 2})',
-                style: GoogleFonts.poppins(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por codigo o tipo...',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  filled: true,
-                  fillColor: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFF0F2F5),
-                ),
-                onChanged: (q) => setSheet(() {
-                  final low = q.toLowerCase();
-                  filtered = filteredBase.where((eq) {
-                    final code =
-                        eq['cod_instrumento']?.toString().toLowerCase() ?? '';
-                    final type = _instrumentType(eq).toLowerCase();
-                    return code.contains(low) || type.contains(low);
-                  }).toList();
-                }),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: filtered.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Sin resultados',
-                          style: GoogleFonts.inter(
-                            color: isDark ? Colors.white54 : Colors.black54,
-                          ),
-                        ),
-                      )
-                    : _buildEquiposGroupedList(
-                        filtered, isPesas, isDark, provider, setSheet),
-              ),
-            ],
-          ),
-        );
-      }),
-    );
-  }
-
   // --- Diálogo de búsqueda ---
 
   void _showSearchDialog(ServiceSessionProvider provider) {
@@ -1441,7 +1151,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Indicador de arrastre
               Center(
                 child: Container(
                   width: 40,
@@ -1661,12 +1370,4 @@ class _BalanzaStepState extends State<BalanzaStep> {
       ],
     );
   }
-}
-
-class _CertStatus {
-  final String label;
-  final Color color;
-  final int remainingDays;
-
-  const _CertStatus(this.label, this.color, this.remainingDays);
 }

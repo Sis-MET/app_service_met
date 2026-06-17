@@ -281,6 +281,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               decoration: _deco('Valor de carga', isDark),
             ),
           ),
+          if (_cargasCtrls[i].text.isEmpty) _buildSuggestedLoadChips(i, isDark),
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -438,4 +439,64 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
+
+  Widget _buildSuggestedLoadChips(int cargaIdx, bool isDark) {
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+    if (balanza == null) return const SizedBox.shrink();
+
+    final rangos = SuggestionHelper.getValidCapacities(balanza);
+    if (rangos.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: List.generate(rangos.length, (index) {
+          final pmax = rangos[index]['capMax']!;
+          final d = rangos[index]['d']!;
+          
+          final suggested = SuggestionHelper.roundToNearestMultiple(pmax * 0.5, d);
+          final decimals = SuggestionHelper.getDecimalPlaces(d);
+          final formatted = suggested.toStringAsFixed(decimals);
+          final unidad = balanza.unidad ?? 'kg';
+          final label = rangos.length > 1 ? 'Max${index + 1}' : 'Pmax';
+
+          return GestureDetector(
+            onTap: () {
+              _cargasCtrls[cargaIdx].text = formatted;
+              final nMediciones = int.tryParse(_medicionesCount ?? '3') ?? 3;
+              for (int j = 0; j < nMediciones; j++) {
+                _indCtrls[cargaIdx][j].text = formatted;
+              }
+              _saveToProvider();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.teal.withOpacity(isDark ? 0.15 : 0.1),
+                border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lightbulb_outline_rounded, size: 14, color: Colors.teal),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Sugerido: $formatted $unidad (50% $label)',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    ).animate().fadeIn();
+  }
 }
