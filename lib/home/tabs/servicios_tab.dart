@@ -4,8 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/calibration_workspace_screen.dart';
 import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
+
+const _stepNames = [
+  'Cliente', 'Planta', 'SECA', 'Instrumento', 'Inspección Visual',
+  'Precarga/Ajuste', 'Excentricidad', 'Repetibilidad', 'Linealidad',
+  'Foto Carga', 'Condiciones Finales', 'Exportación'
+];
 
 class ServiciosTab extends StatelessWidget {
   final String userName;
@@ -38,14 +45,7 @@ class ServiciosTab extends StatelessWidget {
               title: 'Calibración',
               subtitle:
                   'Procesos de calibración de balanzas, tanques y pesas patrón',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CalibrationWorkspaceScreen(userName: userName),
-                  ),
-                );
-              },
+              onTap: () => _openCalibracion(context),
               delay: 300.ms,
             ),
 
@@ -244,5 +244,138 @@ class ServiciosTab extends StatelessWidget {
         ],
       ),
     ).animate(delay: 500.ms).fadeIn().slideY(begin: 0.1);
+  }
+
+  Future<void> _openCalibracion(BuildContext context) async {
+    final incompletos = await CalibrationRepository().getServiciosIncompletos(userName);
+
+    if (incompletos.isNotEmpty && context.mounted) {
+      final ultimo = incompletos.first;
+      final step = _inferStep(ultimo);
+      final stepName = step < _stepNames.length ? _stepNames[step] : 'Desconocido';
+
+      final continuar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) {
+          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    color: isDark ? Colors.amber[300] : Colors.amber[800],
+                    size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Servicio Pendiente',
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tiene un proceso de calibración sin finalizar:',
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white70 : Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                _detRow('Cliente', ultimo['cliente']?.toString() ?? '-', isDark),
+                const SizedBox(height: 8),
+                _detRow('Planta', ultimo['planta']?.toString() ?? '-', isDark),
+                const SizedBox(height: 8),
+                _detRow('SECA', ultimo['seca']?.toString() ?? '-', isDark),
+                const SizedBox(height: 8),
+                _detRow('Instrumento', ultimo['cod_metrica']?.toString() ?? '-', isDark),
+                const SizedBox(height: 8),
+                _detRow('Paso', stepName, isDark),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Nuevo Servicio',
+                    style: TextStyle(
+                        color: isDark ? Colors.white60 : Colors.black54)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF326677),
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Continuar Servicio'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (continuar == true && context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CalibrationWorkspaceScreen(
+              userName: userName,
+              secaValue: ultimo['seca']?.toString(),
+              sessionId: ultimo['session_id']?.toString(),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CalibrationWorkspaceScreen(userName: userName),
+      ),
+    );
+  }
+
+  int _inferStep(Map<String, dynamic> map) {
+    if (_hasData(map['emp'])) return 11;
+    if (_hasData(map['hora_fin'])) return 10;
+    if (_hasData(map['lin1'])) return 8;
+    if (_hasData(map['repetibilidad1'])) return 7;
+    if (_hasData(map['carga'])) return 6;
+    if (_hasData(map['precarga1'])) return 5;
+    if (_hasData(map['hora_inicio'])) return 4;
+    if (_hasData(map['cod_metrica'])) return 3;
+    if (_hasData(map['seca'])) return 2;
+    return 0;
+  }
+
+  bool _hasData(dynamic value) => value != null && value.toString().isNotEmpty;
+
+  Widget _detRow(String label, String value, bool isDark) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(label,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white54 : Colors.black54)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+        ),
+      ],
+    );
   }
 }

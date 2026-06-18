@@ -109,8 +109,12 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     final exc = provider.session?.excentricidad;
     if (exc != null) {
       setState(() {
-        _tipoPlataforma = exc.tipoPlataforma;
-        _puntosIndicacion = exc.puntosIndicacion;
+        _tipoPlataforma = _plataformas.contains(exc.tipoPlataforma)
+            ? exc.tipoPlataforma
+            : null;
+        final options = _getPuntosOptions();
+        _puntosIndicacion =
+            options.contains(exc.puntosIndicacion) ? exc.puntosIndicacion : null;
         _cargaCtrl.text = exc.carga ?? '';
         _notaCtrl.text = exc.nota ?? '';
         _rows = exc.posiciones

@@ -14,7 +14,12 @@ class CalibrationRepository {
   Future<ServiceSession?> loadSession(String seca, String sessionId) async {
     final result = await _db.getRegistroBySeca(seca, sessionId);
     if (result == null) return null;
-    return ServiceSession.fromMap(result);
+    final progress = await _db.getServicioStatus(seca, sessionId);
+    final merged = Map<String, dynamic>.from(result);
+    if (progress != null) {
+      merged.addAll(progress);
+    }
+    return ServiceSession.fromMap(merged);
   }
 
   Future<void> saveSession(String seca, String sessionId, ServiceSession session) async {
@@ -144,8 +149,12 @@ class CalibrationRepository {
     return await _db.getServicioIncompletoPorCodMetrica(codMetrica);
   }
 
-  Future<List<Map<String, dynamic>>> getServiciosIncompletos() async {
-    return await _db.getAllServiciosIncompletos();
+  /// Retorna servicios pendientes para un usuario.
+  /// Busca en `servicio_status` (status=in_progress) y también
+  /// registros viejos sin status que pertenezcan al usuario.
+  Future<List<Map<String, dynamic>>> getServiciosIncompletos(
+      String personal) async {
+    return await _db.getPendingServiciosPorUsuario(personal);
   }
 
   Future<bool> esServicioCompleto(String seca, String sessionId) async {
@@ -154,6 +163,40 @@ class CalibrationRepository {
 
   Future<void> marcarBalanzaCompleta(String seca, String sessionId) async {
     await _db.marcarBalanzaCompleta(seca, sessionId);
+  }
+
+  // ─── Progreso de sesión ──────────────────────────────────────────────────
+
+  Future<void> saveProgress({
+    required String seca,
+    required String sessionId,
+    required String personal,
+    int currentStep = 0,
+    bool secaConfirmed = false,
+    bool balanzaConfirmed = false,
+    String status = 'in_progress',
+  }) async {
+    await _db.upsertServicioStatus({
+      'seca': seca,
+      'session_id': sessionId,
+      'personal': personal,
+      'current_step': currentStep,
+      'seca_confirmed': secaConfirmed ? 1 : 0,
+      'balanza_confirmed': balanzaConfirmed ? 1 : 0,
+      'status': status,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<Map<String, dynamic>?> loadProgress(
+      String seca, String sessionId) async {
+    return await _db.getServicioStatus(seca, sessionId);
+  }
+
+  Future<void> markServicioCompletado(
+      String seca, String sessionId) async {
+    await _db.markServicioCompletado(seca, sessionId);
   }
 
   Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {

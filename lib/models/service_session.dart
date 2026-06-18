@@ -229,7 +229,7 @@ class ServiceSession {
           certFecha: map['certificado$i'],
           enteCalibrador: map['ente_calibrador$i'],
           estado: map['estado$i'],
-          cantidad: map['cantidad$i'],
+          cantidad: map['cantidad$i']?.toString(),
         ));
       }
     }
@@ -425,11 +425,35 @@ class ServiceSession {
         reglaAceptacion: map['regla_aceptacion'],
       ),
       metadata: SessionMetadata(
-          currentStep: 0,
-          secaConfirmed: map['seca'] != null,
+          currentStep: map['current_step'] != null
+              ? int.parse(map['current_step'].toString())
+              : _inferStep(map),
+          secaConfirmed: map['seca_confirmed'] != null
+              ? map['seca_confirmed'] == 1 || map['seca_confirmed'] == true
+              : map['seca'] != null,
+          balanzaConfirmed: map['balanza_confirmed'] != null
+              ? map['balanza_confirmed'] == 1 || map['balanza_confirmed'] == true
+              : false,
           isNewBalanza: false,
           hiddenEditedFields: ''),
     );
+  }
+
+  static int _inferStep(Map<String, dynamic> map) {
+    if (_hasData(map['emp'])) return 11;
+    if (_hasData(map['hora_fin'])) return 10;
+    if (_hasData(map['lin1'])) return 8;
+    if (_hasData(map['repetibilidad1'])) return 7;
+    if (_hasData(map['carga'])) return 6;
+    if (_hasData(map['precarga1'])) return 5;
+    if (_hasData(map['hora_inicio'])) return 4;
+    if (_hasData(map['cod_metrica'])) return 3;
+    if (_hasData(map['seca'])) return 2;
+    return 0;
+  }
+
+  static bool _hasData(dynamic value) {
+    return value != null && value.toString().isNotEmpty;
   }
 }
 

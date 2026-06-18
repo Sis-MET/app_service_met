@@ -1116,11 +1116,22 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Future<void> _scanQrForBalanza(ServiceSessionProvider provider) async {
-    final codMetrica = await Navigator.push<String>(
+    final rawValue = await Navigator.push<String>(
       context,
       MaterialPageRoute(builder: (_) => const QrScannerScreen()),
     );
-    if (codMetrica == null || !mounted) return;
+    if (rawValue == null || !mounted) return;
+
+    // Limpiar el raw value del QR: extraer solo el código métrica
+    // Ej: "0032-11-020 Balanza X Marca Y" → "0032-11-020"
+    final parts = rawValue.trim().split('-');
+    String codMetrica;
+    if (parts.length >= 3) {
+      final suffix = RegExp(r'^\d+').stringMatch(parts[2]) ?? '';
+      codMetrica = '${parts[0]}-${parts[1]}-$suffix';
+    } else {
+      codMetrica = rawValue.trim();
+    }
 
     final match = _balanzas.cast<Map<String, dynamic>?>().firstWhere(
           (b) => b?['cod_metrica']?.toString().trim() == codMetrica.trim(),
@@ -1128,7 +1139,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
         );
 
     if (match == null) {
-      TopAlert.show(context, 'No se encontró balanza con código: $codMetrica',
+      TopAlert.show(context,
+          'El código QR no pertenece al cliente y planta seleccionados',
           isError: true);
       return;
     }

@@ -32,8 +32,13 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final exp = provider.session?.exportacion;
     if (exp != null) {
       setState(() {
-        _emp = exp.emp23001;
-        _regla = exp.reglaAceptacion;
+        _emp = const ['Sí', 'No'].contains(exp.emp23001)
+            ? exp.emp23001
+            : null;
+        _regla = const ['Ninguna', 'Simple', 'Conservadora']
+                .contains(exp.reglaAceptacion)
+            ? exp.reglaAceptacion
+            : null;
         _indicarCtrl.text = exp.indicar ?? '';
         _factorCtrl.text = exp.factorSeguridad ?? '';
       });
@@ -52,7 +57,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
 
   Future<void> _seleccionarOtraBalanza(ServiceSessionProvider provider) async {
     await provider.marcarBalanzaCompleta();
-    provider.resetearParaNuevaBalanza();
+    await provider.resetearParaNuevaBalanza();
   }
 
   Future<void> _exportar(ServiceSessionProvider provider) async {

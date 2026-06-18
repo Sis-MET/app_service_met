@@ -73,9 +73,15 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       _hriCtrl.text = cf.hriFin ?? '';
       _tiCtrl.text = cf.tiFin ?? '';
       _patmiCtrl.text = cf.patmiFin ?? '';
-      _mantenimiento = cf.mantenimiento;
-      _ventaPesas = cf.ventaPesas;
-      _reemplazo = cf.reemplazo;
+      _mantenimiento = const ['Sí', 'No'].contains(cf.mantenimiento)
+          ? cf.mantenimiento
+          : null;
+      _ventaPesas = const ['Sí', 'No'].contains(cf.ventaPesas)
+          ? cf.ventaPesas
+          : null;
+      _reemplazo = const ['Sí', 'No'].contains(cf.reemplazo)
+          ? cf.reemplazo
+          : null;
       _obsCtrl.text = cf.observaciones ?? 'Sin Observaciones';
     } else {
       _obsCtrl.text = 'Sin Observaciones';

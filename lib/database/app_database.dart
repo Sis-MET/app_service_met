@@ -240,6 +240,8 @@ class AppDatabase {
     }
   }
 
+
+
   Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
     try {
       final db = await database;
@@ -786,9 +788,120 @@ class AppDatabase {
       ''');
 
       debugPrint('Tabla registros_calibracion creada exitosamente');
+
+      await _createServicioStatusTable(db);
+      debugPrint('Tabla servicio_status creada exitosamente');
     } catch (e) {
       debugPrint('Error creando tabla: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _createServicioStatusTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS servicio_status (
+        seca TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        personal TEXT DEFAULT '',
+        current_step INTEGER DEFAULT 0,
+        seca_confirmed INTEGER DEFAULT 0,
+        balanza_confirmed INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'in_progress',
+        created_at TEXT DEFAULT '',
+        updated_at TEXT DEFAULT '',
+        PRIMARY KEY (seca, session_id)
+      )
+    ''');
+  }
+
+  // ─── servicio_status CRUD ────────────────────────────────────────────────
+
+  Future<void> upsertServicioStatus(Map<String, dynamic> row) async {
+    try {
+      final db = await database;
+      await db.insert(
+        'servicio_status',
+        row,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('Error en upsertServicioStatus: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getServicioStatus(
+      String seca, String sessionId) async {
+    try {
+      final db = await database;
+      final result = await db.query(
+        'servicio_status',
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+        limit: 1,
+      );
+      return result.isNotEmpty ? result.first : null;
+    } catch (e) {
+      debugPrint('Error en getServicioStatus: $e');
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPendingServiciosPorUsuario(
+      String personal) async {
+    try {
+      final db = await database;
+      return await db.rawQuery('''
+        SELECT r.*, s.current_step, s.seca_confirmed, s.balanza_confirmed,
+               s.status AS servicio_status, s.updated_at AS status_updated_at
+        FROM registros_calibracion r
+        LEFT JOIN servicio_status s
+          ON r.seca = s.seca AND r.session_id = s.session_id
+        WHERE s.status = 'in_progress'
+           OR (s.seca IS NULL
+               AND r.personal = ?
+               AND (r.estado_servicio_bal IS NULL OR r.estado_servicio_bal = ''))
+        ORDER BY COALESCE(s.updated_at, r.fecha_servicio) DESC, r.id DESC
+      ''', [personal]);
+    } catch (e) {
+      debugPrint('Error en getPendingServiciosPorUsuario: $e');
+      return [];
+    }
+  }
+
+  Future<void> updateServicioStatusStep(
+      String seca, String sessionId, int step) async {
+    try {
+      final db = await database;
+      await db.update(
+        'servicio_status',
+        {
+          'current_step': step,
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+      );
+    } catch (e) {
+      debugPrint('Error en updateServicioStatusStep: $e');
+    }
+  }
+
+  Future<void> markServicioCompletado(
+      String seca, String sessionId) async {
+    try {
+      final db = await database;
+      await db.update(
+        'servicio_status',
+        {
+          'status': 'completed',
+          'updated_at': DateTime.now().toIso8601String(),
+        },
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+      );
+    } catch (e) {
+      debugPrint('Error en markServicioCompletado: $e');
     }
   }
 

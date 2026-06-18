@@ -39,7 +39,7 @@ class CalibrationWorkspaceScreen extends StatefulWidget {
 
 class _CalibrationWorkspaceScreenState
     extends State<CalibrationWorkspaceScreen> {
-  final PageController _pageController = PageController();
+  PageController _pageController = PageController();
   bool _infoButtonVisible = true;
   Timer? _showButtonTimer;
 
@@ -56,10 +56,12 @@ class _CalibrationWorkspaceScreenState
           )
           .then((_) {
         if (!mounted) return;
-        // Sync page controller with loaded step
         final step = context.read<ServiceSessionProvider>().currentStep;
-        if (_pageController.hasClients && step > 0) {
-          _pageController.jumpToPage(step);
+        if (step > 0) {
+          setState(() {
+            _pageController.dispose();
+            _pageController = PageController(initialPage: step);
+          });
         }
       });
     });

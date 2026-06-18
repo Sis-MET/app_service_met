@@ -43,7 +43,9 @@ class _LinealidadStepState extends State<LinealidadStep> {
     if (lin == null) return;
 
     _notaCtrl.text = lin.nota ?? '';
-    _metodoCarga = lin.metodo;
+    _metodoCarga = _metodoCargaOptions.contains(lin.metodo)
+        ? lin.metodo
+        : null;
     _parseValidationState(lin.metodoCarga);
 
     if (lin.filas.isNotEmpty) {

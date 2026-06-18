@@ -55,6 +55,40 @@ class ServiceSessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Progreso (servicio_status) ──────────────────────────────────────────
+
+  Future<void> _saveCurrentProgress({String? status}) async {
+    final s = _session;
+    if (s == null) return;
+    final seca = s.sessionInfo.seca;
+    final sessionId = s.sessionInfo.sessionId;
+    final userName = s.sessionInfo.userName;
+    if (seca == null || sessionId == null || userName == null) return;
+    try {
+      // Preservar status existente si no se pasa uno explícito
+      String resolvedStatus;
+      if (status != null) {
+        resolvedStatus = status;
+      } else {
+        final existing = await _repository.loadProgress(seca, sessionId);
+        resolvedStatus =
+            existing?['status']?.toString() ?? 'in_progress';
+      }
+
+      await _repository.saveProgress(
+        seca: seca,
+        sessionId: sessionId,
+        personal: userName,
+        currentStep: _currentStep,
+        secaConfirmed: s.metadata.secaConfirmed,
+        balanzaConfirmed: s.metadata.balanzaConfirmed,
+        status: resolvedStatus,
+      );
+    } catch (e) {
+      debugPrint('Error guardando progreso: $e');
+    }
+  }
+
   // --- Inicialización ---
 
   Future<void> initialize({
@@ -68,11 +102,16 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (secaValue != null && sessionId != null) {
       await loadExistingSession(secaValue, sessionId);
       if (_session == null) {
-        // Fallback if not found
         await createNewSession(userName, secaValue: secaValue);
       }
     } else {
       await createNewSession(userName);
+    }
+
+    // Crear/actualizar entrada de progreso al iniciar
+    if (_session != null && _session!.sessionInfo.seca != null &&
+        _session!.sessionInfo.sessionId != null) {
+      await _saveCurrentProgress();
     }
 
     _isLoading = false;
@@ -109,6 +148,7 @@ class ServiceSessionProvider extends ChangeNotifier {
           .copyWith(metadata: _session!.metadata.copyWith(currentStep: step));
       notifyListeners();
       _scheduleAutoSave();
+      _saveCurrentProgress();
     }
   }
 
@@ -321,6 +361,7 @@ class ServiceSessionProvider extends ChangeNotifier {
     );
 
     await flushAutoSave();
+    await _saveCurrentProgress();
     return true;
   }
 
@@ -408,7 +449,7 @@ class ServiceSessionProvider extends ChangeNotifier {
     );
 
     if (balanzaMatch == null) {
-      return 'No se encontró balanza con código: $_qrCodMetrica';
+      return 'El código QR no pertenece al cliente y planta seleccionados';
     }
 
     updateBalanza(BalanzaInfo(
@@ -689,6 +730,7 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (_session == null) return false;
     setBalanzaConfirmed(true);
     await flushAutoSave();
+    await _saveCurrentProgress();
     return true;
   }
 
@@ -700,23 +742,31 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (seca == null || sessionId == null) return;
     await flushAutoSave();
     await _repository.marcarBalanzaCompleta(seca, sessionId);
+    await _saveCurrentProgress(status: 'completed');
   }
 
   // --- Resetear sesión para nueva balanza (conserva cliente, planta, seca) ---
 
-  void resetearParaNuevaBalanza() {
+  Future<void> resetearParaNuevaBalanza() async {
     final old = _session;
     if (old == null) return;
+    final seca = old.sessionInfo.seca;
+    final nuevoSessionId = seca != null
+        ? await _repository.generateSessionId(seca)
+        : old.sessionInfo.sessionId;
     _session = ServiceSession(
       sessionInfo: SessionInfo(
-        seca: old.sessionInfo.seca,
-        sessionId: old.sessionInfo.sessionId,
+        seca: seca,
+        sessionId: nuevoSessionId,
         fechaServicio: old.sessionInfo.fechaServicio,
         userName: old.sessionInfo.userName,
       ),
       cliente: old.cliente,
       planta: old.planta,
-      metadata: SessionMetadata(currentStep: 3),
+      metadata: SessionMetadata(
+        currentStep: 3,
+        secaConfirmed: old.metadata.secaConfirmed,
+      ),
     );
     _currentStep = 3;
     _dValues = {};
