@@ -65,42 +65,42 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     });
   }
 
-  Future<void> _exportarCSV() async {
+  List<Map<String, dynamic>> _getFilteredItems({bool soloCompletos = false}) {
+    if (!soloCompletos) return itemsEditados;
+    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
+    final estadoField = isCalibracion ? 'estado_servicio_bal' : 'estado_servicio';
+    final estadoValor = isCalibracion ? 'Balanza Calibrada' : 'Completo';
+    return itemsEditados.where((item) {
+      final estado = item[estadoField]?.toString() ?? '';
+      return estado == estadoValor;
+    }).toList();
+  }
+
+  Future<void> _exportarCSV({bool soloCompletos = false}) async {
     try {
+      final items = _getFilteredItems(soloCompletos: soloCompletos);
       final List<List<dynamic>> csvData = [];
 
-      if (itemsEditados.isNotEmpty) {
-        csvData.add(itemsEditados.first.keys.toList());
+      if (items.isNotEmpty) {
+        csvData.add(items.first.keys.toList());
       }
 
-      for (var item in itemsEditados) {
+      for (var item in items) {
         csvData.add(item.values.toList());
       }
 
-      // Generar CSV
-      final csv =
-          const ListToCsvConverter(fieldDelimiter: ';').convert(csvData);
-
-      // Codificar a bytes UTF-8 para evitar problemas de caracteres
+      final csv = const ListToCsvConverter(fieldDelimiter: ';').convert(csvData);
       final List<int> csvBytes = utf8.encode(csv);
 
-      final fileName =
-          '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final fileName = '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
-      // Seleccionar directorio de destino
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el respaldo',
       );
-
-      if (directoryPath == null) {
-        // Usuario canceló
-        return;
-      }
+      if (directoryPath == null) return;
 
       final File file = File('$directoryPath/$fileName');
       await file.writeAsBytes(csvBytes);
-
-      // Abrir el archivo generado
       OpenFilex.open(file.path);
 
       if (mounted) {
@@ -108,16 +108,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleCheck,
-                    color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Archivo guardado en: ${file.path}')),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -127,46 +125,44 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark,
-                    color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleXmark, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar: $e')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     }
   }
 
-  Future<void> _exportarPDF() async {
+  Future<void> _exportarPDF({bool soloCompletos = false}) async {
     try {
-      final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-      final pdfBytes = isCalibracion 
-          ? await PdfGenerator.generateCalibracionPdf(widget.servicio)
-          : await PdfGenerator.generateSoportePdf(widget.servicio);
+      final items = _getFilteredItems(soloCompletos: soloCompletos);
+      final servicioFiltrado = ServicioResumen(
+        tipo: widget.servicio.tipo,
+        codigo: widget.servicio.codigo,
+        cantidad: items.length,
+        items: items,
+      );
 
-      final fileName =
-          'Resumen_${widget.servicio.nombreTipo.replaceAll(" ", "_")}_${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final isCalibracion = servicioFiltrado.tipo == TipoServicio.calibracion;
+      final pdfBytes = isCalibracion
+          ? await PdfGenerator.generateCalibracionPdf(servicioFiltrado)
+          : await PdfGenerator.generateSoportePdf(servicioFiltrado);
 
-      // Seleccionar directorio de destino
+      final fileName = 'Resumen_${servicioFiltrado.nombreTipo.replaceAll(" ", "_")}_${servicioFiltrado.prefijo}_${servicioFiltrado.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el PDF',
       );
-
-      if (directoryPath == null) {
-        // Usuario canceló
-        return;
-      }
+      if (directoryPath == null) return;
 
       final File file = File('$directoryPath/$fileName');
       await file.writeAsBytes(pdfBytes);
-
-      // Abrir el archivo generado
       OpenFilex.open(file.path);
 
       if (mounted) {
@@ -174,16 +170,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleCheck,
-                    color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('PDF guardado en: ${file.path}')),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -193,19 +187,79 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark,
-                    color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleXmark, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar PDF: $e')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
+    }
+  }
+
+  Future<void> _mostrarDialogoExportacion(BuildContext context, bool isPdf) async {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final primaryColor = widget.servicio.tipo == TipoServicio.calibracion
+        ? AppColors.calibracion
+        : AppColors.soporte;
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            FaIcon(isPdf ? FontAwesomeIcons.filePdf : FontAwesomeIcons.fileExport,
+                color: primaryColor, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              'Exportar ${isPdf ? "PDF" : "CSV"}',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Desea exportar todos los registros o solo los completos?',
+          style: GoogleFonts.inter(fontSize: 14, color: cs.onSurface.withOpacity(0.7)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'todos'),
+            child: Text('Todos los datos',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(0.6))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'completos'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('Solo completos',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) return;
+    final soloCompletos = result == 'completos';
+
+    if (isPdf) {
+      await _exportarPDF(soloCompletos: soloCompletos);
+    } else {
+      await _exportarCSV(soloCompletos: soloCompletos);
     }
   }
 
@@ -498,8 +552,23 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: _buildAppBar(isDarkMode, primaryColor, cs),
-      // ── Barra de acciones fija en el fondo ───────────────────────────────
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
+        ),
+        title: Text(
+          'Registros',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
@@ -512,7 +581,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _exportarPDF,
+                  onPressed: () => _mostrarDialogoExportacion(context, true),
                   icon: const FaIcon(FontAwesomeIcons.filePdf,
                       size: 16, color: Colors.red),
                   label: Text(
@@ -533,7 +602,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _exportarCSV,
+                  onPressed: () => _mostrarDialogoExportacion(context, false),
                   icon: const FaIcon(FontAwesomeIcons.fileArrowDown,
                       size: 16, color: Colors.white),
                   label: Text(
@@ -580,7 +649,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               itemCount: itemsEditados.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return _buildResumenBanner(isDarkMode, primaryColor, borderColor, cs);
+                  return _buildHeader(isDarkMode);
                 }
                 final i = index - 1;
                 return _buildItemCard(context, i, itemsEditados[i]);
@@ -589,236 +658,32 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     );
   }
 
-  Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor, ColorScheme cs) {
-    final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
-    
-    final primerDato =
-        itemsEditados.isNotEmpty ? itemsEditados.first : {};
-    final cliente = primerDato['cliente']?.toString() ??
-        primerDato['razon_social']?.toString() ?? '';
-    final fecha = primerDato['fecha']?.toString() ??
-        primerDato['fecha_servicio']?.toString() ?? '';
-    final tecnico = primerDato['tecnico']?.toString() ??
-        primerDato['nombre_tecnico']?.toString() ?? '';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor),
-      ),
+  Widget _buildHeader(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: FaIcon(icon, color: accent, size: 20),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${widget.servicio.prefijo} ${widget.servicio.codigo}',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                      ),
-                    ),
-                    Text(
-                      'Servicio de ${widget.servicio.nombreTipo}',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: accent.withOpacity(0.2)),
-                ),
-                child: Text(
-                  '${widget.servicio.cantidad} ${widget.servicio.nombreItem}${widget.servicio.cantidad != 1 ? 's' : ''}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: accent,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (cliente.isNotEmpty || fecha.isNotEmpty || tecnico.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Divider(
-                height: 1,
-                color: isDark ? AppColors.borderDark : AppColors.borderLight),
-            const SizedBox(height: 12),
-            if (cliente.isNotEmpty)
-              _buildBannerRow(
-                  Icons.business_outlined, 'Cliente', cliente, isDark, cs),
-            if (fecha.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              _buildBannerRow(
-                  Icons.calendar_today_outlined, 'Fecha', fecha, isDark, cs),
-            ],
-            if (tecnico.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              _buildBannerRow(
-                  Icons.person_outline_rounded, 'Técnico', tecnico, isDark, cs),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBannerRow(
-      IconData icon, String label, String value, bool isDark, ColorScheme cs) {
-    return Row(
-      children: [
-        Icon(icon,
-            size: 16,
-            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45)),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.54),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
+          Text(
+            '${widget.servicio.prefijo} ${widget.servicio.codigo}',
+            style: GoogleFonts.poppins(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              height: 1.1,
+            ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
+          const SizedBox(height: 4),
+          Text(
+            'Servicio de ${widget.servicio.nombreTipo}',
             style: GoogleFonts.inter(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
+              color: isDark ? Colors.white54 : Colors.black45,
+              fontWeight: FontWeight.w400,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar(bool isDarkMode, Color primaryColor, ColorScheme cs) {
-    final cardColor = isDarkMode ? AppColors.cardDark : Colors.white;
-    final borderColor =
-        isDarkMode ? AppColors.borderDark : AppColors.borderLight;
-    final titleColor =
-        isDarkMode ? Colors.white : AppColors.textPrimaryLight;
-    final iconColor =
-        isDarkMode ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
-
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(65),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          border:
-              Border(bottom: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: SizedBox(
-            height: 65,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  left: 4,
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new_rounded,
-                        size: 20, color: iconColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${widget.servicio.prefijo} ${widget.servicio.codigo}',
-                      style: GoogleFonts.poppins(
-                        color: titleColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16.0,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                    Text(
-                      '${widget.servicio.cantidad} ${widget.servicio.nombreItem}${widget.servicio.cantidad != 1 ? 's' : ''}',
-                      style: GoogleFonts.inter(
-                        color: cs.onSurface.withOpacity(isDarkMode ? 0.60 : 0.54),
-                        fontWeight: FontWeight.w500,
-                        fontSize: 11.0,
-                      ),
-                    ),
-                  ],
-                ),
-                Positioned(
-                  right: 4,
-                  child: Row(
-                    children: [
-                      _buildAction(
-                          icon: FontAwesomeIcons.filePdf,
-                          color: Colors.red,
-                          onPressed: _exportarPDF,
-                          tooltip: 'Exportar PDF'),
-                      const SizedBox(width: 4),
-                      _buildAction(
-                          icon: FontAwesomeIcons.fileExport,
-                          color: primaryColor,
-                          onPressed: _exportarCSV,
-                          tooltip: 'Exportar CSV'),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+          ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+        ],
       ),
-    );
-  }
-
-  Widget _buildAction(
-      {required dynamic icon,
-      required Color color,
-      required VoidCallback onPressed,
-      required String tooltip}) {
-    return IconButton(
-      tooltip: tooltip,
-      icon: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: icon is IconData ? Icon(icon, color: color, size: 17) : FaIcon(icon, color: color, size: 17),
-      ),
-      onPressed: onPressed,
     );
   }
 

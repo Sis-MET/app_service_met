@@ -409,13 +409,7 @@ class MntCorrectivoController extends BaseSoporteController<MntCorrectivoModel> 
   void _addRepetibilidadData(
       Map<String, dynamic> data, Repetibilidad? rep, String tipo) {
     if (rep?.activo ?? false) {
-      // Guardar contadores para saber cuántas cargas/rows se usaron
-      data['repetibilidad_count_$tipo'] = rep!.cargas.length;
-      if (rep.cargas.isNotEmpty) {
-        data['repetibilidad_rows_$tipo'] = rep.cargas[0].pruebas.length;
-      }
-
-      for (int i = 0; i < rep.cargas.length; i++) {
+      for (int i = 0; i < rep!.cargas.length; i++) {
         final carga = rep.cargas[i];
         final cargaNum = i + 1;
         data['repetibilidad${cargaNum}_$tipo'] = carga.valor;

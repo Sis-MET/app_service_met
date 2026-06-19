@@ -231,7 +231,7 @@ class DatabaseHelperInstalacion {
     return _database!;
   }
 
-  // ← MÉTODO CORREGIDO: Inicialización más simple y robusta
+  // ← MÉTODO CORREGIDO: Inicialización más simple y robusta|
   Future<Database> _initDatabase() async {
     if (_isInitializing) {
       throw Exception('Database already initializing');
@@ -337,18 +337,11 @@ class DatabaseHelperInstalacion {
 
         -- Retorno a Cero
         retorno_cero_inicial_valoracion TEXT DEFAULT '',
-        retorno_cero_inicial_carga TEXT DEFAULT '',
-        retorno_cero_inicial_unidad TEXT DEFAULT '',
-        retorno_cero_inicial_estabilidad TEXT DEFAULT '', -- NUEVO (V3)
+        retorno_cero_inicial_estabilidad TEXT DEFAULT '',
         
         retorno_cero_final_valoracion TEXT DEFAULT '',
-        retorno_cero_final_carga TEXT DEFAULT '',
-        retorno_cero_final_unidad TEXT DEFAULT '',
+        retorno_cero_final_estabilidad TEXT DEFAULT '',
 
-        -- NUEVOS CAMPOS INSPECCIÓN (V2)
-        -- 'Nivelación' se reemplaza conceptualmente por superficie_apoyo,
-        -- pero mantenemos 'nivelacion_valor'/'nivelacion_comentario' si ya existen para no romper datos antiguos,
-        -- o agregamos nuevos. En este caso agregamos nuevos para claridad.
         superficie_apoyo_valor TEXT DEFAULT '',
         superficie_apoyo_comentario TEXT DEFAULT '',
         tension_red_valor TEXT DEFAULT '',
@@ -394,9 +387,6 @@ class DatabaseHelperInstalacion {
         retorno_inicial_11 TEXT DEFAULT '',
         indicacion_inicial_12 TEXT DEFAULT '',
         retorno_inicial_12 TEXT DEFAULT '',
-        
-        repetibilidad_inicial_cantidad_cargas TEXT DEFAULT '',
-        repetibilidad_inicial_cantidad_pruebas TEXT DEFAULT '',
         
         -- Carga 1
         repetibilidad1_inicial TEXT DEFAULT '',
@@ -459,6 +449,7 @@ class DatabaseHelperInstalacion {
         lin_inicial_12 TEXT DEFAULT '',
         ind_inicial_12 TEXT DEFAULT '',
         retorno_lin_inicial_12 TEXT DEFAULT '',
+        
         estado_servicio TEXT DEFAULT ''
       )
       ''');

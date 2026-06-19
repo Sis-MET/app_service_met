@@ -352,10 +352,6 @@ class DatabaseHelperVerificaciones {
         indicacion_inicial_12 TEXT DEFAULT '',
         retorno_inicial_12 TEXT DEFAULT '',
 
-        -- Repetibilidad Inicial
-        repetibilidad_inicial_cantidad_cargas TEXT DEFAULT '',
-        repetibilidad_inicial_cantidad_pruebas TEXT DEFAULT '',
-
         -- Carga 1
         repetibilidad1_inicial TEXT DEFAULT '',
         indicacion1_inicial_1 TEXT DEFAULT '',

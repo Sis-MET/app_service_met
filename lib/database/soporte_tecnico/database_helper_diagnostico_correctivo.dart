@@ -364,10 +364,6 @@ class DatabaseHelperDiagnosticoCorrectivo {
         indicacion_final_6 TEXT DEFAULT '',
         retorno_final_6 TEXT DEFAULT '',
         
-        -- Repetibilidad final (hasta 3 cargas con 10 mediciones cada una)
-        repetibilidad_count_final INTEGER DEFAULT 0,
-        repetibilidad_rows_final INTEGER DEFAULT 0,
-        
         repetibilidad1_final TEXT DEFAULT '',
         indicacion1_final_1 TEXT DEFAULT '',
         retorno1_final_1 TEXT DEFAULT '',
