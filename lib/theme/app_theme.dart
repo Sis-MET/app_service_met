@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app_colors.dart';
 
 class AppTheme {
   static ThemeData buildLightTheme(BuildContext context) {
-    const primaryColor = Color(0xFFd99700);
-    const secondaryColor = Color(0xFFd99700);
-    const textColor = Colors.black;
+    const primaryColor = AppColors.primary;
     const scaffoldBackgroundColor = Colors.white;
 
     final baseTheme = ThemeData.light();
@@ -18,22 +17,22 @@ class AppTheme {
       disabledColor: Colors.grey[400],
       colorScheme: baseTheme.colorScheme.copyWith(
         primary: primaryColor,
-        secondary: secondaryColor,
+        secondary: primaryColor,
         surface: scaffoldBackgroundColor,
-        onSurface: textColor,
+        onSurface: Colors.black,
         brightness: Brightness.light,
       ),
       textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme).copyWith(
-        displayLarge: const TextStyle(color: textColor),
-        displayMedium: const TextStyle(color: textColor),
-        displaySmall: const TextStyle(color: textColor),
-        headlineMedium: const TextStyle(color: textColor),
-        headlineSmall: const TextStyle(color: textColor),
-        titleLarge: const TextStyle(color: textColor),
-        titleMedium: const TextStyle(color: textColor),
-        titleSmall: const TextStyle(color: textColor),
-        bodyLarge: const TextStyle(color: textColor),
-        bodyMedium: const TextStyle(color: textColor),
+        displayLarge: const TextStyle(color: Colors.black),
+        displayMedium: const TextStyle(color: Colors.black),
+        displaySmall: const TextStyle(color: Colors.black),
+        headlineMedium: const TextStyle(color: Colors.black),
+        headlineSmall: const TextStyle(color: Colors.black),
+        titleLarge: const TextStyle(color: Colors.black),
+        titleMedium: const TextStyle(color: Colors.black),
+        titleSmall: const TextStyle(color: Colors.black),
+        bodyLarge: const TextStyle(color: Colors.black),
+        bodyMedium: const TextStyle(color: Colors.black),
         bodySmall: TextStyle(color: Colors.grey[800]),
         labelLarge: const TextStyle(color: Colors.white),
         labelSmall: TextStyle(color: Colors.grey[800]),
@@ -55,6 +54,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade400),
+        ),
+        floatingLabelStyle: TextStyle(color: Colors.grey[600]),
         contentPadding: const EdgeInsets.all(16),
         labelStyle: TextStyle(color: Colors.grey[800]),
         hintStyle: TextStyle(color: Colors.grey[600]),
@@ -79,7 +83,7 @@ class AppTheme {
           foregroundColor: primaryColor,
         ),
       ),
-      iconTheme: const IconThemeData(color: textColor),
+      iconTheme: const IconThemeData(color: Colors.black),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: primaryColor,
@@ -94,12 +98,12 @@ class AppTheme {
         contentTextStyle: const TextStyle(color: Colors.white),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        textStyle: const TextStyle(color: textColor),
+        textStyle: const TextStyle(color: Colors.black),
       ),
       bottomSheetTheme: const BottomSheetThemeData(),
       chipTheme: ChipThemeData(
         backgroundColor: Colors.grey[200]!,
-        labelStyle: const TextStyle(color: textColor),
+        labelStyle: const TextStyle(color: Colors.black),
         secondaryLabelStyle: const TextStyle(color: Colors.white),
       ),
       dialogTheme: DialogThemeData(backgroundColor: scaffoldBackgroundColor),
@@ -125,9 +129,7 @@ class AppTheme {
   }
 
   static ThemeData buildDarkTheme(BuildContext context) {
-    const primaryColor = Color(0xFFFFFFFF);
-    const secondaryColor = Color(0xFFFFFFFF);
-    const textColor = Colors.white;
+    const primaryColor = AppColors.primary;
     const scaffoldBackgroundColor = Color(0xFF121212);
 
     final baseTheme = ThemeData.dark();
@@ -135,39 +137,39 @@ class AppTheme {
     return baseTheme.copyWith(
       scaffoldBackgroundColor: scaffoldBackgroundColor,
       primaryColor: primaryColor,
-      canvasColor: const Color(0xFF1E1E1E),
-      cardColor: const Color(0xFF1E1E1E),
+      canvasColor: AppColors.surfaceDark,
+      cardColor: AppColors.surfaceDark,
       disabledColor: Colors.grey[600],
       colorScheme: baseTheme.colorScheme.copyWith(
         primary: primaryColor,
-        secondary: secondaryColor,
-        surface: const Color(0xFF1E1E1E),
-        onSurface: textColor,
+        secondary: primaryColor,
+        surface: AppColors.surfaceDark,
+        onSurface: Colors.white,
         brightness: Brightness.dark,
       ),
       textTheme: GoogleFonts.interTextTheme(baseTheme.textTheme).copyWith(
-        displayLarge: const TextStyle(color: textColor),
-        displayMedium: const TextStyle(color: textColor),
-        displaySmall: const TextStyle(color: textColor),
-        headlineMedium: const TextStyle(color: textColor),
-        headlineSmall: const TextStyle(color: textColor),
-        titleLarge: const TextStyle(color: textColor),
-        titleMedium: const TextStyle(color: textColor),
-        titleSmall: const TextStyle(color: textColor),
-        bodyLarge: const TextStyle(color: textColor),
-        bodyMedium: const TextStyle(color: textColor),
+        displayLarge: const TextStyle(color: Colors.white),
+        displayMedium: const TextStyle(color: Colors.white),
+        displaySmall: const TextStyle(color: Colors.white),
+        headlineMedium: const TextStyle(color: Colors.white),
+        headlineSmall: const TextStyle(color: Colors.white),
+        titleLarge: const TextStyle(color: Colors.white),
+        titleMedium: const TextStyle(color: Colors.white),
+        titleSmall: const TextStyle(color: Colors.white),
+        bodyLarge: const TextStyle(color: Colors.white),
+        bodyMedium: const TextStyle(color: Colors.white),
         bodySmall: const TextStyle(color: Colors.white70),
         labelLarge: const TextStyle(color: Colors.black),
         labelSmall: const TextStyle(color: Colors.white70),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: AppColors.surfaceDark,
         titleTextStyle: TextStyle(
-          color: textColor,
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: IconThemeData(color: textColor),
+        iconTheme: IconThemeData(color: Colors.white),
         elevation: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -177,6 +179,11 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade600),
+        ),
+        floatingLabelStyle: TextStyle(color: Colors.grey[400]),
         contentPadding: EdgeInsets.all(16),
         labelStyle: TextStyle(color: Colors.white70),
         hintStyle: TextStyle(color: Colors.white54),
@@ -201,7 +208,7 @@ class AppTheme {
           foregroundColor: primaryColor,
         ),
       ),
-      iconTheme: const IconThemeData(color: textColor),
+      iconTheme: const IconThemeData(color: Colors.white),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: primaryColor,
@@ -212,19 +219,19 @@ class AppTheme {
         space: 1,
       ).copyWith(color: Colors.grey[700]),
       snackBarTheme: const SnackBarThemeData(
-        contentTextStyle: TextStyle(color: textColor),
-      ).copyWith(backgroundColor: const Color(0xFF1E1E1E)),
+        contentTextStyle: TextStyle(color: Colors.white),
+      ).copyWith(backgroundColor: AppColors.surfaceDark),
       popupMenuTheme: const PopupMenuThemeData(
-        textStyle: TextStyle(color: textColor),
-      ).copyWith(color: const Color(0xFF1E1E1E)),
+        textStyle: TextStyle(color: Colors.white),
+      ).copyWith(color: AppColors.surfaceDark),
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Color(0xFF1E1E1E),
+        backgroundColor: AppColors.surfaceDark,
       ),
       chipTheme: const ChipThemeData(
-        labelStyle: TextStyle(color: textColor),
+        labelStyle: TextStyle(color: Colors.white),
         secondaryLabelStyle: TextStyle(color: Colors.black),
       ).copyWith(backgroundColor: Colors.grey[700]!),
-      dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+      dialogTheme: DialogThemeData(backgroundColor: AppColors.surfaceDark),
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith<Color?>(
           (states) {

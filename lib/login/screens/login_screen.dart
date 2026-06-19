@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../models/user_model.dart';
@@ -436,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen>
         height: size.height,
         width: size.width,
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         ),
         child: SafeArea(
           child: _loading && _autoLoginEnabled

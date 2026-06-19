@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -114,7 +115,7 @@ class _FotoCargaStepState extends State<FotoCargaStep> {
         children: [
           Text(
             'FOTO DE ÚLTIMA CARGA',
-            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.indigo[800]),
+            style: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.calibracion),
             textAlign: TextAlign.center,
           ).animate().fadeIn(duration: 600.ms),
           const SizedBox(height: 12),
@@ -153,7 +154,7 @@ class _FotoCargaStepState extends State<FotoCargaStep> {
             icon: const Icon(Icons.camera),
             label: const Text('ABRIR CÁMARA'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF667EEA),
+              backgroundColor: AppColors.calibracion,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -201,8 +202,8 @@ class _FotoCargaStepState extends State<FotoCargaStep> {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              side: const BorderSide(color: Color(0xFF667EEA)),
-              foregroundColor: const Color(0xFF667EEA),
+              side: const BorderSide(color: AppColors.calibracion),
+              foregroundColor: AppColors.calibracion,
             ),
           ),
         ),

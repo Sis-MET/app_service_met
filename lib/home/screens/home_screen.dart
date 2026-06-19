@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../theme/app_colors.dart';
 import 'configuracion_screen.dart';
 import '../tabs/otros_apartados_tab.dart';
 import '../tabs/servicios_tab.dart';
@@ -120,28 +121,29 @@ class _HomeScreenState extends State<HomeScreen> {
         userName = fullName.isNotEmpty ? fullName : "Usuario";
       });
 
-      debugPrint('✅ Usuario cargado: $userName (ID: $usuarioLogueado)');
+      debugPrint('[OK] Usuario cargado: $userName (ID: $usuarioLogueado)');
     } catch (e) {
-      debugPrint('❌ Error obteniendo datos del usuario: $e');
+      debugPrint('[ERROR] Error obteniendo datos del usuario: $e');
       setState(() => userName = "Usuario");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final accent = cs.primary;
 
-    final appBarBg = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final appBarBg = cs.surface;
     final appBarBorder =
-        isDarkMode ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE);
-    final titleColor = isDarkMode ? Colors.white : const Color(0xFF1A1A1A);
-    final iconColor = isDarkMode ? Colors.white70 : const Color(0xFF555555);
+        isDark ? AppColors.borderDarkSoft : AppColors.borderLight;
+    final titleColor = cs.onSurface;
+    final iconColor = cs.onSurface.withOpacity(isDark ? 0.7 : 0.55);
 
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness:
-          isDarkMode ? Brightness.light : Brightness.dark,
+          isDark ? Brightness.light : Brightness.dark,
     ));
 
     return Scaffold(
@@ -224,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ConfiguracionScreen(),
+                                  builder: (context) => const ConfiguracionScreen(),
                                 ),
                               );
                             },

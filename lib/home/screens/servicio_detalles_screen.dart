@@ -11,6 +11,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
+import '../../theme/app_colors.dart';
 
 class ServicioDetallesScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -210,13 +211,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   Widget _buildItemCard(
       BuildContext context, int index, Map<String, dynamic> item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
     final borderColor =
-        isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+        isDark ? AppColors.borderDark : AppColors.borderLight;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
     final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final camposConDatos = _obtenerCamposConDatos(item);
@@ -256,7 +258,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      color: cs.onSurface,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -288,7 +290,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         '${camposConDatos.length} campos',
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: cs.onSurface.withOpacity(0.38),
                         ),
                       ),
                     ],
@@ -299,7 +301,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             // ─ Flecha ────────────────────────────────────────────
             Icon(
               Icons.chevron_right_rounded,
-              color: isDark ? Colors.white30 : Colors.black26,
+              color: cs.onSurface.withOpacity(isDark ? 0.30 : 0.26),
               size: 22,
             ),
           ],
@@ -313,16 +315,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   void _mostrarDetalleItem(
       BuildContext context, int index, Map<String, dynamic> item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
     final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final borderColor =
-        isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+        isDark ? AppColors.borderDark : AppColors.borderLight;
         
     final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
@@ -351,7 +353,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 12),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black12,
+                  color: cs.onSurface.withOpacity(isDark ? 0.24 : 0.12),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -382,9 +384,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white
-                                  : const Color(0xFF1A1A1A),
+                              color: cs.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -433,8 +433,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                     return _buildCampoRow(
                       _formatearNombreCampo(entry.key),
                       entry.value.toString(),
+                      cs,
                       isDark,
-                      cardColor,
                     );
                   },
                 ),
@@ -447,7 +447,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   }
 
   Widget _buildCampoRow(
-      String label, String value, bool isDark, Color cardColor) {
+      String label, String value, ColorScheme cs, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
@@ -460,7 +460,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white60 : Colors.black54,
+                color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
               ),
             ),
           ),
@@ -472,7 +472,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : Colors.black87,
+                color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
               ),
               textAlign: TextAlign.end,
             ),
@@ -484,20 +484,21 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final isDarkMode = cs.brightness == Brightness.dark;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
+    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
     
     final bgColor =
-        isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
-    final cardColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+        isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final cardColor = isDarkMode ? AppColors.cardDark : Colors.white;
     final borderColor =
-        isDarkMode ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+        isDarkMode ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: _buildAppBar(isDarkMode, primaryColor),
+      appBar: _buildAppBar(isDarkMode, primaryColor, cs),
       // ── Barra de acciones fija en el fondo ───────────────────────────────
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -579,7 +580,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               itemCount: itemsEditados.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return _buildResumenBanner(isDarkMode, primaryColor, borderColor);
+                  return _buildResumenBanner(isDarkMode, primaryColor, borderColor, cs);
                 }
                 final i = index - 1;
                 return _buildItemCard(context, i, itemsEditados[i]);
@@ -588,8 +589,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     );
   }
 
-  Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor) {
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
+  Widget _buildResumenBanner(bool isDark, Color accent, Color borderColor, ColorScheme cs) {
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
@@ -633,14 +634,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
                       ),
                     ),
                     Text(
                       'Servicio de ${widget.servicio.nombreTipo}',
                       style: GoogleFonts.inter(
                         fontSize: 12,
-                        color: isDark ? Colors.white54 : Colors.black45,
+                        color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
                       ),
                     ),
                   ],
@@ -669,22 +670,20 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 16),
             Divider(
                 height: 1,
-                color: isDark
-                    ? const Color(0xFF3A3A3A)
-                    : const Color(0xFFEEEEEE)),
+                color: isDark ? AppColors.borderDark : AppColors.borderLight),
             const SizedBox(height: 12),
             if (cliente.isNotEmpty)
               _buildBannerRow(
-                  Icons.business_outlined, 'Cliente', cliente, isDark),
+                  Icons.business_outlined, 'Cliente', cliente, isDark, cs),
             if (fecha.isNotEmpty) ...[
               const SizedBox(height: 6),
               _buildBannerRow(
-                  Icons.calendar_today_outlined, 'Fecha', fecha, isDark),
+                  Icons.calendar_today_outlined, 'Fecha', fecha, isDark, cs),
             ],
             if (tecnico.isNotEmpty) ...[
               const SizedBox(height: 6),
               _buildBannerRow(
-                  Icons.person_outline_rounded, 'Técnico', tecnico, isDark),
+                  Icons.person_outline_rounded, 'Técnico', tecnico, isDark, cs),
             ],
           ],
         ],
@@ -693,19 +692,19 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   }
 
   Widget _buildBannerRow(
-      IconData icon, String label, String value, bool isDark) {
+      IconData icon, String label, String value, bool isDark, ColorScheme cs) {
     return Row(
       children: [
         Icon(icon,
             size: 16,
-            color: isDark ? Colors.white54 : Colors.black45),
+            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45)),
         const SizedBox(width: 8),
         Text(
           '$label: ',
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.54),
           ),
         ),
         Expanded(
@@ -714,7 +713,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black87,
+              color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -723,14 +722,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isDarkMode, Color primaryColor) {
-    final cardColor = isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+  PreferredSizeWidget _buildAppBar(bool isDarkMode, Color primaryColor, ColorScheme cs) {
+    final cardColor = isDarkMode ? AppColors.cardDark : Colors.white;
     final borderColor =
-        isDarkMode ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+        isDarkMode ? AppColors.borderDark : AppColors.borderLight;
     final titleColor =
-        isDarkMode ? Colors.white : const Color(0xFF1A1A1A);
+        isDarkMode ? Colors.white : AppColors.textPrimaryLight;
     final iconColor =
-        isDarkMode ? Colors.white70 : const Color(0xFF555555);
+        isDarkMode ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
 
     return PreferredSize(
       preferredSize: const Size.fromHeight(65),
@@ -770,7 +769,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                     Text(
                       '${widget.servicio.cantidad} ${widget.servicio.nombreItem}${widget.servicio.cantidad != 1 ? 's' : ''}',
                       style: GoogleFonts.inter(
-                        color: isDarkMode ? Colors.white60 : Colors.black54,
+                        color: cs.onSurface.withOpacity(isDarkMode ? 0.60 : 0.54),
                         fontWeight: FontWeight.w500,
                         fontSize: 11.0,
                       ),
@@ -825,10 +824,11 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   void _mostrarDialogoEdicion(
       BuildContext context, int index, Map<String, dynamic> item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? const Color(0xFF4A90E2) : const Color(0xFF04376E); // Or use custom colors, keeping the same as before
+    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
     
     final camposConDatos = _obtenerCamposConDatos(item);
     final Map<String, TextEditingController> controllers = {};
@@ -840,7 +840,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -862,7 +862,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                color: cs.onSurface,
               ),
             ),
           ],
@@ -878,17 +878,17 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   child: TextField(
                     controller: entry.value,
                     style: GoogleFonts.inter(
-                      color: isDark ? Colors.white : Colors.black,
+                      color: cs.onSurface,
                     ),
                     decoration: InputDecoration(
                       labelText: _formatearNombreCampo(entry.key),
                       labelStyle: GoogleFonts.inter(
                         fontSize: 13,
-                        color: isDark ? Colors.white70 : Colors.grey[700],
+                        color: cs.onSurface.withOpacity(0.7),
                       ),
                       filled: true,
                       fillColor: isDark
-                          ? Colors.white.withOpacity(0.05)
+                          ? cs.onSurface.withOpacity(0.05)
                           : const Color(0xFFF5F7FA),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -898,8 +898,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: isDark
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.black.withOpacity(0.05),
+                              ? cs.onSurface.withOpacity(0.1)
+                              : cs.onSurface.withOpacity(0.05),
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -922,7 +922,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             child: Text(
               'Cancelar',
               style: GoogleFonts.inter(
-                color: Colors.grey[600],
+                color: cs.onSurface.withOpacity(0.6),
                 fontWeight: FontWeight.w600,
               ),
             ),

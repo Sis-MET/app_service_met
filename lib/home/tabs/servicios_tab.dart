@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/calibration_workspace_screen.dart';
 import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
+import '../../theme/app_colors.dart';
 
 const _stepNames = [
   'Cliente', 'Planta', 'SECA', 'Instrumento', 'Inspección Visual',
@@ -25,9 +26,7 @@ class ServiciosTab extends StatelessWidget {
       onRefresh: () async {
         await Future.delayed(const Duration(milliseconds: 500));
       },
-      color: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF4A90E2)
-          : const Color(0xFF04376E),
+      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
@@ -82,7 +81,7 @@ class ServiciosTab extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +91,7 @@ class ServiciosTab extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            color: cs.onSurface,
             height: 1.1,
           ),
         ),
@@ -101,7 +100,7 @@ class ServiciosTab extends StatelessWidget {
           'Selecciona un módulo para continuar con tu trabajo',
           style: GoogleFonts.inter(
             fontSize: 14,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: cs.onSurface.withOpacity(0.54),
           ),
         ),
       ],
@@ -116,16 +115,16 @@ class ServiciosTab extends StatelessWidget {
     required VoidCallback onTap,
     required Duration delay,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
         boxShadow: [
           BoxShadow(
@@ -142,14 +141,11 @@ class ServiciosTab extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
+              SizedBox(
+                width: 32,
+                child: Center(
+                  child: icon is IconData ? Icon(icon, size: 30, color: cs.primary) : FaIcon(icon, size: 30, color: cs.primary),
                 ),
-                child: icon is IconData ? Icon(icon, size: 22, color: accent) : FaIcon(icon, size: 22, color: accent),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -161,7 +157,7 @@ class ServiciosTab extends StatelessWidget {
                       style: GoogleFonts.poppins(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -169,7 +165,7 @@ class ServiciosTab extends StatelessWidget {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: isDark ? Colors.white54 : Colors.black54,
+                        color: cs.onSurface.withOpacity(0.54),
                         height: 1.4,
                       ),
                     ),
@@ -177,20 +173,10 @@ class ServiciosTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFF5F5F5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: cs.onSurface.withOpacity(0.54),
               ),
             ],
           ),
@@ -200,22 +186,22 @@ class ServiciosTab extends StatelessWidget {
   }
 
   Widget _buildInfoSection(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9),
+        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FaIcon(FontAwesomeIcons.lightbulb, color: accent, size: 18),
+          FaIcon(FontAwesomeIcons.lightbulb, color: cs.primary, size: 18),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -226,7 +212,7 @@ class ServiciosTab extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -234,7 +220,7 @@ class ServiciosTab extends StatelessWidget {
                   'Selecciona el módulo que deseas utilizar. Cada uno tiene herramientas específicas para realizar tu trabajo diario.',
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: isDark ? Colors.white54 : Colors.black54,
+                    color: cs.onSurface.withOpacity(0.54),
                     height: 1.5,
                   ),
                 ),
@@ -257,7 +243,8 @@ class ServiciosTab extends StatelessWidget {
       final continuar = await showDialog<bool>(
         context: context,
         builder: (ctx) {
-          final isDark = Theme.of(ctx).brightness == Brightness.dark;
+          final cs = Theme.of(ctx).colorScheme;
+          final isDark = cs.brightness == Brightness.dark;
 
           return AlertDialog(
             title: Row(
@@ -271,7 +258,7 @@ class ServiciosTab extends StatelessWidget {
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                          color: cs.onSurface)),
                 ),
               ],
             ),
@@ -283,7 +270,7 @@ class ServiciosTab extends StatelessWidget {
                   'Tiene un proceso de calibración sin finalizar:',
                   style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? Colors.white70 : Colors.black87),
+                      color: isDark ? cs.onSurface.withOpacity(0.7) : cs.onSurface.withOpacity(0.87)),
                 ),
                 const SizedBox(height: 16),
                 _detRow('Cliente', ultimo['cliente']?.toString() ?? '-', isDark),
@@ -302,7 +289,7 @@ class ServiciosTab extends StatelessWidget {
                 onPressed: () => Navigator.pop(ctx, false),
                 child: Text('Nuevo Servicio',
                     style: TextStyle(
-                        color: isDark ? Colors.white60 : Colors.black54)),
+                        color: isDark ? cs.onSurface.withOpacity(0.6) : cs.onSurface.withOpacity(0.54))),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),

@@ -6,6 +6,7 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/screens/calibracion/widgets/step_indicator.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 import 'steps/cliente_step.dart';
 import 'steps/planta_step.dart';
@@ -172,7 +173,21 @@ class _CalibrationWorkspaceScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('CALIBRACIÓN'),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
+        title: Text(
+          'Calibración',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
+          ),
+        ),
         actions: [
           if (provider.isSaving)
             const Center(
@@ -346,8 +361,8 @@ class _CalibrationWorkspaceScreenState
                                                 fontWeight: FontWeight.bold,
                                                 color: isDark
                                                     ? Colors.white
-                                                    : const Color(
-                                                        0xFF1A1A1A)))),
+                                                    : AppColors
+                                                        .textPrimaryLight))),
                                   ],
                                 ),
                                 content: SingleChildScrollView(
@@ -475,7 +490,8 @@ class _CalibrationWorkspaceScreenState
                             }
                             return;
                           }
-                          final mismatch = provider.validarCondicionesAmbientales();
+                          final mismatch =
+                              provider.validarCondicionesAmbientales();
                           if (mismatch != null && ctx.mounted) {
                             final isDark =
                                 Theme.of(ctx).brightness == Brightness.dark;
@@ -491,18 +507,21 @@ class _CalibrationWorkspaceScreenState
                                         size: 22),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                        child: Text('Valores ambientales fuera de rango',
+                                        child: Text(
+                                            'Valores ambientales fuera de rango',
                                             style: TextStyle(
                                                 fontSize: 17,
                                                 fontWeight: FontWeight.bold,
                                                 color: isDark
                                                     ? Colors.white
-                                                    : const Color(0xFF1A1A1A)))),
+                                                    : AppColors
+                                                        .textPrimaryLight))),
                                   ],
                                 ),
                                 content: SingleChildScrollView(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
@@ -527,7 +546,8 @@ class _CalibrationWorkspaceScreenState
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(ctx2, 'editar'),
+                                    onPressed: () =>
+                                        Navigator.pop(ctx2, 'editar'),
                                     child: Text('Editar condiciones iniciales',
                                         style: TextStyle(
                                             color: isDark
@@ -535,7 +555,8 @@ class _CalibrationWorkspaceScreenState
                                                 : Colors.amber[800])),
                                   ),
                                   ElevatedButton(
-                                    onPressed: () => Navigator.pop(ctx2, 'ignorar'),
+                                    onPressed: () =>
+                                        Navigator.pop(ctx2, 'ignorar'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF3e7732),
                                       foregroundColor: Colors.white,
@@ -566,7 +587,7 @@ class _CalibrationWorkspaceScreenState
                       final isDarkMode =
                           Theme.of(ctx).brightness == Brightness.dark;
                       final pillBg =
-                          isDarkMode ? const Color(0xFF2A2A2A) : Colors.white;
+                          isDarkMode ? AppColors.cardDark : Colors.white;
                       final backColor =
                           isDarkMode ? Colors.white24 : Colors.black12;
 
@@ -713,7 +734,7 @@ class _CalibrationWorkspaceScreenState
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: const Color(0xFF04376E),
+        color: Theme.of(context).colorScheme.primary,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -734,15 +755,21 @@ class _CalibrationWorkspaceScreenState
     );
   }
 
-  void _showBalanzaInfo(
-      BuildContext context, BalanzaInfo b, List<EquipoInfo> equipos, bool isDark) {
+  void _showBalanzaInfo(BuildContext context, BalanzaInfo b,
+      List<EquipoInfo> equipos, bool isDark) {
     final pesas = equipos.where((e) {
       final t = e.tipo?.toLowerCase() ?? '';
-      return t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr');
+      return t.contains('pesa') ||
+          t.contains('masa') ||
+          t.contains('patron') ||
+          t.contains('patr');
     }).toList();
     final otros = equipos.where((e) {
       final t = e.tipo?.toLowerCase() ?? '';
-      return !(t.contains('pesa') || t.contains('masa') || t.contains('patron') || t.contains('patr'));
+      return !(t.contains('pesa') ||
+          t.contains('masa') ||
+          t.contains('patron') ||
+          t.contains('patr'));
     }).toList();
 
     showModalBottomSheet(
@@ -754,7 +781,7 @@ class _CalibrationWorkspaceScreenState
           height: MediaQuery.of(context).size.height * 0.75,
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            color: isDark ? AppColors.surfaceDark : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -773,13 +800,19 @@ class _CalibrationWorkspaceScreenState
               ),
               Row(
                 children: [
-                  Icon(Icons.scale, size: 22, color: isDark ? Colors.white : const Color(0xFF04376E)),
+                  Icon(Icons.scale,
+                      size: 22,
+                      color: isDark
+                          ? Colors.white
+                          : Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 10),
                   Text('Información del Instrumento',
                       style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+                          color: isDark
+                              ? Colors.white
+                              : AppColors.textPrimaryLight)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -791,13 +824,11 @@ class _CalibrationWorkspaceScreenState
                     _infoRow('Tipo', b.tipo ?? '-', isDark),
                     _infoRow('Categoría', b.categoria ?? '-', isDark),
                     const Divider(height: 24),
-
                     _infoSectionHeader('Fabricante', isDark),
                     _infoRow('Marca', b.marca ?? '-', isDark),
                     _infoRow('Modelo', b.modelo ?? '-', isDark),
                     _infoRow('Serie', b.serie ?? '-', isDark),
                     const Divider(height: 24),
-
                     _infoSectionHeader('Características', isDark),
                     _infoRow('Tecnología', b.tecnologia ?? '-', isDark),
                     _infoRow('Clase', b.clase ?? '-', isDark),
@@ -807,7 +838,6 @@ class _CalibrationWorkspaceScreenState
                     _infoRow('Rango', b.rango ?? '-', isDark),
                     _infoRow('N° Celdas', b.nCeldas ?? '-', isDark),
                     const Divider(height: 24),
-
                     _infoSectionHeader('Rangos de Intervalo', isDark),
                     _infoRow(
                         'Rango 1',
@@ -822,7 +852,6 @@ class _CalibrationWorkspaceScreenState
                         'Cap.Max: ${b.capMax3 ?? '-'} | d: ${b.d3 ?? '-'} | e: ${b.e3 ?? '-'} | Dec: ${b.dec3 ?? '-'}',
                         isDark),
                     const Divider(height: 24),
-
                     _infoSectionHeader('Equipamiento del Servicio', isDark),
                     if (pesas.isEmpty)
                       Padding(
@@ -830,7 +859,8 @@ class _CalibrationWorkspaceScreenState
                         child: Text('Sin pesas patrón seleccionadas',
                             style: GoogleFonts.inter(
                                 fontSize: 12,
-                                color: isDark ? Colors.white38 : Colors.black38)),
+                                color:
+                                    isDark ? Colors.white38 : Colors.black38)),
                       )
                     else ...[
                       Text('Pesas Patrón (${pesas.length})',
@@ -840,21 +870,26 @@ class _CalibrationWorkspaceScreenState
                               color: isDark ? Colors.white70 : Colors.black54)),
                       const SizedBox(height: 4),
                       ...pesas.map((e) => Padding(
-                        padding: const EdgeInsets.only(left: 12, bottom: 4),
-                        child: Text('${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
-                            style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                      )),
+                            padding: const EdgeInsets.only(left: 12, bottom: 4),
+                            child: Text(
+                                '${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.textPrimaryLight)),
+                          )),
                     ],
                     const SizedBox(height: 8),
                     if (otros.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Text('Sin instrumentos de ambiente seleccionados',
+                        child: Text(
+                            'Sin instrumentos de ambiente seleccionados',
                             style: GoogleFonts.inter(
                                 fontSize: 12,
-                                color: isDark ? Colors.white38 : Colors.black38)),
+                                color:
+                                    isDark ? Colors.white38 : Colors.black38)),
                       )
                     else ...[
                       Text('Ambiente (${otros.length})',
@@ -864,12 +899,15 @@ class _CalibrationWorkspaceScreenState
                               color: isDark ? Colors.white70 : Colors.black54)),
                       const SizedBox(height: 4),
                       ...otros.map((e) => Padding(
-                        padding: const EdgeInsets.only(left: 12, bottom: 4),
-                        child: Text('${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
-                            style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                      )),
+                            padding: const EdgeInsets.only(left: 12, bottom: 4),
+                            child: Text(
+                                '${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white
+                                        : AppColors.textPrimaryLight)),
+                          )),
                     ],
                     const SizedBox(height: 24),
                   ],
@@ -890,7 +928,7 @@ class _CalibrationWorkspaceScreenState
         style: GoogleFonts.poppins(
           fontSize: 13,
           fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : const Color(0xFF04376E),
+          color: isDark ? Colors.white : Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -919,7 +957,7 @@ class _CalibrationWorkspaceScreenState
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
               ),
             ),
           ),

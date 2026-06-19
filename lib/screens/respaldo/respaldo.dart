@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class BackupService {
   static Future<List<FileSystemEntity>> getDatabaseFiles() async {
@@ -382,6 +383,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   Widget _buildFileList(String title, List<FileSystemEntity> files) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     if (files.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -389,7 +391,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
           'No hay archivos disponibles',
           style: GoogleFonts.inter(
             fontSize: 13,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: cs.onSurface.withOpacity(0.38),
           ),
         ),
       );
@@ -405,17 +407,17 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white54 : Colors.black54,
+              color: cs.onSurface.withOpacity(0.54),
               letterSpacing: 0.5,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+            color: isDark ? AppColors.cardDark : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
             ),
           ),
           child: Column(
@@ -430,8 +432,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                       height: 1,
                       indent: 56,
                       color: isDark
-                          ? const Color(0xFF3A3A3A)
-                          : const Color(0xFFEEEEEE),
+                          ? AppColors.borderDark
+                          : AppColors.borderLight,
                     ),
                 ],
               );
@@ -443,8 +445,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Widget _buildFileItem(FileSystemEntity file) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
     final fileInfo = File(file.path);
     final stat = fileInfo.statSync();
     final modified = DateTime.fromMillisecondsSinceEpoch(
@@ -473,14 +475,14 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
         style: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          color: isDark ? Colors.white : Colors.black87,
+          color: cs.onSurface,
         ),
       ),
       subtitle: Text(
         '${_formatBytes(stat.size)} · ${DateFormat('dd/MM/yyyy HH:mm').format(modified)}',
         style: GoogleFonts.inter(
           fontSize: 11,
-          color: isDark ? Colors.white54 : Colors.black54,
+          color: cs.onSurface.withOpacity(0.54),
         ),
       ),
       trailing: _isSelectionMode
@@ -511,31 +513,32 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   Widget _buildSearchField() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
       child: TextField(
         controller: _searchController,
         style: GoogleFonts.inter(
           fontSize: 14,
-          color: isDark ? Colors.white : Colors.black87,
+          color: cs.onSurface,
         ),
         decoration: InputDecoration(
           hintText: 'Buscar archivos...',
           hintStyle: GoogleFonts.inter(
             fontSize: 14,
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: cs.onSurface.withOpacity(0.38),
           ),
-          prefixIcon: Icon(Icons.search_rounded, color: isDark ? Colors.white54 : Colors.black45, size: 20),
+          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45), size: 20),
           filled: true,
-          fillColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+          fillColor: isDark ? AppColors.cardDark : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -550,11 +553,12 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
-    final titleColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final iconColor = isDark ? Colors.white70 : const Color(0xFF555555);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final titleColor = cs.onSurface;
+    final iconColor = cs.onSurface.withOpacity(isDark ? 0.70 : 0.55);
 
     return PreferredSize(
       preferredSize: const Size.fromHeight(65),
@@ -624,19 +628,20 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   InputDecoration _buildInputDecoration(String labelText) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
     return InputDecoration(
       labelText: labelText,
-      labelStyle: GoogleFonts.inter(color: isDark ? Colors.white54 : Colors.black54),
+      labelStyle: GoogleFonts.inter(color: cs.onSurface.withOpacity(0.54)),
       filled: true,
-      fillColor: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF8F9FA),
+      fillColor: isDark ? AppColors.cardDark : AppColors.backgroundLight,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+        borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE)),
+        borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -648,10 +653,11 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   Widget _buildAuthScreen() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    final borderColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -690,7 +696,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                   style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -698,7 +704,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                   'Ingresa la contraseña proporcionada por el área de sistemas para acceder a los respaldos.',
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: isDark ? Colors.white60 : Colors.black54,
+                    color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
                     height: 1.5,
                   ),
                 ),
@@ -710,7 +716,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                   keyboardType: TextInputType.number,
                   style: GoogleFonts.inter(
                     fontSize: 15,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -746,8 +752,9 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   Widget _buildBackupScreen() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final accent = cs.primary;
     final filteredDbs = _filterFiles(_databases, _searchController.text);
     final filteredCsvs = _filterFiles(_csvFiles, _searchController.text);
     final filteredBackups = _filterFiles(_precargaBackups, _searchController.text);

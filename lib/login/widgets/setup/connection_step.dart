@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'config_field.dart';
 
 class ConnectionStep extends StatelessWidget {
@@ -47,7 +48,7 @@ class ConnectionStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final accent = AppColors.accentYellow;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +173,7 @@ class ConnectionStep extends StatelessWidget {
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: accent,
-              foregroundColor: Colors.white,
+              foregroundColor: const Color(0xFF1A1A1A),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

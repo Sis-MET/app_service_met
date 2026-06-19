@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 import '../../models/user_model.dart';
 
 class UserSelectorDialog extends StatelessWidget {
@@ -36,12 +37,12 @@ class UserSelectorDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0E8833).withOpacity(0.1),
+                    color: AppColors.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.people_outline,
-                    color: Color(0xFF0E8833),
+                    color: AppColors.success,
                     size: 28,
                   ),
                 ),
@@ -212,12 +213,12 @@ class _UserTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0E8833).withOpacity(0.15),
+                    color: AppColors.success.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.person,
-                    color: Color(0xFF0E8833),
+                    color: AppColors.success,
                     size: 24,
                   ),
                 ),

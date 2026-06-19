@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -163,6 +164,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
@@ -223,7 +225,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   hint: const Text('Seleccione'),
                   borderRadius: BorderRadius.circular(12),
                   dropdownColor:
-                      isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                      isDark ? AppColors.cardDark : Colors.white,
                   items: const [
                     DropdownMenuItem(value: 'Interno', child: Text('Interno')),
                     DropdownMenuItem(value: 'Externo', child: Text('Externo')),
@@ -240,7 +242,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   const SizedBox(height: 10),
                   TextField(
                     style: GoogleFonts.inter(
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                        color: cs.onSurface),
                     controller: _cargasCtrl,
                     onChanged: (_) => _saveToProvider(),
                     decoration:
@@ -260,9 +262,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 Expanded(
                     child: TextField(
                         style: GoogleFonts.inter(
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A)),
+                            color: cs.onSurface),
                         controller: _tiCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
@@ -271,9 +271,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 Expanded(
                     child: TextField(
                         style: GoogleFonts.inter(
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A)),
+                            color: cs.onSurface),
                         controller: _hriCtrl,
                         onChanged: (_) => _saveToProvider(),
                         keyboardType: TextInputType.number,
@@ -282,7 +280,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               const SizedBox(height: 10),
               TextField(
                   style: GoogleFonts.inter(
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                      color: cs.onSurface),
                   controller: _patmiCtrl,
                   onChanged: (_) => _saveToProvider(),
                   keyboardType: TextInputType.number,
@@ -296,6 +294,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   }
 
   Widget _buildRow(int i, ServiceSessionProvider provider, bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -311,7 +310,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
           Expanded(
               child: TextField(
             style: GoogleFonts.inter(
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                color: cs.onSurface),
             controller: _rows[i][0],
             onChanged: (_) => _onPrecargaChanged(i),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -331,7 +330,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               child: AbsorbPointer(
                 child: TextField(
                   style: GoogleFonts.inter(
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                      color: cs.onSurface),
                   controller: _rows[i][1],
                   decoration: InputDecoration(
                     labelText: 'Indicación',
@@ -348,7 +347,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                     suffixIcon: _rows[i][0].text.isNotEmpty
                         ? Icon(Icons.unfold_more_rounded,
                             color: isDark
-                                ? const Color(0xFFf9e300)
+                                ? AppColors.accentYellow
                                 : const Color(0xFF5A4E00),
                             size: 20)
                         : null,
@@ -363,9 +362,10 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   }
 
   Widget _buildHoraField(bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return TextField(
       style: GoogleFonts.inter(
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          color: cs.onSurface),
       controller: _horaCtrl,
       readOnly: true,
       decoration: InputDecoration(
@@ -383,7 +383,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
         suffixIcon: IconButton(
           icon: Icon(Icons.access_time_filled_rounded,
               color:
-                  isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00)),
+                   isDark ? AppColors.accentYellow : const Color(0xFF5A4E00)),
           onPressed: () {
             _horaCtrl.text = _currentTime();
             _saveToProvider();
@@ -394,6 +394,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   }
 
   Widget _buildHeader(bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -402,7 +403,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
           style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            color: cs.onSurface,
             height: 1.1,
           ),
         ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
@@ -420,13 +421,14 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   }
 
   Widget _sectionHeader(String title, bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(title,
           style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+              color: cs.onSurface)),
     ).animate().fadeIn();
   }
 

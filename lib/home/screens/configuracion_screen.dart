@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/providers/settings_provider.dart';
 import 'package:service_met/screens/respaldo/respaldo.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../theme/app_colors.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
@@ -39,9 +40,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
       SnackBar(
         content: Text('La opción "$title" estará disponible próximamente.'),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF4A90E2)
-            : const Color(0xFF04376E),
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -50,13 +49,13 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
-    final bgColor = isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA);
-    final cardColor = isDark ? const Color(0xFF2A2A2A) : Colors.white;
-    final borderColor =
-        isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE);
-    final titleColor = isDark ? Colors.white : const Color(0xFF1A1A1A);
-    final iconColor = isDark ? Colors.white70 : const Color(0xFF555555);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final cardColor = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final titleColor = cs.onSurface;
+    final iconColor = isDark ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -125,8 +124,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                   style: GoogleFonts.inter(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color:
-                                        isDark ? Colors.white : Colors.black87,
+                                  color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
                                   ),
                                 ),
                               ],
@@ -137,9 +135,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                 Text('A',
                                     style: GoogleFonts.inter(
                                         fontSize: 12,
-                                        color: isDark
-                                            ? Colors.white54
-                                            : Colors.black54)),
+                                        color: cs.onSurface.withOpacity(0.54))),
                                 Expanded(
                                   child: Slider(
                                     value: settings.textScaleFactor,
@@ -157,9 +153,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                 Text('A',
                                     style: GoogleFonts.inter(
                                         fontSize: 20,
-                                        color: isDark
-                                            ? Colors.white54
-                                            : Colors.black54,
+                                      color: cs.onSurface.withOpacity(0.54),
                                         fontWeight: FontWeight.w500)),
                               ],
                             ),
@@ -270,7 +264,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   '© 2026 $appName. Todos los derechos reservados.',
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: isDark ? Colors.white54 : Colors.black45,
+                    color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -279,7 +273,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                   'Versión $appVersion',
                   style: GoogleFonts.inter(
                     fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.black38,
+                    color: cs.onSurface.withOpacity(0.38),
                   ),
                 ),
               ],
@@ -291,6 +285,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   }
 
   Widget _buildSectionTitle(String title, bool isDark) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(left: 8.0),
       child: Text(
@@ -298,7 +293,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         style: GoogleFonts.inter(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white54 : Colors.black54,
+          color: cs.onSurface.withOpacity(0.54),
           letterSpacing: 0.5,
         ),
       ),
@@ -323,6 +318,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     required Color accent,
     required bool isDark,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
@@ -338,23 +334,23 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         style: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : Colors.black87,
+          color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: GoogleFonts.inter(
           fontSize: 12,
-          color: isDark ? Colors.white60 : Colors.black54,
+          color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
         ),
       ),
       trailing: Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeColor: Colors.white,
+        activeColor: cs.onSurface,
         activeTrackColor: accent,
-        inactiveThumbColor: isDark ? Colors.white70 : Colors.white,
-        inactiveTrackColor: isDark ? Colors.white24 : Colors.black12,
+        inactiveThumbColor: cs.onSurface.withOpacity(isDark ? 0.70 : 1.0),
+        inactiveTrackColor: cs.onSurface.withOpacity(isDark ? 0.24 : 0.12),
       ),
     );
   }
@@ -367,6 +363,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     required Color accent,
     required bool isDark,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
@@ -382,19 +379,19 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         style: GoogleFonts.inter(
           fontSize: 15,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white : Colors.black87,
+          color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
         ),
       ),
       subtitle: Text(
         subtitle,
         style: GoogleFonts.inter(
           fontSize: 12,
-          color: isDark ? Colors.white60 : Colors.black54,
+          color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
         ),
       ),
       trailing: Icon(
         Icons.chevron_right_rounded,
-        color: isDark ? Colors.white38 : Colors.black38,
+        color: cs.onSurface.withOpacity(0.38),
       ),
       onTap: onTap,
     );

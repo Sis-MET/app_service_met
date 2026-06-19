@@ -8,6 +8,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
+import 'package:service_met/theme/app_colors.dart';
 
 import '../../login/services/setup_service.dart';
 import '../../login/widgets/setup/setup_loading.dart';
@@ -86,7 +87,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
 
   Future<void> _showUpdateDialog() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = Theme.of(context).colorScheme.primary;
 
     final result = await showDialog<String>(
       context: context,
@@ -102,7 +104,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                 style: GoogleFonts.poppins(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  color: cs.onSurface,
                 ),
               ),
             ),
@@ -166,7 +168,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
             child: Text(
               'Ingresar nueva',
               style: GoogleFonts.inter(
-                color: isDark ? Colors.white54 : Colors.black54,
+                color: cs.onSurface.withOpacity(0.54),
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -262,7 +264,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
           SnackBar(
             content: Text('Datos precargados exitosamente',
                 style: GoogleFonts.inter()),
-            backgroundColor: const Color(0xFF0E8833),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -290,23 +292,24 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Precarga de Datos',
           style: GoogleFonts.poppins(
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            color: cs.onSurface,
             fontWeight: FontWeight.w700,
             fontSize: 18.0,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+            color: cs.onSurface),
       ),
       body: _loading
           ? SetupLoading(
@@ -324,7 +327,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
-                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      color: cs.onSurface,
                     ),
                   ).animate().fadeIn().slideX(begin: -0.1),
                   const SizedBox(height: 8),
@@ -332,7 +335,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     'Resumen actual de los datos descargados en este dispositivo para trabajar desconectado.',
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      color: isDark ? Colors.white54 : Colors.black54,
+                      color: cs.onSurface.withOpacity(0.54),
                     ),
                   ).animate().fadeIn(delay: 100.ms).slideX(begin: -0.1),
 
@@ -342,12 +345,12 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                      color: isDark ? AppColors.surfaceDark : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : const Color(0xFFEEEEEE),
+                            ? AppColors.borderDark
+                            : AppColors.borderLight,
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -374,8 +377,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                               width: 1,
                               height: 50,
                               color: isDark
-                                  ? const Color(0xFF2E2E2E)
-                                  : const Color(0xFFEEEEEE),
+                              ? AppColors.borderDarkSoft
+                              : AppColors.borderLight,
                             ),
                             _buildMiniStat(
                               icon: FontAwesomeIcons.industry,
@@ -388,8 +391,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                               width: 1,
                               height: 50,
                               color: isDark
-                                  ? const Color(0xFF2E2E2E)
-                                  : const Color(0xFFEEEEEE),
+                              ? AppColors.borderDarkSoft
+                              : AppColors.borderLight,
                             ),
                             _buildMiniStat(
                               icon: FontAwesomeIcons.scaleBalanced,
@@ -404,8 +407,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                         const SizedBox(height: 20),
                         Divider(
                             color: isDark
-                                ? const Color(0xFF2E2E2E)
-                                : const Color(0xFFEEEEEE)),
+                                ? AppColors.borderDarkSoft
+                                : AppColors.borderLight),
                         const SizedBox(height: 16),
 
                         // Última actualización info
@@ -424,9 +427,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                     'Última actualización:',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
+                      color: cs.onSurface.withOpacity(0.54),
                                     ),
                                   ),
                                   Text(
@@ -436,9 +437,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.white
-                                          : const Color(0xFF1A1A1A),
+                      color: cs.onSurface,
                                     ),
                                   ),
                                 ],
@@ -457,13 +456,13 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF1E1E1E)
-                          : const Color(0xFFF9F9F9),
+                          ? AppColors.surfaceDark
+                          : AppColors.backgroundLight,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : const Color(0xFFEEEEEE),
+                            ? AppColors.borderDark
+                            : AppColors.borderLight,
                       ),
                     ),
                     child: Row(
@@ -479,9 +478,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? Colors.white
-                                      : const Color(0xFF1A1A1A),
+                                  color: cs.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -490,7 +487,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   color:
-                                      isDark ? Colors.white54 : Colors.black54,
+                                      cs.onSurface.withOpacity(0.54),
                                 ),
                               ),
                             ],
@@ -541,6 +538,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
     required Color accent,
     required bool isDark,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
         Container(
@@ -557,7 +555,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
           style: GoogleFonts.poppins(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            color: cs.onSurface,
             height: 1.0,
           ),
         ),
@@ -566,7 +564,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
           label,
           style: GoogleFonts.inter(
             fontSize: 12,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: cs.onSurface.withOpacity(0.54),
           ),
         ),
       ],

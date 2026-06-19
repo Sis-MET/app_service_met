@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_colors.dart';
 
 class StatCard extends StatelessWidget {
   final IconData icon;
@@ -22,11 +23,12 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
 
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final cardBg = isDark ? AppColors.surfaceDark : Colors.white;
     final borderColor =
-        isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0);
+        isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Expanded(
       child: GestureDetector(
@@ -67,7 +69,7 @@ class StatCard extends StatelessWidget {
                 style: GoogleFonts.poppins(
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  color: cs.onSurface,
                   height: 1.1,
                 ),
               ),
@@ -76,7 +78,7 @@ class StatCard extends StatelessWidget {
                 title,
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  color: isDark ? Colors.white54 : Colors.black45,
+                  color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
                   fontWeight: FontWeight.w500,
                   height: 1.4,
                 ),

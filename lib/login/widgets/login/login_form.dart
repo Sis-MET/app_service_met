@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'user_card.dart';
 import 'password_field.dart';
 
@@ -56,7 +57,7 @@ class LoginForm extends StatelessWidget {
           
           // Declaramos el acento una vez para usarlo
           Builder(builder: (context) {
-            final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+            final accent = AppColors.accentYellow;
             return Column(
               children: [
           const SizedBox(height: 40),
@@ -65,10 +66,10 @@ class LoginForm extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+              color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
               ),
               boxShadow: [
                 BoxShadow(
@@ -86,10 +87,10 @@ class LoginForm extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              color: isDark ? AppColors.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+                color: isDark ? AppColors.cardDark : AppColors.borderLight,
               ),
               boxShadow: [
                 BoxShadow(
@@ -158,6 +159,10 @@ class LoginForm extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 18,
@@ -204,7 +209,7 @@ class LoginForm extends StatelessWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: accent,
-                        foregroundColor: Colors.white,
+                        foregroundColor: const Color(0xFF1A1A1A),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

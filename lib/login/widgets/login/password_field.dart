@@ -58,6 +58,10 @@ class _PasswordFieldState extends State<PasswordField> {
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 18,

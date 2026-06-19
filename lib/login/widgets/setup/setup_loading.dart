@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class SetupLoading extends StatelessWidget {
   final bool isDark;
@@ -24,7 +25,7 @@ class SetupLoading extends StatelessWidget {
         margin: const EdgeInsets.all(40),
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2d2d2d) : Colors.white,
+          color: isDark ? AppColors.cardDark : Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -37,10 +38,10 @@ class SetupLoading extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_download_rounded,
               size: 64,
-              color: Color(0xFF0E8833),
+              color: AppColors.success,
             ),
             const SizedBox(height: 24),
             Text(
@@ -67,7 +68,7 @@ class SetupLoading extends StatelessWidget {
                   value: progressValue,
                   backgroundColor: Colors.grey[300],
                   valueColor: const AlwaysStoppedAnimation<Color>(
-                    Color(0xFF0E8833),
+                    AppColors.success,
                   ),
                   minHeight: 8,
                   borderRadius: BorderRadius.circular(4),
@@ -78,7 +79,7 @@ class SetupLoading extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0E8833),
+                    color: AppColors.success,
                   ),
                 ),
               ],

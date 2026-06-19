@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/precarga/descarga_de_datos.dart';
+import '../../theme/app_colors.dart';
 
 class OtrosApartadosTab extends StatelessWidget {
   final String userName;
@@ -17,9 +18,7 @@ class OtrosApartadosTab extends StatelessWidget {
       onRefresh: () async {
         await Future.delayed(const Duration(milliseconds: 500));
       },
-      color: Theme.of(context).brightness == Brightness.dark
-          ? const Color(0xFF4A90E2)
-          : const Color(0xFF04376E),
+      color: Theme.of(context).colorScheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
@@ -59,7 +58,7 @@ class OtrosApartadosTab extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +68,7 @@ class OtrosApartadosTab extends StatelessWidget {
           style: GoogleFonts.poppins(
             fontSize: 28,
             fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            color: cs.onSurface,
             height: 1.1,
           ),
         ),
@@ -78,7 +77,7 @@ class OtrosApartadosTab extends StatelessWidget {
           'Funciones complementarias para tu trabajo',
           style: GoogleFonts.inter(
             fontSize: 14,
-            color: isDark ? Colors.white54 : Colors.black54,
+            color: cs.onSurface.withOpacity(0.54),
           ),
         ),
       ],
@@ -94,15 +93,16 @@ class OtrosApartadosTab extends StatelessWidget {
     required Duration delay,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: cs.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
         boxShadow: [
           BoxShadow(
@@ -119,14 +119,11 @@ class OtrosApartadosTab extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
+              SizedBox(
+                width: 32,
+                child: Center(
+                  child: icon is IconData ? Icon(icon, size: 30, color: accent) : FaIcon(icon, size: 30, color: accent),
                 ),
-                child: icon is IconData ? Icon(icon, size: 22, color: accent) : FaIcon(icon, size: 22, color: accent),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -138,7 +135,7 @@ class OtrosApartadosTab extends StatelessWidget {
                       style: GoogleFonts.poppins(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -146,7 +143,7 @@ class OtrosApartadosTab extends StatelessWidget {
                       subtitle,
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: isDark ? Colors.white54 : Colors.black54,
+                        color: cs.onSurface.withOpacity(0.54),
                         height: 1.4,
                       ),
                     ),
@@ -154,20 +151,10 @@ class OtrosApartadosTab extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF2A2A2A)
-                      : const Color(0xFFF5F5F5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white54 : Colors.black54,
-                ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: cs.onSurface.withOpacity(0.54),
               ),
             ],
           ),
@@ -178,15 +165,16 @@ class OtrosApartadosTab extends StatelessWidget {
 
   Widget _buildInfoSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9),
+        color: isDark ? AppColors.surfaceDark : const Color(0xFFF9F9F9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
       ),
       child: Row(
@@ -203,7 +191,7 @@ class OtrosApartadosTab extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                    color: cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -211,7 +199,7 @@ class OtrosApartadosTab extends StatelessWidget {
                   'Estas herramientas complementan los servicios principales, permitiendo descargar datos de DataMET y mantener la app actualizada.',
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: isDark ? Colors.white54 : Colors.black54,
+                    color: cs.onSurface.withOpacity(0.54),
                     height: 1.5,
                   ),
                 ),

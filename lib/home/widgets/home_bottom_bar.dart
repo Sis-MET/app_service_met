@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_colors.dart';
 
 class HomeBottomBar extends StatelessWidget {
   final int currentIndex;
@@ -19,9 +20,9 @@ class HomeBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDarkMode ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
 
-    final bgColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final bgColor = isDarkMode ? AppColors.surfaceDark : Colors.white;
 
     final items = [
       _NavItem(icon: FontAwesomeIcons.house, label: 'Inicio', index: 0),
@@ -54,16 +55,16 @@ class HomeBottomBar extends StatelessWidget {
               final isDisabled = modoDemo && item.index != 1;
 
               final iconColor = isDisabled
-                  ? (isDarkMode ? Colors.white24 : Colors.black26)
+                  ? (cs.onSurface.withOpacity(isDarkMode ? 0.24 : 0.26))
                   : isSelected
-                      ? accent
-                      : (isDarkMode ? Colors.white54 : Colors.black38);
+                      ? cs.primary
+                      : (cs.onSurface.withOpacity(isDarkMode ? 0.54 : 0.38));
 
               final labelColor = isDisabled
-                  ? (isDarkMode ? Colors.white24 : Colors.black26)
+                  ? (cs.onSurface.withOpacity(isDarkMode ? 0.24 : 0.26))
                   : isSelected
-                      ? accent
-                      : (isDarkMode ? Colors.white54 : Colors.black38);
+                      ? cs.primary
+                      : (cs.onSurface.withOpacity(isDarkMode ? 0.54 : 0.38));
 
               return Expanded(
                 child: InkWell(
@@ -86,7 +87,7 @@ class HomeBottomBar extends StatelessWidget {
                               ),
                             ],
                           ),
-                          backgroundColor: accent,
+                          backgroundColor: cs.primary,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -104,20 +105,11 @@ class HomeBottomBar extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        curve: Curves.easeInOut,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? accent.withOpacity(0.12)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: item.icon is IconData ? Icon(item.icon,
-                            size: 18, color: iconColor) : FaIcon(item.icon,
-                            size: 18, color: iconColor),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        child: item.icon is IconData 
+                            ? Icon(item.icon, size: 22, color: iconColor) 
+                            : FaIcon(item.icon, size: 22, color: iconColor),
                       ),
                       const SizedBox(height: 3),
                       AnimatedDefaultTextStyle(

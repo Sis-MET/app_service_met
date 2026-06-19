@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../screens/servicio_detalles_screen.dart';
 import '../models/servicio_model.dart';
+import '../../theme/app_colors.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServicioResumen servicio;
@@ -13,7 +14,8 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
     
     final bool isCalibracion = servicio.tipo == TipoServicio.calibracion;
     final List<Color> gradientColors = isCalibracion
@@ -28,7 +30,7 @@ class ServiceCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2C3E50) : Colors.white,
+        color: isDark ? AppColors.cardDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -75,14 +77,14 @@ class ServiceCard extends StatelessWidget {
                               style: GoogleFonts.poppins(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF2C3E50),
+                                color: cs.onSurface,
                               ),
                             ),
                             Text(
                               '${servicio.cantidad} ${servicio.nombreItem}$pluralSuffixItem $labelSuffix$pluralSuffixLabel',
                               style: GoogleFonts.inter(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: cs.onSurface.withOpacity(0.6),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),

@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/home/screens/home_screen.dart';
 import '../../../database/soporte_tecnico/database_helper_ajustes.dart';
 import '../../../database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
@@ -395,7 +396,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
             fontWeight: FontWeight.bold,
             color: Theme.of(context).brightness == Brightness.dark
                 ? Colors.white
-                : const Color(0xFF2C3E50),
+                : AppColors.textPrimaryLight,
           ),
         ).animate().fadeIn(duration: 600.ms),
         const SizedBox(height: 30),
@@ -623,12 +624,12 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     switch (controller.currentStep) {
       case 2:
         return controller.secaConfirmed
-            ? const Color(0xFF667EEA)
+            ? AppColors.calibracion
             : Colors.green;
       case 4:
         return Colors.green;
       default:
-        return const Color(0xFF667EEA);
+        return AppColors.calibracion;
     }
   }
 
@@ -665,12 +666,12 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF667EEA).withOpacity(0.1),
+                  color: AppColors.calibracion.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.qr_code_scanner,
-                  color: Color(0xFF667EEA),
+                  color: AppColors.calibracion,
                   size: 40,
                 ),
               ),
@@ -724,7 +725,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF667EEA),
+                    backgroundColor: AppColors.calibracion,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -787,7 +788,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Color(0xFF667EEA)),
+            const CircularProgressIndicator(color: AppColors.calibracion),
             const SizedBox(height: 16),
             Text(
               'Identificando instrumento...\n$codMetrica',
@@ -872,7 +873,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF667EEA),
+                backgroundColor: AppColors.calibracion,
               ),
               onPressed: () async {
                 try {

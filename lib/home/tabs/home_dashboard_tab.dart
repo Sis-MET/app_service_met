@@ -11,6 +11,7 @@ import '../models/servicio_model.dart';
 import '../widgets/welcome_header.dart';
 import '../widgets/tipo_servicio_selector.dart';
 import '../widgets/service_card.dart';
+import '../../theme/app_colors.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final String userName;
@@ -236,11 +237,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   // ─────────────────────────────────────────
 
   Widget _buildSummaryCard(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
-    final cardBg = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final divider =
-        isDark ? const Color(0xFF2E2E2E) : const Color(0xFFEEEEEE);
+    final cs = Theme.of(context).colorScheme;
+    final accent = cs.primary;
+    final cardBg = cs.brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white;
+    final divider = cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -248,11 +248,11 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         color: cardBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F0F0),
+          color: cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
+            color: Colors.black.withOpacity(cs.brightness == Brightness.dark ? 0.25 : 0.06),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -269,7 +269,6 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                   value: totalServiciosSop.toString(),
                   label: 'Soporte\nTécnico',
                   accent: accent,
-                  isDark: isDark,
                   onTap: () => setState(() => _tipoServicioSeleccionado = 1),
                 ),
               ),
@@ -285,7 +284,6 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                   value: totalServiciosCal.toString(),
                   label: 'Balanzas\nCalibradas',
                   accent: accent,
-                  isDark: isDark,
                   onTap: () => setState(() => _tipoServicioSeleccionado = 0),
                 ),
               ),
@@ -302,14 +300,14 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               FaIcon(
                 FontAwesomeIcons.cloudArrowDown,
                 size: 13,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: cs.onSurface.withOpacity(0.38),
               ),
               const SizedBox(width: 8),
               Text(
                 'Última precarga: ',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: isDark ? Colors.white38 : Colors.black38,
+                  color: cs.onSurface.withOpacity(0.38),
                 ),
               ),
               Expanded(
@@ -318,7 +316,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white70 : const Color(0xFF1A1A1A),
+                    color: cs.onSurface.withOpacity(0.70),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -335,30 +333,22 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
     required String value,
     required String label,
     required Color accent,
-    required bool isDark,
     VoidCallback? onTap,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: icon is IconData ? Icon(icon, size: 15, color: accent) : FaIcon(icon, size: 15, color: accent),
-          ),
+          icon is IconData ? Icon(icon, size: 26, color: accent) : FaIcon(icon, size: 26, color: accent),
           const SizedBox(height: 10),
           Text(
             value,
             style: GoogleFonts.poppins(
               fontSize: 30,
               fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              color: cs.onSurface,
               height: 1.0,
             ),
           ),
@@ -367,7 +357,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
             label,
             style: GoogleFonts.inter(
               fontSize: 11,
-              color: isDark ? Colors.white38 : Colors.black38,
+              color: cs.onSurface.withOpacity(0.38),
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
@@ -378,7 +368,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   }
 
   Widget _buildSectionHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -390,14 +380,14 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                color: cs.onSurface,
               ),
             ),
             Text(
               'Registros en este dispositivo',
               style: GoogleFonts.inter(
                 fontSize: 12,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: cs.onSurface.withOpacity(0.38),
               ),
             ),
           ],
@@ -412,35 +402,35 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
     required String title,
     required String subtitle,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF9F9F9),
+        color: cs.brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+          color: cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight,
         ),
       ),
       child: Column(
         children: [
           icon is IconData ? Icon(icon,
               size: 40,
-              color: isDark ? Colors.white24 : Colors.black26) : FaIcon(icon,
+              color: cs.onSurface.withOpacity(0.24)) : FaIcon(icon,
               size: 40,
-              color: isDark ? Colors.white24 : Colors.black26),
+              color: cs.onSurface.withOpacity(0.24)),
           const SizedBox(height: 16),
           Text(title,
               style: GoogleFonts.poppins(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white54 : Colors.black45,
+                color: cs.onSurface.withOpacity(0.54),
               )),
           const SizedBox(height: 6),
           Text(subtitle,
               style: GoogleFonts.inter(
                 fontSize: 13,
-                color: isDark ? Colors.white38 : Colors.black38,
+                color: cs.onSurface.withOpacity(0.38),
               ),
               textAlign: TextAlign.center),
         ],
@@ -454,15 +444,14 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
 
     return RefreshIndicator(
       onRefresh: () async {
         await _loadDashboardData();
         setState(() {});
       },
-      color: accent,
+      color: cs.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),

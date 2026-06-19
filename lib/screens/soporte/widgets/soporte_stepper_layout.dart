@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
 class SoporteStepData {
@@ -261,8 +262,8 @@ class SoporteStepperLayout extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: currentStep < steps.length - 1
-                        ? const Color(0xFF195375)
-                        : const Color(0xFF167D1D),
+                        ? AppColors.navNext
+                        : AppColors.navFinalize,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),

@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:service_met/theme/app_colors.dart';
 import '../services/setup_service.dart';
 import '../widgets/setup/setup_loading.dart';
 import '../widgets/setup/step_indicator.dart';
@@ -198,7 +199,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF8F9FA),
+          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         ),
         child: SafeArea(
           child: _loading
@@ -224,10 +225,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+              color: isDark ? AppColors.cardDark : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? const Color(0xFF3A3A3A) : const Color(0xFFEEEEEE),
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
               ),
               boxShadow: [
                 BoxShadow(
@@ -255,10 +256,10 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           Container(
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              color: isDark ? AppColors.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE),
+                color: isDark ? AppColors.cardDark : AppColors.borderLight,
               ),
               boxShadow: [
                 BoxShadow(

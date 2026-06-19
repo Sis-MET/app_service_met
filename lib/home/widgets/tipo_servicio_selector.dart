@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class TipoServicioSelector extends StatelessWidget {
@@ -17,11 +18,11 @@ class TipoServicioSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final cs = Theme.of(context).colorScheme;
 
-    final trackBg = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5);
+    final trackBg = isDark ? AppColors.surfaceDark : cs.surfaceVariant;
     final trackBorder =
-        isDark ? const Color(0xFF2A2A2A) : const Color(0xFFECECEC);
+        isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
       padding: const EdgeInsets.all(4),
@@ -38,8 +39,6 @@ class TipoServicioSelector extends StatelessWidget {
             icon: FontAwesomeIcons.scaleBalanced,
             label: 'Calibración',
             isSelected: selectedIndex == 0,
-            accent: accent,
-            isDark: isDark,
           ),
           _buildTab(
             context: context,
@@ -47,8 +46,6 @@ class TipoServicioSelector extends StatelessWidget {
             icon: FontAwesomeIcons.screwdriverWrench,
             label: 'Soporte Técnico',
             isSelected: selectedIndex == 1,
-            accent: accent,
-            isDark: isDark,
           ),
         ],
       ),
@@ -61,9 +58,8 @@ class TipoServicioSelector extends StatelessWidget {
     required dynamic icon,
     required String label,
     required bool isSelected,
-    required Color accent,
-    required bool isDark,
   }) {
+    final cs = Theme.of(context).colorScheme;
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelected(index),
@@ -72,12 +68,12 @@ class TipoServicioSelector extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? accent : Colors.transparent,
+            color: isSelected ? cs.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: accent.withOpacity(0.25),
+                      color: cs.primary.withOpacity(0.25),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     )
@@ -92,13 +88,13 @@ class TipoServicioSelector extends StatelessWidget {
                 size: 14,
                 color: isSelected
                     ? Colors.white
-                    : (isDark ? Colors.white38 : Colors.black38),
+                    : cs.onSurface.withOpacity(0.38),
               ) : FaIcon(
                 icon,
                 size: 14,
                 color: isSelected
                     ? Colors.white
-                    : (isDark ? Colors.white38 : Colors.black38),
+                    : cs.onSurface.withOpacity(0.38),
               ),
               const SizedBox(width: 7),
               Text(
@@ -109,7 +105,7 @@ class TipoServicioSelector extends StatelessWidget {
                       isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
                       ? Colors.white
-                      : (isDark ? Colors.white38 : Colors.black38),
+                      : cs.onSurface.withOpacity(0.38),
                 ),
               ),
             ],

@@ -5,16 +5,42 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../theme/app_colors.dart';
 
 class WelcomeHeader extends StatelessWidget {
   final String userName;
   const WelcomeHeader({super.key, required this.userName});
 
-  String _getGreeting() {
+  Widget _buildGreetingRow(Color color) {
     final h = DateTime.now().hour;
-    if (h >= 5 && h < 12) return 'Buenos días ☀️';
-    if (h >= 12 && h < 19) return 'Buenas tardes 🌤️';
-    return 'Buenas noches 🌙';
+    String text;
+    IconData icon;
+    if (h >= 5 && h < 12) {
+      text = 'Buenos días';
+      icon = Icons.wb_sunny_rounded;
+    } else if (h >= 12 && h < 19) {
+      text = 'Buenas tardes';
+      icon = Icons.cloud_rounded;
+    } else {
+      text = 'Buenas noches';
+      icon = Icons.nightlight_round;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Icon(icon, size: 14, color: color),
+      ],
+    );
   }
 
   String _getInitials(String name) {
@@ -38,8 +64,8 @@ class WelcomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
 
     final initials = _getInitials(userName);
     final firstName = _getFirstName(userName);
@@ -52,21 +78,14 @@ class WelcomeHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _getGreeting(),
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: isDark ? Colors.white54 : Colors.black45,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              _buildGreetingRow(cs.onSurface.withOpacity(isDark ? 0.54 : 0.45)),
               const SizedBox(height: 4),
               Text(
                 firstName,
                 style: GoogleFonts.poppins(
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  color: cs.onSurface,
                   height: 1.1,
                 ),
                 maxLines: 1,
@@ -86,7 +105,7 @@ class WelcomeHeader extends StatelessWidget {
                         horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF2A2A2A)
+                          ? AppColors.cardDark
                           : const Color(0xFFF2F2F2),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -96,14 +115,14 @@ class WelcomeHeader extends StatelessWidget {
                         Icon(
                           Icons.calendar_today_rounded,
                           size: 11,
-                          color: isDark ? Colors.white38 : Colors.black38,
+                          color: cs.onSurface.withOpacity(0.38),
                         ),
                         const SizedBox(width: 5),
                         Text(
                           d,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: isDark ? Colors.white54 : Colors.black45,
+                            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -123,10 +142,10 @@ class WelcomeHeader extends StatelessWidget {
           width: 58,
           height: 58,
           decoration: BoxDecoration(
-            color: accent.withOpacity(isDark ? 0.18 : 0.10),
+            color: cs.primary.withOpacity(isDark ? 0.18 : 0.10),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: accent.withOpacity(isDark ? 0.35 : 0.25),
+              color: cs.primary.withOpacity(isDark ? 0.35 : 0.25),
               width: 1.5,
             ),
           ),
@@ -136,7 +155,7 @@ class WelcomeHeader extends StatelessWidget {
               style: GoogleFonts.poppins(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: accent,
+                color: cs.primary,
               ),
             ),
           ),

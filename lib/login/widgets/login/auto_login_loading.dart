@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class AutoLoginLoading extends StatelessWidget {
   final bool isDark;
@@ -26,7 +27,7 @@ class AutoLoginLoading extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2d2d2d) : Colors.white,
+              color: isDark ? AppColors.cardDark : Colors.white,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -36,10 +37,10 @@ class AutoLoginLoading extends StatelessWidget {
                 ),
               ],
             ),
-            child: const Icon(
+            child: Icon(
               Icons.person_outline,
               size: 64,
-              color: Color(0xFF0E8833),
+              color: AppColors.success,
             ),
           ),
           const SizedBox(height: 32),
@@ -64,7 +65,7 @@ class AutoLoginLoading extends StatelessWidget {
             width: 40,
             height: 40,
             child: CircularProgressIndicator(
-              color: Color(0xFF0E8833),
+              color: AppColors.success,
               strokeWidth: 3,
             ),
           ),

@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class InfoCard extends StatelessWidget {
   final bool isDark;
@@ -21,7 +22,7 @@ class InfoCard extends StatelessWidget {
         ? 'Paso 1 de 2: Se conectará al servidor y descargará los datos necesarios.'
         : 'Paso 2 de 2: Ingrese sus credenciales para configurar el acceso automático.';
 
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final accent = AppColors.accentYellow;
 
     return Container(
       padding: const EdgeInsets.all(20),

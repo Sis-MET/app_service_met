@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class UserCredentialsStep extends StatefulWidget {
   final bool isDark;
@@ -32,7 +33,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = widget.isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final accent = AppColors.accentYellow;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,6 +108,10 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 18,
@@ -154,6 +159,10 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                 ? const Color(0xFF1a1a1a)
                 : const Color(0xFFF5F7FA),
             border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
@@ -227,7 +236,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accent,
-                  foregroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF1A1A1A),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

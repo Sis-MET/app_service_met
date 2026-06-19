@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class UserCard extends StatelessWidget {
   final bool isDark;
@@ -21,7 +22,7 @@ class UserCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = isDark ? const Color(0xFF4A90E2) : const Color(0xFF04376E);
+    final accent = AppColors.accentYellow;
 
     return Container(
       padding: const EdgeInsets.all(16),

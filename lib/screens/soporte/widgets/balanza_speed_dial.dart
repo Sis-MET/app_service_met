@@ -3,6 +3,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/balanza_provider.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class BalanzaSpeedDial extends StatelessWidget {
   const BalanzaSpeedDial({super.key});
@@ -17,7 +18,7 @@ class BalanzaSpeedDial extends StatelessWidget {
         spacing: 12,
         spaceBetweenChildren: 12,
         iconTheme: const IconThemeData(color: Colors.black87, size: 24),
-        backgroundColor: const Color(0xFFF9E300),
+        backgroundColor: AppColors.accentYellow,
         foregroundColor: Colors.black87,
         overlayColor: Colors.black,
         overlayOpacity: 0.5,
@@ -167,7 +168,7 @@ class BalanzaSpeedDial extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF667EEA),
+          color: AppColors.calibracion,
         ),
       ),
     );
