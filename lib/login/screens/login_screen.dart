@@ -1,4 +1,5 @@
-// lib/login/screens/login_screen.dart - VERSIÓN SIMPLIFICADA
+// Pantalla de inicio de sesión con soporte biométrico,
+// auto-login seguro, y experiencia de usuario renovada.
 
 // ignore_for_file: use_build_context_synchronously
 
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../models/user_model.dart';
 import '../widgets/login/auto_login_loading.dart';
 import '../widgets/login/login_form.dart';
@@ -26,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController _userController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthService _authService = AuthService();
+  final BiometricService _biometricService = BiometricService();
 
   bool _loading = false;
   String? _savedUser;
@@ -33,6 +36,10 @@ class _LoginScreenState extends State<LoginScreen>
   bool _autoLoginEnabled = false;
   bool _isFirstLogin = true;
   bool _isAddingNewUser = false;
+
+  // Estado biométrico
+  bool _biometricAvailable = false;
+  bool _biometricEnabled = false;
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -63,6 +70,19 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  // ── Verificar disponibilidad y estado biométrico ──
+  Future<void> _checkBiometricStatus() async {
+    final status = await _biometricService.checkFullStatus(_savedUser);
+
+    if (mounted) {
+      setState(() {
+        _biometricAvailable = status.available;
+        _biometricEnabled = status.enabled;
+      });
+    }
+  }
+
+  // ── Cargar preferencias y verificar auto-login ──
   Future<void> _loadPrefsAndCheckAutoLogin() async {
     final prefs = await _authService.loadPreferences();
 
@@ -85,22 +105,67 @@ class _LoginScreenState extends State<LoginScreen>
           _savedUserFullName = null;
           _autoLoginEnabled = false;
         });
-        return;
       }
     }
 
-    if (_autoLoginEnabled && _isFirstLogin && _savedUser != null) {
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
-        await _performAutoLogin();
+    // Check biometric status now that we have _savedUser
+    await _checkBiometricStatus();
+
+    if (_savedUser != null) {
+      if (_biometricAvailable && _biometricEnabled) {
+        // Siempre solicitar biometría cuando está habilitada al abrir la app.
+        // Un pequeño delay para que la UI se pinte primero.
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (mounted) {
+          await _performBiometricAutoLogin();
+        }
+      } else if (_autoLoginEnabled && _isFirstLogin) {
+        // Auto-login con contraseña guardada (sin biometría)
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          await _performAutoLogin();
+        }
       }
     }
   }
 
+  // ── Auto-login / solicitud biométrica al arranque ──
+  Future<void> _performBiometricAutoLogin() async {
+    // No ponemos _loading = true aquí para no mostrar el overlay de AutoLoginLoading;
+    // queremos que el formulario quede visible debajo del modal del sistema.
+    final authenticated = await _biometricService.authenticate(
+      reason: 'Acceso rápido a ServiceMET',
+    );
+
+    if (!mounted) return;
+
+    if (authenticated && _savedUser != null) {
+      setState(() => _loading = true);
+      final result = await _authService.loginWithBiometrics(_savedUser!);
+
+      if (!mounted) return;
+
+      if (result.success) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_first_login', false);
+
+        if (mounted) {
+          _showSnackBar(context, result.message, AppColors.success);
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+        return;
+      }
+
+      // Si loginWithBiometrics falló, dejar al usuario intentar manualmente.
+      setState(() => _loading = false);
+    }
+    // Si el usuario cancela el modal biométrico, simplemente vuelve al
+    // formulario de contraseña con el botón de huella visible para reintentar.
+  }
+
+  // ── Auto-login tradicional ──
   Future<void> _performAutoLogin() async {
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
 
     await Future.delayed(const Duration(milliseconds: 1500));
 
@@ -109,11 +174,56 @@ class _LoginScreenState extends State<LoginScreen>
       await prefs.setBool('is_first_login', false);
 
       if (!mounted) return;
-      _showSnackBar(context, 'Bienvenido de vuelta', Colors.green);
+      _showSnackBar(context, 'Bienvenido de vuelta', AppColors.success);
       Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
+  // ── Autenticación biométrica manual ──
+  Future<void> _authenticateWithBiometrics() async {
+    setState(() => _loading = true);
+
+    final authenticated = await _biometricService.authenticate(
+      reason: 'Acceso a ServiceMET con huella digital',
+    );
+
+    if (!mounted) return;
+
+    if (!authenticated) {
+      setState(() => _loading = false);
+      _showSnackBar(
+          context, 'Autenticación biométrica cancelada', Colors.orange);
+      return;
+    }
+
+    if (_savedUser == null) {
+      setState(() => _loading = false);
+      _showSnackBar(context, 'No hay usuario seleccionado', Colors.red);
+      return;
+    }
+
+    final result = await _authService.loginWithBiometrics(_savedUser!);
+
+    setState(() => _loading = false);
+
+    if (!mounted) return;
+
+    if (result.success) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_first_login', false);
+
+      _showSnackBar(context, result.message, AppColors.success);
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      if (result.message.contains('[ACCESO_DENEGADO]')) {
+        _showAccessDeniedDialog(result.message);
+      } else {
+        _showSnackBar(context, result.message, Colors.red);
+      }
+    }
+  }
+
+  // ── Login con contraseña ──
   Future<void> _login(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -122,13 +232,11 @@ class _LoginScreenState extends State<LoginScreen>
     LoginResult result;
 
     if (_isAddingNewUser) {
-      // Agregar nuevo usuario (valida en servidor)
       result = await _authService.addNewUser(
         usuario: _userController.text.trim(),
         password: _passController.text.trim(),
       );
     } else if (_savedUser != null) {
-      // Login con usuario guardado
       result = await _authService.login(
         usuario: _savedUser,
         password: _passController.text.trim(),
@@ -146,9 +254,8 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (result.success) {
-      _showSnackBar(context, result.message, Colors.green);
+      _showSnackBar(context, result.message, AppColors.success);
 
-      // Recargar preferencias después de agregar usuario
       if (_isAddingNewUser) {
         await _loadPrefsAndCheckAutoLogin();
         if (!mounted) return;
@@ -158,44 +265,72 @@ class _LoginScreenState extends State<LoginScreen>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_first_login', false);
 
+      // Preguntar si desea habilitar biometría (solo si disponible y no habilitado)
+      if (_biometricAvailable && !_biometricEnabled && _savedUser != null) {
+        await _offerBiometricEnrollment();
+        if (!mounted) return;
+      }
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
-      // Manejo de Acceso Denegado
       if (result.message.contains('[ACCESO_DENEGADO]')) {
-        // Limpiamos el prefijo para mostrar el mensaje limpio
-        final cleanMessage =
-            result.message.replaceAll('[ACCESO_DENEGADO]', '').trim();
-
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.block, color: Colors.red[700]),
-                const SizedBox(width: 10),
-                const Text('Acceso Denegado'),
-              ],
-            ),
-            content: Text(
-              cleanMessage,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Entendido'),
-              ),
-            ],
-          ),
-        );
+        _showAccessDeniedDialog(result.message);
       } else {
         _showSnackBar(context, result.message, Colors.red);
       }
     }
   }
 
+  // ── Ofrecer habilitar biometría tras login exitoso ──
+  Future<void> _offerBiometricEnrollment() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.fingerprint, color: AppColors.success),
+            const SizedBox(width: 12),
+            const Flexible(
+              child: Text('¿Habilitar huella digital?'),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Puedes acceder rápidamente usando tu huella digital '
+          'en lugar de ingresar tu contraseña cada vez.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Ahora no'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentYellow,
+              foregroundColor: const Color(0xFF1A1A1A),
+            ),
+            child: const Text('Habilitar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && _savedUser != null) {
+      await _biometricService.enableBiometric(_savedUser!);
+      if (mounted) {
+        setState(() => _biometricEnabled = true);
+        _showSnackBar(
+            context, 'Huella digital habilitada correctamente', AppColors.success);
+      }
+    }
+  }
+
+  // ── Login demo ──
   Future<void> _loginDemo(BuildContext context) async {
     setState(() => _loading = true);
 
@@ -203,12 +338,48 @@ class _LoginScreenState extends State<LoginScreen>
     await _authService.loginDemo();
 
     if (mounted) {
-      _showSnackBar(context, 'Ingresando en Modo DESCONECTADO', Colors.orange);
+      _showSnackBar(
+          context, 'Ingresando en Modo DESCONECTADO', Colors.orange);
       setState(() => _loading = false);
       Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
+  // ── Mostrar diálogo de acceso denegado ──
+  void _showAccessDeniedDialog(String message) {
+    final cleanMessage =
+        message.replaceAll('[ACCESO_DENEGADO]', '').trim();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.block, color: Colors.red[700]),
+            const SizedBox(width: 10),
+            const Text('Acceso Denegado'),
+          ],
+        ),
+        content: Text(
+          cleanMessage,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── SnackBar unificada ──
   void _showSnackBar(BuildContext context, String message, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -216,15 +387,21 @@ class _LoginScreenState extends State<LoginScreen>
         content: Text(message),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
 
+  // ── Diálogo de reconfiguración ──
   Future<void> _showReconfigureDialog(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Row(
           children: [
             Icon(Icons.settings_backup_restore, color: Colors.orange[700]),
@@ -233,7 +410,8 @@ class _LoginScreenState extends State<LoginScreen>
           ],
         ),
         content: const Text(
-          '¿Desea reconfigurar la aplicación? Esto eliminará la configuración actual y volverá a solicitar los datos de conexión.',
+          '¿Desea reconfigurar la aplicación? Esto eliminará la configuración '
+          'actual y volverá a solicitar los datos de conexión.',
         ),
         actions: [
           TextButton(
@@ -242,8 +420,9 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.orange[700]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[700],
+            ),
             child: const Text('Reconfigurar'),
           ),
         ],
@@ -258,16 +437,12 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // Mostrar lista de usuarios
+  // ── Selector de usuarios ──
   Future<void> _showUserSelector(BuildContext context) async {
     final users = await _authService.getSavedUsers();
 
     if (users.isEmpty) {
-      _showSnackBar(
-        context,
-        'No hay usuarios guardados',
-        Colors.orange,
-      );
+      _showSnackBar(context, 'No hay usuarios guardados', Colors.orange);
       return;
     }
 
@@ -281,35 +456,25 @@ class _LoginScreenState extends State<LoginScreen>
           final success = await _authService.deleteUser(user.usuario);
 
           if (success) {
-            // Check usage of dialogContext - unsafe across gaps but we are popping it immediately usually.
-            // However, after await, we should be careful.
-            // Since dialogContext belongs to the Dialog which is probably still mounted if we are here...
-            // But strict linting says no.
             if (dialogContext.mounted) {
               Navigator.pop(dialogContext);
             }
 
-            // Wait, we need to handle the logic in the parent context if possible, or assume dialog is mounted.
-            // Actually, Navigator.pop simply does nothing if not mounted effectively? No, it might throw.
-            // But we are inside the callback.
-
-            // To be safe with the logic flow:
             if (!mounted) return;
 
-            // Si eliminó el usuario actual, limpiar
             if (user.usuario == _savedUser) {
               await _clearSavedUser();
               if (mounted) {
                 setState(() {
                   _savedUser = null;
                   _savedUserFullName = null;
+                  _biometricEnabled = false;
                 });
               }
             }
 
             if (mounted) {
-              _showSnackBar(context, 'Usuario eliminado', Colors.green);
-              // Recargar para verificar si quedan usuarios
+              _showSnackBar(context, 'Usuario eliminado', AppColors.success);
               await _loadPrefsAndCheckAutoLogin();
             }
           } else {
@@ -322,7 +487,6 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (selectedUser != null) {
-      // Seleccionar usuario de la lista
       setState(() {
         _savedUser = selectedUser.usuario;
         _savedUserFullName = selectedUser.fullName;
@@ -330,14 +494,16 @@ class _LoginScreenState extends State<LoginScreen>
         _passController.clear();
       });
 
-      // Guardar como usuario actual
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('logged_user', selectedUser.usuario);
       await prefs.setString('logged_user_nombre', selectedUser.fullName);
+
+      // Actualizar estado biométrico para el nuevo usuario
+      await _checkBiometricStatus();
     }
   }
 
-  // Modo agregar nuevo usuario
+  // ── Iniciar agregar nuevo usuario ──
   void _startAddingNewUser() {
     setState(() {
       _isAddingNewUser = true;
@@ -346,7 +512,7 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  // Cancelar agregar usuario
+  // ── Cancelar agregar usuario ──
   void _cancelAddingUser() {
     setState(() {
       _isAddingNewUser = false;
@@ -355,35 +521,38 @@ class _LoginScreenState extends State<LoginScreen>
     });
   }
 
-  // NUEVO: Limpiar usuario guardado en SharedPreferences
+  // ── Limpiar usuario guardado ──
   Future<void> _clearSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('logged_user');
     await prefs.remove('logged_user_nombre');
+    await prefs.remove('logged_user_titulo');
     await prefs.setBool('auto_login_enabled', false);
   }
 
+  // ── Actualizar bases de datos locales ──
   Future<void> _showUpdateDatabaseDialog(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: Row(
           children: [
             Icon(Icons.system_update_alt, color: Colors.blue[700]),
             const SizedBox(width: 10),
-            Text(
+            const Text(
               'ACTUALIZAR BASES DE DATOS',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
             ),
           ],
         ),
-        content: Text(
-          'Esta operación actualizará la estructura de las bases de datos preservando su información.\n\n'
-          'Se realizará una copia de seguridad temporal, se recrearán las tablas y se restaurarán los datos.\n'
+        content: const Text(
+          'Esta operación actualizará la estructura de las bases de datos '
+          'preservando su información.\n\n'
+          'Se realizará una copia de seguridad temporal, se recrearán las '
+          'tablas y se restaurarán los datos.\n'
           '¿Desea continuar?',
         ),
         actions: [
@@ -393,7 +562,9 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700]),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[700],
+            ),
             child: const Text('Actualizar'),
           ),
         ],
@@ -406,14 +577,16 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _loading = true);
       _showSnackBar(context, 'Iniciando actualización...', Colors.blue);
 
-      // Pequeño delay para que la UI se actualice antes de bloquear el hilo
       await Future.delayed(const Duration(milliseconds: 100));
 
       try {
         await DatabaseMaintenanceService.migrateAllDatabases();
         if (mounted) {
-          _showSnackBar(context, 'Bases de datos actualizadas correctamente',
-              Colors.green);
+          _showSnackBar(
+            context,
+            'Bases de datos actualizadas correctamente',
+            AppColors.success,
+          );
         }
       } catch (e) {
         if (mounted) {
@@ -437,7 +610,19 @@ class _LoginScreenState extends State<LoginScreen>
         height: size.height,
         width: size.width,
         decoration: BoxDecoration(
-          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    AppColors.loginBgDark,
+                    AppColors.loginBgDarkEnd,
+                  ]
+                : [
+                    AppColors.loginBgLight,
+                    AppColors.loginBgLight,
+                  ],
+          ),
         ),
         child: SafeArea(
           child: _loading && _autoLoginEnabled
@@ -457,13 +642,17 @@ class _LoginScreenState extends State<LoginScreen>
                     savedUser: _savedUser,
                     savedUserFullName: _savedUserFullName,
                     isAddingNewUser: _isAddingNewUser,
+                    biometricAvailable: _biometricAvailable,
+                    biometricEnabled: _biometricEnabled,
                     onLogin: () => _login(context),
                     onLoginDemo: () => _loginDemo(context),
                     onReconfigure: () => _showReconfigureDialog(context),
                     onShowUserSelector: () => _showUserSelector(context),
                     onStartAddingUser: _startAddingNewUser,
                     onCancelAddingUser: _cancelAddingUser,
-                    onUpdateDatabases: () => _showUpdateDatabaseDialog(context),
+                    onUpdateDatabases:
+                        () => _showUpdateDatabaseDialog(context),
+                    onBiometricAuth: _authenticateWithBiometrics,
                   ),
                 ),
         ),

@@ -1,4 +1,6 @@
-// lib/login/services/setup_service.dart - VERSIÓN CORREGIDA
+// Servicio de configuración inicial (setup) de la aplicación
+// Gestiona la conexión al SQL Server, validación de credenciales,
+// descarga de datos de precarga y persistencia de configuración.
 
 // ignore_for_file: unused_local_variable, avoid_print
 
@@ -9,12 +11,14 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/user_model.dart';
 import 'database_service.dart';
+import 'credential_storage.dart';
 
 class SetupService {
   MssqlConnection? _connection;
   final DatabaseService _dbService = DatabaseService();
+  final CredentialStorage _credentialStorage = CredentialStorage();
 
-  // Validar conexión al servidor
+  // ── Validar conexión al servidor ──
   Future<SetupResult> validateConnection({
     required String ip,
     required String port,
@@ -57,21 +61,12 @@ class SetupService {
     }
   }
 
-  // ✅ NUEVO: Conectar usando configuración guardada
+  // ── Conectar usando configuración guardada ──
   Future<SetupResult> connectFromSavedConfiguration() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final ip = prefs.getString('ip');
-      final port = prefs.getString('port');
-      final database = prefs.getString('database');
-      final dbUser = prefs.getString('dbuser');
-      final dbPass = prefs.getString('dbpass');
+      final credentials = await _credentialStorage.getDatabaseCredentials();
 
-      if (ip == null ||
-          port == null ||
-          database == null ||
-          dbUser == null ||
-          dbPass == null) {
+      if (credentials == null) {
         return SetupResult(
           success: false,
           message:
@@ -80,11 +75,11 @@ class SetupService {
       }
 
       return await validateConnection(
-        ip: ip,
-        port: port,
-        database: database,
-        username: dbUser,
-        password: dbPass,
+        ip: credentials['ip']!,
+        port: credentials['port']!,
+        database: credentials['database']!,
+        username: credentials['username']!,
+        password: credentials['password']!,
       );
     } catch (e) {
       return SetupResult(
@@ -94,7 +89,7 @@ class SetupService {
     }
   }
 
-  // Validar usuario en SQL Server
+  // ── Validar usuario en SQL Server (CONSULTA SEGURA) ──
   Future<UserValidationResult> validateUserInServer(
     String usuario,
     String pass,
@@ -107,10 +102,14 @@ class SetupService {
     }
 
     try {
+      // Escapamos comillas simples para prevenir SQL Injection
+      final safeUsuario = usuario.replaceAll("'", "''");
+      final safePass = pass.replaceAll("'", "''");
+
       final query = '''
         SELECT nombre1, apellido1, apellido2, pass, usuario, titulo_abr, estado, acceso_app 
         FROM data_users 
-        WHERE usuario = '$usuario' AND pass = '$pass'
+        WHERE usuario = '$safeUsuario' AND pass = '$safePass'
       ''';
 
       final resultJson = await _connection!.getData(query).timeout(
@@ -136,7 +135,6 @@ class SetupService {
       final userData =
           UserModel.fromMap(Map<String, dynamic>.from(result.first));
 
-      // VALIDACIÓN ACCESO APP
       if (userData.accesoApp != '1') {
         return UserValidationResult(
           success: false,
@@ -165,17 +163,15 @@ class SetupService {
     }
   }
 
-  // Guardar usuario autenticado en SQLite
+  // ── Guardar usuario autenticado en SQLite ──
   Future<SetupResult> saveAuthenticatedUser(UserModel userData) async {
     try {
       final db = await _dbService.createUsersDatabase();
 
-      // Limpiar e insertar solo este usuario
       await db.delete('usuarios');
       await db.insert('usuarios', userData.toMap());
       await db.close();
 
-      // Guardar en SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('logged_user', userData.usuario);
       await prefs.setString('logged_user_nombre', userData.fullName);
@@ -194,7 +190,7 @@ class SetupService {
     }
   }
 
-  // Descargar datos de precarga
+  // ── Descargar datos de precarga ──
   Future<SetupResult> downloadPrecargaData(
     Function(String message, double progress) onProgress,
   ) async {
@@ -219,12 +215,11 @@ class SetupService {
         'servicios': 'SELECT * FROM DATA_SERVICIOS_LEC',
       };
 
-      onProgress('Preparando base de datos...', 0.05);
+      onProgress('Preparando base de datos local...', 0.05);
 
       final dbPath = await getDatabasesPath();
       final precargaDbPath = join(dbPath, 'precarga_database.db');
 
-      // Eliminar base de datos existente para empezar limpio
       if (await databaseExists(precargaDbPath)) {
         await deleteDatabase(precargaDbPath);
       }
@@ -242,26 +237,25 @@ class SetupService {
       int totalInserted = 0;
       int totalSkipped = 0;
 
-      for (var entry in queries.entries) {
+      for (final entry in queries.entries) {
         final tableName = entry.key;
         final query = entry.value;
 
-        onProgress('Descargando $tableName...',
+        onProgress('Descargando tabla: $tableName...',
             0.1 + (0.4 * tableIndex / totalTables));
 
-        // Ejecutar query
         final resultJson = await _connection!.getData(query).timeout(
               const Duration(seconds: 90),
             );
 
         if (resultJson.isEmpty || resultJson == '[]') {
-          print('⚠️ Tabla $tableName sin datos o vacía');
+          print('[SetupService] Tabla $tableName sin datos');
           tableIndex++;
           continue;
         }
 
         final List<dynamic> result = jsonDecode(resultJson);
-        print('✅ Tabla $tableName: ${result.length} registros descargados');
+        print('[SetupService] Tabla $tableName: ${result.length} registros');
 
         if (result.isEmpty) {
           tableIndex++;
@@ -271,36 +265,25 @@ class SetupService {
         onProgress('Guardando $tableName (${result.length} registros)...',
             0.5 + (0.4 * tableIndex / totalTables));
 
-        // Usar transacción para inserción masiva más rápida
         await db.transaction((txn) async {
           final batch = txn.batch();
           int batchInserted = 0;
           int batchSkipped = 0;
 
-          for (var item in result) {
+          for (final item in result) {
             try {
               final itemMap = Map<String, dynamic>.from(item);
               final rowData = _prepareRowData(tableName, itemMap);
 
-              // ✅ INSERTAR EN EL BATCH
               if (rowData != null && rowData.isNotEmpty) {
                 batch.insert(tableName, rowData,
                     conflictAlgorithm: ConflictAlgorithm.ignore);
                 batchInserted++;
               } else {
                 batchSkipped++;
-                if (batchSkipped < 5) {
-                  // Log solo los primeros 5 para no saturar
-                  print(
-                      '⚠️ Registro saltado en $tableName: datos vacíos o nulos');
-                }
               }
             } catch (e) {
               batchSkipped++;
-              if (batchSkipped < 5) {
-                // Log solo los primeros 5 errores
-                print('❌ Error procesando registro en $tableName: $e');
-              }
             }
           }
 
@@ -309,9 +292,9 @@ class SetupService {
             totalInserted += batchInserted;
             totalSkipped += batchSkipped;
             print(
-                '✅ Tabla $tableName: $batchInserted insertados, $batchSkipped saltados');
+                '[SetupService] $tableName: $batchInserted insertados, $batchSkipped saltados');
           } catch (e) {
-            print('❌ Error en batch commit para $tableName: $e');
+            print('[SetupService] Error en batch commit para $tableName: $e');
             rethrow;
           }
         });
@@ -319,23 +302,20 @@ class SetupService {
         tableIndex++;
       }
 
-      // Verificar datos guardados
       onProgress('Verificando datos guardados...', 0.95);
-      final verification = await _verifyDownloadedData(db);
+      await _verifyDownloadedData(db);
 
       await db.close();
 
-      print('\n📊 RESUMEN FINAL:');
-      print('Total insertados: $totalInserted');
-      print('Total saltados: $totalSkipped');
-      print('Tablas procesadas: $tableIndex/$totalTables\n');
+      print('[SetupService] Total insertados: $totalInserted');
+      print('[SetupService] Total saltados: $totalSkipped');
 
       return SetupResult(
         success: true,
         message: 'Datos de precarga descargados: $totalInserted registros',
       );
     } catch (e) {
-      print('❌ Error en downloadPrecargaData: $e');
+      print('[SetupService] Error en downloadPrecargaData: $e');
       if (db != null && db.isOpen) {
         await db.close();
       }
@@ -346,7 +326,7 @@ class SetupService {
     }
   }
 
-  // ✅ PREPARAR DATOS MEJORADO
+  // ── Preparar datos para inserción según la tabla ──
   Map<String, dynamic>? _prepareRowData(
       String table, Map<String, dynamic> data) {
     try {
@@ -360,14 +340,11 @@ class SetupService {
           };
 
         case 'plantas':
-          final plantaId = data['planta_id']?.toString().trim() ?? '';
-          final depId = data['dep_id']?.toString().trim() ?? '';
-
           return {
             'planta': data['planta']?.toString().trim() ?? '',
-            'planta_id': plantaId,
+            'planta_id': data['planta_id']?.toString().trim() ?? '',
             'cliente_id': data['cliente_id']?.toString().trim() ?? '',
-            'dep_id': depId,
+            'dep_id': data['dep_id']?.toString().trim() ?? '',
             'codigo_planta': data['codigo_planta']?.toString().trim() ?? '',
             'dep': data['dep']?.toString().trim() ?? '',
             'dir': data['dir']?.toString().trim() ?? '',
@@ -430,13 +407,10 @@ class SetupService {
             'exc': data['exc']?.toString().trim() ?? '',
           };
 
-          // Agregar campos rep dinámicamente
           for (int i = 1; i <= 30; i++) {
             final key = 'rep$i';
             servicioData[key] = data[key]?.toString().trim() ?? '';
           }
-
-          // Agregar campos lin dinámicamente
           for (int i = 1; i <= 60; i++) {
             final key = 'lin$i';
             servicioData[key] = data[key]?.toString().trim() ?? '';
@@ -445,17 +419,15 @@ class SetupService {
           return servicioData;
 
         default:
-          print('⚠️ Tabla desconocida: $table');
           return null;
       }
     } catch (e) {
-      print('❌ Error preparando datos para tabla $table: $e');
-      print('Datos problemáticos: $data');
+      print('[SetupService] Error preparando datos para $table: $e');
       return null;
     }
   }
 
-  // Verificar datos descargados
+  // ── Verificar datos descargados ──
   Future<Map<String, int>> _verifyDownloadedData(Database db) async {
     final tables = [
       'clientes',
@@ -467,27 +439,21 @@ class SetupService {
     ];
     final counts = <String, int>{};
 
-    print('\n📊 VERIFICACIÓN DE DATOS DESCARGADOS:');
-    print('═' * 50);
-
-    for (var table in tables) {
+    for (final table in tables) {
       try {
         final count = Sqflite.firstIntValue(
                 await db.rawQuery('SELECT COUNT(*) FROM $table')) ??
             0;
         counts[table] = count;
-        print('✓ $table: $count registros');
       } catch (e) {
-        print('✗ $table: ERROR - $e');
         counts[table] = 0;
       }
     }
-    print('═' * 50 + '\n');
 
     return counts;
   }
 
-  // Guardar configuración
+  // ── Guardar configuración en secure storage ──
   Future<void> saveConfiguration({
     required String ip,
     required String port,
@@ -495,23 +461,29 @@ class SetupService {
     required String dbUser,
     required String dbPass,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Guardar credenciales en secure storage
+    await _credentialStorage.saveDatabaseCredentials(
+      ip: ip,
+      port: port,
+      database: database,
+      dbUser: dbUser,
+      dbPass: dbPass,
+    );
 
-    await prefs.setString('ip', ip);
-    await prefs.setString('port', port);
-    await prefs.setString('database', database);
-    await prefs.setString('dbuser', dbUser);
-    await prefs.setString('dbpass', dbPass);
+    // Guardar metadatos en SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('setup_completed', true);
     await prefs.setString('setup_date', DateTime.now().toIso8601String());
     await prefs.setString('lastUpdate', DateTime.now().toIso8601String());
   }
 
-  // Desconectar
+  // ── Desconectar del servidor ──
   Future<void> disconnect() async {
     await _connection?.disconnect();
   }
 }
+
+// ── Resultados ──
 
 class SetupResult {
   final bool success;

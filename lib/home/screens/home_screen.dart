@@ -134,12 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = cs.brightness == Brightness.dark;
     final accent = cs.primary;
 
-    final appBarBg = cs.surface;
-    final appBarBorder =
-        isDark ? AppColors.borderDarkSoft : AppColors.borderLight;
-    final titleColor = cs.onSurface;
-    final iconColor = cs.onSurface.withOpacity(isDark ? 0.7 : 0.55);
-
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness:
@@ -149,170 +143,151 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       // extendBody permite que el nav bar flotante no corte el scroll
       extendBody: true,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(64),
-        child: Container(
-          decoration: BoxDecoration(
-            color: appBarBg,
-            border: Border(
-              bottom: BorderSide(color: appBarBorder, width: 1),
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: SizedBox(
-              height: 64,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // ── Título centrado ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _getAppBarTitle(),
-                        style: GoogleFonts.poppins(
-                          color: titleColor,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 17.0,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                      if (_modoDemo) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: accent.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: accent.withOpacity(0.4),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.science_outlined,
-                                  size: 11, color: accent),
-                              const SizedBox(width: 4),
-                              Text(
-                                'DEMO',
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: accent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  // ── Acciones a la derecha ──
-                  Positioned(
-                    right: 8,
-                    child: Row(
-                      children: [
-                        if (!_modoDemo)
-                          IconButton(
-                            icon: FaIcon(FontAwesomeIcons.gear,
-                                size: 18, color: iconColor),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ConfiguracionScreen(),
-                                ),
-                              );
-                            },
-                            tooltip: 'Configuración',
-                          ),
-                        if (_modoDemo)
-                          IconButton(
-                            icon: Icon(Icons.logout_rounded,
-                                size: 20, color: iconColor),
-                            tooltip: 'Salir del modo DESCONECTADO',
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  title: Row(
-                                    children: [
-                                      Icon(Icons.logout,
-                                          color: accent),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          'Salir del modo DESCONECTADO',
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  content: Text(
-                                    '¿Deseas salir del modo DESCONECTADO y volver al login?',
-                                    style: GoogleFonts.inter(),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, false),
-                                      child: Text(
-                                        'Cancelar',
-                                        style: GoogleFonts.inter(
-                                          color: Colors.grey,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context, true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: accent,
-                                      ),
-                                      child: Text(
-                                        'Salir',
-                                        style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              if (confirm == true) {
-                                SharedPreferences prefs =
-                                    await SharedPreferences.getInstance();
-                                await prefs.setBool('modoDemo', false);
-                                if (context.mounted) {
-                                  Navigator.pushReplacementNamed(
-                                      context, '/login');
-                                }
-                              }
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
+        centerTitle: false,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _getAppBarTitle(),
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                height: 1.1,
               ),
             ),
-          ),
+            if (_modoDemo) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (isDark ? Colors.white : accent).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (isDark ? Colors.white : accent).withOpacity(0.4),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.science_outlined,
+                        size: 11, color: isDark ? Colors.white : accent),
+                    const SizedBox(width: 4),
+                    Text(
+                      'DEMO',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : accent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
+        actions: [
+          if (!_modoDemo)
+            IconButton(
+              icon: FaIcon(FontAwesomeIcons.gear,
+                  size: 18, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConfiguracionScreen(),
+                  ),
+                );
+              },
+              tooltip: 'Configuración',
+            ),
+          if (_modoDemo)
+            IconButton(
+              icon: Icon(Icons.logout_rounded,
+                  size: 20, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+              tooltip: 'Salir del modo DESCONECTADO',
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    title: Row(
+                      children: [
+                        Icon(Icons.logout,
+                            color: isDark ? Colors.white : accent),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Salir del modo DESCONECTADO',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: Text(
+                      '¿Deseas salir del modo DESCONECTADO y volver al login?',
+                      style: GoogleFonts.inter(
+                        color: isDark ? Colors.white70 : Colors.black87,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pop(context, false),
+                        child: Text(
+                          'Cancelar',
+                          style: GoogleFonts.inter(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isDark ? Colors.white : accent,
+                        ),
+                        child: Text(
+                          'Salir',
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.black : Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true) {
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  await prefs.setBool('modoDemo', false);
+                  if (context.mounted) {
+                    Navigator.pushReplacementNamed(
+                        context, '/login');
+                  }
+                }
+              },
+            ),
+        ],
       ),
       body: PageView(
         controller: _pageController,
@@ -339,13 +314,13 @@ class _HomeScreenState extends State<HomeScreen> {
   String _getAppBarTitle() {
     switch (_currentIndex) {
       case 0:
-        return 'INICIO';
+        return 'Inicio';
       case 1:
-        return 'SERVICIOS';
+        return 'Servicios';
       case 2:
-        return 'PRECARGA';
+        return 'Precarga';
       default:
-        return 'INICIO';
+        return 'Inicio';
     }
   }
 }

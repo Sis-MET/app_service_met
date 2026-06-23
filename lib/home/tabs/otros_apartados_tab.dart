@@ -94,7 +94,7 @@ class OtrosApartadosTab extends StatelessWidget {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
+    final accent = isDark ? Colors.white : cs.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -166,7 +166,7 @@ class OtrosApartadosTab extends StatelessWidget {
   Widget _buildInfoSection(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
+    final accent = isDark ? Colors.white : cs.primary;
 
     return Container(
       padding: const EdgeInsets.all(20),

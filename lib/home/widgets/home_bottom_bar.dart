@@ -57,13 +57,13 @@ class HomeBottomBar extends StatelessWidget {
               final iconColor = isDisabled
                   ? (cs.onSurface.withOpacity(isDarkMode ? 0.24 : 0.26))
                   : isSelected
-                      ? cs.primary
+                      ? (isDarkMode ? Colors.white : cs.primary)
                       : (cs.onSurface.withOpacity(isDarkMode ? 0.54 : 0.38));
 
               final labelColor = isDisabled
                   ? (cs.onSurface.withOpacity(isDarkMode ? 0.24 : 0.26))
                   : isSelected
-                      ? cs.primary
+                      ? (isDarkMode ? Colors.white : cs.primary)
                       : (cs.onSurface.withOpacity(isDarkMode ? 0.54 : 0.38));
 
               return Expanded(
@@ -87,7 +87,7 @@ class HomeBottomBar extends StatelessWidget {
                               ),
                             ],
                           ),
-                          backgroundColor: cs.primary,
+                          backgroundColor: isDarkMode ? AppColors.surfaceDark : cs.primary,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

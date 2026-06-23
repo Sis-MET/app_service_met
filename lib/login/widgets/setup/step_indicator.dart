@@ -1,4 +1,5 @@
-// lib/login/widgets/setup/step_indicator.dart
+// Indicador de pasos del wizard de configuración inicial.
+// Muestra el progreso entre el paso de conexión y el de usuario.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,23 +17,21 @@ class StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = AppColors.accentYellow;
+    final accent = isDark ? Colors.white : AppColors.primary;
 
     return Row(
       children: [
-        Expanded(
-          child: _buildStep(0, 'Conexión', accent),
-        ),
+        Expanded(child: _buildStep(0, 'Conexión', accent)),
         Container(
-          width: 40,
-          height: 2,
-          color: currentStep >= 1
-              ? accent
-              : (isDark ? Colors.white24 : Colors.black12),
+          height: 3,
+          decoration: BoxDecoration(
+            color: currentStep >= 1
+                ? accent
+                : (isDark ? Colors.white24 : Colors.black12),
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
-        Expanded(
-          child: _buildStep(1, 'Usuario', accent),
-        ),
+        Expanded(child: _buildStep(1, 'Usuario', accent)),
       ],
     );
   }
@@ -44,25 +43,29 @@ class StepIndicator extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: isCompleted || isActive
-                ? accent
-                : (isDark ? Colors.white12 : Colors.black12),
+            color: isCompleted || isActive ? accent : Colors.transparent,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: isCompleted || isActive
+                  ? accent
+                  : (isDark ? Colors.white24 : Colors.black12),
+              width: 2,
+            ),
           ),
           child: Center(
             child: isCompleted
-                ? const Icon(Icons.check, color: Colors.white, size: 20)
+                ? Icon(Icons.check, color: isDark ? const Color(0xFF292929) : Colors.white, size: 22)
                 : Text(
                     '${step + 1}',
                     style: GoogleFonts.inter(
                       color: isActive
-                          ? Colors.white
+                          ? (isDark ? const Color(0xFF292929) : Colors.white)
                           : (isDark ? Colors.white38 : Colors.black38),
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 18,
                     ),
                   ),
           ),

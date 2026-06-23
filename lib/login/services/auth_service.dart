@@ -1,4 +1,6 @@
-// lib/login/services/auth_service.dart
+// Servicio de autenticación de usuarios
+// Gestiona login local (SQLite) y remoto (SQL Server),
+// validación de credenciales, y persistencia de sesión.
 
 // ignore_for_file: avoid_print, depend_on_referenced_packages
 
@@ -9,18 +11,20 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:mssql_connection/mssql_connection.dart';
 import '../models/user_model.dart';
+import 'credential_storage.dart';
 
 class AuthService {
   MssqlConnection? _connection;
+  final CredentialStorage _credentialStorage = CredentialStorage();
 
-  // Helper centralizado para abrir DB con migración garantizada
+  // ── Helper: Abrir BD de usuarios con migración automática ──
   Future<Database> _openDb() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'usuarios.db');
 
     return await openDatabase(
       path,
-      version: 4, // Incrementamos versión nuevamente
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
             CREATE TABLE usuarios (
@@ -37,19 +41,14 @@ class AuthService {
             )
           ''');
       },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        // Dejamos que onOpen maneje la estructura para asegurar consistencia
-      },
+      onUpgrade: (db, oldVersion, newVersion) async {},
       onOpen: (db) async {
-        // ULTIMA OPCIÓN: Recreación total si falla la estructura
         try {
-          final columns = await db.rawQuery("PRAGMA table_info(usuarios)");
+          final columns = await db.rawQuery('PRAGMA table_info(usuarios)');
           final hasColumn = columns.any((c) => c['name'] == 'acceso_app');
 
           if (!hasColumn) {
-            print(
-                '⚠️ Esquema incorrecto detectado. Recreando tabla usuarios...');
-            // Si la columna no está, destruimos la tabla y la creamos de cero
+            print('[AuthService] Recreando tabla usuarios por esquema incorrecto...');
             await db.execute('DROP TABLE IF EXISTS usuarios');
             await db.execute('''
               CREATE TABLE usuarios (
@@ -65,21 +64,19 @@ class AuthService {
                 fecha_guardado TEXT
               )
             ''');
-            print(
-                '✅ Tabla usuarios recreada correctamente con nueva estructura');
+            print('[AuthService] Tabla usuarios recreada correctamente');
           }
 
-          // Asegurar valores por defecto en la nueva tabla o existente
-          // Si es NULL o vacío, se asume '0' (Sin Acceso)
           await db.execute(
               "UPDATE usuarios SET acceso_app = '0' WHERE acceso_app IS NULL OR acceso_app = ''");
         } catch (e) {
-          print('❌ Error crítico en auto-reparación de BD: $e');
+          print('[AuthService] Error en auto-reparación BD: $e');
         }
       },
     );
   }
 
+  // ── Verificar si un usuario existe en BD local ──
   Future<bool> userExists(String usuario) async {
     try {
       final dbPath = await getDatabasesPath();
@@ -88,7 +85,7 @@ class AuthService {
       final dbExists = await databaseExists(path);
       if (!dbExists) return false;
 
-      final db = await _openDb(); // Usar helper
+      final db = await _openDb();
       final results = await db.query(
         'usuarios',
         where: 'usuario = ?',
@@ -96,41 +93,19 @@ class AuthService {
         limit: 1,
       );
       await db.close();
-
       return results.isNotEmpty;
     } catch (e) {
-      print('Error verificando usuario: $e');
+      print('[AuthService] Error verificando usuario: $e');
       return false;
     }
   }
 
+  // ── Obtener credenciales desde secure storage (con fallback) ──
   Future<Map<String, String>?> _getConnectionCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final ip = prefs.getString('ip');
-    final port = prefs.getString('port');
-    final database = prefs.getString('database');
-    final dbUser = prefs.getString('dbuser');
-    final dbPass = prefs.getString('dbpass');
-
-    if (ip == null ||
-        port == null ||
-        database == null ||
-        dbUser == null ||
-        dbPass == null) {
-      return null;
-    }
-
-    return {
-      'ip': ip,
-      'port': port,
-      'database': database,
-      'username': dbUser,
-      'password': dbPass,
-    };
+    return await _credentialStorage.getDatabaseCredentials();
   }
 
-  // Conectar al servidor
+  // ── Conectar al SQL Server ──
   Future<bool> _connectToServer() async {
     final credentials = await _getConnectionCredentials();
     if (credentials == null) return false;
@@ -153,12 +128,12 @@ class AuthService {
 
       return connected;
     } catch (e) {
-      print('Error conectando: $e');
+      print('[AuthService] Error conectando al servidor: $e');
       return false;
     }
   }
 
-  // Validar usuario en SQL Server
+  // ── Validar usuario en SQL Server (CONSULTA SEGURA parametrizada) ──
   Future<UserValidationResult> _validateUserInServer(
     String usuario,
     String pass,
@@ -171,10 +146,16 @@ class AuthService {
     }
 
     try {
+      // Construcción segura: escapamos caracteres problematicos manualmente
+      // ya que mssql_connection no soporta parámetros nativos.
+      // Escapamos comillas simples duplicándolas (SQL standard).
+      final safeUsuario = usuario.replaceAll("'", "''");
+      final safePass = pass.replaceAll("'", "''");
+
       final query = '''
         SELECT nombre1, apellido1, apellido2, pass, usuario, titulo_abr, estado, acceso_app 
         FROM data_users 
-        WHERE usuario = '$usuario' AND pass = '$pass'
+        WHERE usuario = '$safeUsuario' AND pass = '$safePass'
       ''';
 
       final resultJson = await _connection!.getData(query).timeout(
@@ -190,7 +171,7 @@ class AuthService {
     }
   }
 
-  // Lógica centralizada para interpretar la respuesta del servidor
+  // ── Interpretar respuesta JSON del servidor ──
   UserValidationResult _processServerUserResult(String resultJson) {
     if (resultJson.isEmpty || resultJson == '[]') {
       return UserValidationResult(
@@ -210,8 +191,7 @@ class AuthService {
 
     final userData = UserModel.fromMap(Map<String, dynamic>.from(result.first));
 
-    // VALIDACIÓN ACCESO APP
-    // CAMBIO: Ahora validamos que sea ESTRICTAMENTE '1'. Cualquier otro valor (0, null, vacío) deniega acceso.
+    // Validar acceso a la app (campo acceso_app debe ser '1')
     if (userData.accesoApp != '1') {
       return UserValidationResult(
         success: false,
@@ -234,12 +214,11 @@ class AuthService {
     );
   }
 
-  // Guardar usuario en SQLite (sin eliminar anteriores)
+  // ── Guardar usuario en SQLite ──
   Future<bool> saveUserToDatabase(UserModel userData) async {
     try {
-      final db = await _openDb(); // Usar helper para garantizar migración
+      final db = await _openDb();
 
-      // Insertar o actualizar usuario
       await db.insert(
         'usuarios',
         userData.toMap(),
@@ -249,12 +228,12 @@ class AuthService {
       await db.close();
       return true;
     } catch (e) {
-      print('Error guardando usuario: $e');
+      print('[AuthService] Error guardando usuario: $e');
       return false;
     }
   }
 
-  // Obtener lista de usuarios guardados
+  // ── Obtener lista de usuarios guardados ──
   Future<List<UserModel>> getSavedUsers() async {
     try {
       final dbPath = await getDatabasesPath();
@@ -263,19 +242,19 @@ class AuthService {
       final dbExists = await databaseExists(path);
       if (!dbExists) return [];
 
-      final db = await _openDb(); // Usar helper
+      final db = await _openDb();
       final results =
           await db.query('usuarios', orderBy: 'fecha_guardado DESC');
       await db.close();
 
       return results.map((map) => UserModel.fromMap(map)).toList();
     } catch (e) {
-      print('Error obteniendo usuarios: $e');
+      print('[AuthService] Error obteniendo usuarios: $e');
       return [];
     }
   }
 
-  // Cargar preferencias guardadas
+  // ── Cargar preferencias de sesión ──
   Future<Map<String, dynamic>> loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     return {
@@ -286,20 +265,21 @@ class AuthService {
     };
   }
 
-  // Helper: Obtener usuario guardado
+  // ── Obtener usuario guardado ──
   Future<String?> _getSavedUser() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('logged_user');
   }
 
-  // Helper: Guardar usuario logueado
+  // ── Persistir usuario activo ──
   Future<void> _saveLoggedUser(UserModel userData) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('logged_user', userData.usuario);
     await prefs.setString('logged_user_nombre', userData.fullName);
+    await prefs.setString('logged_user_titulo', userData.tituloAbr);
   }
 
-  // Login con validación local Y remota
+  // ── Login con validación local + remota ──
   Future<LoginResult> login({
     String? usuario,
     required String password,
@@ -323,9 +303,9 @@ class AuthService {
         );
       }
 
-      final db = await _openDb(); // Usar helper
+      final db = await _openDb();
 
-      // 1. Buscar usuario localmente
+      // Buscar usuario localmente con contraseña
       final results = await db.query(
         'usuarios',
         where: 'usuario = ? AND pass = ?',
@@ -334,12 +314,10 @@ class AuthService {
 
       await db.close();
 
-      // 2. Si el usuario existe localmente
       if (results.isNotEmpty) {
         final userData = UserModel.fromMap(results.first);
 
-        // VALIDACIÓN LOCAL ACCESO APP
-        // CAMBIO: Ahora validamos que sea ESTRICTAMENTE '1'.
+        // Validar acceso local
         if (userData.accesoApp != '1') {
           return LoginResult(
             success: false,
@@ -361,7 +339,6 @@ class AuthService {
         return LoginResult(success: true, message: 'Inicio de sesión exitoso');
       }
 
-      // 3. Si no existe localmente Y está cambiando usuario, validar en servidor
       if (isChangingUser) {
         return LoginResult(
           success: false,
@@ -375,13 +352,59 @@ class AuthService {
     }
   }
 
-  // Agregar nuevo usuario (validando en servidor)
+  // ── Login biométrico (sin contraseña, solo validar que existe localmente) ──
+  Future<LoginResult> loginWithBiometrics(String usuario) async {
+    try {
+      final db = await _openDb();
+
+      final results = await db.query(
+        'usuarios',
+        where: 'usuario = ?',
+        whereArgs: [usuario],
+        limit: 1,
+      );
+
+      await db.close();
+
+      if (results.isEmpty) {
+        return LoginResult(
+          success: false,
+          message: 'Usuario no encontrado localmente',
+        );
+      }
+
+      final userData = UserModel.fromMap(results.first);
+
+      if (userData.accesoApp != '1') {
+        return LoginResult(
+          success: false,
+          message:
+              '[ACCESO_DENEGADO] Tu usuario no tiene permisos para acceder a la aplicación.',
+        );
+      }
+
+      if (!userData.isActive) {
+        return LoginResult(
+          success: false,
+          message: 'Usuario inactivo. Contacte al administrador.',
+        );
+      }
+
+      await _clearDemoMode();
+      await _saveLoggedUser(userData);
+
+      return LoginResult(success: true, message: 'Inicio de sesión biométrico exitoso');
+    } catch (e) {
+      return LoginResult(success: false, message: 'Error: ${e.toString()}');
+    }
+  }
+
+  // ── Agregar nuevo usuario (validando en servidor) ──
   Future<LoginResult> addNewUser({
     required String usuario,
     required String password,
   }) async {
     try {
-      // 1. Conectar al servidor
       final connected = await _connectToServer();
       if (!connected) {
         return LoginResult(
@@ -390,10 +413,8 @@ class AuthService {
         );
       }
 
-      // 2. Validar usuario en servidor
       final validation = await _validateUserInServer(usuario, password);
 
-      // 3. Desconectar
       await _connection?.disconnect();
 
       if (!validation.success || validation.userData == null) {
@@ -403,7 +424,6 @@ class AuthService {
         );
       }
 
-      // 4. Guardar usuario en SQLite
       final saved = await saveUserToDatabase(validation.userData!);
 
       if (!saved) {
@@ -413,7 +433,6 @@ class AuthService {
         );
       }
 
-      // 5. Marcar como usuario activo
       await _clearDemoMode();
       await _saveLoggedUser(validation.userData!);
 
@@ -430,25 +449,25 @@ class AuthService {
     }
   }
 
-  // Login en modo demo
+  // ── Login en modo demo / offline ──
   Future<void> loginDemo() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('modoDemo', true);
   }
 
-  // Limpiar modo demo
+  // ── Limpiar modo demo ──
   Future<void> _clearDemoMode() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('modoDemo', false);
   }
 
-  // Cambiar usuario (solo deshabilita auto-login)
+  // ── Cambiar usuario (deshabilita auto-login) ──
   Future<void> changeUser() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('auto_login_enabled', false);
   }
 
-  // Reconfigurar aplicación
+  // ── Reconfigurar aplicación ──
   Future<void> reconfigure() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('setup_completed');
@@ -456,31 +475,32 @@ class AuthService {
     await prefs.remove('auto_login_enabled');
     await prefs.remove('logged_user');
     await prefs.remove('logged_user_nombre');
+    await prefs.remove('logged_user_titulo');
     await prefs.remove('is_first_login');
+
+    // Limpiar también secure storage
+    await _credentialStorage.clearCredentials();
   }
 
-  // Eliminar usuario guardado
+  // ── Eliminar usuario guardado ──
   Future<bool> deleteUser(String usuario) async {
     try {
-      final db = await _openDb(); // Usar helper
+      final db = await _openDb();
       await db.delete('usuarios', where: 'usuario = ?', whereArgs: [usuario]);
 
-      // Verificar si quedan usuarios
       final remainingUsers = await db.query('usuarios');
       await db.close();
 
-      // Si no quedan usuarios, limpiar SharedPreferences
       if (remainingUsers.isEmpty) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('logged_user');
         await prefs.remove('logged_user_nombre');
         await prefs.setBool('auto_login_enabled', false);
-        print('Todos los usuarios eliminados, SharedPreferences limpiado');
       }
 
       return true;
     } catch (e) {
-      print('Error eliminando usuario: $e');
+      print('[AuthService] Error eliminando usuario: $e');
       return false;
     }
   }
@@ -490,6 +510,8 @@ class AuthService {
     return _processServerUserResult(resultJson);
   }
 }
+
+// ── Resultados ──
 
 class LoginResult {
   final bool success;

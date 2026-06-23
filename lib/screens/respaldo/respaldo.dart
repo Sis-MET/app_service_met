@@ -431,9 +431,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                     Divider(
                       height: 1,
                       indent: 56,
-                      color: isDark
-                          ? AppColors.borderDark
-                          : AppColors.borderLight,
+                      color:
+                          isDark ? AppColors.borderDark : AppColors.borderLight,
                     ),
                 ],
               );
@@ -529,22 +528,26 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
             fontSize: 14,
             color: cs.onSurface.withOpacity(0.38),
           ),
-          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45), size: 20),
+          prefixIcon: Icon(Icons.search_rounded,
+              color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45), size: 20),
           filled: true,
           fillColor: isDark ? AppColors.cardDark : Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+            borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+            borderSide: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: accent, width: 1.5),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
         onChanged: (value) => setState(() {}),
       ),
@@ -553,76 +556,51 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final titleColor = cs.onSurface;
-    final iconColor = cs.onSurface.withOpacity(isDark ? 0.70 : 0.55);
+    final accent = Theme.of(context).colorScheme.primary;
 
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(65),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(bottom: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: SizedBox(
-            height: 65,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Botón atrás
-                Positioned(
-                  left: 4,
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: iconColor),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                // Título
-                Text(
-                  _isSelectionMode
-                      ? '${_selectedFiles.length} seleccionados'
-                      : 'RESPALDO DE DATOS',
-                  style: GoogleFonts.poppins(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                    letterSpacing: 0.4,
-                  ),
-                ),
-                // Acciones en modo selección
-                if (_isSelectionMode)
-                  Positioned(
-                    right: 4,
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.download_outlined, color: accent),
-                          onPressed: _downloadSelectedFiles,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          onPressed: _confirmDeleteSelected,
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.close, color: iconColor),
-                          onPressed: () => setState(() {
-                            _selectedFiles.clear();
-                            _isSelectionMode = false;
-                          }),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
+    return AppBar(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      iconTheme: IconThemeData(
+        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+      ),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_ios_new_rounded,
+            size: 20, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Text(
+        _isSelectionMode
+            ? '${_selectedFiles.length} seleccionados'
+            : 'Respaldo de Datos',
+        style: GoogleFonts.poppins(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+          height: 1.1,
         ),
       ),
+      actions: _isSelectionMode
+          ? [
+              IconButton(
+                icon: Icon(Icons.download_outlined, color: accent),
+                onPressed: _downloadSelectedFiles,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: _confirmDeleteSelected,
+              ),
+              IconButton(
+                icon: Icon(Icons.close,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                onPressed: () => setState(() {
+                  _selectedFiles.clear();
+                  _isSelectionMode = false;
+                }),
+              ),
+            ]
+          : null,
     );
   }
 
@@ -637,11 +615,13 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       fillColor: isDark ? AppColors.cardDark : AppColors.backgroundLight,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+        borderSide: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+        borderSide: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -655,12 +635,12 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
     final accent = cs.primary;
-    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final bgColor =
+        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: _buildAppBar(),
       body: Center(
         child: SingleChildScrollView(
@@ -688,7 +668,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                     color: accent.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.lock_outline_rounded, color: accent, size: 28),
+                  child:
+                      Icon(Icons.lock_outline_rounded, color: accent, size: 28),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -726,7 +707,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                   child: ElevatedButton(
                     onPressed: _authenticate,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: accent,
+                      backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -753,15 +734,17 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   Widget _buildBackupScreen() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final bgColor =
+        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final accent = cs.primary;
     final filteredDbs = _filterFiles(_databases, _searchController.text);
     final filteredCsvs = _filterFiles(_csvFiles, _searchController.text);
-    final filteredBackups = _filterFiles(_precargaBackups, _searchController.text);
-    final filteredSoporteTec = _filterFiles(_soporteTecDbs, _searchController.text);
+    final filteredBackups =
+        _filterFiles(_precargaBackups, _searchController.text);
+    final filteredSoporteTec =
+        _filterFiles(_soporteTecDbs, _searchController.text);
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: _buildAppBar(),
       body: _isLoading
           ? Center(
@@ -776,9 +759,11 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildFileList('RESPALDOS DE CALIBRACIÓN', filteredBackups),
+                        _buildFileList(
+                            'RESPALDOS DE CALIBRACIÓN', filteredBackups),
                         const SizedBox(height: 24),
-                        _buildFileList('BASES DE DATOS PRINCIPALES', filteredDbs),
+                        _buildFileList(
+                            'BASES DE DATOS PRINCIPALES', filteredDbs),
                         const SizedBox(height: 24),
                         _buildFileList('SOPORTE TÉCNICO', filteredSoporteTec),
                         const SizedBox(height: 24),

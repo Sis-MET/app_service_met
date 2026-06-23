@@ -1,6 +1,5 @@
-// lib/login/widgets/setup/user_credentials_step.dart
-
-// ignore_for_file: deprecated_member_use
+// Paso 2 del setup: Credenciales de usuario de la aplicación.
+// Diseño renovado con mejor estructura visual y botones de navegación.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,22 +32,23 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = AppColors.accentYellow;
+    final primary = widget.isDark ? Colors.white : AppColors.primary;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Encabezado
         Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.1),
+                color: primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.person_outline,
-                color: accent,
+                color: primary,
                 size: 28,
               ),
             ),
@@ -62,11 +62,11 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                     style: GoogleFonts.poppins(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: widget.isDark ? Colors.white : Colors.black87,
+                      color: widget.isDark ? Colors.white : AppColors.textPrimaryLight,
                     ),
                   ),
                   Text(
-                    'Ingrese sus credenciales de acceso',
+                    'Ingresa tus credenciales de acceso',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: widget.isDark ? Colors.white60 : Colors.black54,
@@ -77,6 +77,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             ),
           ],
         ),
+
         const SizedBox(height: 32),
 
         // Campo Usuario
@@ -85,7 +86,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: widget.isDark ? Colors.white70 : Colors.black87,
+            color: widget.isDark ? Colors.white70 : AppColors.textPrimaryLight,
           ),
         ),
         const SizedBox(height: 8),
@@ -98,19 +99,31 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
           decoration: InputDecoration(
             hintText: 'Ingresa tu usuario',
             hintStyle: GoogleFonts.inter(
-              color: widget.isDark ? Colors.white30 : Colors.black26,
+              color: widget.isDark ? Colors.white38 : Colors.black38,
+              fontSize: 14,
             ),
             filled: true,
             fillColor: widget.isDark
-                ? const Color(0xFF1a1a1a)
-                : const Color(0xFFF5F7FA),
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.03),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: primary,
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -118,17 +131,16 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             ),
             prefixIcon: Icon(
               Icons.person_outline_rounded,
-              color: widget.isDark ? Colors.white70 : Colors.black38,
+              color: widget.isDark ? Colors.white70 : primary,
               size: 22,
             ),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Usuario es requerido';
-            }
+            if (value == null || value.isEmpty) return 'Usuario es requerido';
             return null;
           },
         ),
+
         const SizedBox(height: 20),
 
         // Campo Contraseña
@@ -137,7 +149,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: widget.isDark ? Colors.white70 : Colors.black87,
+            color: widget.isDark ? Colors.white70 : AppColors.textPrimaryLight,
           ),
         ),
         const SizedBox(height: 8),
@@ -150,21 +162,33 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             color: widget.isDark ? Colors.white : Colors.black87,
           ),
           decoration: InputDecoration(
-            hintText: 'Ingresa tu contraseña',
+            hintText: 'Ingresa tu contraseña (4 dígitos)',
             hintStyle: GoogleFonts.inter(
-              color: widget.isDark ? Colors.white30 : Colors.black26,
+              color: widget.isDark ? Colors.white38 : Colors.black38,
+              fontSize: 14,
             ),
             filled: true,
             fillColor: widget.isDark
-                ? const Color(0xFF1a1a1a)
-                : const Color(0xFFF5F7FA),
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.03),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: primary,
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -172,7 +196,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             ),
             prefixIcon: Icon(
               Icons.lock_outline_rounded,
-              color: widget.isDark ? Colors.white70 : Colors.black38,
+              color: widget.isDark ? Colors.white70 : primary,
               size: 22,
             ),
             suffixIcon: IconButton(
@@ -180,30 +204,24 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                 _obscurePassword
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                color: widget.isDark ? Colors.white70 : Colors.black38,
+                color: widget.isDark ? Colors.white70 : primary.withOpacity(0.6),
                 size: 22,
               ),
               onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
+                setState(() => _obscurePassword = !_obscurePassword);
               },
             ),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Contraseña es requerida';
-            }
-            if (value.length < 4) {
-              return 'Mínimo 4 caracteres';
-            }
+            if (value == null || value.isEmpty) return 'Contraseña es requerida';
+            if (value.length < 4) return 'Mínimo 4 caracteres';
             return null;
           },
         ),
 
         const SizedBox(height: 32),
 
-        // Botones
+        // Botones de navegación
         Row(
           children: [
             Expanded(
@@ -235,9 +253,9 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               flex: 2,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: accent,
-                  foregroundColor: const Color(0xFF1A1A1A),
-                  elevation: 0,
+                  backgroundColor: primary,
+                  foregroundColor: widget.isDark ? const Color(0xFF292929) : Colors.white,
+                  elevation: 4,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

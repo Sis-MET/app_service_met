@@ -144,7 +144,7 @@ class ServiciosTab extends StatelessWidget {
               SizedBox(
                 width: 32,
                 child: Center(
-                  child: icon is IconData ? Icon(icon, size: 30, color: cs.primary) : FaIcon(icon, size: 30, color: cs.primary),
+                  child: icon is IconData ? Icon(icon, size: 30, color: (isDark ? Colors.white : cs.primary)) : FaIcon(icon, size: 30, color: (isDark ? Colors.white : cs.primary)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -201,7 +201,7 @@ class ServiciosTab extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FaIcon(FontAwesomeIcons.lightbulb, color: cs.primary, size: 18),
+          FaIcon(FontAwesomeIcons.lightbulb, color: (isDark ? Colors.white : cs.primary), size: 18),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

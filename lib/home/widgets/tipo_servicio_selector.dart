@@ -60,6 +60,7 @@ class TipoServicioSelector extends StatelessWidget {
     required bool isSelected,
   }) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelected(index),
@@ -87,13 +88,13 @@ class TipoServicioSelector extends StatelessWidget {
                 icon,
                 size: 14,
                 color: isSelected
-                    ? Colors.white
+                    ? (isDark ? const Color(0xFF292929) : Colors.white)
                     : cs.onSurface.withOpacity(0.38),
               ) : FaIcon(
                 icon,
                 size: 14,
                 color: isSelected
-                    ? Colors.white
+                    ? (isDark ? const Color(0xFF292929) : Colors.white)
                     : cs.onSurface.withOpacity(0.38),
               ),
               const SizedBox(width: 7),
@@ -104,7 +105,7 @@ class TipoServicioSelector extends StatelessWidget {
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
-                      ? Colors.white
+                      ? (isDark ? const Color(0xFF292929) : Colors.white)
                       : cs.onSurface.withOpacity(0.38),
                 ),
               ),

@@ -129,7 +129,7 @@ class AppTheme {
   }
 
   static ThemeData buildDarkTheme(BuildContext context) {
-    const primaryColor = AppColors.primary;
+    const primaryColor = Colors.white;
     const scaffoldBackgroundColor = Color(0xFF121212);
 
     final baseTheme = ThemeData.dark();
@@ -192,7 +192,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.white,
+          foregroundColor: const Color(0xFF292929),
           backgroundColor: primaryColor,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
           shape: RoundedRectangleBorder(

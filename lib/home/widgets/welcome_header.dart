@@ -44,7 +44,9 @@ class WelcomeHeader extends StatelessWidget {
   }
 
   String _getInitials(String name) {
-    final parts = name.trim().split(' ')
+    final parts = name
+        .trim()
+        .split(' ')
         .where((p) => p.isNotEmpty && !p.contains('.'))
         .toList();
     if (parts.isEmpty) return 'U';
@@ -53,9 +55,8 @@ class WelcomeHeader extends StatelessWidget {
   }
 
   String _getFirstName(String fullName) {
-    final parts = fullName.trim().split(' ')
-        .where((p) => p.isNotEmpty)
-        .toList();
+    final parts =
+        fullName.trim().split(' ').where((p) => p.isNotEmpty).toList();
     for (final p in parts) {
       if (!p.contains('.') && p.length > 1) return p;
     }
@@ -101,12 +102,11 @@ class WelcomeHeader extends StatelessWidget {
                       : DateFormat('dd/MM/yyyy').format(DateTime.now());
                   if (d.isNotEmpty) d = d[0].toUpperCase() + d.substring(1);
                   return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.cardDark
-                          : const Color(0xFFF2F2F2),
+                      color:
+                          isDark ? AppColors.cardDark : const Color(0xFFF2F2F2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -122,7 +122,8 @@ class WelcomeHeader extends StatelessWidget {
                           d,
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
+                            color:
+                                cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -132,32 +133,6 @@ class WelcomeHeader extends StatelessWidget {
                 },
               ),
             ],
-          ),
-        ),
-
-        const SizedBox(width: 16),
-
-        // ── Avatar con iniciales ──
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: cs.primary.withOpacity(isDark ? 0.18 : 0.10),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: cs.primary.withOpacity(isDark ? 0.35 : 0.25),
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              initials,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: cs.primary,
-              ),
-            ),
           ),
         ),
       ],

@@ -1,6 +1,4 @@
-// lib/login/widgets/setup/info_card.dart
-
-// ignore_for_file: deprecated_member_use
+// Tarjeta informativa que explica el paso actual del wizard de configuración.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,18 +17,18 @@ class InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final message = currentStep == 0
-        ? 'Paso 1 de 2: Se conectará al servidor y descargará los datos necesarios.'
-        : 'Paso 2 de 2: Ingrese sus credenciales para configurar el acceso automático.';
+        ? 'Paso 1 de 2: Conéctate al servidor SQL Server para descargar los datos maestros necesarios.'
+        : 'Paso 2 de 2: Ingresa tus credenciales de la aplicación para configurar el acceso automático.';
 
-    final accent = AppColors.accentYellow;
+    final accent = isDark ? Colors.white : AppColors.primary;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: accent.withOpacity(0.1),
+        color: accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: accent.withOpacity(0.3),
+          color: accent.withOpacity(0.2),
         ),
       ),
       child: Row(

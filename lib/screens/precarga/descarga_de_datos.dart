@@ -176,7 +176,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, 'actual'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
+              backgroundColor: AppColors.success,
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18),
@@ -297,19 +297,21 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
         title: Text(
           'Precarga de Datos',
           style: GoogleFonts.poppins(
-            color: cs.onSurface,
+            fontSize: 20,
             fontWeight: FontWeight.w700,
-            fontSize: 18.0,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
           ),
         ),
-        backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(
-            color: cs.onSurface),
       ),
       body: _loading
           ? SetupLoading(
@@ -377,8 +379,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                               width: 1,
                               height: 50,
                               color: isDark
-                              ? AppColors.borderDarkSoft
-                              : AppColors.borderLight,
+                                  ? AppColors.borderDarkSoft
+                                  : AppColors.borderLight,
                             ),
                             _buildMiniStat(
                               icon: FontAwesomeIcons.industry,
@@ -391,8 +393,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                               width: 1,
                               height: 50,
                               color: isDark
-                              ? AppColors.borderDarkSoft
-                              : AppColors.borderLight,
+                                  ? AppColors.borderDarkSoft
+                                  : AppColors.borderLight,
                             ),
                             _buildMiniStat(
                               icon: FontAwesomeIcons.scaleBalanced,
@@ -427,7 +429,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                     'Última actualización:',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                      color: cs.onSurface.withOpacity(0.54),
+                                      color: cs.onSurface.withOpacity(0.54),
                                     ),
                                   ),
                                   Text(
@@ -437,7 +439,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                     style: GoogleFonts.inter(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
+                                      color: cs.onSurface,
                                     ),
                                   ),
                                 ],
@@ -467,7 +469,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     ),
                     child: Row(
                       children: [
-                        FaIcon(FontAwesomeIcons.server, color: accent, size: 20),
+                        FaIcon(FontAwesomeIcons.server,
+                            color: accent, size: 20),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -486,8 +489,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                 'IP: $_savedIp  •  DB: $_savedDb',
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
-                                  color:
-                                      cs.onSurface.withOpacity(0.54),
+                                  color: cs.onSurface.withOpacity(0.54),
                                 ),
                               ),
                             ],
@@ -499,27 +501,28 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
 
                   const SizedBox(height: 40),
 
-                  // Update Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: _showUpdateDialog,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: accent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                  Center(
+                    child: SizedBox(
+                      width: 250,
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: _showUpdateDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
                         ),
-                      ),
-                      icon: const Icon(Icons.cloud_sync_outlined),
-                      label: Text(
-                        'ACTUALIZAR DATOS',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
+                        icon: const Icon(Icons.cloud_sync_outlined),
+                        label: Text(
+                          'Actualizar Datos',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ),
@@ -547,7 +550,9 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
             color: accent.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: icon is IconData ? Icon(icon, size: 16, color: accent) : FaIcon(icon, size: 16, color: accent),
+          child: icon is IconData
+              ? Icon(icon, size: 16, color: accent)
+              : FaIcon(icon, size: 16, color: accent),
         ),
         const SizedBox(height: 8),
         Text(

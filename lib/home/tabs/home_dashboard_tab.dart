@@ -238,7 +238,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
 
   Widget _buildSummaryCard(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
+    final accent = cs.brightness == Brightness.dark ? Colors.white : cs.primary;
     final cardBg = cs.brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white;
     final divider = cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight;
 
@@ -451,7 +451,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         await _loadDashboardData();
         setState(() {});
       },
-      color: cs.primary,
+      color: cs.brightness == Brightness.dark ? Colors.white : cs.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),

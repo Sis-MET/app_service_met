@@ -1,11 +1,16 @@
-// lib/login/screens/initial_setup_screen.dart
+// Pantalla de configuración inicial (setup wizard).
+// Flujo en 2 pasos: 1) Conexión BD por perfiles → 2) Credenciales de usuario.
+// Diseño renovado con perfiles de conexión guardables y reutilizables.
 
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:service_met/theme/app_colors.dart';
 import '../services/setup_service.dart';
+import '../services/connection_profile_service.dart';
 import '../widgets/setup/setup_loading.dart';
 import '../widgets/setup/step_indicator.dart';
 import '../widgets/setup/connection_step.dart';
@@ -28,15 +33,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final SetupService _setupService = SetupService();
 
-  // Controladores de campos - Conexión BD
-  final TextEditingController _ipController = TextEditingController();
-  final TextEditingController _portController =
-      TextEditingController(text: '1433');
-  final TextEditingController _dbController = TextEditingController();
-  final TextEditingController _dbUserController = TextEditingController();
-  final TextEditingController _dbPassController = TextEditingController();
-
-  // Controladores de campos - Usuario App
+  // Controladores - Usuario App
   final TextEditingController _appUserController = TextEditingController();
   final TextEditingController _appPassController = TextEditingController();
 
@@ -47,31 +44,44 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
   double _progressValue = 0.0;
 
   @override
+  void initState() {
+    super.initState();
+    // Inicializar perfiles de conexión si no se ha hecho
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ConnectionProfileService>().inicializar();
+    });
+  }
+
+  @override
   void dispose() {
-    _ipController.dispose();
-    _portController.dispose();
-    _dbController.dispose();
-    _dbUserController.dispose();
-    _dbPassController.dispose();
     _appUserController.dispose();
     _appPassController.dispose();
     _setupService.disconnect();
     super.dispose();
   }
 
+  // ── Ejecutar configuración ──
   Future<void> _executeSetup(BuildContext context) async {
-    // ========== PASO 1: CONFIGURACIÓN DE BD ==========
+    // Paso 1: Conexión BD
     if (_currentStep == 0) {
       if (!_formKey.currentState!.validate()) return;
+
+      final profileService = context.read<ConnectionProfileService>();
+      final valores = profileService.getValoresConexion();
+
+      if (valores['ip']!.isEmpty) {
+        _showError(context, 'Selecciona o crea un perfil de conexión primero');
+        return;
+      }
 
       setState(() => _loading = true);
 
       final result = await _setupService.validateConnection(
-        ip: _ipController.text.trim(),
-        port: _portController.text.trim(),
-        database: _dbController.text.trim(),
-        username: _dbUserController.text.trim(),
-        password: _dbPassController.text.trim(),
+        ip: valores['ip']!,
+        port: valores['port']!,
+        database: valores['database']!,
+        username: valores['username']!,
+        password: valores['password']!,
       );
 
       if (!result.success) {
@@ -81,18 +91,18 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       }
 
       if (widget.isUpdateMode) {
-        // En modo actualización, solo guardamos la conexión y volvemos a Precarga
         await _setupService.saveConfiguration(
-          ip: _ipController.text.trim(),
-          port: _portController.text.trim(),
-          database: _dbController.text.trim(),
-          dbUser: _dbUserController.text.trim(),
-          dbPass: _dbPassController.text.trim(),
+          ip: valores['ip']!,
+          port: valores['port']!,
+          database: valores['database']!,
+          dbUser: valores['username']!,
+          dbPass: valores['password']!,
         );
 
         setState(() => _loading = false);
 
         if (mounted) {
+          _showSuccess(context, 'Conexión actualizada correctamente');
           Navigator.pop(context);
         }
         return;
@@ -106,7 +116,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
       return;
     }
 
-    // ========== PASO 2: CREDENCIALES DE USUARIO ==========
+    // Paso 2: Credenciales de usuario
     if (_currentStep == 1) {
       if (!_formKey.currentState!.validate()) return;
 
@@ -151,16 +161,19 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
           return;
         }
 
-        // 4. Guardar configuración de conexión
+        // 4. Guardar configuración de conexión (desde el perfil activo)
+        final profileService = context.read<ConnectionProfileService>();
+        final valores = profileService.getValoresConexion();
+
         await _setupService.saveConfiguration(
-          ip: _ipController.text.trim(),
-          port: _portController.text.trim(),
-          database: _dbController.text.trim(),
-          dbUser: _dbUserController.text.trim(),
-          dbPass: _dbPassController.text.trim(),
+          ip: valores['ip']!,
+          port: valores['port']!,
+          database: valores['database']!,
+          dbUser: valores['username']!,
+          dbPass: valores['password']!,
         );
 
-        // 5. Navegar al login
+        // 5. Completado
         setState(() {
           _statusMessage = 'Configuración completada exitosamente';
           _progressValue = 1.0;
@@ -170,6 +183,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
 
         if (mounted) {
           await _setupService.disconnect();
+          _showSuccess(context, 'Todo listo. Inicia sesión.');
           Navigator.pushReplacementNamed(context, '/login');
         }
       } catch (e) {
@@ -188,6 +202,23 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+  }
+
+  void _showSuccess(BuildContext context, String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
     );
   }
@@ -199,7 +230,19 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [
+                    AppColors.loginBgDark,
+                    AppColors.loginBgDarkEnd,
+                  ]
+                : [
+                    AppColors.loginBgLight,
+                    AppColors.loginBgLight,
+                  ],
+          ),
         ),
         child: SafeArea(
           child: _loading
@@ -240,66 +283,75 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
             ),
             child: Image.asset(
               'images/logo_met.png',
-              height: 80,
+              height: 72,
             ),
           ),
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 28),
 
           // Indicador de pasos
           StepIndicator(
             currentStep: _currentStep,
             isDark: isDark,
           ),
+
           const SizedBox(height: 24),
 
-          // Card principal
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: isDark ? AppColors.cardDark : AppColors.borderLight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Form(
-              key: _formKey,
-              child: _currentStep == 0
-                  ? ConnectionStep(
-                      isDark: isDark,
-                      loading: _loading,
-                      ipController: _ipController,
-                      portController: _portController,
-                      dbController: _dbController,
-                      dbUserController: _dbUserController,
-                      dbPassController: _dbPassController,
-                      onContinue: () => _executeSetup(context),
-                    )
-                  : UserCredentialsStep(
-                      isDark: isDark,
-                      loading: _loading,
-                      appUserController: _appUserController,
-                      appPassController: _appPassController,
-                      onBack: () => setState(() => _currentStep = 0),
-                      onFinish: () => _executeSetup(context),
+          // Card principal del formulario
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: isDark 
+                      ? AppColors.surfaceDark.withOpacity(0.6) 
+                      : Colors.white.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.glassBorder
+                        : Colors.white.withOpacity(0.5),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
+                  ],
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: _currentStep == 0
+                      ? ConnectionStep(
+                          isDark: isDark,
+                          loading: _loading,
+                          onContinue: () => _executeSetup(context),
+                        )
+                      : UserCredentialsStep(
+                          isDark: isDark,
+                          loading: _loading,
+                          appUserController: _appUserController,
+                          appPassController: _appPassController,
+                          onBack: () => setState(() => _currentStep = 0),
+                          onFinish: () => _executeSetup(context),
+                        ),
+                ),
+              ),
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          // Información
+          // Card de información del paso actual
           InfoCard(
             isDark: isDark,
             currentStep: _currentStep,
           ),
+
+          const SizedBox(height: 24),
         ],
       ),
     );

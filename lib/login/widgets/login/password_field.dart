@@ -1,18 +1,22 @@
-// lib/login/widgets/login/password_field.dart
+// Campo de contraseña reutilizable con soporte alfanumérico,
+// visibilidad alternable y validación integrada.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
   final bool isDark;
   final bool autofocus;
+  final bool alphanumeric;
 
   const PasswordField({
     super.key,
     required this.controller,
     required this.isDark,
     this.autofocus = true,
+    this.alphanumeric = false,
   });
 
   @override
@@ -32,14 +36,15 @@ class _PasswordFieldState extends State<PasswordField> {
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: widget.isDark ? Colors.white70 : Colors.black87,
+            color: widget.isDark ? Colors.white70 : AppColors.textPrimaryLight,
           ),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: widget.controller,
           obscureText: _obscurePassword,
-          keyboardType: TextInputType.number,
+          keyboardType:
+              widget.alphanumeric ? TextInputType.text : TextInputType.number,
           autofocus: widget.autofocus,
           style: GoogleFonts.inter(
             fontSize: 15,
@@ -48,19 +53,31 @@ class _PasswordFieldState extends State<PasswordField> {
           decoration: InputDecoration(
             hintText: 'Ingresa tu contraseña',
             hintStyle: GoogleFonts.inter(
-              color: widget.isDark ? Colors.white30 : Colors.black26,
+              color: widget.isDark ? Colors.white38 : Colors.black38,
+              fontSize: 14,
             ),
             filled: true,
             fillColor: widget.isDark
-                ? const Color(0xFF1a1a1a)
-                : const Color(0xFFF5F7FA),
+                ? Colors.white.withOpacity(0.05)
+                : Colors.black.withOpacity(0.03),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white12 : Colors.black12,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: widget.isDark ? Colors.white : AppColors.primary,
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -68,7 +85,7 @@ class _PasswordFieldState extends State<PasswordField> {
             ),
             prefixIcon: Icon(
               Icons.lock_outline_rounded,
-              color: widget.isDark ? Colors.white70 : Colors.black38,
+              color: widget.isDark ? Colors.white70 : AppColors.primary,
               size: 22,
             ),
             suffixIcon: IconButton(
@@ -76,7 +93,7 @@ class _PasswordFieldState extends State<PasswordField> {
                 _obscurePassword
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                color: widget.isDark ? Colors.white70 : Colors.black38,
+                color: widget.isDark ? Colors.white70 : AppColors.primary.withOpacity(0.6),
                 size: 22,
               ),
               onPressed: () {

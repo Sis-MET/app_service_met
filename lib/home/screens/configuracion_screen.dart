@@ -58,27 +58,22 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     final iconColor = isDark ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
 
     return Scaffold(
-      backgroundColor: bgColor,
       appBar: AppBar(
-        toolbarHeight: 64,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
         title: Text(
-          'CONFIGURACIÓN',
+          'Configuración',
           style: GoogleFonts.poppins(
-            fontSize: 17.0,
+            fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: titleColor,
-            letterSpacing: 0.4,
+            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            height: 1.1,
           ),
         ),
-        backgroundColor: cardColor, // Same as appbar in home
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: borderColor, height: 1),
-        ),
-        iconTheme: IconThemeData(color: iconColor),
-        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -253,32 +248,6 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               ],
             ),
           ),
-
-          // Footer
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-            child: Column(
-              children: [
-                Text(
-                  '© 2026 $appName. Todos los derechos reservados.',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Versión $appVersion',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: cs.onSurface.withOpacity(0.38),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -344,13 +313,13 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
         ),
       ),
-      trailing: Switch.adaptive(
+      trailing: Switch(
         value: value,
         onChanged: onChanged,
-        activeColor: cs.onSurface,
-        activeTrackColor: accent,
-        inactiveThumbColor: cs.onSurface.withOpacity(isDark ? 0.70 : 1.0),
-        inactiveTrackColor: cs.onSurface.withOpacity(isDark ? 0.24 : 0.12),
+        activeColor: Colors.white,
+        activeTrackColor: const Color(0xFF4CAF50),
+        inactiveThumbColor: isDark ? Colors.grey[400] : Colors.grey[600],
+        inactiveTrackColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
       ),
     );
   }

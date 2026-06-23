@@ -17,6 +17,7 @@ import 'package:service_met/providers/balanza_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/settings_provider.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/login/services/connection_profile_service.dart';
 import 'login/screens/initial_setup_screen.dart';
 import 'login/screens/login_screen.dart';
 import 'theme/app_theme.dart';
@@ -75,6 +76,7 @@ void main() async {
           create: (_) => ServiceSessionProvider(CalibrationRepository()),
         ),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => ConnectionProfileService()),
       ],
       child: MyApp(setupCompleted: setupCompleted),
     ),

@@ -1,69 +1,47 @@
-// lib/login/widgets/setup/connection_step.dart
-
-// ignore_for_file: deprecated_member_use
+// Paso 1 del setup: Configuración de conexión mediante perfiles.
+// Muestra selector de perfiles guardados y permite editar, agregar
+// o eliminar configuraciones de conexión al servidor.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:service_met/theme/app_colors.dart';
-import 'config_field.dart';
+import '../../services/connection_profile_service.dart';
+import 'connection_profile_selector.dart';
 
 class ConnectionStep extends StatelessWidget {
   final bool isDark;
   final bool loading;
-  final TextEditingController ipController;
-  final TextEditingController portController;
-  final TextEditingController dbController;
-  final TextEditingController dbUserController;
-  final TextEditingController dbPassController;
   final VoidCallback onContinue;
 
   const ConnectionStep({
     super.key,
     required this.isDark,
     required this.loading,
-    required this.ipController,
-    required this.portController,
-    required this.dbController,
-    required this.dbUserController,
-    required this.dbPassController,
     required this.onContinue,
   });
 
-  bool _isValidIP(String ip) {
-    final ipRegex = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
-    if (!ipRegex.hasMatch(ip)) return false;
-
-    final parts = ip.split('.');
-    for (var part in parts) {
-      final num = int.tryParse(part);
-      if (num == null || num < 0 || num > 255) return false;
-    }
-    return true;
-  }
-
-  bool _isValidPort(String port) {
-    final portNum = int.tryParse(port);
-    return portNum != null && portNum > 0 && portNum <= 65535;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final accent = AppColors.accentYellow;
+    final profileService = context.watch<ConnectionProfileService>();
+    final valores = profileService.getValoresConexion();
+    final tienePerfil = profileService.perfilSeleccionado != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Encabezado
         Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.1),
+                color: (isDark ? Colors.white : AppColors.primary).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 Icons.storage_outlined,
-                color: accent,
+                color: isDark ? Colors.white : AppColors.primary,
                 size: 28,
               ),
             ),
@@ -81,7 +59,7 @@ class ConnectionStep extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Configure la conexión al servidor',
+                    'Selecciona o agrega una configuración de conexión',
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       color: isDark ? Colors.white60 : Colors.black54,
@@ -92,94 +70,79 @@ class ConnectionStep extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 32),
-        ConfigField(
-          label: 'IP del Servidor',
-          controller: ipController,
-          icon: Icons.dns_outlined,
-          isDark: isDark,
-          isNumber: true,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
-            }
-            if (!_isValidIP(value)) {
-              return 'IP inválida';
-            }
-            return null;
-          },
+
+        const SizedBox(height: 24),
+
+        // Selector de perfiles
+        const Text(
+          'Perfiles de conexión',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        const SizedBox(height: 16),
-        ConfigField(
-          label: 'Puerto',
-          controller: portController,
-          icon: Icons.cable_outlined,
-          isDark: isDark,
-          isNumber: true,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
-            }
-            if (!_isValidPort(value)) {
-              return 'Puerto inválido (1-65535)';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        ConfigField(
-          label: 'Base de Datos',
-          controller: dbController,
-          icon: Icons.storage_outlined,
-          isDark: isDark,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        ConfigField(
-          label: 'Usuario BD',
-          controller: dbUserController,
-          icon: Icons.admin_panel_settings_outlined,
-          isDark: isDark,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        ConfigField(
-          label: 'Contraseña BD',
-          controller: dbPassController,
-          icon: Icons.vpn_key_outlined,
-          isDark: isDark,
-          isPassword: true,
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Este campo es requerido';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 8),
+        ConnectionProfileSelector(isDark: isDark),
+
+        const SizedBox(height: 24),
+
+        // Vista previa de la configuración seleccionada
+        if (tienePerfil) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.success.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.success.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle,
+                        size: 16, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Configuración seleccionada',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _infoRow('Servidor', valores['ip']!, valores['port']!),
+                const SizedBox(height: 8),
+                _infoRow('Base de Datos', valores['database']!, ''),
+                const SizedBox(height: 8),
+                _infoRow('Usuario BD', valores['username']!, ''),
+              ],
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 28),
+
+        // Botón validar
         SizedBox(
           width: double.infinity,
           height: 54,
           child: ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: const Color(0xFF1A1A1A),
-              elevation: 0,
+              backgroundColor: isDark ? Colors.white : AppColors.primary,
+              foregroundColor: isDark ? const Color(0xFF292929) : Colors.white,
+              elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
-            onPressed: loading ? null : onContinue,
+            onPressed: (loading || !tienePerfil) ? null : onContinue,
             icon: const Icon(Icons.arrow_forward),
             label: Text(
               'Validar Conexión y Continuar',
@@ -187,6 +150,34 @@ class ConnectionStep extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _infoRow(String label, String value, String extra) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            extra.isNotEmpty ? '$value:$extra' : value,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
             ),
           ),
         ),

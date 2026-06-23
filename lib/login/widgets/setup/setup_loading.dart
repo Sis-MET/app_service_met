@@ -1,6 +1,5 @@
-// lib/login/widgets/setup/setup_loading.dart
-
-// ignore_for_file: deprecated_member_use
+// Pantalla de carga durante la configuración inicial.
+// Muestra el progreso de descarga de datos con indicador visual mejorado.
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,12 +37,22 @@ class SetupLoading extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.cloud_download_rounded,
-              size: 64,
-              color: AppColors.success,
+            // Icono con animación de brillo
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.cloud_download_rounded,
+                size: 48,
+                color: AppColors.success,
+              ),
             ),
+
             const SizedBox(height: 24),
+
             Text(
               'Configurando Aplicación',
               style: GoogleFonts.poppins(
@@ -52,33 +61,49 @@ class SetupLoading extends StatelessWidget {
                 color: isDark ? Colors.white : Colors.black87,
               ),
             ),
+
             const SizedBox(height: 16),
-            Text(
-              statusMessage,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: isDark ? Colors.white70 : Colors.black54,
+
+            // Mensaje de estado con estilo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                statusMessage,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+
+            const SizedBox(height: 28),
+
+            // Barra de progreso
             Column(
               children: [
-                LinearProgressIndicator(
-                  value: progressValue,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.success,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progressValue,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.success,
+                    ),
+                    minHeight: 10,
                   ),
-                  minHeight: 8,
-                  borderRadius: BorderRadius.circular(4),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   '${(progressValue * 100).toInt()}%',
                   style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.success,
                   ),
                 ),
