@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class LinealidadStep extends StatefulWidget {
   const LinealidadStep({super.key});
@@ -25,6 +26,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
   String? _metodoCarga;
   bool _cargasValidadas = false;
   int _cargasPatronValidadas = 0;
+  bool _hasCheckedPrevData = false;
   final _notaCtrl = TextEditingController();
 
   List<TextEditingController> _cargaCtrls = [];
@@ -34,7 +36,10 @@ class _LinealidadStepState extends State<LinealidadStep> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initFromSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _initFromSession();
+      await _checkPreviousServiceData();
+    });
   }
 
   void _initFromSession() {
@@ -66,6 +71,79 @@ class _LinealidadStepState extends State<LinealidadStep> {
     }
 
     if (mounted) setState(() {});
+  }
+
+  /// Verifica si hay datos del servicio anterior para precargar cargas.
+  Future<void> _checkPreviousServiceData() async {
+    if (_hasCheckedPrevData) return;
+    _hasCheckedPrevData = true;
+
+    if (!mounted) return;
+    final provider = context.read<ServiceSessionProvider>();
+
+    final codMetrica = provider.session?.balanza?.codMetrica;
+    if (codMetrica != null && codMetrica.isNotEmpty) {
+      await provider.loadPreviousServiceData(codMetrica);
+    }
+
+    final prev = provider.previousServiceData;
+    if (prev == null) return;
+
+    final linValues = <String>[];
+    for (int i = 1; i <= 13; i++) {
+      final val = prev['lin$i']?.toString() ?? '';
+      if (val.isNotEmpty) linValues.add(val);
+    }
+
+    if (linValues.isEmpty) {
+      TopAlert.show(context,
+          'No hay datos del servicio anterior para Linealidad');
+      return;
+    }
+
+    if (_cargaCtrls.isNotEmpty &&
+        _cargaCtrls.any((c) => c.text.trim().isNotEmpty)) {
+      return;
+    }
+
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Linealidad - Servicio anterior'),
+        content: Text(
+            'Se encontraron cargas registradas del servicio anterior:\n\n'
+            '${linValues.join(', ')}\n\n'
+            '¿Desea usar estos valores?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No usar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Usar datos'),
+          ),
+        ],
+      ),
+    ).then((accepted) {
+      if (!mounted) return;
+      if (accepted == true) {
+        final count = linValues.length;
+        setState(() {
+          _buildControllers(count);
+          for (int i = 0; i < count; i++) {
+            _cargaCtrls[i].text = linValues[i];
+            _indCtrls[i].text = linValues[i];
+          }
+        });
+        _saveToProvider();
+      }
+    });
   }
 
   void _parseValidationState(String? raw) {

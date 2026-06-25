@@ -49,7 +49,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
       _cargasCtrl.text = pa.cargasPesas ?? '';
       setState(() {
         _ajusteRealizado = pa.ajusteRealizado ?? false;
-        _tipoAjuste = pa.tipoAjuste;
+        _tipoAjuste = pa.tipoAjuste?.isNotEmpty == true ? pa.tipoAjuste : null;
         _ajusteExterno = pa.tipoAjuste == 'Externo';
         // Build rows
         _rows = pa.precargas
@@ -220,7 +220,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               if (_ajusteRealizado) ...[
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: _tipoAjuste,
+                  value: _tipoAjuste?.isNotEmpty == true ? _tipoAjuste : null,
                   decoration: _deco('Tipo de Ajuste', isDark),
                   hint: const Text('Seleccione'),
                   borderRadius: BorderRadius.circular(12),

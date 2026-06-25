@@ -16,7 +16,7 @@ class ConfiguracionScreen extends StatefulWidget {
 }
 
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
-  String appVersion = '4.8.3';
+  String appVersion = '5.1.0';
   String appName = 'METRICA LTDA';
   bool syncBackground = true;
   bool notifications = true;
@@ -51,11 +51,13 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
     final accent = cs.primary;
-    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final bgColor =
+        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final titleColor = cs.onSurface;
-    final iconColor = isDark ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
+    final iconColor =
+        isDark ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
 
     return Scaffold(
       appBar: AppBar(
@@ -119,7 +121,8 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                   style: GoogleFonts.inter(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                  color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
+                                    color: cs.onSurface
+                                        .withOpacity(isDark ? 1.0 : 0.87),
                                   ),
                                 ),
                               ],
@@ -148,7 +151,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                 Text('A',
                                     style: GoogleFonts.inter(
                                         fontSize: 20,
-                                      color: cs.onSurface.withOpacity(0.54),
+                                        color: cs.onSurface.withOpacity(0.54),
                                         fontWeight: FontWeight.w500)),
                               ],
                             ),

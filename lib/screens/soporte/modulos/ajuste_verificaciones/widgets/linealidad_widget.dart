@@ -166,13 +166,21 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
     }
 
     setState(() {
+      final iLsubn = double.tryParse(
+            _iLsubnController.text.replaceAll(',', '.'),
+          ) ??
+          0.0;
+      final io = double.tryParse(
+            _ioController.text.replaceAll(',', '.'),
+          ) ??
+          0.0;
+      final expectedValue = (iLsubn + io).toStringAsFixed(2);
+
       // Buscar primera fila vacía
       for (int i = 0; i < widget.linealidad.puntos.length; i++) {
         if (widget.linealidad.puntos[i].lt.isEmpty) {
-          widget.linealidad.puntos[i].lt = _ltnController.text;
-          widget.linealidad.puntos[i].indicacion = _ltnController.text;
-          _ltControllers[i].text = _ltnController.text;
-          _indicacionControllers[i].text = _ltnController.text;
+          widget.linealidad.puntos[i].lt = expectedValue;
+          _ltControllers[i].text = expectedValue;
           _actualizarUltimaCarga();
           _limpiarCampos();
           return;
@@ -183,10 +191,8 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
       if (widget.linealidad.puntos.length < 12) {
         _agregarFila();
         final lastIndex = widget.linealidad.puntos.length - 1;
-        widget.linealidad.puntos[lastIndex].lt = _ltnController.text;
-        widget.linealidad.puntos[lastIndex].indicacion = _ltnController.text;
-        _ltControllers[lastIndex].text = _ltnController.text;
-        _indicacionControllers[lastIndex].text = _ltnController.text;
+        widget.linealidad.puntos[lastIndex].lt = expectedValue;
+        _ltControllers[lastIndex].text = expectedValue;
         _actualizarUltimaCarga();
         _limpiarCampos();
       }
@@ -355,7 +361,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                 controller: _lsubnController,
                 decoration: _buildInputDecoration('Lsubn'),
                 readOnly: true,
-                style: const TextStyle(color: Colors.lightGreen),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
           ],
@@ -381,7 +387,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                 controller: _ltnController,
                 decoration: _buildInputDecoration('LTn'),
                 readOnly: true,
-                style: const TextStyle(color: Colors.lightGreen),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
           ],

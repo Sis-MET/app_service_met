@@ -408,6 +408,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               _fillFromBalanzaInfo(balanzaFromProvider);
             }
             _saveToProvider(provider);
+            provider.loadPreviousServiceData(
+                balanzaFromProvider.codMetrica ?? '');
           });
         }
 
@@ -525,6 +527,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               _e3Ctrl.text = '0';
               _dec3Ctrl.text = '0';
               _saveToProvider(provider);
+              provider.clearPreviousServiceData();
             },
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nuevo'),
@@ -1152,6 +1155,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     });
     _fillFromMap(match);
     _saveToProvider(provider);
+    provider.loadPreviousServiceData(codMetrica);
     TopAlert.show(context, 'Instrumento identificado: $codMetrica');
   }
 
@@ -1290,6 +1294,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
                               });
                               _fillFromMap(b);
                               _saveToProvider(provider);
+                              provider.loadPreviousServiceData(
+                                  b['cod_metrica']?.toString() ?? '');
                               Navigator.pop(ctx);
                             },
                             child: Container(

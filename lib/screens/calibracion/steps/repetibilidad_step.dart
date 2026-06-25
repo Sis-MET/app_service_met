@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class RepetibilidadStep extends StatefulWidget {
   const RepetibilidadStep({super.key});
@@ -21,6 +22,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   String? _cargasCount;
   String? _medicionesCount;
 
+  bool _hasCheckedPrevData = false;
   List<TextEditingController> _cargasCtrls = [];
   List<List<TextEditingController>> _indCtrls = [];
   List<List<TextEditingController>> _retCtrls = [];
@@ -29,7 +31,10 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initFromSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _initFromSession();
+      await _checkPreviousServiceData();
+    });
   }
 
   void _initFromSession() {
@@ -57,6 +62,82 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         }
       }
     }
+  }
+
+  /// Verifica si hay datos del servicio anterior para precargar cargas.
+  Future<void> _checkPreviousServiceData() async {
+    if (_hasCheckedPrevData) return;
+    _hasCheckedPrevData = true;
+
+    if (!mounted) return;
+    final provider = context.read<ServiceSessionProvider>();
+
+    final codMetrica = provider.session?.balanza?.codMetrica;
+    if (codMetrica != null && codMetrica.isNotEmpty) {
+      await provider.loadPreviousServiceData(codMetrica);
+    }
+
+    final prev = provider.previousServiceData;
+    if (prev == null) return;
+
+    final repValues = <String>[];
+    for (int i = 1; i <= 3; i++) {
+      final val = prev['rep$i']?.toString() ?? '';
+      if (val.isNotEmpty) repValues.add(val);
+    }
+
+    if (repValues.isEmpty) {
+      TopAlert.show(context,
+          'No hay datos del servicio anterior para Repetibilidad');
+      return;
+    }
+
+    if (_cargasCount != null) return;
+
+    final valoresStr = repValues.join(', ');
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Repetibilidad - Servicio anterior'),
+        content: Text(
+            'Se encontraron cargas registradas del servicio anterior:\n\n'
+            'Cargas: $valoresStr\n\n'
+            '¿Desea usar estos valores?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No usar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Usar datos'),
+          ),
+        ],
+      ),
+    ).then((accepted) {
+      if (!mounted) return;
+      if (accepted == true) {
+        final nCargas = repValues.length;
+        const nMediciones = 3;
+        setState(() {
+          _cargasCount = nCargas.toString();
+          _medicionesCount = nMediciones.toString();
+          _buildControllers(nCargas, nMediciones);
+          for (int i = 0; i < nCargas; i++) {
+            _cargasCtrls[i].text = repValues[i];
+            for (int j = 0; j < nMediciones; j++) {
+              _indCtrls[i][j].text = repValues[i];
+            }
+          }
+        });
+        _saveToProvider();
+      }
+    });
   }
 
   void _buildControllers(int nCargas, int nMediciones) {

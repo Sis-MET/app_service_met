@@ -134,13 +134,19 @@ class CalibrationRepository {
     return await _precargaDb.getEquipamientos();
   }
 
+  /// Obtiene el último servicio registrado para un código métrica.
+  /// Busca en la tabla `servicios` de la precarga con query optimizada.
+  /// Retorna null si no hay servicios anteriores.
   Future<Map<String, dynamic>?> getServicioAnterior(String codMetrica) async {
-    final allServices = await _precargaDb.getServicios();
-    try {
-      return allServices.firstWhere((s) => s['cod_metrica'] == codMetrica);
-    } catch (e) {
-      return null;
-    }
+    final db = await _precargaDb.database;
+    final results = await db.query(
+      'servicios',
+      where: 'cod_metrica = ?',
+      whereArgs: [codMetrica],
+      orderBy: 'reg_fecha DESC',
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
   }
 
   // --- Servicios incompletos ---

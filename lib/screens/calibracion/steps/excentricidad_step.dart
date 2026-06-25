@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/utils/top_alert.dart';
 
 class ExcentricidadStep extends StatefulWidget {
   const ExcentricidadStep({super.key});
@@ -26,6 +27,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
   String? _puntosIndicacion;
   int? _selectedPosition;
   String? _posicionIndicador;
+  bool _hasCheckedPrevData = false;
   final _cargaCtrl = TextEditingController();
   final _notaCtrl = TextEditingController();
   List<List<TextEditingController>> _rows = []; // [indicacion, retorno]
@@ -101,7 +103,10 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initFromSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _initFromSession();
+      await _checkPreviousServiceData();
+    });
   }
 
   void _initFromSession() {
@@ -126,6 +131,69 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       });
     }
     if (_rows.isEmpty) _buildDefaultRows(4);
+    _hasCheckedPrevData = false;
+  }
+
+  /// Verifica si hay datos del servicio anterior para precargar la carga.
+  Future<void> _checkPreviousServiceData() async {
+    if (_hasCheckedPrevData) return;
+    _hasCheckedPrevData = true;
+
+    if (!mounted) return;
+    final provider = context.read<ServiceSessionProvider>();
+
+    // Cargar datos del servicio anterior para la balanza actual
+    final codMetrica = provider.session?.balanza?.codMetrica;
+    if (codMetrica != null && codMetrica.isNotEmpty) {
+      await provider.loadPreviousServiceData(codMetrica);
+    }
+
+    final prev = provider.previousServiceData;
+    if (prev == null) return;
+
+    final exc = prev['exc']?.toString() ?? '';
+    if (exc.isEmpty) {
+      TopAlert.show(context,
+          'No hay datos del servicio anterior para Excentricidad');
+      return;
+    }
+
+    // Solo preguntar si la carga está vacía (el step no tiene datos)
+    if (_cargaCtrl.text.isNotEmpty) return;
+
+    showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excentricidad - Servicio anterior'),
+        content: Text(
+            'Se encontró una carga registrada del servicio anterior:\n\n'
+            'Carga: $exc\n\n'
+            '¿Desea usar este valor?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No usar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Usar datos'),
+          ),
+        ],
+      ),
+    ).then((accepted) {
+      if (!mounted) return;
+      if (accepted == true) {
+        setState(() {
+          _cargaCtrl.text = exc;
+        });
+        _reflectCargaToIndicaciones();
+      }
+    });
   }
 
   void _buildDefaultRows(int count) {

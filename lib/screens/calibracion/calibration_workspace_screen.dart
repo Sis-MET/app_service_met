@@ -734,7 +734,7 @@ class _CalibrationWorkspaceScreenState
       width: 44,
       height: 44,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        color: Colors.amber,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -745,7 +745,7 @@ class _CalibrationWorkspaceScreenState
         ],
       ),
       child: IconButton(
-        icon: const Icon(Icons.info_outline, color: Colors.white, size: 22),
+        icon: const Icon(Icons.info_outline, color: Colors.black87, size: 22),
         onPressed: () {
           final b = provider.session?.balanza;
           final eq = provider.session?.equipos ?? [];
@@ -800,12 +800,6 @@ class _CalibrationWorkspaceScreenState
               ),
               Row(
                 children: [
-                  Icon(Icons.scale,
-                      size: 22,
-                      color: isDark
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 10),
                   Text('Información del Instrumento',
                       style: GoogleFonts.poppins(
                           fontSize: 18,

@@ -20,11 +20,15 @@ class _ExportacionStepState extends State<ExportacionStep> {
   String? _regla;
   final _indicarCtrl = TextEditingController();
   final _factorCtrl = TextEditingController();
+  int _balanzasCount = 0;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _initFromSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initFromSession();
+      _loadBalanzasCount();
+    });
   }
 
   void _initFromSession() {
@@ -43,6 +47,16 @@ class _ExportacionStepState extends State<ExportacionStep> {
         _factorCtrl.text = exp.factorSeguridad ?? '';
       });
     }
+  }
+
+  Future<void> _loadBalanzasCount() async {
+    if (!mounted) return;
+    final provider = context.read<ServiceSessionProvider>();
+    final seca = provider.session?.sessionInfo.seca;
+    if (seca == null || seca.isEmpty) return;
+    final registros = await provider.getRegistrosCompletos(seca, soloHoy: false);
+    if (!mounted) return;
+    setState(() => _balanzasCount = registros.length);
   }
 
   void _saveToProvider() {
@@ -147,7 +161,22 @@ class _ExportacionStepState extends State<ExportacionStep> {
       return;
     }
 
-    final success = await provider.exportToCSV(registros);
+    final datosCert = await _showCertificadoDialog(isDark);
+    if (datosCert == null || !mounted) return;
+
+    // Aplicar datos del certificado a todas las filas exportadas
+    final registrosConCert = registros.map((r) => ({
+      ...r,
+      ...datosCert,
+    })).toList();
+
+    _emp = datosCert['emp'];
+    _indicarCtrl.text = datosCert['indicar'] ?? '';
+    _factorCtrl.text = datosCert['factor'] ?? '';
+    _regla = datosCert['regla_aceptacion'];
+    _saveToProvider();
+
+    final success = await provider.exportToCSV(registrosConCert);
     if (!mounted) return;
 
     if (success) {
@@ -159,6 +188,129 @@ class _ExportacionStepState extends State<ExportacionStep> {
     } else {
       TopAlert.show(context, 'Error al exportar CSV', isError: true);
     }
+  }
+
+  /// Muestra un diálogo para ingresar los datos del certificado.
+  /// Retorna un mapa con los valores si el usuario confirma, null si cancela.
+  Future<Map<String, String>?> _showCertificadoDialog(bool isDark) async {
+    final empCtrl = TextEditingController(text: _emp ?? '');
+    final indicarCtrl = TextEditingController(text: _indicarCtrl.text);
+    final factorCtrl = TextEditingController(text: _factorCtrl.text);
+    String regla = _regla ?? '';
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.verified_outlined,
+                    color: isDark ? Colors.green[300] : Colors.green[700],
+                    size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text('Datos del Certificado',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)))),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Ingrese los datos para el certificado de calibración:',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white60 : Colors.black54),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: const ['Sí', 'No'].contains(empCtrl.text)
+                        ? empCtrl.text
+                        : null,
+                    decoration: _deco('EMP NB 23001', isDark),
+                    dropdownColor:
+                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                    items: ['Sí', 'No']
+                        .map((v) =>
+                            DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) {
+                      setDialogState(() => empCtrl.text = v ?? '');
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(
+                        child: TextField(
+                      style: GoogleFonts.inter(
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                      controller: indicarCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: _deco('Indicar (%)', isDark),
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(
+                        child: TextField(
+                      style: GoogleFonts.inter(
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                      controller: factorCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: _deco('Factor Seguridad', isDark),
+                    )),
+                  ]),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: const ['Ninguna', 'Simple', 'Conservadora']
+                            .contains(regla)
+                        ? regla
+                        : null,
+                    decoration: _deco('Regla de Aceptación', isDark),
+                    dropdownColor:
+                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                    items: ['Ninguna', 'Simple', 'Conservadora']
+                        .map((v) =>
+                            DropdownMenuItem(value: v, child: Text(v)))
+                        .toList(),
+                    onChanged: (v) {
+                      setDialogState(() => regla = v ?? '');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancelar',
+                    style: TextStyle(
+                        color: isDark ? Colors.white60 : Colors.black54)),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, {
+                  'emp': empCtrl.text,
+                  'indicar': indicarCtrl.text,
+                  'factor': factorCtrl.text,
+                  'regla_aceptacion': regla,
+                }),
+                child: const Text('Continuar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return result;
   }
 
   Widget _opcionExportacion(
@@ -238,58 +390,6 @@ class _ExportacionStepState extends State<ExportacionStep> {
               _buildHeader(isDark),
               const SizedBox(height: 20),
               _buildResumenCard(seca, cod, isDark),
-              const SizedBox(height: 24),
-              _sectionHeader('Datos para el Certificado', isDark),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _emp,
-                decoration: _deco('EMP NB 23001', isDark),
-                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                items: ['Sí', 'No']
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() => _emp = v);
-                  _saveToProvider();
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: TextField(
-                        style: GoogleFonts.inter(
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A)),
-                        controller: _indicarCtrl,
-                        onChanged: (_) => _saveToProvider(),
-                        keyboardType: TextInputType.number,
-                        decoration: _deco('Indicar (%)', isDark))),
-                const SizedBox(width: 12),
-                Expanded(
-                    child: TextField(
-                        style: GoogleFonts.inter(
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A)),
-                        controller: _factorCtrl,
-                        onChanged: (_) => _saveToProvider(),
-                        keyboardType: TextInputType.number,
-                        decoration: _deco('Factor Seguridad', isDark))),
-              ]),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _regla,
-                decoration: _deco('Regla de Aceptación', isDark),
-                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                items: ['Ninguna', 'Simple', 'Conservadora']
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                    .toList(),
-                onChanged: (v) {
-                  setState(() => _regla = v);
-                  _saveToProvider();
-                },
-              ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -396,7 +496,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
           const SizedBox(height: 16),
           _row('SECA', seca, isDark),
           const SizedBox(height: 8),
-          _row('Código Métrica', cod, isDark),
+          _row('Balanzas calibradas', '$_balanzasCount', isDark),
           const SizedBox(height: 8),
           _row('Fecha', DateFormat('dd MMM yyyy').format(DateTime.now()),
               isDark),
@@ -432,17 +532,6 @@ class _ExportacionStepState extends State<ExportacionStep> {
         ),
       ],
     );
-  }
-
-  Widget _sectionHeader(String title, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(title,
-          style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-    ).animate().fadeIn();
   }
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(

@@ -174,13 +174,21 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
     }
 
     setState(() {
+      final iLsubn = double.tryParse(
+            _iLsubnController.text.replaceAll(',', '.'),
+          ) ??
+          0.0;
+      final io = double.tryParse(
+            _ioController.text.replaceAll(',', '.'),
+          ) ??
+          0.0;
+      final expectedValue = (iLsubn + io).toStringAsFixed(2);
+
       // Buscar primera fila vacía
       for (int i = 0; i < widget.linealidad.puntos.length; i++) {
         if (widget.linealidad.puntos[i].lt.isEmpty) {
-          widget.linealidad.puntos[i].lt = _ltnController.text;
-          widget.linealidad.puntos[i].indicacion = _ltnController.text;
-          _ltControllers[i].text = _ltnController.text;
-          _indicacionControllers[i].text = _ltnController.text;
+          widget.linealidad.puntos[i].lt = expectedValue;
+          _ltControllers[i].text = expectedValue;
           _actualizarUltimaCarga();
           _limpiarCampos();
           return;
@@ -191,10 +199,8 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
       if (widget.linealidad.puntos.length < 12) {
         _agregarFila();
         final lastIndex = widget.linealidad.puntos.length - 1;
-        widget.linealidad.puntos[lastIndex].lt = _ltnController.text;
-        widget.linealidad.puntos[lastIndex].indicacion = _ltnController.text;
-        _ltControllers[lastIndex].text = _ltnController.text;
-        _indicacionControllers[lastIndex].text = _ltnController.text;
+        widget.linealidad.puntos[lastIndex].lt = expectedValue;
+        _ltControllers[lastIndex].text = expectedValue;
         _actualizarUltimaCarga();
         _limpiarCampos();
       }
@@ -467,19 +473,20 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                      color: Colors.grey[100],
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!)),
+                      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text('Total Carga (LT): ${totalLt.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16,
+                              color: Theme.of(context).colorScheme.onSurface)),
                       Text('Indicación Est.: ${totalInd.toStringAsFixed(2)}',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                              color: Theme.of(context).colorScheme.primary,
                               fontSize: 16)),
                     ],
                   ),
@@ -497,17 +504,16 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white),
                       onPressed: () {
-                        // Aplicar valores a los controladores
-                        _ltControllers[currentIndex].text =
-                            totalLt.toStringAsFixed(2);
-                        _indicacionControllers[currentIndex].text =
+                        final expectedValue =
                             totalInd.toStringAsFixed(2);
 
-                        // Actualizar modelo
+                        // Aplicar valor esperado al controlador LT
+                        _ltControllers[currentIndex].text =
+                            expectedValue;
+
+                        // Actualizar modelo (lt = suma + error, indicacion la ingresa el usuario)
                         widget.linealidad.puntos[currentIndex].lt =
-                            totalLt.toStringAsFixed(2);
-                        widget.linealidad.puntos[currentIndex].indicacion =
-                            totalInd.toStringAsFixed(2);
+                            expectedValue;
 
                         _actualizarUltimaCarga();
                         _calcularDiferencia(currentIndex);
@@ -692,7 +698,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                 controller: _lsubnController,
                 decoration: _buildInputDecoration('Lsubn'),
                 readOnly: true,
-                style: const TextStyle(color: Colors.lightGreen),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
           ],
@@ -718,7 +724,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                 controller: _ltnController,
                 decoration: _buildInputDecoration('LTn'),
                 readOnly: true,
-                style: const TextStyle(color: Colors.lightGreen),
+                style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
           ],

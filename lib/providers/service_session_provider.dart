@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/utils/foto_helper.dart';
 
 class ServiceSessionProvider extends ChangeNotifier {
   final CalibrationRepository _repository;
@@ -52,6 +54,30 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool get addingNuevaBalanza => _addingNuevaBalanza;
   set addingNuevaBalanza(bool v) {
     _addingNuevaBalanza = v;
+    notifyListeners();
+  }
+
+  // --- Datos del servicio anterior ---
+
+  Map<String, dynamic>? _previousServiceData;
+
+  /// Datos del último servicio registrado para la balanza seleccionada.
+  Map<String, dynamic>? get previousServiceData => _previousServiceData;
+
+  /// Carga los datos del último servicio desde la precarga para el código métrica dado.
+  /// Si el código es el mismo que ya está cargado, no vuelve a consultar.
+  Future<void> loadPreviousServiceData(String codMetrica) async {
+    if (_previousServiceData != null &&
+        _session?.sessionInfo.codMetrica == codMetrica) {
+      return;
+    }
+    _previousServiceData = await _repository.getServicioAnterior(codMetrica);
+    notifyListeners();
+  }
+
+  /// Limpia los datos del servicio anterior (ej. al cambiar de balanza).
+  void clearPreviousServiceData() {
+    _previousServiceData = null;
     notifyListeners();
   }
 
@@ -748,6 +774,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   // --- Resetear sesión para nueva balanza (conserva cliente, planta, seca) ---
 
   Future<void> resetearParaNuevaBalanza() async {
+    clearPreviousServiceData();
     final old = _session;
     if (old == null) return;
     final seca = old.sessionInfo.seca;
@@ -816,16 +843,24 @@ class ServiceSessionProvider extends ChangeNotifier {
 
       final bytes = buffer.toString().codeUnits;
 
-      // Guardar en directorio de descargas
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
+      // Guardar junto a las fotos: {baseFotos}/calibracion_fotos/{seca}/
       final fecha = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final seca = _session?.sessionInfo.seca ?? 'SIN_SECA';
+      String dirPath;
+      try {
+        final baseFotos = await FotoHelper.getBaseDir();
+        dirPath = p.join(baseFotos.path, seca);
+      } catch (_) {
+        final appDir = await getApplicationDocumentsDirectory();
+        dirPath = p.join(appDir.path, 'calibracion_csv', seca);
+      }
+      final dir = Directory(dirPath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
       final fileName = '${seca}_$fecha.csv';
-      final file = File(p.join(downloadsDir.path, fileName));
+      final file = File(p.join(dir.path, fileName));
       await file.writeAsBytes(bytes);
 
       debugPrint('CSV exportado exitosamente: ${file.path}');
