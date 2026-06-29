@@ -1142,12 +1142,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
         );
 
     if (match == null) {
+      if (!mounted) return;
       TopAlert.show(context,
           'El código QR no pertenece al cliente y planta seleccionados',
           isError: true);
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       _selectedBalanza = match;
       _isNewBalanza = false;
@@ -1155,7 +1157,12 @@ class _BalanzaStepState extends State<BalanzaStep> {
     });
     _fillFromMap(match);
     _saveToProvider(provider);
-    provider.loadPreviousServiceData(codMetrica);
+    try {
+      await provider.loadPreviousServiceData(codMetrica);
+    } catch (_) {
+      // Error silencioso: datos del servicio anterior no críticos
+    }
+    if (!mounted) return;
     TopAlert.show(context, 'Instrumento identificado: $codMetrica');
   }
 

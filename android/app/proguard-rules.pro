@@ -25,3 +25,11 @@
 # Reglas para mssql_connection
 -keep class com.example.mssql_connection.** { *; }
 -dontwarn com.example.mssql_connection.**
+
+# Reglas para mobile_scanner / ML Kit
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+-keep class com.google.android.gms.vision.** { *; }
+-dontwarn com.google.android.gms.vision.**
+-keep class com.mlkit.** { *; }
+-dontwarn com.mlkit.**

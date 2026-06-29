@@ -883,6 +883,7 @@ class CondicionesFinales {
       reemplazo,
       observaciones;
   final List<String>? fotosPaths;
+  final List<String>? fotosFinalesPaths;
   final List<EquipoInfo> pesasSeleccionadas;
 
   CondicionesFinales(
@@ -895,6 +896,7 @@ class CondicionesFinales {
       this.reemplazo,
       this.observaciones,
       this.fotosPaths,
+      this.fotosFinalesPaths,
       this.pesasSeleccionadas = const []});
 
   CondicionesFinales copyWith(
@@ -907,6 +909,7 @@ class CondicionesFinales {
       String? reemplazo,
       String? observaciones,
       List<String>? fotosPaths,
+      List<String>? fotosFinalesPaths,
       List<EquipoInfo>? pesasSeleccionadas}) {
     return CondicionesFinales(
       horaFin: horaFin ?? this.horaFin,
@@ -918,6 +921,7 @@ class CondicionesFinales {
       reemplazo: reemplazo ?? this.reemplazo,
       observaciones: observaciones ?? this.observaciones,
       fotosPaths: fotosPaths ?? this.fotosPaths,
+      fotosFinalesPaths: fotosFinalesPaths ?? this.fotosFinalesPaths,
       pesasSeleccionadas: pesasSeleccionadas ?? this.pesasSeleccionadas,
     );
   }

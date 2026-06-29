@@ -110,8 +110,9 @@ void main() {
 
   var loadEqBlock =
       getBlockWithBraces(balanzaCode, '  Future<void> _loadEquipamientos()');
-  if (loadEqBlock.isNotEmpty)
+  if (loadEqBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(loadEqBlock, '');
+  }
 
   balanzaCode = balanzaCode.replaceAll(
       '    provider.updateEquipos([..._selectedPesas, ..._selectedMedicion]);\n',
@@ -121,34 +122,48 @@ void main() {
       '');
 
   // Remove extracted blocks from balanza
-  if (buildEqBlock.isNotEmpty)
+  if (buildEqBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(buildEqBlock, '');
-  if (emptyHintBlock.isNotEmpty)
+  }
+  if (emptyHintBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(emptyHintBlock, '');
-  if (selectedTileBlock.isNotEmpty)
+  }
+  if (selectedTileBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(selectedTileBlock, '');
-  if (isPesaTipoBlock.isNotEmpty)
+  }
+  if (isPesaTipoBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(isPesaTipoBlock, '');
-  if (instrumentTypeBlock.isNotEmpty)
+  }
+  if (instrumentTypeBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(instrumentTypeBlock, '');
-  if (instrumentSectionBlock.isNotEmpty)
+  }
+  if (instrumentSectionBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(instrumentSectionBlock, '');
-  if (buildGroupedListBlock.isNotEmpty)
+  }
+  if (buildGroupedListBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(buildGroupedListBlock, '');
-  if (buildEquipoCardBlock.isNotEmpty)
+  }
+  if (buildEquipoCardBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(buildEquipoCardBlock, '');
-  if (certStatusBlock.isNotEmpty)
+  }
+  if (certStatusBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(certStatusBlock, '');
-  if (equipoFromMapBlock.isNotEmpty)
+  }
+  if (equipoFromMapBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(equipoFromMapBlock, '');
-  if (saveEquipoSelectionBlock.isNotEmpty)
+  }
+  if (saveEquipoSelectionBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(saveEquipoSelectionBlock, '');
-  if (editCantidadBlock.isNotEmpty)
+  }
+  if (editCantidadBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(editCantidadBlock, '');
-  if (showEquipamientosDialogBlock.isNotEmpty)
+  }
+  if (showEquipamientosDialogBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(showEquipamientosDialogBlock, '');
-  if (certStatusClassBlock.isNotEmpty)
+  }
+  if (certStatusClassBlock.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(certStatusClassBlock, '');
+  }
 
   // Modify condiciones
   condicionesCode = condicionesCode.replaceFirst(

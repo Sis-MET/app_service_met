@@ -801,6 +801,7 @@ class _ClienteStepState extends State<ClienteStep> {
     );
     if (codMetrica == null || !mounted) return;
 
+    final navigator = Navigator.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -825,12 +826,16 @@ class _ClienteStepState extends State<ClienteStep> {
     try {
       error = await provider.processQrCode(codMetrica);
     } catch (e) {
+      if (!mounted) return;
       provider.clearQrMode();
       error = 'Error al procesar QR: $e';
     }
 
+    if (navigator.context.mounted) {
+      navigator.pop();
+    }
+
     if (!mounted) return;
-    Navigator.pop(context);
 
     if (error != null) {
       TopAlert.show(context, error, isError: true);

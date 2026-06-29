@@ -21,9 +21,15 @@ class _LinealidadStepState extends State<LinealidadStep> {
     'Ascenso evaluando a ceros',
     'Ascenso Continuo por pasos',
   ];
+  static const _metodoCargasSustitutivasOptions = [
+    'Sin método',
+    'Método 1',
+    'Método 2',
+  ];
   static const _maxPuntos = 60;
 
   String? _metodoCarga;
+  String? _metodoCargasSustitutivas;
   bool _cargasValidadas = false;
   int _cargasPatronValidadas = 0;
   bool _hasCheckedPrevData = false;
@@ -51,7 +57,10 @@ class _LinealidadStepState extends State<LinealidadStep> {
     _metodoCarga = _metodoCargaOptions.contains(lin.metodo)
         ? lin.metodo
         : null;
-    _parseValidationState(lin.metodoCarga);
+    _metodoCargasSustitutivas =
+        _metodoCargasSustitutivasOptions.contains(lin.metodoCarga)
+            ? lin.metodoCarga
+            : null;
 
     if (lin.filas.isNotEmpty) {
       _buildControllers(lin.filas.length.clamp(1, _maxPuntos));
@@ -71,6 +80,11 @@ class _LinealidadStepState extends State<LinealidadStep> {
     }
 
     if (mounted) setState(() {});
+  }
+
+  void _onMetodoCargasSustitutivasChanged(String? v) {
+    setState(() => _metodoCargasSustitutivas = v);
+    _saveToProvider();
   }
 
   /// Verifica si hay datos del servicio anterior para precargar cargas.
@@ -145,27 +159,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
       }
     });
   }
-
-  void _parseValidationState(String? raw) {
-    _cargasValidadas = false;
-    _cargasPatronValidadas = 0;
-    if (raw == null) return;
-
-    final match = RegExp(r'cargas_validadas:(\d+)').firstMatch(raw);
-    if (match != null) {
-      _cargasValidadas = true;
-      _cargasPatronValidadas = int.tryParse(match.group(1) ?? '') ?? 0;
-      return;
-    }
-
-    if (raw.contains('Metodo') || raw.contains('validada')) {
-      _cargasValidadas = true;
-    }
-  }
-
-  String get _validationStateForSave => _cargasValidadas
-      ? 'cargas_validadas:$_cargasPatronValidadas'
-      : 'validacion_pesas_pendiente';
 
   void _buildControllers(int count) {
     for (final c in _cargaCtrls) {
@@ -307,7 +300,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
     final provider = context.read<ServiceSessionProvider>();
     provider.updateLinealidad(LinealidadData(
       metodo: _metodoCarga,
-      metodoCarga: _validationStateForSave,
+      metodoCarga: _metodoCargasSustitutivas ?? '',
       nota: _notaCtrl.text,
       filas: List.generate(_cargaCtrls.length, (i) {
         return FilaLinealidad(
@@ -384,6 +377,28 @@ class _LinealidadStepState extends State<LinealidadStep> {
                   ).animate(delay: 250.ms).fadeIn(),
                 ),
               if (_metodoCarga != null) ...[
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _metodoCargasSustitutivas,
+                  decoration: _deco('Método de Cargas Sustitutivas', isDark),
+                  hint: Text('Seleccione',
+                      style: GoogleFonts.inter(
+                          color: isDark ? Colors.white54 : Colors.black45)),
+                  dropdownColor:
+                      isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                  items: _metodoCargasSustitutivasOptions
+                      .map((v) => DropdownMenuItem(
+                            value: v,
+                            child: Text(v,
+                                style: GoogleFonts.inter(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A))),
+                          ))
+                      .toList(),
+                  onChanged: _onMetodoCargasSustitutivasChanged,
+                ).animate(delay: 280.ms).fadeIn(),
+                const SizedBox(height: 16),
                 _buildValidationHelp(isDark),
                 const SizedBox(height: 8),
                 _buildPuntosSection(isDark),

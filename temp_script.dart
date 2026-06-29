@@ -74,16 +74,21 @@ void main() {
       '                const SizedBox(height: 24),\n                _buildEquipamientosSection(provider, isDark),\n',
       '');
 
-  if (equipamientosMethods.isNotEmpty)
+  if (equipamientosMethods.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(equipamientosMethods, '');
-  if (emptyEquiposHint.isNotEmpty)
+  }
+  if (emptyEquiposHint.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(emptyEquiposHint, '');
-  if (selectedEquipoTile.isNotEmpty)
+  }
+  if (selectedEquipoTile.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(selectedEquipoTile, '');
-  if (equiposHelpers.isNotEmpty)
+  }
+  if (equiposHelpers.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(equiposHelpers, '');
-  if (certStatusClass.isNotEmpty)
+  }
+  if (certStatusClass.isNotEmpty) {
     balanzaCode = balanzaCode.replaceAll(certStatusClass, '');
+  }
 
   // 3. Modificaciones en condiciones_finales_step.dart
   condicionesCode = condicionesCode.trimRight();

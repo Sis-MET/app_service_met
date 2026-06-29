@@ -155,19 +155,51 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   void _onCargasChanged(String? v) {
     final n = int.tryParse(v ?? '1') ?? 1;
     final med = int.tryParse(_medicionesCount ?? '3') ?? 3;
+
+    final oldCargas = _cargasCtrls.map((c) => c.text).toList();
+    final oldInd = _indCtrls.map((r) => r.map((c) => c.text).toList()).toList();
+    final oldRet = _retCtrls.map((r) => r.map((c) => c.text).toList()).toList();
+
     setState(() {
       _cargasCount = v;
       _buildControllers(n, med);
     });
+
+    for (int i = 0; i < n && i < oldCargas.length; i++) {
+      _cargasCtrls[i].text = oldCargas[i];
+    }
+    for (int i = 0; i < n && i < oldInd.length; i++) {
+      for (int j = 0; j < med && j < oldInd[i].length; j++) {
+        _indCtrls[i][j].text = oldInd[i][j];
+        _retCtrls[i][j].text = oldRet[i][j];
+      }
+    }
+    _saveToProvider();
   }
 
   void _onMedicionesChanged(String? v) {
     final med = int.tryParse(v ?? '3') ?? 3;
     final n = int.tryParse(_cargasCount ?? '1') ?? 1;
+
+    final oldCargas = _cargasCtrls.map((c) => c.text).toList();
+    final oldInd = _indCtrls.map((r) => r.map((c) => c.text).toList()).toList();
+    final oldRet = _retCtrls.map((r) => r.map((c) => c.text).toList()).toList();
+
     setState(() {
       _medicionesCount = v;
       _buildControllers(n, med);
     });
+
+    for (int i = 0; i < n && i < oldCargas.length; i++) {
+      _cargasCtrls[i].text = oldCargas[i];
+    }
+    for (int i = 0; i < n && i < oldInd.length; i++) {
+      for (int j = 0; j < med && j < oldInd[i].length; j++) {
+        _indCtrls[i][j].text = oldInd[i][j];
+        _retCtrls[i][j].text = oldRet[i][j];
+      }
+    }
+    _saveToProvider();
   }
 
   void _saveToProvider() {

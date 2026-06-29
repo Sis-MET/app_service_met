@@ -229,6 +229,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       _puntosIndicacion = v;
       _buildDefaultRows(n);
     });
+    if (_cargaCtrl.text.isNotEmpty) {
+      _reflectCargaToIndicaciones();
+    }
     _saveToProvider();
   }
 
@@ -337,7 +340,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                       .toList(),
                   onChanged: _onPuntosChanged,
                 ).animate(delay: 300.ms).fadeIn(),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                _sectionHeader('Posición del Indicador', isDark),
+                const SizedBox(height: 8),
                 _buildDirectionButtons(isDark),
                 const SizedBox(height: 16),
               ],

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/home/screens/home_screen.dart';
 
 class ExportacionStep extends StatefulWidget {
@@ -22,12 +23,16 @@ class _ExportacionStepState extends State<ExportacionStep> {
   final _factorCtrl = TextEditingController();
   int _balanzasCount = 0;
 
+  List<Map<String, dynamic>> _equipamientos = [];
+  List<EquipoInfo> _selectedInstrumentos = [];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initFromSession();
       _loadBalanzasCount();
+      _loadInstrumentos();
     });
   }
 
@@ -46,6 +51,27 @@ class _ExportacionStepState extends State<ExportacionStep> {
         _indicarCtrl.text = exp.indicar ?? '';
         _factorCtrl.text = exp.factorSeguridad ?? '';
       });
+    }
+  }
+
+  Future<void> _loadInstrumentos() async {
+    if (!mounted) return;
+    try {
+      final result = await CalibrationRepository().getEquipos();
+      if (!mounted) return;
+      final instrumentos = result.where((eq) {
+        final type = (eq['instrumento']?.toString() ?? eq['tipo_instrumento']?.toString() ?? '').toLowerCase();
+        return !type.contains('pesa') && !type.contains('masa') && !type.contains('patron') && !type.contains('patr');
+      }).toList();
+      instrumentos.sort((a, b) {
+        final codeA = a['cod_instrumento']?.toString() ?? '';
+        final codeB = b['cod_instrumento']?.toString() ?? '';
+        return codeA.compareTo(codeB);
+      });
+      if (!mounted) return;
+      setState(() => _equipamientos = instrumentos);
+    } catch (_) {
+      // silently fail
     }
   }
 
@@ -164,6 +190,9 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final datosCert = await _showCertificadoDialog(isDark);
     if (datosCert == null || !mounted) return;
 
+    final instrumentos = await _showInstrumentosDialog(isDark);
+    if (instrumentos == null || !mounted) return;
+
     // Aplicar datos del certificado a todas las filas exportadas
     final registrosConCert = registros.map((r) => ({
       ...r,
@@ -176,7 +205,21 @@ class _ExportacionStepState extends State<ExportacionStep> {
     _regla = datosCert['regla_aceptacion'];
     _saveToProvider();
 
-    final success = await provider.exportToCSV(registrosConCert);
+    // Persist instrument selection
+    if (instrumentos.isNotEmpty) {
+      final existing = provider.session?.equipos ?? [];
+      final pesas = existing
+          .where((e) => _isPesaTipo(e.tipo))
+          .toList();
+      provider.updateEquipos([...pesas, ...instrumentos]);
+    }
+
+    final registrosConTodo = registrosConCert.map((r) => ({
+      ...r,
+      ..._instrumentosToColumns(instrumentos),
+    })).toList();
+
+    final success = await provider.exportToCSV(registrosConTodo);
     if (!mounted) return;
 
     if (success) {
@@ -188,6 +231,252 @@ class _ExportacionStepState extends State<ExportacionStep> {
     } else {
       TopAlert.show(context, 'Error al exportar CSV', isError: true);
     }
+  }
+
+  bool _isPesaTipo(String? value) {
+    final v = value?.toLowerCase() ?? '';
+    return v.contains('pesa') || v.contains('masa') || v.contains('patron') || v.contains('patr');
+  }
+
+  Map<String, String> _instrumentosToColumns(List<EquipoInfo> instrumentos) {
+    final map = <String, String>{};
+    for (int i = 0; i < instrumentos.length && i < 2; i++) {
+      final idx = i + 6;
+      final inst = instrumentos[i];
+      map['equipo$idx'] = inst.codInstrumento ?? '';
+      if (inst.certFecha != null && inst.certFecha!.isNotEmpty) {
+        map['certificado$idx'] = inst.certFecha!;
+      }
+      if (inst.enteCalibrador != null && inst.enteCalibrador!.isNotEmpty) {
+        map['ente_calibrador$idx'] = inst.enteCalibrador!;
+      }
+      if (inst.estado != null && inst.estado!.isNotEmpty) {
+        map['estado$idx'] = inst.estado!;
+      }
+      if (inst.cantidad != null && inst.cantidad!.isNotEmpty) {
+        map['cantidad$idx'] = inst.cantidad!;
+      }
+    }
+    return map;
+  }
+
+  /// Muestra un diálogo para seleccionar instrumentos de medición del servicio.
+  /// Retorna la lista de instrumentos seleccionados o null si cancela.
+  Future<List<EquipoInfo>?> _showInstrumentosDialog(bool isDark) async {
+    List<EquipoInfo> selected = List.from(_selectedInstrumentos);
+    final searchCtrl = TextEditingController();
+
+    final result = await showDialog<List<EquipoInfo>>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final filtered = _equipamientos.where((eq) {
+            final q = searchCtrl.text.toLowerCase();
+            if (q.isEmpty) return true;
+            final code = eq['cod_instrumento']?.toString().toLowerCase() ?? '';
+            final type = (eq['instrumento']?.toString() ?? '').toLowerCase();
+            return code.contains(q) || type.contains(q);
+          }).toList();
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.thermostat,
+                    color: isDark ? Colors.green[300] : Colors.green[700],
+                    size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text('Instrumentos de Medición',
+                        style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A)))),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Seleccione los instrumentos usados en el servicio:',
+                    style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? Colors.white60 : Colors.black54),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar por código o tipo...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: isDark
+                          ? const Color(0xFF2A2A2A)
+                          : const Color(0xFFF0F2F5),
+                    ),
+                    onChanged: (_) => setDialogState(() {}),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${selected.length}/2 seleccionados',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text('Sin resultados',
+                                style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54)))
+                        : ListView.separated(
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 6),
+                            itemBuilder: (_, i) {
+                              final eq = filtered[i];
+                              final code = eq['cod_instrumento']
+                                      ?.toString() ??
+                                  'Sin código';
+                              final type = eq['instrumento']?.toString() ?? '';
+                              final cert = eq['cert_fecha']?.toString() ?? 'S/F';
+                              final isSelected = selected
+                                  .any((e) => e.codInstrumento == code);
+                              final canSelect =
+                                  isSelected || selected.length < 2;
+
+                              return InkWell(
+                                onTap: canSelect
+                                    ? () {
+                                        setDialogState(() {
+                                          if (isSelected) {
+                                            selected.removeWhere((e) =>
+                                                e.codInstrumento == code);
+                                          } else {
+                                            selected.add(EquipoInfo(
+                                              codInstrumento: code,
+                                              tipo: type,
+                                              cantidad: '1',
+                                              certFecha: eq['cert_fecha']
+                                                      ?.toString() ??
+                                                  '',
+                                              enteCalibrador: eq['ente_calibrador']
+                                                      ?.toString() ??
+                                                  '',
+                                            ));
+                                          }
+                                        });
+                                      }
+                                    : null,
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF2A2A2A)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? (isDark
+                                              ? Colors.tealAccent
+                                              : Colors.teal)
+                                          : (isDark
+                                              ? Colors.white12
+                                              : const Color(0xFFE2E8F0)),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        isSelected
+                                            ? Icons.check_circle
+                                            : Icons.circle_outlined,
+                                        color: isSelected
+                                            ? (isDark
+                                                ? Colors.tealAccent
+                                                : Colors.teal)
+                                            : Colors.grey,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(code,
+                                                style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 14,
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF1A1A1A))),
+                                            const SizedBox(height: 2),
+                                            Text(type,
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 12,
+                                                    color: isDark
+                                                        ? Colors.white60
+                                                        : Colors.black54)),
+                                            const SizedBox(height: 4),
+                                            Text('Cert: $cert',
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 11,
+                                                    color: isDark
+                                                        ? Colors.white38
+                                                        : Colors.black38)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Cancelar',
+                    style: TextStyle(
+                        color: isDark ? Colors.white60 : Colors.black54)),
+              ),
+              FilledButton(
+                onPressed: selected.isEmpty
+                    ? null
+                    : () => Navigator.pop(ctx, List.from(selected)),
+                child: const Text('Confirmar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (result != null) {
+      _selectedInstrumentos = result;
+    }
+    searchCtrl.dispose();
+    return result;
   }
 
   /// Muestra un diálogo para ingresar los datos del certificado.

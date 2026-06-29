@@ -10,6 +10,13 @@ class QrScannerScreen extends StatefulWidget {
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
   final MobileScannerController cameraController = MobileScannerController();
+  bool _isProcessed = false;
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +27,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       body: MobileScanner(
         controller: cameraController,
         onDetect: (capture) {
+          if (_isProcessed) return;
           final List<Barcode> barcodes = capture.barcodes;
           if (barcodes.isNotEmpty) {
             final barcode = barcodes.first;
             if (barcode.rawValue != null) {
+              _isProcessed = true;
               Navigator.pop(context, barcode.rawValue);
             }
           }
