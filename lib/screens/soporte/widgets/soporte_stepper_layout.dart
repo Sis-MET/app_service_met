@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/screens/soporte/widgets/balanza_speed_dial.dart';
 
@@ -320,6 +321,10 @@ class SoporteStepperLayout extends StatelessWidget {
                   )
                 : null,
             centerTitle: true,
+            systemOverlayStyle: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+            ),
             actions: [
               if (isSaving && isAutoSavingNotifier == null)
                 const Padding(

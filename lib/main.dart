@@ -102,11 +102,22 @@ class MyApp extends StatelessWidget {
           darkTheme: AppTheme.buildDarkTheme(context),
           themeMode: settings.themeMode,
           builder: (context, child) {
-            return MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(settings.textScaleFactor),
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness:
+                    isDark ? Brightness.light : Brightness.dark,
+                systemNavigationBarColor: Colors.transparent,
+                systemNavigationBarIconBrightness:
+                    isDark ? Brightness.light : Brightness.dark,
               ),
-              child: child!,
+              child: MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(settings.textScaleFactor),
+                ),
+                child: child!,
+              ),
             );
           },
           // MODIFICADO: Decidir ruta inicial basado en setup

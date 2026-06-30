@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
@@ -178,6 +179,10 @@ class _CalibrationWorkspaceScreenState
         elevation: 0,
         iconTheme: IconThemeData(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         ),
         title: Text(
           'Calibración',

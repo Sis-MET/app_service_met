@@ -164,7 +164,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     if (seca != null && seca.isNotEmpty) {
       final registros = await provider.getRegistrosCompletos(seca);
       completed = registros
-          .where((r) => r['estado_servicio_bal']?.toString() == 'Balanza Calibrada')
+          .where((r) =>
+              r['estado_servicio_bal']?.toString() == 'Balanza Calibrada')
           .map((r) => r['cod_metrica']?.toString() ?? '')
           .where((c) => c.isNotEmpty)
           .toSet();
@@ -408,8 +409,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
               _fillFromBalanzaInfo(balanzaFromProvider);
             }
             _saveToProvider(provider);
-            provider.loadPreviousServiceData(
-                balanzaFromProvider.codMetrica ?? '');
+            provider
+                .loadPreviousServiceData(balanzaFromProvider.codMetrica ?? '');
           });
         }
 
@@ -619,16 +620,13 @@ class _BalanzaStepState extends State<BalanzaStep> {
               isDark: isDark),
           const SizedBox(height: 12),
           _field(_tecnologiaCtrl, 'Tecnología', Icons.memory,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_claseCtrl, 'Clase', Icons.class_,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_codIntCtrl, 'Código Interno', Icons.tag,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField('Tipo de Equipo', Icons.scale, _tiposEquipo,
               _tipoEquipoCtrl, provider,
@@ -651,12 +649,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_rangoCtrl, 'Rango', Icons.linear_scale,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _field(_nCeldasCtrl, 'N° Celdas', Icons.grid_view,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
+              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
         ],
       ),
     ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
@@ -792,8 +788,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
       ),
       child: Column(
         children: [
-          Icon(Icons.camera_alt_outlined, size: 40,
-              color: isDark ? Colors.white24 : Colors.black26),
+          Icon(Icons.camera_alt_outlined,
+              size: 40, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 10),
           Text(
             'Tome fotografías del instrumento',
@@ -810,12 +806,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF04376E),
               foregroundColor: Colors.white,
-              disabledBackgroundColor:
-                  const Color(0xFF04376E).withOpacity(0.4),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              disabledBackgroundColor: const Color(0xFF04376E).withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(18)),
             ),
           ),
         ],
@@ -864,8 +858,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                       color: isDark ? Colors.grey[900] : Colors.grey[200],
                       image: exists
                           ? DecorationImage(
-                              image: FileImage(File(path)),
-                              fit: BoxFit.cover)
+                              image: FileImage(File(path)), fit: BoxFit.cover)
                           : null,
                     ),
                     child: !exists
@@ -924,8 +917,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     final codMetrica = _codMetricaCtrl.text;
 
     if (seca == null || seca.isEmpty || codMetrica.isEmpty) {
-      TopAlert.show(
-          context, 'Debe seleccionar un instrumento primero', isError: true);
+      TopAlert.show(context, 'Debe seleccionar un instrumento primero',
+          isError: true);
       return;
     }
 
@@ -942,8 +935,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       );
       if (photo == null || !mounted) return;
 
-      final savedPath =
-          await FotoHelper.saveFoto(seca, codMetrica, photo.path);
+      final savedPath = await FotoHelper.saveFoto(seca, codMetrica, photo.path);
       if (!mounted) return;
 
       setState(() {
@@ -959,8 +951,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   void _viewFoto(String path, bool isDark) {
     if (!File(path).existsSync()) {
-      TopAlert.show(
-          context, 'La foto ya no existe en el dispositivo', isError: true);
+      TopAlert.show(context, 'La foto ya no existe en el dispositivo',
+          isError: true);
       return;
     }
     Navigator.push(
@@ -1348,10 +1340,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                                 .contains(codMetrica)) ...[
                                               const SizedBox(width: 8),
                                               Container(
-                                                padding: const EdgeInsets
-                                                    .symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
                                                 decoration: BoxDecoration(
                                                   color: Colors.green
                                                       .withOpacity(0.15),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
@@ -38,13 +39,19 @@ class AppTheme {
         labelSmall: TextStyle(color: Colors.grey[800]),
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: primaryColor,
+        backgroundColor: Colors.white,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: Color(0xFF292929),
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: Color(0xFF292929)),
         elevation: 1,
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -164,6 +171,12 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.surfaceDark,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+        ),
         titleTextStyle: TextStyle(
           color: Colors.white,
           fontSize: 20,

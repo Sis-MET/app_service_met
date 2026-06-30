@@ -134,12 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = cs.brightness == Brightness.dark;
     final accent = cs.primary;
 
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness:
-          isDark ? Brightness.light : Brightness.dark,
-    ));
-
     return Scaffold(
       // extendBody permite que el nav bar flotante no corte el scroll
       extendBody: true,
