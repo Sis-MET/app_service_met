@@ -1,11 +1,17 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class LinealidadStep extends StatefulWidget {
@@ -34,6 +40,8 @@ class _LinealidadStepState extends State<LinealidadStep> {
   int _cargasPatronValidadas = 0;
   bool _hasCheckedPrevData = false;
   final _notaCtrl = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  List<String> _fotosPaths = [];
 
   List<TextEditingController> _cargaCtrls = [];
   List<TextEditingController> _indCtrls = [];
@@ -61,6 +69,16 @@ class _LinealidadStepState extends State<LinealidadStep> {
         _metodoCargasSustitutivasOptions.contains(lin.metodoCarga)
             ? lin.metodoCarga
             : null;
+
+    _fotosPaths = List.from(lin.fotosPaths);
+
+    // Migrate from old CondicionesFinales.fotosPaths (FotoCargaStep)
+    if (_fotosPaths.isEmpty) {
+      final cf = provider.session?.condicionesFinales;
+      if (cf != null && cf.fotosPaths != null && cf.fotosPaths!.isNotEmpty) {
+        _fotosPaths = List.from(cf.fotosPaths!);
+      }
+    }
 
     if (lin.filas.isNotEmpty) {
       _buildControllers(lin.filas.length.clamp(1, _maxPuntos));
@@ -296,12 +314,75 @@ class _LinealidadStepState extends State<LinealidadStep> {
     _saveToProvider();
   }
 
+  Future<void> _takeFoto() async {
+    final provider = context.read<ServiceSessionProvider>();
+    final seca = provider.session?.sessionInfo.seca;
+    final codMetrica = provider.session?.balanza?.codMetrica;
+
+    if (seca == null || seca.isEmpty || codMetrica == null || codMetrica.isEmpty) {
+      TopAlert.show(context, 'Debe seleccionar un instrumento primero', isError: true);
+      return;
+    }
+
+    if (!await FotoHelper.isConfigured()) {
+      if (!mounted) return;
+      final configured = await FotoStorageDialog.show(context);
+      if (!configured || !mounted) return;
+    }
+
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (photo == null || !mounted) return;
+
+      final savedPath = await FotoHelper.saveFoto(seca, codMetrica, photo.path);
+      if (!mounted) return;
+
+      setState(() => _fotosPaths.add(savedPath));
+      _saveToProvider();
+    } catch (e) {
+      if (mounted) {
+        TopAlert.show(context, 'Error al tomar foto: $e', isError: true);
+      }
+    }
+  }
+
+  void _viewFoto(String path) {
+    if (!File(path).existsSync()) {
+      TopAlert.show(context, 'La foto ya no existe en el dispositivo', isError: true);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+          body: Container(
+            color: Colors.black,
+            child: PhotoView(imageProvider: FileImage(File(path))),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteFoto(int index) async {
+    final path = _fotosPaths[index];
+    await FotoHelper.deleteFoto(path);
+    if (!mounted) return;
+    setState(() => _fotosPaths.removeAt(index));
+    _saveToProvider();
+  }
+
   void _saveToProvider() {
     final provider = context.read<ServiceSessionProvider>();
     provider.updateLinealidad(LinealidadData(
       metodo: _metodoCarga,
       metodoCarga: _metodoCargasSustitutivas ?? '',
       nota: _notaCtrl.text,
+      fotosPaths: _fotosPaths,
       filas: List.generate(_cargaCtrls.length, (i) {
         return FilaLinealidad(
           carga: _cargaCtrls[i].text,
@@ -412,6 +493,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                 maxLines: 3,
                 decoration: _deco('Nota / Comentario (opcional)', isDark),
               ).animate(delay: 600.ms).fadeIn(),
+              _buildFotosSection(isDark),
               const SizedBox(height: 20),
             ],
           ),
@@ -1134,6 +1216,182 @@ class _LinealidadStepState extends State<LinealidadStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
+
+  // ── Fotos de Carga ────────────────────────────────────────────────────
+
+  Widget _buildFotosSection(bool isDark) {
+    final seca =
+        context.read<ServiceSessionProvider>().session?.sessionInfo.seca;
+    final codMetrica =
+        context.read<ServiceSessionProvider>().session?.balanza?.codMetrica;
+    final canTakePhoto = _fotosPaths.length < 5 &&
+        seca != null && seca.isNotEmpty &&
+        codMetrica != null && codMetrica.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Icon(Icons.camera_alt_outlined,
+                color: isDark ? Colors.white54 : Colors.black54, size: 20),
+            const SizedBox(width: 8),
+            Text('Fotos de Carga',
+                style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+            const Spacer(),
+            Text('${_fotosPaths.length}/5',
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: isDark ? Colors.white38 : Colors.black45)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_fotosPaths.isEmpty)
+          _emptyFotosHint(isDark, canTakePhoto)
+        else
+          _buildFotosGrid(isDark, canTakePhoto),
+      ],
+    ).animate(delay: 700.ms).fadeIn();
+  }
+
+  Widget _emptyFotosHint(bool isDark, bool canTakePhoto) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.camera_alt_outlined,
+              size: 40, color: isDark ? Colors.white24 : Colors.black26),
+          const SizedBox(height: 10),
+          Text(
+            'Tome fotografías de la última carga',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: canTakePhoto ? _takeFoto : null,
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text('Tomar Foto'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.calibracion,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: AppColors.calibracion.withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotosGrid(bool isDark, bool canTakePhoto) {
+    return Column(
+      children: [
+        if (canTakePhoto)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _takeFoto,
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Agregar Fotografía'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.calibracion,
+                  side: const BorderSide(color: AppColors.calibracion),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(_fotosPaths.length, (i) {
+            final path = _fotosPaths[i];
+            final exists = File(path).existsSync();
+            return GestureDetector(
+              onTap: exists ? () => _viewFoto(path) : null,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDark ? Colors.grey[900] : Colors.grey[200],
+                      image: exists
+                          ? DecorationImage(
+                              image: FileImage(File(path)), fit: BoxFit.cover)
+                          : null,
+                    ),
+                    child: !exists
+                        ? Icon(Icons.broken_image_outlined,
+                            color: isDark ? Colors.white24 : Colors.black26)
+                        : null,
+                  ),
+                  if (exists)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () => _deleteFoto(i),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${i + 1}',
+                        style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
 }
 
 class _ValidatedLoad {

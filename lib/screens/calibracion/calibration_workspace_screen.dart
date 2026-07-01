@@ -18,7 +18,6 @@ import 'steps/precargas_ajuste_step.dart';
 import 'steps/excentricidad_step.dart';
 import 'steps/repetibilidad_step.dart';
 import 'steps/linealidad_step.dart';
-import 'steps/foto_carga_step.dart';
 import 'steps/condiciones_finales_step.dart';
 import 'steps/exportacion_step.dart';
 
@@ -148,11 +147,6 @@ class _CalibrationWorkspaceScreenState
           icon: Icons.show_chart,
           isAccessible: hasSeca),
       StepData(
-          title: 'Foto Carga',
-          subtitle: 'Evidencia',
-          icon: Icons.camera_alt,
-          isAccessible: hasSeca),
-      StepData(
           title: 'Final',
           subtitle: 'Condiciones',
           icon: Icons.check_circle,
@@ -249,7 +243,6 @@ class _CalibrationWorkspaceScreenState
                     _scrollHide(const ExcentricidadStep()),
                     _scrollHide(const RepetibilidadStep()),
                     _scrollHide(const LinealidadStep()),
-                    _scrollHide(const FotoCargaStep()),
                     _scrollHide(const CondicionesFinalesStep()),
                     _scrollHide(const ExportacionStep()),
                   ],
@@ -469,7 +462,7 @@ class _CalibrationWorkspaceScreenState
                           }
                           if (provider.returnToCondicionesFinales) {
                             provider.returnToCondicionesFinales = false;
-                            provider.goToStep(10);
+                            provider.goToStep(9);
                           } else {
                             provider.nextStep();
                           }
@@ -485,7 +478,18 @@ class _CalibrationWorkspaceScreenState
                           }
                           provider.nextStep();
                         };
-                      } else if (step == 10) {
+                      } else if (step == 8) {
+                        onNext = () {
+                          final error = provider.validateLinealidad();
+                          if (error != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, error, isError: true);
+                            }
+                            return;
+                          }
+                          provider.nextStep();
+                        };
+                      } else if (step == 9) {
                         onNext = () async {
                           provider.returnToCondicionesFinales = false;
                           final error = provider.validateCondicionesFinales();

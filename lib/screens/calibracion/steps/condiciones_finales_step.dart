@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class CondicionesFinalesStep extends StatefulWidget {
@@ -27,9 +32,10 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
   String? _reemplazo;
 
   List<EquipoInfo> _selectedPesas = [];
-  List<EquipoInfo> _selectedMedicion = [];
   List<Map<String, dynamic>> _equipamientos = [];
   bool _isLoadingEquipamientos = false;
+
+  List<String> _fotosFinalesPaths = [];
 
   String stickerCert = '';
   String stickerFecha = '';
@@ -86,11 +92,11 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     }
 
     _initEquiposFromSession(session.equipos);
+    _fotosFinalesPaths = List.from(cf?.fotosFinalesPaths ?? []);
 
     final codParts = session.sessionInfo.codMetrica?.split('-') ?? [];
     final codCliente = codParts.isNotEmpty ? codParts[0] : 'XXXX';
-    final secaParts = session.sessionInfo.seca?.split('-') ?? [];
-    final cotizacion = secaParts.isNotEmpty ? secaParts.last : 'C0X';
+    final cotizacion = provider.cotizacionSuffix.isNotEmpty ? provider.cotizacionSuffix : 'C01';
     final gestion = DateTime.now().year.toString().substring(2);
 
     setState(() {
@@ -104,12 +110,9 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
   void _initEquiposFromSession(List<EquipoInfo> equipos) {
     _selectedPesas = [];
-    _selectedMedicion = [];
     for (final equipo in equipos) {
-      if (_isPesaTipo(equipo.tipo)) {
-        if (_selectedPesas.length < 5) _selectedPesas.add(equipo);
-      } else {
-        if (_selectedMedicion.length < 2) _selectedMedicion.add(equipo);
+      if (_isPesaTipo(equipo.tipo) && _selectedPesas.length < 5) {
+        _selectedPesas.add(equipo);
       }
     }
   }
@@ -126,8 +129,9 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       ventaPesas: _ventaPesas,
       reemplazo: _reemplazo,
       observaciones: _obsCtrl.text,
+      fotosFinalesPaths: _fotosFinalesPaths,
     ));
-    provider.updateEquipos([..._selectedPesas, ..._selectedMedicion]);
+    provider.updateEquipos([..._selectedPesas]);
   }
 
   String _currentTime() {
@@ -236,11 +240,14 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
               maxLines: 3,
               decoration: _deco('Observaciones', isDark)),
           const SizedBox(height: 24),
-          _sectionHeader('4. Selección de Equipamiento', isDark),
-          _buildEquipamientosSection(provider, isDark),
+          _sectionHeader('4. Selección de Pesas Patrón', isDark),
+          _buildPesasSection(provider, isDark),
           const SizedBox(height: 24),
           _sectionHeader('5. Sticker de Calibrado (Referencial)', isDark),
           _buildSticker(isDark),
+          const SizedBox(height: 24),
+          _sectionHeader('6. Fotos Finales', isDark),
+          _buildFotosFinalesSection(isDark),
         ],
       ),
     );
@@ -334,21 +341,21 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isDark ? Colors.white12 : Colors.grey[300]!),
+        border: Border.all(color: Colors.grey[300]!),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 160,
-            decoration: const BoxDecoration(
-                color: Color(0xFFFFD700),
-                borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12))),
+      child: IntrinsicHeight(
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              decoration: const BoxDecoration(
+                  color: Color(0xFFFFD700),
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12))),
             child: const RotatedBox(
                 quarterTurns: 3,
                 child: Center(
@@ -420,20 +427,21 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
           )),
         ],
       ),
+      ),
     );
   }
 
-  Widget _buildEquipamientosSection(
+  Widget _buildPesasSection(
       ServiceSessionProvider provider, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(Icons.inventory_2_outlined,
+            Icon(Icons.fitness_center,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
-            Text('Equipamiento del Servicio',
+            Text('Pesas Patrón del Servicio',
                 style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -441,65 +449,38 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
           ],
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoadingEquipamientos
-                    ? null
-                    : () => _showEquipamientosDialog(
-                          provider: provider,
-                          isPesas: true,
-                        ),
-                icon: const Icon(Icons.fitness_center, size: 18),
-                label: Text('Pesas (${_selectedPesas.length}/5)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF365666),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor:
-                      const Color(0xFF365666).withOpacity(0.45),
-                  disabledForegroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isLoadingEquipamientos
+                ? null
+                : () => _showEquipamientosDialog(
+                      provider: provider,
+                      isPesas: true,
+                    ),
+            icon: const Icon(Icons.fitness_center, size: 18),
+            label: Text('Pesas (${_selectedPesas.length}/5)'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF365666),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor:
+                  const Color(0xFF365666).withOpacity(0.45),
+              disabledForegroundColor: Colors.white70,
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _isLoadingEquipamientos
-                    ? null
-                    : () => _showEquipamientosDialog(
-                          provider: provider,
-                          isPesas: false,
-                        ),
-                icon: const Icon(Icons.thermostat, size: 18),
-                label: Text('Ambiente (${_selectedMedicion.length}/2)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF326677),
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor:
-                      const Color(0xFF326677).withOpacity(0.45),
-                  disabledForegroundColor: Colors.white70,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
         const SizedBox(height: 12),
-        if (_selectedPesas.isEmpty && _selectedMedicion.isEmpty)
-          _emptyEquiposHint(isDark)
-        else ...[
+        if (_selectedPesas.isEmpty)
+          _emptyPesasHint(isDark)
+        else
           ..._selectedPesas
-              .map((e) => _selectedEquipoTile(e, true, provider, isDark)),
-          ..._selectedMedicion
-              .map((e) => _selectedEquipoTile(e, false, provider, isDark)),
-        ],
+              .map((e) => _selectedEquipoTile(e, provider, isDark)),
       ],
     );
   }
 
-  Widget _emptyEquiposHint(bool isDark) {
+  Widget _emptyPesasHint(bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -511,7 +492,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
             color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
       ),
       child: Text(
-        'Seleccione al menos una pesa patron y un termohigometro, barometro o instrumento de medicion.',
+        'Seleccione al menos una pesa patrón para el servicio.',
         style: GoogleFonts.inter(
           fontSize: 12,
           color: isDark ? Colors.white60 : Colors.black54,
@@ -522,7 +503,6 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
   Widget _selectedEquipoTile(
     EquipoInfo equipo,
-    bool isPesa,
     ServiceSessionProvider provider,
     bool isDark,
   ) {
@@ -531,10 +511,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(
-          isPesa ? Icons.fitness_center : Icons.thermostat,
-          color: cert.color,
-        ),
+        leading: const Icon(Icons.fitness_center, color: Colors.teal),
         title: Text(equipo.codInstrumento ?? 'Sin codigo'),
         subtitle: Text(
           '${equipo.tipo ?? 'Instrumento'} | Cert: ${equipo.certFecha ?? 'S/F'} | ${cert.label}',
@@ -546,14 +523,13 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
             Text('Cant. ${equipo.cantidad ?? '1'}'),
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 18),
-              onPressed: () => _editCantidad(equipo, isPesa, provider),
+              onPressed: () => _editCantidad(equipo, provider),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: () {
                 setState(() {
-                  final target = isPesa ? _selectedPesas : _selectedMedicion;
-                  target.removeWhere(
+                  _selectedPesas.removeWhere(
                       (e) => e.codInstrumento == equipo.codInstrumento);
                 });
                 _saveToProvider();
@@ -567,7 +543,6 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
   Future<void> _editCantidad(
     EquipoInfo equipo,
-    bool isPesas,
     ServiceSessionProvider provider,
   ) async {
     final ctrl = TextEditingController(text: equipo.cantidad ?? '1');
@@ -620,10 +595,10 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     );
     if (value == null || value.trim().isEmpty) return;
     setState(() {
-      final target = isPesas ? _selectedPesas : _selectedMedicion;
-      final idx =
-          target.indexWhere((e) => e.codInstrumento == equipo.codInstrumento);
-      if (idx >= 0) target[idx] = target[idx].copyWith(cantidad: value);
+      final idx = _selectedPesas
+          .indexWhere((e) => e.codInstrumento == equipo.codInstrumento);
+      if (idx >= 0) _selectedPesas[idx] =
+          _selectedPesas[idx].copyWith(cantidad: value);
     });
     _saveToProvider();
   }
@@ -668,7 +643,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                 ),
               ),
               Text(
-                '$title (${isPesas ? _selectedPesas.length : _selectedMedicion.length}/${isPesas ? 5 : 2})',
+                '$title (${_selectedPesas.length}/5)',
                 style: GoogleFonts.poppins(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -711,8 +686,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                           ),
                         ),
                       )
-                    : _buildEquiposGroupedList(
-                        filtered, isPesas, isDark, provider, setSheet),
+                    : _buildEquiposList(
+                        filtered, isDark, provider, setSheet),
               ),
             ],
           ),
@@ -735,72 +710,23 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     return instrumento.isNotEmpty ? instrumento : tipo;
   }
 
-  String _instrumentSection(String type) {
-    final t = type.toLowerCase();
-    if (_isPesaTipo(t)) {
-      return 'Pesas Patrón';
-    }
-    if (t.contains('termo') ||
-        t.contains('higro') ||
-        t.contains('temp') ||
-        t.contains('humedad')) {
-      return 'Termohigrómetros';
-    }
-    if (t.contains('baro')) {
-      return 'Barómetros';
-    }
-    return 'Otros Instrumentos';
-  }
-
-  Widget _buildEquiposGroupedList(
+  Widget _buildEquiposList(
     List<Map<String, dynamic>> items,
-    bool isPesas,
     bool isDark,
     ServiceSessionProvider provider,
     void Function(VoidCallback) setSheet,
   ) {
-    final displayItems = <dynamic>[];
-    if (isPesas) {
-      displayItems.addAll(items);
-    } else {
-      final groups = <String, List<Map<String, dynamic>>>{};
-      for (final eq in items) {
-        final section = _instrumentSection(_instrumentType(eq));
-        groups.putIfAbsent(section, () => []).add(eq);
-      }
-      for (final entry in groups.entries) {
-        displayItems.add({'_header': true, '_label': entry.key});
-        displayItems.addAll(entry.value);
-      }
-    }
-
     return ListView.separated(
-      itemCount: displayItems.length,
+      itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
-        final item = displayItems[i];
-        if (item is Map<String, dynamic> && item['_header'] == true) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Text(
-              item['_label'] as String,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-            ),
-          );
-        }
-        final eq = item as Map<String, dynamic>;
-        return _buildEquipoCard(eq, isPesas, isDark, provider, setSheet);
+        return _buildEquipoCard(items[i], isDark, provider, setSheet);
       },
     );
   }
 
   Widget _buildEquipoCard(
     Map<String, dynamic> eq,
-    bool isPesas,
     bool isDark,
     ServiceSessionProvider provider,
     void Function(VoidCallback) setSheet,
@@ -808,14 +734,13 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     final code = eq['cod_instrumento']?.toString() ?? 'Sin codigo';
     final type = _instrumentType(eq);
     final cert = _certStatus(eq['cert_fecha']?.toString());
-    final target = isPesas ? _selectedPesas : _selectedMedicion;
-    final selected = target.any((e) => e.codInstrumento == code);
-    final canSelect = selected || target.length < (isPesas ? 5 : 2);
+    final selected = _selectedPesas.any((e) => e.codInstrumento == code);
+    final canSelect = selected || _selectedPesas.length < 5;
 
     return InkWell(
       onTap: canSelect
           ? () {
-              _saveEquipoSelection(eq, isPesas, provider);
+              _saveEquipoSelection(eq, provider);
               setSheet(() {});
             }
           : null,
@@ -913,18 +838,16 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
   void _saveEquipoSelection(
     Map<String, dynamic> eq,
-    bool isPesas,
     ServiceSessionProvider provider,
   ) {
     final equipo = _equipoFromMap(eq);
     final cert = _certStatus(equipo.certFecha);
     setState(() {
-      final target = isPesas ? _selectedPesas : _selectedMedicion;
-      final max = isPesas ? 5 : 2;
-      if (target.any((e) => e.codInstrumento == equipo.codInstrumento)) {
-        target.removeWhere((e) => e.codInstrumento == equipo.codInstrumento);
-      } else if (target.length < max) {
-        target.add(equipo);
+      if (_selectedPesas.any((e) => e.codInstrumento == equipo.codInstrumento)) {
+        _selectedPesas
+            .removeWhere((e) => e.codInstrumento == equipo.codInstrumento);
+      } else if (_selectedPesas.length < 5) {
+        _selectedPesas.add(equipo);
       }
     });
     _saveToProvider();
@@ -935,6 +858,251 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
         isError: true,
       );
     }
+  }
+
+  // ── Fotos Finales ───────────────────────────────────────────────────────────
+
+  Widget _buildFotosFinalesSection(bool isDark) {
+    final provider = context.read<ServiceSessionProvider>();
+    final seca = provider.session?.sessionInfo.seca;
+    final canTakePhoto = _fotosFinalesPaths.length < 5 &&
+        seca != null &&
+        seca.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.camera_alt_outlined,
+                color: isDark ? Colors.white54 : Colors.black54, size: 20),
+            const SizedBox(width: 8),
+            Text('Fotografías Finales',
+                style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
+            const Spacer(),
+            Text('${_fotosFinalesPaths.length}/5',
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: isDark ? Colors.white38 : Colors.black45)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_fotosFinalesPaths.isEmpty)
+          _emptyFotosFinalesHint(isDark, canTakePhoto)
+        else
+          _buildFotosFinalesGrid(isDark, canTakePhoto),
+      ],
+    ).animate(delay: 700.ms).fadeIn();
+  }
+
+  Widget _emptyFotosFinalesHint(bool isDark, bool canTakePhoto) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.camera_alt_outlined, size: 40,
+              color: isDark ? Colors.white24 : Colors.black26),
+          const SizedBox(height: 10),
+          Text(
+            'Tome fotografías finales del servicio',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: canTakePhoto ? _takeFinalFoto : null,
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text('Tomar Foto'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF04376E),
+              foregroundColor: Colors.white,
+              disabledBackgroundColor:
+                  const Color(0xFF04376E).withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFotosFinalesGrid(bool isDark, bool canTakePhoto) {
+    return Column(
+      children: [
+        if (canTakePhoto)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _takeFinalFoto,
+                icon: const Icon(Icons.camera_alt, size: 18),
+                label: const Text('Agregar Fotografía'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF04376E),
+                  side: const BorderSide(color: Color(0xFF04376E)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(_fotosFinalesPaths.length, (i) {
+            final path = _fotosFinalesPaths[i];
+            final exists = File(path).existsSync();
+            return GestureDetector(
+              onTap: exists ? () => _viewFinalFoto(path, isDark) : null,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDark ? Colors.grey[900] : Colors.grey[200],
+                      image: exists
+                          ? DecorationImage(
+                              image: FileImage(File(path)),
+                              fit: BoxFit.cover)
+                          : null,
+                    ),
+                    child: !exists
+                        ? Icon(Icons.broken_image_outlined,
+                            color: isDark ? Colors.white24 : Colors.black26)
+                        : null,
+                  ),
+                  if (exists)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () => _deleteFinalFoto(i),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${i + 1}',
+                        style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _takeFinalFoto() async {
+    final provider = context.read<ServiceSessionProvider>();
+    final seca = provider.session?.sessionInfo.seca;
+
+    if (seca == null || seca.isEmpty) {
+      TopAlert.show(context, 'SECA no disponible', isError: true);
+      return;
+    }
+
+    if (!await FotoHelper.isConfigured()) {
+      if (!mounted) return;
+      final configured = await FotoStorageDialog.show(context);
+      if (!configured || !mounted) return;
+    }
+
+    try {
+      final XFile? photo = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+      );
+      if (photo == null || !mounted) return;
+
+      final savedPath =
+          await FotoHelper.saveFoto(seca, 'fotos_finales', photo.path);
+      if (!mounted) return;
+
+      setState(() {
+        _fotosFinalesPaths.add(savedPath);
+      });
+      _saveToProvider();
+    } catch (e) {
+      if (mounted) {
+        TopAlert.show(context, 'Error al tomar foto: $e', isError: true);
+      }
+    }
+  }
+
+  void _viewFinalFoto(String path, bool isDark) {
+    if (!File(path).existsSync()) {
+      TopAlert.show(
+          context, 'La foto ya no existe en el dispositivo', isError: true);
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Container(
+            color: Colors.black,
+            child: PhotoView(imageProvider: FileImage(File(path))),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _deleteFinalFoto(int index) async {
+    final path = _fotosFinalesPaths[index];
+    await FotoHelper.deleteFoto(path);
+    if (!mounted) return;
+    setState(() {
+      _fotosFinalesPaths.removeAt(index);
+    });
+    _saveToProvider();
   }
 }
 

@@ -855,20 +855,29 @@ class FilaLinealidad {
 class LinealidadData {
   final String? metodo, metodoCarga, nota;
   final List<FilaLinealidad> filas;
+  final List<String> fotosPaths;
 
-  LinealidadData(
-      {this.metodo, this.metodoCarga, this.nota, this.filas = const []});
+  LinealidadData({
+    this.metodo,
+    this.metodoCarga,
+    this.nota,
+    this.filas = const [],
+    this.fotosPaths = const [],
+  });
 
-  LinealidadData copyWith(
-      {String? metodo,
-      String? metodoCarga,
-      String? nota,
-      List<FilaLinealidad>? filas}) {
+  LinealidadData copyWith({
+    String? metodo,
+    String? metodoCarga,
+    String? nota,
+    List<FilaLinealidad>? filas,
+    List<String>? fotosPaths,
+  }) {
     return LinealidadData(
       metodo: metodo ?? this.metodo,
       metodoCarga: metodoCarga ?? this.metodoCarga,
       nota: nota ?? this.nota,
       filas: filas ?? this.filas,
+      fotosPaths: fotosPaths ?? this.fotosPaths,
     );
   }
 }

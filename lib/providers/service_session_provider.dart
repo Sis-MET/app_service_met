@@ -168,7 +168,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   // --- Navegación ---
 
   void goToStep(int step) {
-    if (step >= 0 && step < 12 && _session != null) {
+    if (step >= 0 && step < 11 && _session != null) {
       _currentStep = step;
       _session = _session!
           .copyWith(metadata: _session!.metadata.copyWith(currentStep: step));
@@ -179,7 +179,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   void nextStep() {
-    if (_currentStep < 11) {
+    if (_currentStep < 10) {
       goToStep(_currentStep + 1);
     }
   }
@@ -578,13 +578,9 @@ class ServiceSessionProvider extends ChangeNotifier {
           tipo.contains('patron') ||
           tipo.contains('patr');
     }).length;
-    final medicion = _session!.equipos.length - pesas;
 
     if (pesas < 1) {
       return "Debe seleccionar al menos una pesa patron.";
-    }
-    if (medicion < 1) {
-      return "Debe seleccionar al menos un termohigrometro, barometro o instrumento de medicion.";
     }
 
     return null;
@@ -748,6 +744,17 @@ class ServiceSessionProvider extends ChangeNotifier {
       if (p.retorno == null || p.retorno!.trim().isEmpty) {
         return "Falta el Retorno en Posición ${i + 1}.";
       }
+    }
+    return null;
+  }
+
+  String? validateLinealidad() {
+    if (_session == null) return "Sesión no inicializada.";
+
+    final lin = _session!.linealidad;
+    if (lin == null) return "Debe completar las pruebas de linealidad.";
+    if (lin.fotosPaths.isEmpty) {
+      return "Debe tomar al menos una fotografía de la última carga.";
     }
     return null;
   }
