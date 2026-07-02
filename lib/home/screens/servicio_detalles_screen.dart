@@ -204,9 +204,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   Future<void> _mostrarDialogoExportacion(BuildContext context, bool isPdf) async {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    final primaryColor = widget.servicio.tipo == TipoServicio.calibracion
-        ? AppColors.calibracion
-        : AppColors.soporte;
+    const Color primaryColor = Color(0xFF4CAF50);
 
     final result = await showDialog<String>(
       context: context,
@@ -272,7 +270,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         isDark ? AppColors.borderDark : AppColors.borderLight;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
+    const Color primaryColor = Color(0xFF4CAF50);
     final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final camposConDatos = _obtenerCamposConDatos(item);
@@ -373,7 +371,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final isDark = cs.brightness == Brightness.dark;
     
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
+    const Color primaryColor = Color(0xFF4CAF50);
     final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
     
     final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
@@ -541,8 +539,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDarkMode = cs.brightness == Brightness.dark;
     
-    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
+    const Color primaryColor = Color(0xFF4CAF50);
     
     final bgColor =
         isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight;
@@ -692,8 +689,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     
-    final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final Color primaryColor = isCalibracion ? AppColors.calibracion : AppColors.soporte;
+    const Color primaryColor = Color(0xFF4CAF50);
     
     final camposConDatos = _obtenerCamposConDatos(item);
     final Map<String, TextEditingController> controllers = {};

@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path/path.dart';
@@ -194,7 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!_modoDemo)
             IconButton(
               icon: FaIcon(FontAwesomeIcons.gear,
-                  size: 18, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                  size: 18,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -208,7 +208,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (_modoDemo)
             IconButton(
               icon: Icon(Icons.logout_rounded,
-                  size: 20, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                  size: 20,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               tooltip: 'Salir del modo DESCONECTADO',
               onPressed: () async {
                 final confirm = await showDialog<bool>(
@@ -228,7 +229,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: GoogleFonts.poppins(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? Colors.white
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ),
@@ -242,8 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, false),
+                        onPressed: () => Navigator.pop(context, false),
                         child: Text(
                           'Cancelar',
                           style: GoogleFonts.inter(
@@ -253,8 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       ElevatedButton(
-                        onPressed: () =>
-                            Navigator.pop(context, true),
+                        onPressed: () => Navigator.pop(context, true),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark ? Colors.white : accent,
                         ),
@@ -275,8 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       await SharedPreferences.getInstance();
                   await prefs.setBool('modoDemo', false);
                   if (context.mounted) {
-                    Navigator.pushReplacementNamed(
-                        context, '/login');
+                    Navigator.pushReplacementNamed(context, '/login');
                   }
                 }
               },

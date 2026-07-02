@@ -96,7 +96,9 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
     final codParts = session.sessionInfo.codMetrica?.split('-') ?? [];
     final codCliente = codParts.isNotEmpty ? codParts[0] : 'XXXX';
-    final cotizacion = provider.cotizacionSuffix.isNotEmpty ? provider.cotizacionSuffix : 'C01';
+    final cotizacion = provider.cotizacionSuffix.isNotEmpty
+        ? provider.cotizacionSuffix
+        : 'C01';
     final gestion = DateTime.now().year.toString().substring(2);
 
     setState(() {
@@ -356,83 +358,82 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                   borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(12),
                       bottomLeft: Radius.circular(12))),
-            child: const RotatedBox(
-                quarterTurns: 3,
-                child: Center(
-                    child: Text('METRICA LTDA',
-                        style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2)))),
-          ),
-          Expanded(
-              child: Column(
-            children: [
-              Container(
-                width: double.infinity,
-                color: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: const Column(children: [
-                  Text('CALIBRADO',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5)),
-                  Text('www.metrica.com.bo',
-                      style: TextStyle(color: Colors.white, fontSize: 10)),
-                ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8),
+              child: const RotatedBox(
+                  quarterTurns: 3,
+                  child: Center(
+                      child: Text('METRICA LTDA',
+                          style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2)))),
+            ),
+            Expanded(
                 child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Certificado:',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey[600])),
-                      Text(stickerCert,
-                          style: GoogleFonts.caveat(
-                              color: Colors.blue[800],
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text('Fecha de calibración:',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey[600])),
-                      Text(stickerFecha,
-                          style: GoogleFonts.caveat(
-                              color: Colors.blue[800],
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                                child: Text(stickerCod,
-                                    style: GoogleFonts.caveat(
-                                        color: Colors.blue[800],
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold))),
-                            Text('Nº: $stickerNro',
-                                style: GoogleFonts.specialElite(
-                                    color: Colors.red[800],
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold)),
-                          ]),
-                    ]),
-              ),
-            ],
-          )),
-        ],
-      ),
+              children: [
+                Container(
+                  width: double.infinity,
+                  color: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: const Column(children: [
+                    Text('CALIBRADO',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5)),
+                    Text('www.metrica.com.bo',
+                        style: TextStyle(color: Colors.white, fontSize: 10)),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Certificado:',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600])),
+                        Text(stickerCert,
+                            style: GoogleFonts.caveat(
+                                color: Colors.blue[800],
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Text('Fecha de calibración:',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.grey[600])),
+                        Text(stickerFecha,
+                            style: GoogleFonts.caveat(
+                                color: Colors.blue[800],
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                  child: Text(stickerCod,
+                                      style: GoogleFonts.caveat(
+                                          color: Colors.blue[800],
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold))),
+                              Text('Nº: $stickerNro',
+                                  style: GoogleFonts.specialElite(
+                                      color: Colors.red[800],
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold)),
+                            ]),
+                      ]),
+                ),
+              ],
+            )),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPesasSection(
-      ServiceSessionProvider provider, bool isDark) {
+  Widget _buildPesasSection(ServiceSessionProvider provider, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -597,8 +598,9 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     setState(() {
       final idx = _selectedPesas
           .indexWhere((e) => e.codInstrumento == equipo.codInstrumento);
-      if (idx >= 0) _selectedPesas[idx] =
-          _selectedPesas[idx].copyWith(cantidad: value);
+      if (idx >= 0) {
+        _selectedPesas[idx] = _selectedPesas[idx].copyWith(cantidad: value);
+      }
     });
     _saveToProvider();
   }
@@ -686,8 +688,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                           ),
                         ),
                       )
-                    : _buildEquiposList(
-                        filtered, isDark, provider, setSheet),
+                    : _buildEquiposList(filtered, isDark, provider, setSheet),
               ),
             ],
           ),
@@ -843,7 +844,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
     final equipo = _equipoFromMap(eq);
     final cert = _certStatus(equipo.certFecha);
     setState(() {
-      if (_selectedPesas.any((e) => e.codInstrumento == equipo.codInstrumento)) {
+      if (_selectedPesas
+          .any((e) => e.codInstrumento == equipo.codInstrumento)) {
         _selectedPesas
             .removeWhere((e) => e.codInstrumento == equipo.codInstrumento);
       } else if (_selectedPesas.length < 5) {
@@ -865,9 +867,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
   Widget _buildFotosFinalesSection(bool isDark) {
     final provider = context.read<ServiceSessionProvider>();
     final seca = provider.session?.sessionInfo.seca;
-    final canTakePhoto = _fotosFinalesPaths.length < 5 &&
-        seca != null &&
-        seca.isNotEmpty;
+    final canTakePhoto =
+        _fotosFinalesPaths.length < 5 && seca != null && seca.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -903,15 +904,16 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        color:
+            isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
       ),
       child: Column(
         children: [
-          Icon(Icons.camera_alt_outlined, size: 40,
-              color: isDark ? Colors.white24 : Colors.black26),
+          Icon(Icons.camera_alt_outlined,
+              size: 40, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 10),
           Text(
             'Tome fotografías finales del servicio',
@@ -928,8 +930,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF04376E),
               foregroundColor: Colors.white,
-              disabledBackgroundColor:
-                  const Color(0xFF04376E).withOpacity(0.4),
+              disabledBackgroundColor: const Color(0xFF04376E).withOpacity(0.4),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -981,8 +982,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                       color: isDark ? Colors.grey[900] : Colors.grey[200],
                       image: exists
                           ? DecorationImage(
-                              image: FileImage(File(path)),
-                              fit: BoxFit.cover)
+                              image: FileImage(File(path)), fit: BoxFit.cover)
                           : null,
                     ),
                     child: !exists
@@ -1074,8 +1074,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
 
   void _viewFinalFoto(String path, bool isDark) {
     if (!File(path).existsSync()) {
-      TopAlert.show(
-          context, 'La foto ya no existe en el dispositivo', isError: true);
+      TopAlert.show(context, 'La foto ya no existe en el dispositivo',
+          isError: true);
       return;
     }
     Navigator.push(

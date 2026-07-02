@@ -220,12 +220,8 @@ class InstalacionController {
     // Retorno a Cero
     data['retorno_cero_inicial_valoracion'] =
         model.pruebasIniciales.retornoCero.estado;
-    data['retorno_cero_inicial_carga'] =
-        model.pruebasIniciales.retornoCero.valor;
-    data['retorno_cero_inicial_unidad'] =
-        model.pruebasIniciales.retornoCero.unidad;
     data['retorno_cero_inicial_estabilidad'] =
-        model.pruebasIniciales.retornoCero.estabilidad; // NUEVO (V3)
+        model.pruebasIniciales.retornoCero.estabilidad;
 
     // Pruebas Iniciales
     _addExcentricidadData(
@@ -265,11 +261,7 @@ class InstalacionController {
   void _addRepetibilidadData(
       Map<String, dynamic> data, Repetibilidad? rep, String tipo) {
     if (rep?.activo ?? false) {
-      // New names: repetibilidad_inicial_cantidad_cargas
-      data['repetibilidad_${tipo}_cantidad_cargas'] = rep!.cantidadCargas;
-      data['repetibilidad_${tipo}_cantidad_pruebas'] = rep.cantidadPruebas;
-
-      for (int i = 0; i < rep.cargas.length; i++) {
+      for (int i = 0; i < rep!.cargas.length; i++) {
         final carga = rep.cargas[i];
         final cargaNum = i + 1; // 1, 2, 3
 

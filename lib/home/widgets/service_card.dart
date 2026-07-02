@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,132 +14,144 @@ class ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    
-    final bool isCalibracion = servicio.tipo == TipoServicio.calibracion;
-    final List<Color> gradientColors = isCalibracion
-        ? const [Color(0xFF667EEA), Color(0xFF764BA2)]
-        : const [Color(0xFF4CAF50), Color(0xFF45a049)];
-    final Color primaryColor = isCalibracion ? const Color(0xFF667EEA) : const Color(0xFF4CAF50);
-    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
+
+    final isCalibracion = servicio.tipo == TipoServicio.calibracion;
+    final Color flatColor = const Color(0xFF4CAF50);
+    final icon = isCalibracion
+        ? FontAwesomeIcons.scaleBalanced
+        : FontAwesomeIcons.screwdriverWrench;
     final String labelSuffix = isCalibracion ? 'calibrada' : 'técnico';
     final String pluralSuffixItem = servicio.cantidad != 1 ? 's' : '';
     final String pluralSuffixLabel = servicio.cantidad != 1 ? 's' : '';
+    final String fechaStr = _formatFecha(servicio.fecha);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ServicioDetallesScreen(servicio: servicio),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: gradientColors),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: FaIcon(icon, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${servicio.prefijo} ${servicio.codigo}',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: cs.onSurface,
-                              ),
-                            ),
-                            Text(
-                              '${servicio.cantidad} ${servicio.nombreItem}$pluralSuffixItem $labelSuffix$pluralSuffixLabel',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: cs.onSurface.withOpacity(0.6),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          servicio.cantidad.toString(),
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: primaryColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ServicioDetallesScreen(servicio: servicio),
-                              ),
-                            );
-                          },
-                          icon: const FaIcon(FontAwesomeIcons.eye, size: 16),
-                          label: const Text('Ver detalles'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    ServicioDetallesScreen(servicio: servicio),
               ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: flatColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: FaIcon(icon, color: flatColor, size: 18),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${servicio.prefijo} ${servicio.codigo}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                          height: 1.2,
+                        ),
+                      ),
+                      if (fechaStr.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          fechaStr,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: cs.onSurface.withOpacity(0.45),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 2),
+                      Text(
+                        '${servicio.cantidad} ${servicio.nombreItem}$pluralSuffixItem $labelSuffix$pluralSuffixLabel',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: cs.onSurface.withOpacity(0.54),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 38,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ServicioDetallesScreen(servicio: servicio),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: flatColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: Text(
+                      'Ver',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _formatFecha(String? fecha) {
+    if (fecha == null || fecha.isEmpty) return '';
+    try {
+      final parts = fecha.split('-');
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+      return fecha;
+    } catch (_) {
+      return fecha;
+    }
   }
 }

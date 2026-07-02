@@ -167,11 +167,17 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           agrupados.putIfAbsent(seca, () => []).add(r);
         }
         agrupados.forEach((seca, balanzas) {
+          final fechas = balanzas
+              .map((b) => b['fecha_servicio']?.toString() ?? '')
+              .where((f) => f.isNotEmpty)
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
           servicios.add(ServicioResumen(
               tipo: TipoServicio.calibracion,
               codigo: seca,
               cantidad: balanzas.length,
-              items: balanzas));
+              items: balanzas,
+              fecha: fechas.isNotEmpty ? fechas.first : null));
         });
         await db.close();
       }
@@ -224,8 +230,17 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         }
       }
       agrupados.forEach((otst, list) {
+        final fechas = list
+            .map((s) => s['fecha_servicio']?.toString() ?? '')
+            .where((f) => f.isNotEmpty)
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
         servicios.add(ServicioResumen(
-            tipo: TipoServicio.soporte, codigo: otst, cantidad: list.length, items: list));
+            tipo: TipoServicio.soporte,
+            codigo: otst,
+            cantidad: list.length,
+            items: list,
+            fecha: fechas.isNotEmpty ? fechas.first : null));
       });
       servicios.sort((a, b) => a.codigo.compareTo(b.codigo));
     } catch (_) {}

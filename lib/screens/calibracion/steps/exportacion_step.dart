@@ -263,7 +263,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
   /// Muestra un diálogo para seleccionar instrumentos de medición del servicio.
   /// Retorna la lista de instrumentos seleccionados o null si cancela.
   Future<List<EquipoInfo>?> _showInstrumentosDialog(bool isDark) async {
-    List<EquipoInfo> selected = List.from(_selectedInstrumentos);
+    List<EquipoInfo> selected = List<EquipoInfo>.from(_selectedInstrumentos);
     final searchCtrl = TextEditingController();
 
     final result = await showDialog<List<EquipoInfo>>(
@@ -463,7 +463,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
               FilledButton(
                 onPressed: selected.isEmpty
                     ? null
-                    : () => Navigator.pop(ctx, List.from(selected)),
+                    : () => Navigator.pop(ctx, List<EquipoInfo>.from(selected)),
                 child: const Text('Confirmar'),
               ),
             ],

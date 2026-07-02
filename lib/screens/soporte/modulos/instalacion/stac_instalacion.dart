@@ -150,8 +150,21 @@ class _StacInstalacionScreenState extends State<StacInstalacionScreen> {
           await _saveCurrentStep();
           if (!mounted) return;
           _model.horaFin = DateFormat('HH:mm:ss').format(DateTime.now());
-          await _controller.saveData(context);
 
+          try {
+            await _controller.saveData(context);
+          } catch (e) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error al guardar: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+
+          if (!mounted) return;
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(

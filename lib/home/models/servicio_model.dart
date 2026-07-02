@@ -2,15 +2,17 @@ enum TipoServicio { calibracion, soporte }
 
 class ServicioResumen {
   final TipoServicio tipo;
-  final String codigo; // "SECA XXX" o "OTST XXX"
-  final int cantidad; // cantidadBalanzas o cantidadServicios
-  final List<Map<String, dynamic>> items; // balanzas o servicios
+  final String codigo;
+  final int cantidad;
+  final List<Map<String, dynamic>> items;
+  final String? fecha;
 
   ServicioResumen({
     required this.tipo,
     required this.codigo,
     required this.cantidad,
     required this.items,
+    this.fecha,
   });
 
   String get prefijo => tipo == TipoServicio.calibracion ? 'SECA' : 'OTST';
