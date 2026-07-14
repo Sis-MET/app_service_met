@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
@@ -848,7 +849,7 @@ class ServiceSessionProvider extends ChangeNotifier {
         buffer.writeln(valores.join(';'));
       }
 
-      final bytes = buffer.toString().codeUnits;
+      final bytes = utf8.encode('\uFEFF${buffer.toString()}');
 
       // Guardar junto a las fotos: {baseFotos}/calibracion_fotos/{seca}/
       final fecha = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());

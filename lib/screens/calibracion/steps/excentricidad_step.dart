@@ -113,13 +113,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     final provider = context.read<ServiceSessionProvider>();
     final exc = provider.session?.excentricidad;
     if (exc != null) {
+      _parsePuntosIndicacion(exc.puntosIndicacion, exc.tipoPlataforma);
       setState(() {
-        _tipoPlataforma = _plataformas.contains(exc.tipoPlataforma)
-            ? exc.tipoPlataforma
-            : null;
-        final options = _getPuntosOptions();
-        _puntosIndicacion =
-            options.contains(exc.puntosIndicacion) ? exc.puntosIndicacion : null;
         _cargaCtrl.text = exc.carga ?? '';
         _notaCtrl.text = exc.nota ?? '';
         _rows = exc.posiciones
@@ -132,6 +127,49 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     }
     if (_rows.isEmpty) _buildDefaultRows(4);
     _hasCheckedPrevData = false;
+  }
+
+  static final _puntosIndicacionRegex =
+      RegExp(r'^(\w+)\s+(\d+)([FAID])$');
+
+  void _parsePuntosIndicacion(String? value, String? tipoPlataformaFromSession) {
+    if (value == null || value.trim().isEmpty) return;
+
+    final match = _puntosIndicacionRegex.firstMatch(value.trim());
+    if (match != null) {
+      setState(() {
+        final tipo = match.group(1)!;
+        final puntos = match.group(2)!;
+        final abrev = match.group(3)!;
+        if (_plataformas.contains(tipo)) {
+          _tipoPlataforma = tipo;
+        }
+        final options = _getPuntosOptions();
+        if (options.contains(puntos)) {
+          _puntosIndicacion = puntos;
+        }
+        switch (abrev) {
+          case 'F':
+            _posicionIndicador = 'frente';
+          case 'A':
+            _posicionIndicador = 'atras';
+          case 'I':
+            _posicionIndicador = 'izquierda';
+          case 'D':
+            _posicionIndicador = 'derecha';
+        }
+      });
+    } else {
+      // Backward compatibility: solo el número (formato anterior)
+      setState(() {
+        _tipoPlataforma = _plataformas.contains(tipoPlataformaFromSession)
+            ? tipoPlataformaFromSession
+            : null;
+        final options = _getPuntosOptions();
+        _puntosIndicacion =
+            options.contains(value.trim()) ? value.trim() : null;
+      });
+    }
   }
 
   /// Verifica si hay datos del servicio anterior para precargar la carga.
@@ -262,7 +300,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     final provider = context.read<ServiceSessionProvider>();
     provider.updateExcentricidad(ExcentricidadData(
       tipoPlataforma: _tipoPlataforma,
-      puntosIndicacion: _puntosIndicacion,
+      puntosIndicacion: _composePuntosIndicacion(),
       carga: _cargaCtrl.text,
       nota: _notaCtrl.text.isEmpty ? 'Sin observaciones' : _notaCtrl.text,
       posiciones: _rows
@@ -275,6 +313,29 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
               ))
           .toList(),
     ));
+  }
+
+  String? _composePuntosIndicacion() {
+    if (_tipoPlataforma == null || _puntosIndicacion == null) {
+      return _puntosIndicacion;
+    }
+    final abrev = _getPosicionAbrev();
+    return '$_tipoPlataforma $_puntosIndicacion$abrev';
+  }
+
+  String _getPosicionAbrev() {
+    switch (_posicionIndicador) {
+      case 'frente':
+        return 'F';
+      case 'atras':
+        return 'A';
+      case 'izquierda':
+        return 'I';
+      case 'derecha':
+        return 'D';
+      default:
+        return '';
+    }
   }
 
   @override
@@ -613,7 +674,10 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
   Widget _dirBtn(String key, IconData icon, String label, bool isDark) {
     final selected = _posicionIndicador == key;
     return GestureDetector(
-      onTap: () => setState(() => _posicionIndicador = key),
+      onTap: () {
+        setState(() => _posicionIndicador = key);
+        _saveToProvider();
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         constraints: const BoxConstraints(minWidth: 60),
