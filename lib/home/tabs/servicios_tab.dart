@@ -6,7 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/calibration_workspace_screen.dart';
-import 'package:service_met/screens/soporte/precarga/precarga_screen.dart';
+import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
 import '../../theme/app_colors.dart';
 
 const _stepNames = [

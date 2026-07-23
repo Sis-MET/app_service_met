@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/utils/top_alert.dart';
-import 'package:service_met/screens/calibracion/widgets/step_indicator.dart';
+import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/theme/app_colors.dart';
 
 import 'steps/cliente_step.dart';
