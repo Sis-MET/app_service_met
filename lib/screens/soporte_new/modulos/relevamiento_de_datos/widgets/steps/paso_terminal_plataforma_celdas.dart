@@ -5,15 +5,15 @@ import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_
 class PasoTerminalPlataformaCeldas extends StatelessWidget {
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const PasoTerminalPlataformaCeldas({
     super.key,
     required this.campos,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -32,8 +32,8 @@ class PasoTerminalPlataformaCeldas extends StatelessWidget {
           return CampoInspeccionWidget(
             campoEstado: campos[i],
             onChanged: (value, solutionValue) => onChanged(i, value, solutionValue),
-            onAddPhoto: onAddPhoto,
-            onRemovePhoto: (index) => onRemovePhoto(index),
+            seca: seca,
+            codMetrica: codMetrica,
           );
         }),
       ],

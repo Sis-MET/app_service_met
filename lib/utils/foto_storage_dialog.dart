@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/utils/foto_helper.dart';
 
 class FotoStorageDialog {
-  static Future<bool> show(BuildContext context) async {
+  static Future<bool> show(BuildContext context,
+      {String subDirName = 'calibracion_fotos'}) async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final result = await showDialog<bool>(
       context: context,
@@ -43,7 +44,7 @@ class FotoStorageDialog {
               ),
             ),
             const SizedBox(height: 16),
-            _folderPreview(isDark),
+            _folderPreview(isDark, subDirName: subDirName),
             const SizedBox(height: 16),
             Text(
               'Seleccione o cree una carpeta (ej. "ServiceMET") '
@@ -64,7 +65,7 @@ class FotoStorageDialog {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  final path = await FotoHelper.configure();
+                  final path = await FotoHelper.configure(subDirName: subDirName);
                   if (ctx.mounted) {
                     Navigator.pop(ctx, path != null);
                   }
@@ -87,7 +88,8 @@ class FotoStorageDialog {
     return result ?? false;
   }
 
-  static Widget _folderPreview(bool isDark) {
+  static Widget _folderPreview(bool isDark,
+      {String subDirName = 'calibracion_fotos'}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -108,7 +110,7 @@ class FotoStorageDialog {
           Padding(
             padding: const EdgeInsets.only(left: 24),
             child:
-                _folderRow(Icons.folder, 'calibracion_fotos/', isDark, bold: true),
+                _folderRow(Icons.folder, '$subDirName/', isDark, bold: true),
           ),
           const SizedBox(height: 4),
           Padding(

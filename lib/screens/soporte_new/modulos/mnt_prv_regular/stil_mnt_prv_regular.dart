@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import 'package:service_met/models/service_session.dart';
@@ -53,8 +50,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
   late final MntPrvRegularController _controller;
   late final MntPrvRegularModel _model;
   late final BalanzaInfo _balanzaInfo;
-  final ImagePicker _picker = ImagePicker();
   int _copyTickFinales = 0;
+  bool _isLoading = true;
 
   static const _recomendacionesOptions = [
     'Diagnostico',
@@ -111,6 +108,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
   }
 
   Future<void> _loadExistingData() async {
+    setState(() => _isLoading = true);
     try {
       final dbLegacy = DatabaseHelperMntPrvRegularStil();
       final registro = await dbLegacy.getUltimoRegistroPorSeca(
@@ -121,6 +119,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
       }
     } catch (e) {
       debugPrint('Error cargando datos existentes MNT PRV REGULAR: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -130,6 +130,34 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
 
   bool _validateCurrentStep() {
     switch (_controller.currentStep) {
+      case 0:
+        if (_controller.retornoCeroInicial.isEmpty) {
+          TopAlert.show(
+              context, 'Seleccione Retorno a Cero en Pruebas Iniciales',
+              isError: true);
+          return false;
+        }
+        if (_controller.estabilidadInicial.isEmpty) {
+          TopAlert.show(
+              context, 'Seleccione Estabilidad en Pruebas Iniciales',
+              isError: true);
+          return false;
+        }
+        return true;
+      case 4:
+        if (_controller.retornoCeroFinal.isEmpty) {
+          TopAlert.show(
+              context, 'Seleccione Retorno a Cero en Pruebas Finales',
+              isError: true);
+          return false;
+        }
+        if (_controller.estabilidadFinal.isEmpty) {
+          TopAlert.show(
+              context, 'Seleccione Estabilidad en Pruebas Finales',
+              isError: true);
+          return false;
+        }
+        return true;
       case 1:
         if (!_camposCompletos(_controller.camposTerminal)) {
           TopAlert.show(
@@ -245,14 +273,6 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
     _controller.markChanged();
   }
 
-  Future<void> _addPhoto(String label, String foto) async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null && mounted) {
-      _model.addPhoto(label, File(photo.path));
-      _controller.markChanged();
-    }
-  }
-
   void _onCampoChanged(
       List<CampoEstado> campos, int index, String value, String solutionValue) {
     if (index < campos.length) {
@@ -270,11 +290,48 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) {
-        final isLast = _controller.currentStep == _controller.totalSteps - 1;
-        return ServiceWorkspaceLayout(
+    if (_isLoading) {
+      return Scaffold(
+        appBar: ServiceAppBar(title: 'Mnt Preventivo Regular'),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (_controller.hasUnsavedChanges.value) {
+          final shouldPop = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Cambios sin guardar'),
+              content: const Text(
+                  '¿Desea salir? Los cambios no guardados se perderán.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(false),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(true),
+                  child: const Text('Salir'),
+                ),
+              ],
+            ),
+          );
+          if (shouldPop == true && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        } else {
+          if (context.mounted) Navigator.of(context).pop();
+        }
+      },
+      child: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) {
+          final isLast =
+              _controller.currentStep == _controller.totalSteps - 1;
+          return ServiceWorkspaceLayout(
           title: 'Mnt Preventivo Regular',
           steps: _steps,
           stepWidgets: [
@@ -340,8 +397,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 campos: _controller.camposTerminal,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposTerminal, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             // ── Paso 2: Balanza ─────────────────────────────────────
@@ -354,8 +411,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 campos: _controller.camposBalanza,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposBalanza, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             // ── Paso 3: Caja Sumadora ───────────────────────────────
@@ -368,8 +425,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 campos: _controller.camposCajaSumadora,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposCajaSumadora, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             // ── Paso 4: Pruebas Metrológicas Finales ────────────────
@@ -484,7 +541,8 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
               buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
         );
       },
-    );
+    ),
+  );
   }
 
   Widget _buildPaso(Widget header, Widget content) {

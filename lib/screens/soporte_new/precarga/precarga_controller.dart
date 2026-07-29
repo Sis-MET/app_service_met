@@ -395,6 +395,20 @@ class PrecargaController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<Set<String>> getCompletedCodMetricas() async {
+    if (selectedSeca == null || selectedSeca!.isEmpty) return {};
+    try {
+      final registros =
+          await _soporteDb.getRegistrosPorSeca('precarga', selectedSeca!);
+      return registros
+          .map((r) => r['cod_metrica']?.toString() ?? '')
+          .where((c) => c.isNotEmpty)
+          .toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
   void _setLoading(bool value) {
     isLoading = value;
     notifyListeners();

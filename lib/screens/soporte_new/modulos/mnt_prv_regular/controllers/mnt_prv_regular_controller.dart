@@ -165,7 +165,9 @@ class MntPrvRegularController extends BaseSoporteController {
       final campo = campos[idx];
       data['${dbKey}_estado'] = campo.value;
       data['${dbKey}_solucion'] = campo.solutionValue;
-      data['${dbKey}_foto'] = '';
+      data['${dbKey}_foto'] = campo.fotos
+          .where((f) => f.isNotEmpty)
+          .join(',');
     }
 
     // Terminal (10)
@@ -294,6 +296,13 @@ class MntPrvRegularController extends BaseSoporteController {
       final solucion = data['${dbKey}_solucion']?.toString() ?? '';
       if (estado.isNotEmpty) campos[idx].value = estado;
       if (solucion.isNotEmpty) campos[idx].solutionValue = solucion;
+      final fotosRaw = data['${dbKey}_foto']?.toString() ?? '';
+      if (fotosRaw.isNotEmpty) {
+        campos[idx].fotos = fotosRaw
+            .split(',')
+            .where((n) => n.isNotEmpty)
+            .toList();
+      }
     }
 
     // Terminal

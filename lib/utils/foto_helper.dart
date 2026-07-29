@@ -5,16 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FotoHelper {
   static const _prefsKey = 'calibracion_fotos_base_path';
-  static const _subdirName = 'calibracion_fotos';
 
-  static Future<bool> isConfigured() async {
+  static Future<bool> isConfigured({String subDirName = 'calibracion_fotos'}) async {
     final prefs = await SharedPreferences.getInstance();
     final path = prefs.getString(_prefsKey);
     if (path == null || path.isEmpty) return false;
     return Directory(path).existsSync();
   }
 
-  static Future<String?> configure() async {
+  static Future<String?> configure({String subDirName = 'calibracion_fotos'}) async {
     final path = await FilePicker.platform.getDirectoryPath(
       dialogTitle: 'Seleccione o cree la carpeta ServiceMET',
     );
@@ -25,7 +24,7 @@ class FotoHelper {
       await dir.create(recursive: true);
     }
 
-    final fotosDir = Directory(p.join(path, _subdirName));
+    final fotosDir = Directory(p.join(path, subDirName));
     if (!await fotosDir.exists()) {
       await fotosDir.create(recursive: true);
     }
@@ -35,13 +34,18 @@ class FotoHelper {
     return path;
   }
 
-  static Future<Directory> getBaseDir() async {
+  static Future<String> getBasePath() async {
     final prefs = await SharedPreferences.getInstance();
     final basePath = prefs.getString(_prefsKey);
     if (basePath == null || basePath.isEmpty) {
       throw FotoStorageNotConfiguredError();
     }
-    final dir = Directory(p.join(basePath, _subdirName));
+    return basePath;
+  }
+
+  static Future<Directory> getBaseDir({String subDirName = 'calibracion_fotos'}) async {
+    final basePath = await getBasePath();
+    final dir = Directory(p.join(basePath, subDirName));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -49,8 +53,8 @@ class FotoHelper {
   }
 
   static Future<Directory> getInstrumentoDir(
-      String seca, String codMetrica) async {
-    final base = await getBaseDir();
+      String seca, String codMetrica, {String subDirName = 'calibracion_fotos'}) async {
+    final base = await getBaseDir(subDirName: subDirName);
     final dir = Directory(p.join(base.path, seca, codMetrica));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -59,8 +63,8 @@ class FotoHelper {
   }
 
   static Future<String> saveFoto(
-      String seca, String codMetrica, String sourcePath) async {
-    final dir = await getInstrumentoDir(seca, codMetrica);
+      String seca, String codMetrica, String sourcePath, {String subDirName = 'calibracion_fotos'}) async {
+    final dir = await getInstrumentoDir(seca, codMetrica, subDirName: subDirName);
     final existing = await dir.list().toList();
     final nextIndex = existing.length + 1;
     final ext = p.extension(sourcePath);

@@ -52,6 +52,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   bool _isNewBalanza = false;
   Map<String, dynamic>? _selectedBalanza;
+  Set<String> _completedCodMetricas = {};
 
   static const List<String> _categorias = ['STAC', 'STIL'];
   static const List<String> _unidades = ['kg', 'g', 'mg', 't', 'lb', 'N'];
@@ -74,6 +75,17 @@ class _BalanzaStepState extends State<BalanzaStep> {
   void initState() {
     super.initState();
     _initFromController();
+    _loadCompletedCodMetricas();
+  }
+
+  Future<void> _loadCompletedCodMetricas() async {
+    final c = widget.controller;
+    final completed = await c.getCompletedCodMetricas();
+    if (mounted) {
+      setState(() {
+        _completedCodMetricas = completed;
+      });
+    }
   }
 
   void _initFromController() {
@@ -676,6 +688,35 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return '$codPlanta-$stamp';
   }
 
+  List<Map<String, dynamic>> _sortInstrumentos(List<Map<String, dynamic>> list) {
+    final sorted = List<Map<String, dynamic>>.from(list);
+    sorted.sort((a, b) {
+      final aCod = a['cod_metrica']?.toString() ?? '';
+      final bCod = b['cod_metrica']?.toString() ?? '';
+      return _naturalCompare(aCod, bCod);
+    });
+    return sorted;
+  }
+
+  int _naturalCompare(String a, String b) {
+    final aParts =
+        RegExp(r'(\d+|\D+)').allMatches(a).map((m) => m.group(1)!).toList();
+    final bParts =
+        RegExp(r'(\d+|\D+)').allMatches(b).map((m) => m.group(1)!).toList();
+    final len = aParts.length < bParts.length ? aParts.length : bParts.length;
+    for (int i = 0; i < len; i++) {
+      final aNum = int.tryParse(aParts[i]);
+      final bNum = int.tryParse(bParts[i]);
+      if (aNum != null && bNum != null) {
+        if (aNum != bNum) return aNum.compareTo(bNum);
+      } else {
+        final cmp = aParts[i].compareTo(bParts[i]);
+        if (cmp != 0) return cmp;
+      }
+    }
+    return aParts.length.compareTo(bParts.length);
+  }
+
   Future<void> _scanQrForBalanza(PrecargaController provider) async {
     final rawValue = await Navigator.push<String>(
       context,
@@ -716,7 +757,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   void _showSearchDialog(PrecargaController provider) {
     final searchCtrl = TextEditingController();
     final balanzas = provider.instrumentos;
-    List<Map<String, dynamic>> filtered = List.from(balanzas);
+    List<Map<String, dynamic>> filtered = _sortInstrumentos(balanzas);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
@@ -774,7 +815,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                               size: 18),
                           onPressed: () {
                             searchCtrl.clear();
-                            setSheet(() => filtered = List.from(balanzas));
+                            setSheet(() => filtered = _sortInstrumentos(balanzas));
                           })
                       : null,
                   filled: true,
@@ -788,8 +829,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 ),
                 onChanged: (q) => setSheet(() {
                   filtered = q.isEmpty
-                      ? List.from(balanzas)
-                      : balanzas.where((b) {
+                      ? _sortInstrumentos(balanzas)
+                      : _sortInstrumentos(balanzas.where((b) {
                           final low = q.toLowerCase();
                           final cod = b['cod_metrica']?.toString().toLowerCase() ?? '';
                           final serie = b['serie']?.toString().toLowerCase() ?? '';
@@ -801,7 +842,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                               marca.contains(low) ||
                               modelo.contains(low) ||
                               desc.contains(low);
-                        }).toList();
+                        }).toList());
                 }),
               ),
               const SizedBox(height: 12),
@@ -886,15 +927,46 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          cod,
-                                          style: GoogleFonts.inter(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            color: isDark
-                                                ? const Color(0xFFf9e300)
-                                                : const Color(0xFF5A4E00),
-                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              cod,
+                                              style: GoogleFonts.inter(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark
+                                                    ? const Color(0xFFf9e300)
+                                                    : const Color(0xFF5A4E00),
+                                              ),
+                                            ),
+                                            if (_completedCodMetricas
+                                                .contains(cod)) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green
+                                                      .withOpacity(0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                  border: Border.all(
+                                                      color: Colors.green
+                                                          .withOpacity(0.4)),
+                                                ),
+                                                child: Text(
+                                                  'Mantenimiento',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.green[700],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                         const SizedBox(height: 8),
                                         _infoSearchRow('Marca', marca, isDark),

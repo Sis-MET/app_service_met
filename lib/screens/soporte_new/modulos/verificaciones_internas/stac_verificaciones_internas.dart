@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
-import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
@@ -177,14 +174,6 @@ class _StacVerificacionesInternasState
     );
   }
 
-  void _onAddPhoto(CampoEstado campo, String foto) {
-    _controller.model.addPhoto(campo.nombre, File(foto));
-  }
-
-  void _onRemovePhoto(CampoEstado campo, int index) {
-    _controller.model.removePhoto(campo.nombre, index);
-  }
-
   SaveStatus get _saveStatus => _controller.isSaving
       ? SaveStatus.saving
       : (_controller.lastSaveSuccessful
@@ -244,8 +233,8 @@ class _StacVerificacionesInternasState
                     solutionValue,
                   );
                 },
-                onAddPhoto: (label, foto) => _onAddPhoto(campo, foto),
-                onRemovePhoto: (index) => _onRemovePhoto(campo, index),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               )),
         ],
       ),

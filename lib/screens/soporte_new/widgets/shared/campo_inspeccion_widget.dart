@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/utils/estado_maps.dart';
 import 'package:service_met/screens/soporte_new/utils/soporte_constants.dart';
+import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 
 const Map<String, IconData> _solucionIconMap = {
@@ -28,15 +30,15 @@ const Map<String, Color> _solucionColorMap = {
 class CampoInspeccionWidget extends StatefulWidget {
   final CampoEstado campoEstado;
   final void Function(String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const CampoInspeccionWidget({
     super.key,
     required this.campoEstado,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -59,6 +61,9 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
     if (oldWidget.campoEstado != widget.campoEstado) {
       _campoEstado = widget.campoEstado;
     }
+    if (_campoEstado.fotos.length != oldWidget.campoEstado.fotos.length) {
+      setState(() {});
+    }
   }
 
   void _onValueChanged(String? value) {
@@ -78,9 +83,41 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   }
 
   Future<void> _addPhoto() async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null) {
-      widget.onAddPhoto(_campoEstado.nombre, photo.path);
+    if (!await FotoHelper.isConfigured()) {
+      if (!mounted) return;
+      final configured = await FotoStorageDialog.show(
+        context,
+        subDirName: 'soporte_fotos',
+      );
+      if (!configured || !mounted) return;
+    }
+
+    final seca = widget.seca;
+    final codMetrica = widget.codMetrica;
+    if (seca.isEmpty || codMetrica.isEmpty) return;
+
+    final XFile? photo = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+    );
+    if (photo == null || !mounted) return;
+
+    try {
+      final savedPath = await FotoHelper.saveFoto(
+        seca, codMetrica, photo.path,
+        subDirName: 'soporte_fotos',
+      );
+      if (!mounted) return;
+      setState(() {
+        _campoEstado.fotos.add(savedPath);
+      });
+      widget.onChanged(_campoEstado.value, _campoEstado.solutionValue);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar foto: $e')),
+        );
+      }
     }
   }
 
@@ -158,6 +195,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                   ...List.generate(_campoEstado.fotos.length, (index) {
                     return GestureDetector(
                       onTap: () {
+                        final path = _campoEstado.fotos[index];
                         showDialog(
                           context: context,
                           builder: (ctx) => AlertDialog(
@@ -172,7 +210,13 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                               TextButton(
                                 onPressed: () {
                                   Navigator.of(ctx).pop();
-                                  widget.onRemovePhoto(index);
+                                  FotoHelper.deleteFoto(path);
+                                  setState(() {
+                                    _campoEstado.fotos.removeAt(index);
+                                  });
+                                  widget.onChanged(
+                                      _campoEstado.value,
+                                      _campoEstado.solutionValue);
                                 },
                                 child: const Text('Eliminar'),
                               ),

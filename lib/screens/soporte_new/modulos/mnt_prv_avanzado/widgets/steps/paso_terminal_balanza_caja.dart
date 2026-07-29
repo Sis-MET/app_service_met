@@ -6,16 +6,16 @@ class PasoTerminalBalanzaCaja extends StatelessWidget {
   final String title;
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const PasoTerminalBalanzaCaja({
     super.key,
     required this.title,
     required this.campos,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -34,8 +34,8 @@ class PasoTerminalBalanzaCaja extends StatelessWidget {
           return CampoInspeccionWidget(
             campoEstado: campos[i],
             onChanged: (value, solutionValue) => onChanged(i, value, solutionValue),
-            onAddPhoto: onAddPhoto,
-            onRemovePhoto: (index) => onRemovePhoto(index),
+            seca: seca,
+            codMetrica: codMetrica,
           );
         }),
       ],

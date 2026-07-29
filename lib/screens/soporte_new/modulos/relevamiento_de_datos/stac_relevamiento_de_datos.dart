@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/controllers/relevamiento_de_datos_controller.dart';
@@ -45,7 +42,6 @@ class StacRelevamientoDeDatos extends StatefulWidget {
 class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
   late final RelevamientoDeDatosController _controller;
   late final RelevamientoDeDatosModel _model;
-  final ImagePicker _picker = ImagePicker();
 
   static const _steps = [
     StepData(
@@ -116,14 +112,6 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
     );
   }
 
-  Future<void> _addPhoto(String label, String foto) async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null && mounted) {
-      _model.addPhoto(label, File(photo.path));
-      _controller.markChanged();
-    }
-  }
-
   void _onCampoChanged(int index, String value, String solutionValue) {
     if (index < _controller.camposEstado.length) {
       _controller.camposEstado[index].value = value;
@@ -170,8 +158,8 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
               PasoTerminalPlataformaCeldas(
                 campos: _controller.camposEstado,
                 onChanged: _onCampoChanged,
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(

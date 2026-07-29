@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
@@ -45,7 +42,6 @@ class StacMntPrvAvanzado extends StatefulWidget {
 class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
   late final MntPrvAvanzadoController _controller;
   late final MntPrvAvanzadoModel _model;
-  final ImagePicker _picker = ImagePicker();
 
   static const _steps = [
     StepData(
@@ -128,14 +124,6 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
     );
   }
 
-  Future<void> _addPhoto(String label, String foto) async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null && mounted) {
-      _model.addPhoto(label, File(photo.path));
-      _controller.markChanged();
-    }
-  }
-
   void _onCampoChanged(
       List<CampoEstado> campos, int index, String value, String solutionValue) {
     if (index < campos.length) {
@@ -181,8 +169,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 campos: _controller.camposLozas,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposLozas, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(
@@ -195,8 +183,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 campos: _controller.camposLimpieza,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposLimpieza, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(
@@ -209,8 +197,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 campos: _controller.camposChequeo,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposChequeo, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(
@@ -223,8 +211,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 campos: _controller.camposElectricas,
                 onChanged: (i, v, s) =>
                     _onCampoChanged(_controller.camposElectricas, i, v, s),
-                onAddPhoto: _addPhoto,
-                onRemovePhoto: (_) {},
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(

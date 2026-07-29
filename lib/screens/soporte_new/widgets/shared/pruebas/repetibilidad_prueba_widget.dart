@@ -68,6 +68,7 @@ class _RepetibilidadPruebaWidgetState
         }
       }
     } else {
+      _medicionesCount = '3';
       _buildControllers(3);
     }
   }

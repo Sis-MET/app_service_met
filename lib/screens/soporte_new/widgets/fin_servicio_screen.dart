@@ -8,10 +8,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:service_met/home/screens/home_screen.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
+import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 
@@ -351,6 +353,20 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         final internalFile = File('${exportDir.path}/$fileName');
         await internalFile.writeAsBytes(csvBytes);
         autoSavedPath = internalFile.path;
+      }
+
+      // Guardar también en el directorio de fotos (como calibración)
+      try {
+        final baseFotos = await FotoHelper.getBaseDir(
+            subDirName: 'soporte_fotos');
+        final csvDir = Directory(p.join(baseFotos.path, widget.secaValue));
+        if (!await csvDir.exists()) {
+          await csvDir.create(recursive: true);
+        }
+        final csvFile = File(p.join(csvDir.path, fileName));
+        await csvFile.writeAsBytes(csvBytes);
+      } catch (_) {
+        // Si no hay directorio configurado, solo usamos el respaldo automático
       }
 
       final params = SaveFileDialogParams(

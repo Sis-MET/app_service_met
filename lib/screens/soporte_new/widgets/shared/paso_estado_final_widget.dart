@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
@@ -44,6 +45,10 @@ class PasoEstadoFinalWidget extends StatelessWidget {
   /// dropdowns de estado general.
   final bool useLegacyEstados;
 
+  /// Datos de sesión para guardado de fotos.
+  final String? seca;
+  final String? codMetrica;
+
   const PasoEstadoFinalWidget({
     super.key,
     required this.comentarioGeneral,
@@ -65,6 +70,8 @@ class PasoEstadoFinalWidget extends StatelessWidget {
     this.onFechaProxServicioChanged,
     this.recomendacionesOptions,
     this.useLegacyEstados = false,
+    this.seca,
+    this.codMetrica,
   });
 
   String _calcularFechaFutura(int meses) {
@@ -174,8 +181,8 @@ class PasoEstadoFinalWidget extends StatelessWidget {
             onChanged: (value, solutionValue) {
               onCampoChanged(i, value, solutionValue);
             },
-            onAddPhoto: (label, foto) {},
-            onRemovePhoto: (index) {},
+            seca: seca ?? '',
+            codMetrica: codMetrica ?? '',
           );
         }),
         const SizedBox(height: 16),
@@ -216,49 +223,11 @@ class PasoEstadoFinalWidget extends StatelessWidget {
           ),
         if (fechaProxServicio != null) ...[
           const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => _mostrarSelectorMeses(context),
-            child: AbsorbPointer(
-              child: TextFormField(
-                controller:
-                    TextEditingController(text: fechaProxServicio),
-                style: textStyle,
-                decoration:
-                    serviceInputDeco('Fecha Próximo Servicio *', isDark)
-                        .copyWith(
-                  prefixIcon:
-                      const Icon(Icons.event_repeat, color: Colors.blue),
-                  suffixIcon: const Icon(Icons.arrow_drop_down),
-                  helperText: 'Toque para seleccionar 3, 6 o 12 meses',
-                ),
-              ),
-            ),
-          ),
+          _buildDateCard(isDark, context),
         ],
         if (horaFin != null) ...[
           const SizedBox(height: 12),
-          TextFormField(
-            key: ValueKey('horaFin_$horaFin'),
-            initialValue: horaFin,
-            readOnly: true,
-            style: textStyle,
-            decoration:
-                serviceInputDeco('Hora Final del Servicio *', isDark).copyWith(
-              prefixIcon: const Icon(Icons.access_time),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.update),
-                onPressed: onRegistrarHoraFin,
-                tooltip: 'Registrar hora actual',
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildInfoBox(
-            'Para registrar la hora final, presione el botón del reloj. '
-            'Una vez registrada, no se podrá modificar.',
-            Colors.blue,
-            isDark,
-          ),
+          _buildHoraFinCard(isDark),
         ],
         if (showResumen) ...[
           const SizedBox(height: 24),
@@ -268,28 +237,143 @@ class PasoEstadoFinalWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoBox(String text, Color color, bool isDark) {
+  Widget _buildDateCard(bool isDark, BuildContext context) {
+    final fechaText = fechaProxServicio ?? '';
+    final tieneFecha = fechaText.isNotEmpty;
+    return GestureDetector(
+      onTap: () => _mostrarSelectorMeses(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(isDark ? 0.2 : 0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.event_repeat,
+                  size: 20, color: Colors.green),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fecha Próximo Servicio',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tieneFecha
+                        ? 'Toque para cambiar (3, 6 o 12 meses)'
+                        : 'Toque para seleccionar 3, 6 o 12 meses',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              tieneFecha ? fechaText : '---',
+              style: GoogleFonts.robotoMono(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: tieneFecha ? Colors.green : Colors.grey,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+
+  Widget _buildHoraFinCard(bool isDark) {
+    final horaText = horaFin ?? '';
+    final tieneHora = horaText.isNotEmpty;
     return Container(
-      padding: const EdgeInsets.all(12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+        ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: color, size: 20),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(isDark ? 0.2 : 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.access_time_rounded,
+                size: 20, color: Colors.blue),
+          ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 12, color: color),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hora Final del Servicio',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tieneHora
+                      ? 'Presione el botón para actualizar'
+                      : 'Presione el botón para registrar la hora actual',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
             ),
           ),
+          Text(
+            tieneHora ? horaText : '---:---:---',
+            style: GoogleFonts.robotoMono(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: tieneHora ? Colors.blue : Colors.grey,
+            ),
+          ),
+          if (onRegistrarHoraFin != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.update_rounded, color: Colors.blue),
+              tooltip: 'Registrar hora actual',
+              onPressed: onRegistrarHoraFin,
+            ),
+          ],
         ],
       ),
-    );
+    ).animate().fadeIn(duration: 300.ms);
   }
 
   Widget _buildResumenCard(bool isDark) {

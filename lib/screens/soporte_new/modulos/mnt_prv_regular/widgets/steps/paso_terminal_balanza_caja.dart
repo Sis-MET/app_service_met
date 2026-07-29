@@ -181,15 +181,15 @@ mixin _AllGoodMixin<T extends StatefulWidget> on State<T> {
 class PasoTerminal extends StatefulWidget {
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const PasoTerminal({
     super.key,
     required this.campos,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -217,8 +217,8 @@ class _PasoTerminalState extends State<PasoTerminal> with _AllGoodMixin {
               onFieldChangedExternally();
               widget.onChanged(i, value, solutionValue);
             },
-            onAddPhoto: widget.onAddPhoto,
-            onRemovePhoto: widget.onRemovePhoto,
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
           );
         }),
       ],
@@ -238,15 +238,15 @@ class _PasoTerminalState extends State<PasoTerminal> with _AllGoodMixin {
 class PasoBalanza extends StatefulWidget {
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const PasoBalanza({
     super.key,
     required this.campos,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -274,8 +274,8 @@ class _PasoBalanzaState extends State<PasoBalanza> with _AllGoodMixin {
               onFieldChangedExternally();
               widget.onChanged(i, value, solutionValue);
             },
-            onAddPhoto: widget.onAddPhoto,
-            onRemovePhoto: widget.onRemovePhoto,
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
           );
         }),
       ],
@@ -295,15 +295,15 @@ class _PasoBalanzaState extends State<PasoBalanza> with _AllGoodMixin {
 class PasoCajaSumadora extends StatefulWidget {
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
-  final void Function(String label, String foto) onAddPhoto;
-  final void Function(int index) onRemovePhoto;
+  final String seca;
+  final String codMetrica;
 
   const PasoCajaSumadora({
     super.key,
     required this.campos,
     required this.onChanged,
-    required this.onAddPhoto,
-    required this.onRemovePhoto,
+    required this.seca,
+    required this.codMetrica,
   });
 
   @override
@@ -342,8 +342,8 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
               onFieldChangedExternally();
               widget.onChanged(i, value, solutionValue);
             },
-            onAddPhoto: widget.onAddPhoto,
-            onRemovePhoto: widget.onRemovePhoto,
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
           );
         }),
         const SizedBox(height: 28),
@@ -362,8 +362,8 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
               onFieldChangedExternally();
               widget.onChanged(realIndex, value, solutionValue);
             },
-            onAddPhoto: widget.onAddPhoto,
-            onRemovePhoto: widget.onRemovePhoto,
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
           );
         }),
       ],
