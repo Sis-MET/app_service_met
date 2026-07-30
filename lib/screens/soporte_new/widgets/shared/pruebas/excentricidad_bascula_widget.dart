@@ -1,4 +1,5 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously, curly_braces_in_flow_control_structures
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -31,8 +32,7 @@ class _ExcentricidadBasculaWidgetState
 
   int? _selectedPuntos;
   final _cargaCtrl = TextEditingController();
-
-  // Cada fila: [indicación, retorno]
+  String? _posicionCaseta;
   final List<List<TextEditingController>> _rows = [];
   int _appliedCopyTick = 0;
 
@@ -54,7 +54,11 @@ class _ExcentricidadBasculaWidgetState
 
   void _initFromData() {
     final exc = widget.data;
-    _selectedPuntos = int.tryParse(exc.puntosIndicacion ?? '');
+    _posicionCaseta = null;
+    _selectedPuntos = null;
+    if (exc.puntosIndicacion != null && exc.puntosIndicacion!.isNotEmpty) {
+      _parsePuntosIndicacion(exc.puntosIndicacion!);
+    }
     _cargaCtrl.text = exc.carga ?? '';
     _rows.clear();
     for (final p in exc.posiciones) {
@@ -66,6 +70,39 @@ class _ExcentricidadBasculaWidgetState
     if (_rows.isEmpty && _selectedPuntos != null && _selectedPuntos! > 0) {
       _buildPositions(_selectedPuntos!);
     }
+  }
+
+  void _parsePuntosIndicacion(String value) {
+    final abrevRegex = RegExp(r'^(\d+)([FAID])$');
+    final match = abrevRegex.firstMatch(value.trim());
+    if (match != null) {
+      _selectedPuntos = int.tryParse(match.group(1)!);
+      final abrev = match.group(2)!;
+      switch (abrev) {
+        case 'F': _posicionCaseta = 'frente'; break;
+        case 'A': _posicionCaseta = 'atras'; break;
+        case 'I': _posicionCaseta = 'izquierda'; break;
+        case 'D': _posicionCaseta = 'derecha'; break;
+      }
+    } else {
+      _selectedPuntos = int.tryParse(value.trim());
+    }
+  }
+
+  String _getPosicionAbrev() {
+    switch (_posicionCaseta) {
+      case 'frente': return 'F';
+      case 'atras': return 'A';
+      case 'izquierda': return 'I';
+      case 'derecha': return 'D';
+      default: return '';
+    }
+  }
+
+  String? _composePuntosIndicacion() {
+    if (_selectedPuntos == null) return null;
+    final abrev = _getPosicionAbrev();
+    return '$_selectedPuntos$abrev';
   }
 
   void _onPuntosChanged(int? v) {
@@ -129,7 +166,7 @@ class _ExcentricidadBasculaWidgetState
     }
     widget.onChanged(ExcentricidadData(
       tipoPlataforma: 'Báscula de camión',
-      puntosIndicacion: _selectedPuntos?.toString(),
+      puntosIndicacion: _composePuntosIndicacion(),
       carga: _cargaCtrl.text,
       posiciones: posiciones,
     ));
@@ -160,6 +197,8 @@ class _ExcentricidadBasculaWidgetState
         if (_cargaCtrl.text.isEmpty) _buildSuggestedLoadChips(isDark),
         const SizedBox(height: 24),
         if (_selectedPuntos != null && _selectedPuntos! > 0) ...[
+          _buildCasetaPositionSelector(isDark),
+          const SizedBox(height: 16),
           _buildDiagram(half, isDark),
           const SizedBox(height: 24),
           _sectionHeader('Posiciones', isDark),
@@ -183,7 +222,7 @@ class _ExcentricidadBasculaWidgetState
             color: Colors.blue.withOpacity(isDark ? 0.2 : 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(Icons.local_shipping,
+          child: const Icon(Icons.local_shipping,
               size: 20, color: Colors.blue),
         ),
         const SizedBox(width: 12),
@@ -197,6 +236,77 @@ class _ExcentricidadBasculaWidgetState
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
+  }
+
+  Widget _buildCasetaPositionSelector(bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader('Posición de Caseta', isDark),
+        const SizedBox(height: 8),
+        _buildDirectionButtons(isDark),
+      ],
+    );
+  }
+
+  Widget _buildDirectionButtons(bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _dirBtn('atras', Icons.arrow_upward, 'Atrás', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('frente', Icons.arrow_downward, 'Frente', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('izquierda', Icons.arrow_back, 'Izq', isDark),
+        const SizedBox(width: 6),
+        _dirBtn('derecha', Icons.arrow_forward, 'Der', isDark),
+      ],
+    );
+  }
+
+  Widget _dirBtn(String key, IconData icon, String label, bool isDark) {
+    final selected = _posicionCaseta == key;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _posicionCaseta = key);
+        _emit();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        constraints: const BoxConstraints(minWidth: 60),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? Colors.teal
+              : (isDark ? const Color(0xFF2A2A2A) : Colors.grey[100]),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected
+                ? Colors.tealAccent
+                : (isDark ? Colors.white24 : Colors.black12),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16,
+                color: selected
+                    ? Colors.white
+                    : (isDark ? Colors.white70 : Colors.black54)),
+            const SizedBox(width: 4),
+            Text(label,
+                style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    color: selected
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : Colors.black54))),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _puntosDropdown(bool isDark) {
@@ -315,70 +425,50 @@ class _ExcentricidadBasculaWidgetState
                 fontWeight: FontWeight.bold,
                 color: isDark ? Colors.white54 : Colors.black45,
               )),
-          const SizedBox(height: 16),
-          // Ida row
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Icon(Icons.arrow_forward_rounded, size: 14,
+                  color: isDark ? Colors.white54 : Colors.black45),
+              const SizedBox(width: 4),
               Text('IDA',
                   style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: Colors.indigo)),
-              const SizedBox(width: 12),
-              ...List.generate(half, (i) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _buildDot(i + 1, Colors.indigo),
-                );
-              }),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Divider(color: isDark ? Colors.white12 : Colors.grey[300]),
-          const SizedBox(height: 10),
-          // Vuelta row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+                      color: isDark ? Colors.white54 : Colors.black45)),
+              const SizedBox(width: 16),
               Text('VUELTA',
                   style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: Colors.green)),
-              const SizedBox(width: 12),
-              ...List.generate(half, (i) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  child: _buildDot(half - i, Colors.green),
-                );
-              }),
+                      color: isDark ? Colors.white54 : Colors.black45)),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_back_rounded, size: 14,
+                  color: isDark ? Colors.white54 : Colors.black45),
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 260,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return CustomPaint(
+                  size: Size(constraints.maxWidth, constraints.maxHeight),
+                  painter: _BasculaPlatformPainter(
+                    half: half,
+                    posicionCaseta: _posicionCaseta,
+                    isDark: isDark,
+                    idaDots: List.generate(half, (i) => i + 1),
+                    vueltaDots: List.generate(half, (i) => half - i),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),
     ).animate(delay: 150.ms).fadeIn();
-  }
-
-  Widget _buildDot(int number, Color color) {
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        shape: BoxShape.circle,
-        border: Border.all(color: color, width: 2),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$number',
-        style: GoogleFonts.inter(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
-        ),
-      ),
-    );
   }
 
   Widget _buildColumnHeaders(bool isDark) {
@@ -416,16 +506,14 @@ class _ExcentricidadBasculaWidgetState
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
               decoration: BoxDecoration(
-                color: i < half
-                    ? Colors.indigo.withOpacity(0.1)
-                    : Colors.green.withOpacity(0.1),
+                color: isDark ? Colors.white10 : Colors.grey[100],
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(label,
                   style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
-                      color: i < half ? Colors.indigo : Colors.green),
+                      color: isDark ? Colors.white70 : Colors.black54),
                   textAlign: TextAlign.center),
             ),
           ),
@@ -540,4 +628,228 @@ class _ExcentricidadBasculaWidgetState
             borderSide: BorderSide(
                 color: isDark ? Colors.white12 : Colors.black12)),
       );
+}
+
+class _BasculaPlatformPainter extends CustomPainter {
+  final int half;
+  final String? posicionCaseta;
+  final bool isDark;
+  final List<int> idaDots;
+  final List<int> vueltaDots;
+
+  _BasculaPlatformPainter({
+    required this.half,
+    required this.posicionCaseta,
+    required this.isDark,
+    required this.idaDots,
+    required this.vueltaDots,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final pL = w * 0.10;
+    final pT = h * 0.10;
+    final pW = w * 0.68;
+    final pH = h * 0.70;
+    final platform = Rect.fromLTWH(pL, pT, pW, pH);
+
+    final bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8ECF0);
+    final fg = isDark ? Colors.white38 : Colors.black26;
+    final textColor = isDark ? Colors.white70 : Colors.black45;
+    final dotFill = isDark ? const Color(0xFF4A4A4A) : Colors.white;
+    final dotBorder = isDark ? Colors.white38 : Colors.black26;
+
+    final halfH = platform.height / 2;
+    final topRowY = platform.top + halfH * 0.35;
+    final botRowY = platform.top + halfH * 1.15;
+
+    _drawPlatform(canvas, platform, bg, fg);
+    _drawIdaArrow(canvas, platform, topRowY, textColor);
+    _drawVueltaArrow(canvas, platform, botRowY, textColor);
+    _drawDots(canvas, platform, idaDots, topRowY, dotFill, dotBorder, textColor);
+    _drawDots(canvas, platform, vueltaDots, botRowY, dotFill, dotBorder, textColor);
+    _drawTruck(canvas, platform, textColor);
+    _drawCaseta(canvas, platform, w, h, textColor);
+  }
+
+  void _drawPlatform(Canvas canvas, Rect r, Color bg, Color border) {
+    final paint = Paint()..color = bg;
+    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
+    paint
+      ..color = border
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
+  }
+
+  void _drawIdaArrow(Canvas canvas, Rect platform, double topRowY, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    final midY = topRowY;
+    final x1 = platform.left - 20;
+    final x2 = platform.left - 4;
+    canvas.drawLine(Offset(x1, midY), Offset(x2, midY), paint);
+    _drawArrowHead(canvas, Offset(x2, midY), 0, paint);
+  }
+
+  void _drawVueltaArrow(Canvas canvas, Rect platform, double botRowY, Color color) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    final midY = botRowY;
+    final x1 = platform.right + 4;
+    final x2 = platform.right + 20;
+    canvas.drawLine(Offset(x1, midY), Offset(x2, midY), paint);
+    _drawArrowHead(canvas, Offset(x2, midY), math.pi, paint);
+  }
+
+  void _drawArrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
+    final headSize = 10.0;
+    final path = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(
+        tip.dx + headSize * math.cos(angle + math.pi * 0.83),
+        tip.dy + headSize * math.sin(angle + math.pi * 0.83),
+      )
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(
+        tip.dx + headSize * math.cos(angle - math.pi * 0.83),
+        tip.dy + headSize * math.sin(angle - math.pi * 0.83),
+      );
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawDots(
+    Canvas canvas,
+    Rect platform,
+    List<int> dots,
+    double rowY,
+    Color fill,
+    Color border,
+    Color textColor,
+  ) {
+    if (dots.isEmpty) return;
+    final spacing = platform.width / (dots.length + 1);
+    for (int i = 0; i < dots.length; i++) {
+      final cx = platform.left + spacing * (i + 1);
+      final cy = rowY;
+      final r = 11.0;
+
+      canvas.drawCircle(Offset(cx, cy), r, Paint()..color = fill);
+      canvas.drawCircle(Offset(cx, cy), r, Paint()
+        ..color = border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5);
+
+      final tp = TextPainter(
+        text: TextSpan(
+          text: '${dots[i]}',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(cx - tp.width / 2, cy - tp.height / 2));
+    }
+  }
+
+  void _drawTruck(Canvas canvas, Rect platform, Color color) {
+    final cx = platform.left + platform.width * 0.3;
+    final cy = platform.top + platform.height * 0.52;
+    final bodyW = 40.0;
+    final bodyH = 18.0;
+    final cabW = 14.0;
+    final cabH = 16.0;
+
+    final bodyPaint = Paint()
+      ..color = color.withOpacity(0.5)
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final bodyRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: Offset(cx, cy), width: bodyW, height: bodyH),
+      const Radius.circular(3),
+    );
+    canvas.drawRRect(bodyRect, bodyPaint);
+    canvas.drawRRect(bodyRect, strokePaint);
+
+    final cabCenter = Offset(cx + bodyW / 2 + cabW / 2, cy);
+    final cabRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(center: cabCenter, width: cabW, height: cabH),
+      const Radius.circular(2),
+    );
+    canvas.drawRRect(cabRect, bodyPaint);
+    canvas.drawRRect(cabRect, strokePaint);
+
+    final wheelPaint = Paint()..color = color;
+    for (final dx in [-bodyW / 2 + 4, bodyW / 2 - 4]) {
+      canvas.drawCircle(Offset(cx + dx, cy - bodyH / 2 - 2), 2.5, wheelPaint);
+      canvas.drawCircle(Offset(cx + dx, cy + bodyH / 2 + 2), 2.5, wheelPaint);
+    }
+  }
+
+  void _drawCaseta(Canvas canvas, Rect platform, double w, double h, Color color) {
+    if (posicionCaseta == null) return;
+
+    final cw = 26.0;
+    final ch = 22.0;
+    Offset center;
+    switch (posicionCaseta) {
+      case 'frente':
+        center = Offset(w / 2, platform.bottom + ch / 2 + 8);
+        break;
+      case 'atras':
+        center = Offset(w / 2, platform.top - ch / 2 - 8);
+        break;
+      case 'izquierda':
+        center = Offset(platform.left - cw / 2 - 10, platform.top + platform.height / 2);
+        break;
+      case 'derecha':
+        center = Offset(platform.right + cw / 2 + 10, platform.top + platform.height / 2);
+        break;
+      default:
+        return;
+    }
+
+    final fill = isDark ? const Color(0xFF4A4A4A) : const Color(0xFFDBE4EE);
+    final stroke = color;
+
+    final rect = Rect.fromCenter(center: center, width: cw, height: ch);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(3)),
+      Paint()..color = fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(3)),
+      Paint()..color = stroke..style = PaintingStyle.stroke..strokeWidth = 1.5,
+    );
+
+    final roofPath = Path()
+      ..moveTo(center.dx - cw / 2, center.dy - ch / 2)
+      ..lineTo(center.dx, center.dy - ch / 2 - 10)
+      ..lineTo(center.dx + cw / 2, center.dy - ch / 2);
+    canvas.drawPath(roofPath, Paint()..color = fill);
+    canvas.drawPath(roofPath, Paint()
+      ..color = stroke
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BasculaPlatformPainter old) {
+    return old.half != half ||
+        old.posicionCaseta != posicionCaseta ||
+        old.isDark != isDark;
+  }
 }
