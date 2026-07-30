@@ -25,7 +25,10 @@ class StilMntPrvRegular extends StatefulWidget {
   final String clienteId;
   final String plantaCodigo;
   final String clienteNombre;
+  final String clienteRazonSocial;
   final String plantaNombre;
+  final String plantaDireccion;
+  final String plantaDepartamento;
   final Map<String, dynamic>? instrumentoData;
 
   const StilMntPrvRegular({
@@ -38,7 +41,10 @@ class StilMntPrvRegular extends StatefulWidget {
     required this.clienteId,
     required this.plantaCodigo,
     this.clienteNombre = '',
+    this.clienteRazonSocial = '',
     this.plantaNombre = '',
+    this.plantaDireccion = '',
+    this.plantaDepartamento = '',
     this.instrumentoData,
   });
 
@@ -68,6 +74,10 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
         title: 'Pruebas Iniciales',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
         icon: Icons.science_outlined),
+    StepData(
+        title: 'Entorno de Instalación',
+        subtitle: 'Vibración, Polvo, Temperatura, Humedad',
+        icon: Icons.thermostat_outlined),
     StepData(
         title: 'Terminal',
         subtitle: 'Campos de inspección',
@@ -102,9 +112,45 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
     _controller.clienteNombre = widget.clienteNombre;
     _controller.plantaNombre = widget.plantaNombre;
     _controller.initCamposEstado();
+    _setBalanzaData();
     _balanzaInfo =
         buildCalBalanzaInfo(widget.instrumentoData, widget.codMetrica);
     _loadExistingData();
+  }
+
+  void _setBalanzaData() {
+    final inst = widget.instrumentoData;
+    if (inst == null) return;
+
+    _controller.categoriaBalanza =
+        inst['categoria']?.toString() ?? inst['categoria_balanza']?.toString() ?? '';
+    _controller.codInt = inst['cod_interno']?.toString() ?? inst['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo =
+        inst['tipo_instrumento']?.toString() ?? inst['tipo']?.toString() ?? inst['instrumento']?.toString() ?? '';
+    _controller.marca = inst['marca']?.toString() ?? '';
+    _controller.modelo = inst['modelo']?.toString() ?? '';
+    _controller.serie = inst['inf_serie']?.toString() ?? inst['serie']?.toString() ?? '';
+    _controller.unidades = inst['unidad']?.toString() ?? inst['unidades']?.toString() ?? '';
+    _controller.numCeldas = inst['n_celdas']?.toString() ?? inst['num_celdas']?.toString() ?? '';
+    _controller.ubicacion = inst['ubicacion']?.toString() ?? '';
+    _controller.capMax1 = inst['cap_max1']?.toString() ?? '';
+    _controller.d1 = inst['d1']?.toString() ?? '';
+    _controller.e1 = inst['e1']?.toString() ?? '';
+    _controller.dec1 = inst['dec1']?.toString() ?? '';
+    _controller.capMax2 = inst['cap_max2']?.toString() ?? '';
+    _controller.d2 = inst['d2']?.toString() ?? '';
+    _controller.e2 = inst['e2']?.toString() ?? '';
+    _controller.dec2 = inst['dec2']?.toString() ?? '';
+    _controller.capMax3 = inst['cap_max3']?.toString() ?? '';
+    _controller.d3 = inst['d3']?.toString() ?? '';
+    _controller.e3 = inst['e3']?.toString() ?? '';
+    _controller.dec3 = inst['dec3']?.toString() ?? '';
+    _controller.infBal = inst['_modifiedFields']?.toString() ?? '';
+    _controller.razonSocial = widget.clienteRazonSocial;
+    _controller.dirPlanta = widget.plantaDireccion;
+    _controller.depPlanta = widget.plantaDepartamento;
+    _controller.codPlanta = widget.plantaCodigo;
+    _controller.personal = widget.userName;
   }
 
   Future<void> _loadExistingData() async {
@@ -144,7 +190,39 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           return false;
         }
         return true;
+      case 1:
+        if (!_camposCompletos(_controller.camposEntorno)) {
+          TopAlert.show(
+              context, 'Complete todos los campos de Entorno de Instalación',
+              isError: true);
+          return false;
+        }
+        return true;
+      case 2:
+        if (!_camposCompletos(_controller.camposTerminal)) {
+          TopAlert.show(
+              context, 'Complete todos los campos de Terminal',
+              isError: true);
+          return false;
+        }
+        return true;
+      case 3:
+        if (!_camposCompletos(_controller.camposBalanza)) {
+          TopAlert.show(
+              context, 'Complete todos los campos de Balanza',
+              isError: true);
+          return false;
+        }
+        return true;
       case 4:
+        if (!_camposCompletos(_controller.camposCajaSumadora)) {
+          TopAlert.show(
+              context, 'Complete todos los campos de Caja Sumadora',
+              isError: true);
+          return false;
+        }
+        return true;
+      case 5:
         if (_controller.retornoCeroFinal.isEmpty) {
           TopAlert.show(
               context, 'Seleccione Retorno a Cero en Pruebas Finales',
@@ -158,31 +236,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           return false;
         }
         return true;
-      case 1:
-        if (!_camposCompletos(_controller.camposTerminal)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Terminal',
-              isError: true);
-          return false;
-        }
-        return true;
-      case 2:
-        if (!_camposCompletos(_controller.camposBalanza)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Balanza',
-              isError: true);
-          return false;
-        }
-        return true;
-      case 3:
-        if (!_camposCompletos(_controller.camposCajaSumadora)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Caja Sumadora',
-              isError: true);
-          return false;
-        }
-        return true;
-      case 5:
+      case 6:
         if (_controller.comentarioGeneral.isEmpty) {
           TopAlert.show(context, 'Complete el Comentario General',
               isError: true);
@@ -387,7 +441,21 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 },
               ),
             ),
-            // ── Paso 1: Terminal ────────────────────────────────────
+            // ── Paso 1: Entorno de Instalación ──────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Entorno de Instalación',
+                subtitle: 'Condiciones del entorno del equipo',
+              ),
+              PasoEntorno(
+                campos: _controller.camposEntorno,
+                onChanged: (i, v, s) =>
+                    _onCampoChanged(_controller.camposEntorno, i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
+              ),
+            ),
+            // ── Paso 2: Terminal ────────────────────────────────────
             _buildPaso(
               const ServiceStepHeader(
                 title: 'Terminal',
@@ -401,7 +469,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 codMetrica: widget.codMetrica,
               ),
             ),
-            // ── Paso 2: Balanza ─────────────────────────────────────
+            // ── Paso 3: Balanza ─────────────────────────────────────
             _buildPaso(
               const ServiceStepHeader(
                 title: 'Balanza',
@@ -415,7 +483,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 codMetrica: widget.codMetrica,
               ),
             ),
-            // ── Paso 3: Caja Sumadora ───────────────────────────────
+            // ── Paso 4: Caja Sumadora ───────────────────────────────
             _buildPaso(
               const ServiceStepHeader(
                 title: 'Caja Sumadora',
@@ -429,7 +497,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 codMetrica: widget.codMetrica,
               ),
             ),
-            // ── Paso 4: Pruebas Metrológicas Finales ────────────────
+            // ── Paso 5: Pruebas Metrológicas Finales ────────────────
             _buildPaso(
               const ServiceStepHeader(
                 title: 'Pruebas Metrológicas Finales',
@@ -482,7 +550,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
                 onCopiarDeIniciales: _onCopiarFinales,
               ),
             ),
-            // ── Paso 5: Estado Final ────────────────────────────────
+            // ── Paso 6: Estado Final ────────────────────────────────
             _buildPaso(
               const ServiceStepHeader(
                 title: 'Estado Final',

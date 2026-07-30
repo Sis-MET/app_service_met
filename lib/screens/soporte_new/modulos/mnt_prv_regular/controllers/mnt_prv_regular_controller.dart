@@ -20,9 +20,32 @@ class MntPrvRegularController extends BaseSoporteController {
   final List<CampoEstado> camposTerminal = [];
   final List<CampoEstado> camposBalanza = [];
   final List<CampoEstado> camposCajaSumadora = [];
+  final List<CampoEstado> camposEntorno = [];
 
   final DatabaseHelperMntPrvRegularStil _dbLegacy =
       DatabaseHelperMntPrvRegularStil();
+
+  // ── Cliente / Planta contexto ───────────────────────────────────────
+  String razonSocial = '';
+  String dirPlanta = '';
+  String depPlanta = '';
+  String codPlanta = '';
+  String personal = '';
+
+  // ── Balanza / Instrumento ───────────────────────────────────────────
+  String infBal = '';
+  String categoriaBalanza = '';
+  String codInt = '';
+  String tipoEquipo = '';
+  String marca = '';
+  String modelo = '';
+  String serie = '';
+  String unidades = '';
+  String numCeldas = '';
+  String ubicacion = '';
+  String capMax1 = '', d1 = '', e1 = '', dec1 = '';
+  String capMax2 = '', d2 = '', e2 = '', dec2 = '';
+  String capMax3 = '', d3 = '', e3 = '', dec3 = '';
 
   // ── Retorno a Cero / Estabilidad ────────────────────────────────────
   String retornoCeroInicial = '';
@@ -43,7 +66,7 @@ class MntPrvRegularController extends BaseSoporteController {
   LinealidadData linealidadFinal = LinealidadData();
 
   MntPrvRegularController({required this.model}) {
-    totalSteps = 6;
+    totalSteps = 7;
     if (horaInicio.isEmpty) {
       horaInicio = DateFormat('HH:mm').format(DateTime.now());
     }
@@ -93,6 +116,20 @@ class MntPrvRegularController extends BaseSoporteController {
       CampoEstado(nombre: 'Humedad Interna'),
       CampoEstado(nombre: 'Estado de prensacables'),
       CampoEstado(nombre: 'Estado de borneas'),
+      CampoEstado(nombre: 'Pintado'),
+      CampoEstado(nombre: 'Limpieza profunda'),
+    ]);
+
+    camposEntorno.clear();
+    camposEntorno.addAll([
+      CampoEstado(nombre: 'Vibración'),
+      CampoEstado(nombre: 'Polvo'),
+      CampoEstado(nombre: 'Temperatura'),
+      CampoEstado(nombre: 'Humedad'),
+      CampoEstado(nombre: 'Mesada'),
+      CampoEstado(nombre: 'Iluminación'),
+      CampoEstado(nombre: 'Limpieza de fosa'),
+      CampoEstado(nombre: 'Estado de drenaje'),
     ]);
   }
 
@@ -140,7 +177,25 @@ class MntPrvRegularController extends BaseSoporteController {
       'tipo_servicio': 'MPR.BL',
       'cod_metrica': model.codMetrica,
       'cliente': clienteNombre,
+      'razon_social': razonSocial,
       'planta': plantaNombre,
+      'dir_planta': dirPlanta,
+      'dep_planta': depPlanta,
+      'cod_planta': codPlanta,
+      'personal': personal,
+      'inf_bal': infBal,
+      'categoria_balanza': categoriaBalanza,
+      'cod_int': codInt,
+      'tipo_equipo': tipoEquipo,
+      'marca': marca,
+      'modelo': modelo,
+      'serie': serie,
+      'unidades': unidades,
+      'num_celdas': numCeldas,
+      'ubicacion': ubicacion,
+      'cap_max1': capMax1, 'd1': d1, 'e1': e1, 'dec1': dec1,
+      'cap_max2': capMax2, 'd2': d2, 'e2': e2, 'dec2': dec2,
+      'cap_max3': capMax3, 'd3': d3, 'e3': e3, 'dec3': dec3,
       'hora_inicio': horaInicio,
       'hora_fin': horaFin,
       'comentario_general': comentarioGeneral,
@@ -149,7 +204,7 @@ class MntPrvRegularController extends BaseSoporteController {
       'estado_operacional': estadoOperacional,
       'estado_metrologico': estadoMetrologico,
       'fecha_prox_servicio': fechaProxServicio,
-      'fecha_servicio': DateTime.now().toIso8601String(),
+      'fecha_servicio': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     };
 
     _addCamposEstadoData(data);
@@ -188,7 +243,7 @@ class MntPrvRegularController extends BaseSoporteController {
     addCampo('limpieza_receptor', camposBalanza, 'Limpieza receptor');
     addCampo('golpes_receptor', camposBalanza, 'Golpes al receptor de carga');
     addCampo('encendido', camposBalanza, 'Encendido');
-    // Caja Sumadora (8)
+    // Caja Sumadora (8 + 2)
     addCampo('limitador_movimiento', camposCajaSumadora, 'Limitador de movimiento');
     addCampo('suspension', camposCajaSumadora, 'Suspensión');
     addCampo('limitador_carga', camposCajaSumadora, 'Limitador de carga');
@@ -197,6 +252,17 @@ class MntPrvRegularController extends BaseSoporteController {
     addCampo('humedad_interna', camposCajaSumadora, 'Humedad Interna');
     addCampo('estado_prensacables', camposCajaSumadora, 'Estado de prensacables');
     addCampo('estado_borneas', camposCajaSumadora, 'Estado de borneas');
+    addCampo('pintado', camposCajaSumadora, 'Pintado');
+    addCampo('limpieza_profunda', camposCajaSumadora, 'Limpieza profunda');
+    // Entorno de instalación (8)
+    addCampo('vibracion', camposEntorno, 'Vibración');
+    addCampo('polvo', camposEntorno, 'Polvo');
+    addCampo('temperatura', camposEntorno, 'Temperatura');
+    addCampo('humedad', camposEntorno, 'Humedad');
+    addCampo('mesada', camposEntorno, 'Mesada');
+    addCampo('iluminacion', camposEntorno, 'Iluminación');
+    addCampo('limpieza_fosa', camposEntorno, 'Limpieza de fosa');
+    addCampo('estado_drenaje', camposEntorno, 'Estado de drenaje');
   }
 
   void _addPruebasMetrologicasData(Map<String, dynamic> data) {
@@ -266,6 +332,37 @@ class MntPrvRegularController extends BaseSoporteController {
       String sessionId, Map<String, dynamic> data) async {
     await super.loadExistingSession(sessionId, data);
 
+    // Cliente / Planta contexto
+    razonSocial = data['razon_social']?.toString() ?? '';
+    dirPlanta = data['dir_planta']?.toString() ?? '';
+    depPlanta = data['dep_planta']?.toString() ?? '';
+    codPlanta = data['cod_planta']?.toString() ?? '';
+    personal = data['personal']?.toString() ?? '';
+
+    // Balanza / Instrumento
+    infBal = data['inf_bal']?.toString() ?? '';
+    categoriaBalanza = data['categoria_balanza']?.toString() ?? '';
+    codInt = data['cod_int']?.toString() ?? '';
+    tipoEquipo = data['tipo_equipo']?.toString() ?? '';
+    marca = data['marca']?.toString() ?? '';
+    modelo = data['modelo']?.toString() ?? '';
+    serie = data['serie']?.toString() ?? '';
+    unidades = data['unidades']?.toString() ?? '';
+    numCeldas = data['num_celdas']?.toString() ?? '';
+    ubicacion = data['ubicacion']?.toString() ?? '';
+    capMax1 = data['cap_max1']?.toString() ?? '';
+    d1 = data['d1']?.toString() ?? '';
+    e1 = data['e1']?.toString() ?? '';
+    dec1 = data['dec1']?.toString() ?? '';
+    capMax2 = data['cap_max2']?.toString() ?? '';
+    d2 = data['d2']?.toString() ?? '';
+    e2 = data['e2']?.toString() ?? '';
+    dec2 = data['dec2']?.toString() ?? '';
+    capMax3 = data['cap_max3']?.toString() ?? '';
+    d3 = data['d3']?.toString() ?? '';
+    e3 = data['e3']?.toString() ?? '';
+    dec3 = data['dec3']?.toString() ?? '';
+
     // Retorno a Cero / Estabilidad
     retornoCeroInicial =
         data['retorno_cero_inicial_valoracion']?.toString() ?? '';
@@ -323,7 +420,7 @@ class MntPrvRegularController extends BaseSoporteController {
     loadCampo('limpieza_receptor', camposBalanza, 'Limpieza receptor');
     loadCampo('golpes_receptor', camposBalanza, 'Golpes al receptor de carga');
     loadCampo('encendido', camposBalanza, 'Encendido');
-    // Caja Sumadora
+    // Caja Sumadora (8 + 2)
     loadCampo('limitador_movimiento', camposCajaSumadora,
         'Limitador de movimiento');
     loadCampo('suspension', camposCajaSumadora, 'Suspensión');
@@ -336,6 +433,17 @@ class MntPrvRegularController extends BaseSoporteController {
     loadCampo('estado_prensacables', camposCajaSumadora,
         'Estado de prensacables');
     loadCampo('estado_borneas', camposCajaSumadora, 'Estado de borneas');
+    loadCampo('pintado', camposCajaSumadora, 'Pintado');
+    loadCampo('limpieza_profunda', camposCajaSumadora, 'Limpieza profunda');
+    // Entorno de instalación (8)
+    loadCampo('vibracion', camposEntorno, 'Vibración');
+    loadCampo('polvo', camposEntorno, 'Polvo');
+    loadCampo('temperatura', camposEntorno, 'Temperatura');
+    loadCampo('humedad', camposEntorno, 'Humedad');
+    loadCampo('mesada', camposEntorno, 'Mesada');
+    loadCampo('iluminacion', camposEntorno, 'Iluminación');
+    loadCampo('limpieza_fosa', camposEntorno, 'Limpieza de fosa');
+    loadCampo('estado_drenaje', camposEntorno, 'Estado de drenaje');
   }
 
   void _loadExcentricidadFromDb(Map<String, dynamic> data, bool esInicial) {

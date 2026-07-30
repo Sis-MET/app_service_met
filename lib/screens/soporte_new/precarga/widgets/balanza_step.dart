@@ -162,6 +162,40 @@ class _BalanzaStepState extends State<BalanzaStep> {
       'dec3': _dec3Ctrl.text,
       'isNew': _isNewBalanza,
     };
+
+    if (_selectedBalanza != null) {
+      final modified = <String>[];
+      void check(String dbCol, String current, String? original) {
+        if (current != (original ?? '')) modified.add(dbCol);
+      }
+      final orig = _selectedBalanza!;
+      check('categoria_balanza', _categoriaCtrl.text,
+          orig['categoria']?.toString());
+      check('cod_int', _codIntCtrl.text, orig['cod_interno']?.toString());
+      check('tipo_equipo', _tipoEquipoCtrl.text,
+          orig['tipo_instrumento']?.toString() ?? orig['tipo']?.toString());
+      check('marca', _marcaCtrl.text, orig['marca']?.toString());
+      check('modelo', _modeloCtrl.text, orig['modelo']?.toString());
+      check('serie', _serieCtrl.text,
+          orig['inf_serie']?.toString() ?? orig['serie']?.toString());
+      check('unidades', _unidadesCtrl.text, orig['unidad']?.toString());
+      check('num_celdas', _nCeldasCtrl.text, orig['n_celdas']?.toString());
+      check('ubicacion', _ubicacionCtrl.text, orig['ubicacion']?.toString());
+      check('cap_max1', _capMax1Ctrl.text, orig['cap_max1']?.toString());
+      check('d1', _d1Ctrl.text, orig['d1']?.toString());
+      check('e1', _e1Ctrl.text, orig['e1']?.toString());
+      check('dec1', _dec1Ctrl.text, orig['dec1']?.toString());
+      check('cap_max2', _capMax2Ctrl.text, orig['cap_max2']?.toString());
+      check('d2', _d2Ctrl.text, orig['d2']?.toString());
+      check('e2', _e2Ctrl.text, orig['e2']?.toString());
+      check('dec2', _dec2Ctrl.text, orig['dec2']?.toString());
+      check('cap_max3', _capMax3Ctrl.text, orig['cap_max3']?.toString());
+      check('d3', _d3Ctrl.text, orig['d3']?.toString());
+      check('e3', _e3Ctrl.text, orig['e3']?.toString());
+      check('dec3', _dec3Ctrl.text, orig['dec3']?.toString());
+      if (modified.isNotEmpty) mapData['_modifiedFields'] = modified.join(',');
+    }
+
     widget.controller.selectInstrumento(mapData);
   }
 

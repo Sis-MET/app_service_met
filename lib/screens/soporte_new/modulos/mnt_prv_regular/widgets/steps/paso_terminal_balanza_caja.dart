@@ -313,9 +313,9 @@ class PasoCajaSumadora extends StatefulWidget {
 class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin {
   @override
   Widget build(BuildContext context) {
-    // Indices 0-3: Plataforma, 4-7: Caja Sumadora
+    // Indices 0-3: Plataforma, 4-9: Caja Sumadora (incluye pintado + limpieza profunda)
     final camposPlataforma = widget.campos.sublist(0, 4);
-    final camposCaja = widget.campos.sublist(4, 8);
+    final camposCaja = widget.campos.sublist(4);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,6 +361,63 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
             onChanged: (value, solutionValue) {
               onFieldChangedExternally();
               widget.onChanged(realIndex, value, solutionValue);
+            },
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
+          );
+        }),
+      ],
+    );
+  }
+
+  void _notifyAll() {
+    for (int i = 0; i < widget.campos.length; i++) {
+      widget.onChanged(i, widget.campos[i].value, widget.campos[i].solutionValue);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PASO ENTORNO
+// ═══════════════════════════════════════════════════════════════════════
+class PasoEntorno extends StatefulWidget {
+  final List<CampoEstado> campos;
+  final void Function(int index, String value, String solutionValue) onChanged;
+  final String seca;
+  final String codMetrica;
+
+  const PasoEntorno({
+    super.key,
+    required this.campos,
+    required this.onChanged,
+    required this.seca,
+    required this.codMetrica,
+  });
+
+  @override
+  State<PasoEntorno> createState() => _PasoEntornoState();
+}
+
+class _PasoEntornoState extends State<PasoEntorno> with _AllGoodMixin {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _AllGoodCard(
+          value: _isAllGood,
+          onChanged: (v) {
+            toggleAllGood(v, widget.campos);
+            _notifyAll();
+          },
+        ),
+        const SizedBox(height: 20),
+        ...List.generate(widget.campos.length, (i) {
+          return CampoInspeccionWidget(
+            campoEstado: widget.campos[i],
+            onChanged: (value, solutionValue) {
+              onFieldChangedExternally();
+              widget.onChanged(i, value, solutionValue);
             },
             seca: widget.seca,
             codMetrica: widget.codMetrica,

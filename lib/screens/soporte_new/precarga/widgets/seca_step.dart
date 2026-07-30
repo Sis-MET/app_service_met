@@ -27,6 +27,15 @@ class _SecaStepState extends State<SecaStep> {
   }
 
   @override
+  void didUpdateWidget(SecaStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final c = widget.controller;
+    if (c.cotizacionSuffix != _cotizacionController.text) {
+      _cotizacionController.text = c.cotizacionSuffix;
+    }
+  }
+
+  @override
   void dispose() {
     _cotizacionController.dispose();
     super.dispose();
@@ -55,7 +64,50 @@ class _SecaStepState extends State<SecaStep> {
           const SizedBox(height: 24),
           _buildOtstCard(c, isConfirmed, currentSeca, isDark),
           const SizedBox(height: 24),
+          _buildNoOtstToggle(c, isDark, isConfirmed),
+          if (!isConfirmed) const SizedBox(height: 16),
           _buildFormatInfo(isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoOtstToggle(PrecargaController c, bool isDark, bool isConfirmed) {
+    if (isConfirmed) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            c.noOtst
+                ? Icons.note_alt_outlined
+                : Icons.assignment_outlined,
+            size: 20,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'No tengo OTST asignada',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Switch(
+            value: c.noOtst,
+            onChanged: (v) => c.setNoOtst(v),
+            activeColor: const Color(0xFF46824B),
+          ),
         ],
       ),
     );
@@ -198,26 +250,50 @@ class _SecaStepState extends State<SecaStep> {
           ),
           const SizedBox(height: 16),
           if (isConfirmed)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: Text(
+                      currentSeca ?? '',
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                        letterSpacing: 2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ),
-              ),
-              child: Text(
-                currentSeca ?? '',
-                style: GoogleFonts.robotoMono(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                  letterSpacing: 2,
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.edit_rounded, size: 20),
+                    color: const Color(0xFF1565C0),
+                    onPressed: () {
+                      c.resetSeca();
+                      _cotizacionController.text = c.cotizacionSuffix;
+                    },
+                    tooltip: 'Editar OTST',
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ],
             )
           else
             Container(
@@ -249,12 +325,13 @@ class _SecaStepState extends State<SecaStep> {
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: TextField(
                       controller: _cotizacionController,
+                      enabled: !c.noOtst,
                       style: GoogleFonts.robotoMono(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: isDark
-                            ? Colors.lightGreenAccent
-                            : const Color(0xFF2E7D32),
+                            ? (c.noOtst ? Colors.white38 : Colors.lightGreenAccent)
+                            : (c.noOtst ? Colors.black38 : const Color(0xFF2E7D32)),
                         letterSpacing: 1,
                       ),
                       decoration: InputDecoration(
@@ -364,7 +441,8 @@ class _SecaStepState extends State<SecaStep> {
                   'El código de servicio se compone de:\n'
                   '• Año actual (ej. ${DateTime.now().year.toString().substring(2)})\n'
                   '• Código de planta seleccionada\n'
-                  '• Correlativo editable (S01, S02, etc.)',
+                  '• Correlativo editable (S01, S02...). '
+                  'Use C00 si no hay OTST asignada.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: isDark ? Colors.white70 : Colors.black87,

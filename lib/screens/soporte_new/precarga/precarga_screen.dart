@@ -138,6 +138,68 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     }
   }
 
+  Future<bool?> _showOtstDuplicadaDialog(String seca, bool isDark) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.orange[700], size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'OTST ya registrada',
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'La OTST "$seca" ya tiene registros previos en el sistema.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Si continua, los nuevos registros se agregaran a esta misma OTST.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: isDark ? Colors.white54 : Colors.black54,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancelar',
+                style:
+                    TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1565C0),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continuar de todas formas'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _iniciarServicio() {
     if (!_validateCurrentStep()) return;
     _controller.updateStepErrors();
@@ -204,6 +266,16 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre:
+              _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion:
+              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'MNT PREVENTIVO REGULAR':
@@ -217,8 +289,14 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           plantaCodigo: args.plantaCodigo,
           clienteNombre:
               _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
           plantaNombre:
               _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion:
+              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'MANTENIMIENTO CORRECTIVO':
@@ -432,6 +510,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         builder: (context, _) {
           final step = _controller.currentStep;
           final isLastStep = step == PrecargaController.totalSteps - 1;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
 
           String nextLabel = 'Siguiente';
           Color nextColor = const Color(0xFF498054);
@@ -441,9 +520,20 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
             nextLabel = 'Confirmar OTST';
             nextColor = const Color(0xFF1565C0);
             onNext = () async {
+              final seca = _controller.suggestedSeca;
+              if (seca == null || seca.isEmpty) return;
+              final exists = await _controller.checkSecaExists(seca);
+              if (!mounted) return;
+              if (exists) {
+                final proceed = await _showOtstDuplicadaDialog(seca, isDark);
+                if (proceed != true || !mounted) return;
+              }
               await _controller.confirmSeca();
-              _controller.setStep(4);
             };
+          } else if (step == 3 && _controller.secaConfirmed) {
+            nextLabel = 'Siguiente';
+            nextColor = const Color(0xFF498054);
+            onNext = () => _goToStep(step + 1);
           } else if (isLastStep) {
             nextLabel = 'Iniciar Servicio';
             nextColor = const Color(0xFF3e7732);

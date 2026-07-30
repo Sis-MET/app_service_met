@@ -102,10 +102,11 @@ class PrecargaController extends ChangeNotifier {
       serviciosDisponibles.map((s) => s.nombre).toList();
 
   String? selectedServicio;
-  String? selectedSeca; // Código OTST confirmado
-  String? suggestedSeca; // Código OTST sugerido
+  String? selectedSeca;
+  String? suggestedSeca;
   String cotizacionSuffix = 'S01';
   bool secaConfirmed = false;
+  bool noOtst = false;
 
   String? selectedInstrumento;
   String? nReca;
@@ -184,6 +185,33 @@ class PrecargaController extends ChangeNotifier {
     generateSuggestedSeca();
   }
 
+  void setNoOtst(bool value) {
+    noOtst = value;
+    cotizacionSuffix = value ? 'C00' : 'S01';
+    generateSuggestedSeca();
+  }
+
+  void resetSeca() {
+    secaConfirmed = false;
+    selectedSeca = null;
+    instrumentos = [];
+    selectedInstrumento = null;
+    selectedInstrumentoData = null;
+    stepErrors[3] = 'Debe confirmar la OTST';
+    notifyListeners();
+  }
+
+  Future<bool> checkSecaExists(String seca) async {
+    if (seca.isEmpty) return false;
+    try {
+      final registros =
+          await _soporteDb.getRegistrosPorSeca('precarga', seca);
+      return registros.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> confirmSeca() async {
     if (suggestedSeca == null) generateSuggestedSeca();
     selectedSeca = suggestedSeca;
@@ -226,6 +254,7 @@ class PrecargaController extends ChangeNotifier {
     suggestedSeca = null;
     selectedSeca = null;
     secaConfirmed = false;
+    noOtst = false;
     selectedInstrumento = null;
     selectedInstrumentoData = null;
     plantas = [];
@@ -378,6 +407,7 @@ class PrecargaController extends ChangeNotifier {
     selectedSeca = null;
     cotizacionSuffix = 'S01';
     secaConfirmed = false;
+    noOtst = false;
     selectedInstrumento = null;
     nReca = null;
     codMetrica = null;
