@@ -1,17 +1,193 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 
-class PasoTerminalBalanzaCaja extends StatelessWidget {
+// ── All Good toggle card ──────────────────────────────────────────────
+class _AllGoodCard extends StatelessWidget {
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _AllGoodCard({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const activeColor = Color(0xFF46824B);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: value
+              ? activeColor.withOpacity(0.45)
+              : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: value
+                  ? activeColor.withOpacity(isDark ? 0.2 : 0.12)
+                  : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              value
+                  ? Icons.check_circle_outline_rounded
+                  : Icons.checklist_rounded,
+              size: 20,
+              color: value
+                  ? activeColor
+                  : (isDark ? Colors.white38 : Colors.black38),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Todo en buen estado',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value
+                      ? 'Todos los campos marcados como "1 Bueno"'
+                      : 'Active para aplicar "Buen Estado" a todos los campos',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: Colors.white,
+            activeTrackColor: activeColor,
+            inactiveThumbColor: isDark ? Colors.white54 : Colors.black45,
+            inactiveTrackColor:
+                isDark ? Colors.white24 : const Color(0xFFE2E8F0),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+// ── Section header ────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
   final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? color.withOpacity(0.1) : color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: isDark ? Colors.white54 : Colors.black45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+// ── Mixin para AllGood toggle ─────────────────────────────────────────
+mixin AllGoodMixin<T extends StatefulWidget> on State<T> {
+  bool _isAllGood = false;
+
+  void toggleAllGood(bool value, List<CampoEstado> campos) {
+    setState(() {
+      _isAllGood = value;
+      if (value) {
+        for (final c in campos) {
+          c.value = 'Bueno';
+          c.solutionLabel = 'En buen estado';
+          c.solutionValue = 'No aplica';
+        }
+      }
+    });
+  }
+
+  void onFieldChangedExternally() {
+    if (_isAllGood) {
+      setState(() => _isAllGood = false);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PASO INSPECCION SIMPLE — Una sola sección
+// ═══════════════════════════════════════════════════════════════════════
+class PasoInspeccionSimple extends StatefulWidget {
   final List<CampoEstado> campos;
   final void Function(int index, String value, String solutionValue) onChanged;
   final String seca;
   final String codMetrica;
 
-  const PasoTerminalBalanzaCaja({
+  const PasoInspeccionSimple({
     super.key,
-    required this.title,
     required this.campos,
     required this.onChanged,
     required this.seca,
@@ -19,26 +195,152 @@ class PasoTerminalBalanzaCaja extends StatelessWidget {
   });
 
   @override
+  State<PasoInspeccionSimple> createState() => _PasoInspeccionSimpleState();
+}
+
+class _PasoInspeccionSimpleState extends State<PasoInspeccionSimple>
+    with AllGoodMixin {
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+        _AllGoodCard(
+          value: _isAllGood,
+          onChanged: (v) {
+            toggleAllGood(v, widget.campos);
+            _notifyAll();
+          },
         ),
-        ...List.generate(campos.length, (i) {
+        const SizedBox(height: 20),
+        ...List.generate(widget.campos.length, (i) {
           return CampoInspeccionWidget(
-            campoEstado: campos[i],
-            onChanged: (value, solutionValue) => onChanged(i, value, solutionValue),
-            seca: seca,
-            codMetrica: codMetrica,
+            campoEstado: widget.campos[i],
+            onChanged: (value, solutionValue) {
+              onFieldChangedExternally();
+              widget.onChanged(i, value, solutionValue);
+            },
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
           );
         }),
       ],
     );
+  }
+
+  void _notifyAll() {
+    for (int i = 0; i < widget.campos.length; i++) {
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PASO INSPECCION DOBLE — Dos secciones con headers
+// ═══════════════════════════════════════════════════════════════════════
+class PasoInspeccionDoble extends StatefulWidget {
+  final List<CampoEstado> campos;
+  final void Function(int index, String value, String solutionValue) onChanged;
+  final String seca;
+  final String codMetrica;
+  final SeccionData seccion1;
+  final SeccionData seccion2;
+
+  const PasoInspeccionDoble({
+    super.key,
+    required this.campos,
+    required this.onChanged,
+    required this.seca,
+    required this.codMetrica,
+    required this.seccion1,
+    required this.seccion2,
+  });
+
+  @override
+  State<PasoInspeccionDoble> createState() => _PasoInspeccionDobleState();
+}
+
+class SeccionData {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final int count;
+
+  const SeccionData({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.count,
+  });
+}
+
+class _PasoInspeccionDobleState extends State<PasoInspeccionDoble>
+    with AllGoodMixin {
+  @override
+  Widget build(BuildContext context) {
+    final campos1 = widget.campos.sublist(0, widget.seccion1.count);
+    final campos2 = widget.campos.sublist(widget.seccion1.count);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _AllGoodCard(
+          value: _isAllGood,
+          onChanged: (v) {
+            toggleAllGood(v, widget.campos);
+            _notifyAll();
+          },
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(
+          title: widget.seccion1.title,
+          subtitle: widget.seccion1.subtitle,
+          icon: widget.seccion1.icon,
+          color: widget.seccion1.color,
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(campos1.length, (i) {
+          return CampoInspeccionWidget(
+            campoEstado: campos1[i],
+            onChanged: (value, solutionValue) {
+              onFieldChangedExternally();
+              widget.onChanged(i, value, solutionValue);
+            },
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
+          );
+        }),
+        const SizedBox(height: 28),
+        _SectionHeader(
+          title: widget.seccion2.title,
+          subtitle: widget.seccion2.subtitle,
+          icon: widget.seccion2.icon,
+          color: widget.seccion2.color,
+        ),
+        const SizedBox(height: 12),
+        ...List.generate(campos2.length, (i) {
+          final realIndex = i + widget.seccion1.count;
+          return CampoInspeccionWidget(
+            campoEstado: campos2[i],
+            onChanged: (value, solutionValue) {
+              onFieldChangedExternally();
+              widget.onChanged(realIndex, value, solutionValue);
+            },
+            seca: widget.seca,
+            codMetrica: widget.codMetrica,
+          );
+        }),
+      ],
+    );
+  }
+
+  void _notifyAll() {
+    for (int i = 0; i < widget.campos.length; i++) {
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
+    }
   }
 }
