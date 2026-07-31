@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_avanzado_stac.dart';
 import 'package:service_met/models/service_session.dart';
@@ -9,7 +10,7 @@ import 'package:service_met/screens/soporte_new/modulos/mnt_prv_avanzado/models/
 
 class MntPrvAvanzadoController extends BaseSoporteController {
   @override
-  String get tableName => 'mnt_prv_avanzado';
+  String get tableName => 'mnt_prv_avanzado_stac';
 
   @override
   String get tipoServicio => 'MNT PREVENTIVO AVANZADO';
@@ -170,12 +171,17 @@ class MntPrvAvanzadoController extends BaseSoporteController {
 
   @override
   Future<void> guardarSesion() async {
+    setSaveInProgress();
     try {
       final data = _prepareDataForSave();
       data['session_id'] = model.sessionId;
       data['otst'] = secaValue;
       await _dbLegacy.upsertRegistroRelevamiento(data);
-    } catch (_) {}
+      setSaveSuccess(true);
+    } catch (e) {
+      debugPrint('Error guardando sesión $tableName: $e');
+      setSaveSuccess(false);
+    }
   }
 
   @override
@@ -185,11 +191,19 @@ class MntPrvAvanzadoController extends BaseSoporteController {
   }) async {
     this.horaFin = horaFin;
     this.fechaProxServicio = fechaProxServicio;
-    final data = _prepareDataForSave();
-    data['session_id'] = model.sessionId;
-    data['otst'] = secaValue;
-    data['estado_servicio'] = 'Completo';
-    await _dbLegacy.upsertRegistroRelevamiento(data);
+    setSaveInProgress();
+    try {
+      final data = _prepareDataForSave();
+      data['session_id'] = model.sessionId;
+      data['otst'] = secaValue;
+      data['estado_servicio'] = 'Completo';
+      await _dbLegacy.upsertRegistroRelevamiento(data);
+      setSaveSuccess(true);
+    } catch (e) {
+      debugPrint('Error al finalizar servicio $tableName: $e');
+      setSaveSuccess(false);
+      rethrow;
+    }
   }
 
   bool _isServiceComplete() {
@@ -231,9 +245,9 @@ class MntPrvAvanzadoController extends BaseSoporteController {
       'hora_fin': horaFin,
       'comentario_general': comentarioGeneral,
       'recomendacion': recomendacion,
-      'estado_fisico': estadoFisico,
-      'estado_operacional': estadoOperacional,
-      'estado_metrologico': estadoMetrologico,
+      'fisico': estadoFisico,
+      'operacional': estadoOperacional,
+      'metrologico': estadoMetrologico,
       'fecha_prox_servicio': fechaProxServicio,
       'fecha_servicio': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     };
@@ -371,7 +385,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     data['tipo_plataforma_$tipo'] = exc.tipoPlataforma ?? '';
     data['puntos_ind_$tipo'] = exc.puntosIndicacion ?? '';
     data['carga_exc_$tipo'] = exc.carga ?? '';
-    for (int i = 0; i < exc.posiciones.length && i < 6; i++) {
+    for (int i = 0; i < exc.posiciones.length && i < 10; i++) {
       final p = exc.posiciones[i];
       final n = i + 1;
       data['posicion_${tipo}_$n'] = p.posicion ?? '';
@@ -412,6 +426,10 @@ class MntPrvAvanzadoController extends BaseSoporteController {
   Future<void> loadExistingSession(
       String sessionId, Map<String, dynamic> data) async {
     await super.loadExistingSession(sessionId, data);
+
+    estadoFisico = data['fisico']?.toString() ?? '';
+    estadoOperacional = data['operacional']?.toString() ?? '';
+    estadoMetrologico = data['metrologico']?.toString() ?? '';
 
     razonSocial = data['razon_social']?.toString() ?? '';
     dirPlanta = data['dir_planta']?.toString() ?? '';
@@ -571,7 +589,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     if (tipoPlataforma.isEmpty) return;
 
     final posiciones = <PosicionData>[];
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 10; i++) {
       final n = i + 1;
       final pos = data['posicion_${tipo}_$n']?.toString() ?? '';
       if (pos.isEmpty) continue;

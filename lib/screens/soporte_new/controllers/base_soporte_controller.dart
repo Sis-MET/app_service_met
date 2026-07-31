@@ -49,6 +49,19 @@ abstract class BaseSoporteController extends ChangeNotifier {
   bool _lastSaveSuccessful = true;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
 
+  // Setters públicos para que los controladores que persisten en la DB
+  // legacy puedan actualizar el estado de guardado (indicador en UI).
+  void setSaveInProgress() {
+    _isSaving = true;
+    notifyListeners();
+  }
+
+  void setSaveSuccess(bool successful) {
+    _isSaving = false;
+    _lastSaveSuccessful = successful;
+    notifyListeners();
+  }
+
   BaseSoporteController();
 
   void markChanged() {

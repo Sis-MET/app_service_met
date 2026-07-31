@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import 'package:service_met/models/service_session.dart';
@@ -139,12 +140,17 @@ class MntPrvRegularController extends BaseSoporteController {
 
   @override
   Future<void> guardarSesion() async {
+    setSaveInProgress();
     try {
       final data = _prepareDataForSave();
       data['session_id'] = model.sessionId;
       data['otst'] = secaValue;
       await _dbLegacy.upsertRegistroRelevamiento(data);
-    } catch (_) {}
+      setSaveSuccess(true);
+    } catch (e) {
+      debugPrint('Error guardando sesión $tableName: $e');
+      setSaveSuccess(false);
+    }
   }
 
   @override
@@ -154,11 +160,19 @@ class MntPrvRegularController extends BaseSoporteController {
   }) async {
     this.horaFin = horaFin;
     this.fechaProxServicio = fechaProxServicio;
-    final data = _prepareDataForSave();
-    data['session_id'] = model.sessionId;
-    data['otst'] = secaValue;
-    data['estado_servicio'] = 'Completo';
-    await _dbLegacy.upsertRegistroRelevamiento(data);
+    setSaveInProgress();
+    try {
+      final data = _prepareDataForSave();
+      data['session_id'] = model.sessionId;
+      data['otst'] = secaValue;
+      data['estado_servicio'] = 'Completo';
+      await _dbLegacy.upsertRegistroRelevamiento(data);
+      setSaveSuccess(true);
+    } catch (e) {
+      debugPrint('Error al finalizar servicio $tableName: $e');
+      setSaveSuccess(false);
+      rethrow;
+    }
   }
 
   bool _isServiceComplete() {

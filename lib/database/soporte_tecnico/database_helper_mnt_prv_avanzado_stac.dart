@@ -236,12 +236,61 @@ class DatabaseHelperMntPrvAvanzadoStac {
         },
       );
 
+      await _ensureColumns(database);
+
       return database;
     } catch (e) {
       debugPrint('Error inicializando base de datos: $e');
       rethrow;
     } finally {
       _isInitializing = false;
+    }
+  }
+
+  Future<void> _ensureColumns(Database db) async {
+    try {
+      final tableInfo = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='mnt_prv_avanzado_stac'");
+      if (tableInfo.isEmpty) return;
+
+      final rows =
+          await db.rawQuery('PRAGMA table_info(mnt_prv_avanzado_stac)');
+      final existing = rows.map((r) => r['name'].toString()).toSet();
+
+      const missingColumns = {
+        'posicion_inicial_7': 'TEXT DEFAULT \'\'',
+        'posicion_inicial_8': 'TEXT DEFAULT \'\'',
+        'posicion_inicial_9': 'TEXT DEFAULT \'\'',
+        'posicion_inicial_10': 'TEXT DEFAULT \'\'',
+        'posicion_final_7': 'TEXT DEFAULT \'\'',
+        'posicion_final_8': 'TEXT DEFAULT \'\'',
+        'posicion_final_9': 'TEXT DEFAULT \'\'',
+        'posicion_final_10': 'TEXT DEFAULT \'\'',
+        'indicacion_inicial_7': 'TEXT DEFAULT \'\'',
+        'indicacion_inicial_8': 'TEXT DEFAULT \'\'',
+        'indicacion_inicial_9': 'TEXT DEFAULT \'\'',
+        'indicacion_inicial_10': 'TEXT DEFAULT \'\'',
+        'retorno_inicial_7': 'TEXT DEFAULT \'\'',
+        'retorno_inicial_8': 'TEXT DEFAULT \'\'',
+        'retorno_inicial_9': 'TEXT DEFAULT \'\'',
+        'retorno_inicial_10': 'TEXT DEFAULT \'\'',
+        'indicacion_final_7': 'TEXT DEFAULT \'\'',
+        'indicacion_final_8': 'TEXT DEFAULT \'\'',
+        'indicacion_final_9': 'TEXT DEFAULT \'\'',
+        'indicacion_final_10': 'TEXT DEFAULT \'\'',
+        'retorno_final_7': 'TEXT DEFAULT \'\'',
+        'retorno_final_8': 'TEXT DEFAULT \'\'',
+        'retorno_final_9': 'TEXT DEFAULT \'\'',
+        'retorno_final_10': 'TEXT DEFAULT \'\'',
+      };
+
+      for (final entry in missingColumns.entries) {
+        if (existing.contains(entry.key)) continue;
+        await db.execute(
+            'ALTER TABLE mnt_prv_avanzado_stac ADD COLUMN ${entry.key} ${entry.value}');
+      }
+    } catch (e) {
+      debugPrint('Error asegurando columnas de mnt_prv_avanzado_stac: $e');
     }
   }
 
@@ -333,12 +382,16 @@ class DatabaseHelperMntPrvAvanzadoStac {
         posicion_inicial_6 TEXT DEFAULT '',
         indicacion_inicial_6 TEXT DEFAULT '',
         retorno_inicial_6 TEXT DEFAULT '',
+        posicion_inicial_7 TEXT DEFAULT '',
         indicacion_inicial_7 TEXT DEFAULT '',
         retorno_inicial_7 TEXT DEFAULT '',
+        posicion_inicial_8 TEXT DEFAULT '',
         indicacion_inicial_8 TEXT DEFAULT '',
         retorno_inicial_8 TEXT DEFAULT '',
+        posicion_inicial_9 TEXT DEFAULT '',
         indicacion_inicial_9 TEXT DEFAULT '',
         retorno_inicial_9 TEXT DEFAULT '',
+        posicion_inicial_10 TEXT DEFAULT '',
         indicacion_inicial_10 TEXT DEFAULT '',
         retorno_inicial_10 TEXT DEFAULT '',
         indicacion_inicial_11 TEXT DEFAULT '',

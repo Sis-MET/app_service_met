@@ -1,5 +1,4 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, curly_braces_in_flow_control_structures
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -649,10 +648,10 @@ class _BasculaPlatformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final pL = w * 0.10;
+    final pL = w * 0.14;
     final pT = h * 0.10;
-    final pW = w * 0.68;
-    final pH = h * 0.70;
+    final pW = w * 0.72;
+    final pH = h * 0.72;
     final platform = Rect.fromLTWH(pL, pT, pW, pH);
 
     final bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8ECF0);
@@ -661,9 +660,8 @@ class _BasculaPlatformPainter extends CustomPainter {
     final dotFill = isDark ? const Color(0xFF4A4A4A) : Colors.white;
     final dotBorder = isDark ? Colors.white38 : Colors.black26;
 
-    final halfH = platform.height / 2;
-    final topRowY = platform.top + halfH * 0.35;
-    final botRowY = platform.top + halfH * 1.15;
+    final topRowY = platform.top + pH * 0.30;
+    final botRowY = platform.top + pH * 0.72;
 
     _drawPlatform(canvas, platform, bg, fg);
     _drawIdaArrow(canvas, platform, topRowY, textColor);
@@ -671,7 +669,7 @@ class _BasculaPlatformPainter extends CustomPainter {
     _drawDots(canvas, platform, idaDots, topRowY, dotFill, dotBorder, textColor);
     _drawDots(canvas, platform, vueltaDots, botRowY, dotFill, dotBorder, textColor);
     _drawTruck(canvas, platform, textColor);
-    _drawCaseta(canvas, platform, w, h, textColor);
+    _drawCaseta(canvas, platform, textColor);
   }
 
   void _drawPlatform(Canvas canvas, Rect r, Color bg, Color border) {
@@ -685,43 +683,55 @@ class _BasculaPlatformPainter extends CustomPainter {
   }
 
   void _drawIdaArrow(Canvas canvas, Rect platform, double topRowY, Color color) {
-    final paint = Paint()
+    final shaft = Paint()
       ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    final midY = topRowY;
-    final x1 = platform.left - 20;
-    final x2 = platform.left - 4;
-    canvas.drawLine(Offset(x1, midY), Offset(x2, midY), paint);
-    _drawArrowHead(canvas, Offset(x2, midY), 0, paint);
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final head = Paint()..color = color;
+    _drawArrow(
+      canvas,
+      Offset(platform.left - platform.width * 0.125, topRowY),
+      Offset(platform.left - 6, topRowY),
+      shaft,
+      head,
+    );
   }
 
   void _drawVueltaArrow(Canvas canvas, Rect platform, double botRowY, Color color) {
-    final paint = Paint()
+    final shaft = Paint()
       ..color = color
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke;
-    final midY = botRowY;
-    final x1 = platform.right + 4;
-    final x2 = platform.right + 20;
-    canvas.drawLine(Offset(x1, midY), Offset(x2, midY), paint);
-    _drawArrowHead(canvas, Offset(x2, midY), math.pi, paint);
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final head = Paint()..color = color;
+    _drawArrow(
+      canvas,
+      Offset(platform.right + platform.width * 0.125, botRowY),
+      Offset(platform.right + 6, botRowY),
+      shaft,
+      head,
+    );
   }
 
-  void _drawArrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
-    final headSize = 10.0;
+  void _drawArrow(Canvas canvas, Offset from, Offset tip, Paint shaft, Paint head) {
+    final v = tip - from;
+    final len = v.distance;
+    if (len <= 0) return;
+    final d = Offset(v.dx / len, v.dy / len);
+    final headLen = 13.0;
+    final headHalf = 7.5;
+    final shaftEnd = tip - d * headLen;
+    canvas.drawLine(from, shaftEnd, shaft);
+    final perp = Offset(-d.dy, d.dx);
     final path = Path()
       ..moveTo(tip.dx, tip.dy)
-      ..lineTo(
-        tip.dx + headSize * math.cos(angle + math.pi * 0.83),
-        tip.dy + headSize * math.sin(angle + math.pi * 0.83),
-      )
-      ..moveTo(tip.dx, tip.dy)
-      ..lineTo(
-        tip.dx + headSize * math.cos(angle - math.pi * 0.83),
-        tip.dy + headSize * math.sin(angle - math.pi * 0.83),
-      );
-    canvas.drawPath(path, paint);
+      ..lineTo(shaftEnd.dx + perp.dx * headHalf,
+          shaftEnd.dy + perp.dy * headHalf)
+      ..lineTo(shaftEnd.dx - perp.dx * headHalf,
+          shaftEnd.dy - perp.dy * headHalf)
+      ..close();
+    canvas.drawPath(path, head);
   }
 
   void _drawDots(
@@ -734,9 +744,11 @@ class _BasculaPlatformPainter extends CustomPainter {
     Color textColor,
   ) {
     if (dots.isEmpty) return;
-    final spacing = platform.width / (dots.length + 1);
+    final dotZoneStart = platform.left + platform.width * 0.16;
+    final dotZoneWidth = platform.width * 0.84;
+    final spacing = dotZoneWidth / (dots.length + 1);
     for (int i = 0; i < dots.length; i++) {
-      final cx = platform.left + spacing * (i + 1);
+      final cx = dotZoneStart + spacing * (i + 1);
       final cy = rowY;
       final r = 11.0;
 
@@ -762,15 +774,15 @@ class _BasculaPlatformPainter extends CustomPainter {
   }
 
   void _drawTruck(Canvas canvas, Rect platform, Color color) {
-    final cx = platform.left + platform.width * 0.3;
-    final cy = platform.top + platform.height * 0.52;
-    final bodyW = 40.0;
-    final bodyH = 18.0;
-    final cabW = 14.0;
-    final cabH = 16.0;
+    final cx = platform.left + platform.width * 0.08;
+    final cy = platform.top + platform.height * 0.51;
+    final bodyW = 30.0;
+    final bodyH = 16.0;
+    final cabW = 12.0;
+    final cabH = 13.0;
 
     final bodyPaint = Paint()
-      ..color = color.withOpacity(0.5)
+      ..color = color.withOpacity(0.4)
       ..style = PaintingStyle.fill;
     final strokePaint = Paint()
       ..color = color
@@ -794,12 +806,12 @@ class _BasculaPlatformPainter extends CustomPainter {
 
     final wheelPaint = Paint()..color = color;
     for (final dx in [-bodyW / 2 + 4, bodyW / 2 - 4]) {
-      canvas.drawCircle(Offset(cx + dx, cy - bodyH / 2 - 2), 2.5, wheelPaint);
-      canvas.drawCircle(Offset(cx + dx, cy + bodyH / 2 + 2), 2.5, wheelPaint);
+      canvas.drawCircle(Offset(cx + dx, cy - bodyH / 2 - 1.5), 2.2, wheelPaint);
+      canvas.drawCircle(Offset(cx + dx, cy + bodyH / 2 + 1.5), 2.2, wheelPaint);
     }
   }
 
-  void _drawCaseta(Canvas canvas, Rect platform, double w, double h, Color color) {
+  void _drawCaseta(Canvas canvas, Rect platform, Color color) {
     if (posicionCaseta == null) return;
 
     final cw = 26.0;
@@ -807,16 +819,18 @@ class _BasculaPlatformPainter extends CustomPainter {
     Offset center;
     switch (posicionCaseta) {
       case 'frente':
-        center = Offset(w / 2, platform.bottom + ch / 2 + 8);
+        center = Offset(platform.center.dx, platform.bottom + ch / 2 + 8);
         break;
       case 'atras':
-        center = Offset(w / 2, platform.top - ch / 2 - 8);
+        center = Offset(platform.center.dx, platform.top - ch / 2 - 8);
         break;
       case 'izquierda':
-        center = Offset(platform.left - cw / 2 - 10, platform.top + platform.height / 2);
+        center = Offset(
+            platform.left - cw / 2 - 26, platform.center.dy);
         break;
       case 'derecha':
-        center = Offset(platform.right + cw / 2 + 10, platform.top + platform.height / 2);
+        center = Offset(
+            platform.right + cw / 2 + 26, platform.center.dy);
         break;
       default:
         return;
