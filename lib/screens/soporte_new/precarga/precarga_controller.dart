@@ -134,16 +134,7 @@ class PrecargaController extends ChangeNotifier {
     _setLoading(true);
     try {
       final result = await _precargaDb.getClientes();
-      clientes = result.map((row) {
-        final nombre = row['cliente']?.toString() ?? 'Sin nombre';
-        final razon = row['razonsocial']?.toString() ?? '';
-        return {
-          ...row,
-          'nombre': nombre,
-          'codigo': row['codigo_cliente'] ?? '',
-          '_searchKey': '$nombre $razon'.toLowerCase(),
-        };
-      }).toList();
+      clientes = _mapClientes(result);
       errorMessage = null;
     } catch (e) {
       errorMessage = 'Error al cargar clientes: $e';
@@ -151,6 +142,25 @@ class PrecargaController extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<List<Map<String, dynamic>>> searchClientes(String query) async {
+    final result = await _precargaDb.searchClientes(query);
+    return _mapClientes(result);
+  }
+
+  List<Map<String, dynamic>> _mapClientes(
+      List<Map<String, dynamic>> rows) {
+    return rows.map((row) {
+      final nombre = row['cliente']?.toString() ?? 'Sin nombre';
+      final razon = row['razonsocial']?.toString() ?? '';
+      return {
+        ...row,
+        'nombre': nombre,
+        'codigo': row['codigo_cliente'] ?? '',
+        '_searchKey': '$nombre $razon'.toLowerCase(),
+      };
+    }).toList();
   }
 
   Future<void> loadPlantas() async {

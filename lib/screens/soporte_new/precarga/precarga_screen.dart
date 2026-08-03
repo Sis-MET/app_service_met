@@ -244,6 +244,16 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre:
+              _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion:
+              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'RELEVAMIENTO DE DATOS':
@@ -308,6 +318,16 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre:
+              _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion:
+              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'INSTALACIÓN':
@@ -330,6 +350,16 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre:
+              _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion:
+              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'AJUSTE DE VERIFICACIONES':

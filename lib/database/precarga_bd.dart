@@ -234,6 +234,21 @@ class DatabaseHelperPrecarga {
     return await db.query('clientes');
   }
 
+  Future<List<Map<String, dynamic>>> searchClientes(
+    String query, {
+    int limit = 100,
+  }) async {
+    final db = await database;
+    final pattern = '%${query.trim()}%';
+    return db.query(
+      'clientes',
+      where: 'cliente LIKE ? COLLATE NOCASE OR razonsocial LIKE ? COLLATE NOCASE',
+      whereArgs: [pattern, pattern],
+      orderBy: 'cliente COLLATE NOCASE',
+      limit: limit,
+    );
+  }
+
   Future<List<Map<String, dynamic>>> getPlantas() async {
     final db = await database;
     return await db.query('plantas');

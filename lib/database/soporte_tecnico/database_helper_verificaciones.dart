@@ -229,8 +229,20 @@ class DatabaseHelperVerificaciones {
       // Abrir/crear la base de datos
       final database = await openDatabase(
         path,
-        version: 1, // Reset to version 1
+        version: 2,
         onCreate: _onCreate,
+        onUpgrade: (db, oldVersion, newVersion) async {
+          if (oldVersion < 2) {
+            for (final column in [
+              'campos_estado TEXT DEFAULT \'\'',
+              'pruebas_iniciales TEXT DEFAULT \'\'',
+              'pruebas_finales TEXT DEFAULT \'\'',
+            ]) {
+              await db.execute(
+                  'ALTER TABLE verificaciones_internas ADD COLUMN $column');
+            }
+          }
+        },
         onOpen: (db) {
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -434,6 +446,15 @@ class DatabaseHelperVerificaciones {
         estado_servicio TEXT DEFAULT ''
       )
       ''');
+
+      for (final column in [
+        'campos_estado TEXT DEFAULT \'\'',
+        'pruebas_iniciales TEXT DEFAULT \'\'',
+        'pruebas_finales TEXT DEFAULT \'\'',
+      ]) {
+        await db.execute(
+            'ALTER TABLE verificaciones_internas ADD COLUMN $column');
+      }
 
       debugPrint('Tabla verificaciones_internas creada exitosamente');
     } catch (e) {

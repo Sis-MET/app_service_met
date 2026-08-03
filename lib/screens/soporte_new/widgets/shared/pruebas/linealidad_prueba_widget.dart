@@ -57,7 +57,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
     _cargasValidadas = false;
     _cargasPatronValidadas = 0;
     if (lin.filas.isNotEmpty) {
-      _buildControllers(lin.filas.length.clamp(1, _maxPuntos));
+      _buildControllers(_initialRowsCount(lin));
       for (int i = 0; i < _cargaCtrls.length; i++) {
         _cargaCtrls[i].text = lin.filas[i].carga ?? '';
         _indCtrls[i].text = lin.filas[i].indicacion ?? '';
@@ -66,8 +66,17 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
             : '0';
       }
     } else {
-      _buildControllers(12);
+      _buildControllers(2);
     }
+  }
+
+  int _initialRowsCount(LinealidadData lin) {
+    final lastUsedRow = lin.filas.lastIndexWhere((fila) {
+      return (fila.carga?.trim().isNotEmpty ?? false) ||
+          (fila.indicacion?.trim().isNotEmpty ?? false) ||
+          (fila.retorno?.trim().isNotEmpty ?? false && fila.retorno != '0');
+    });
+    return (lastUsedRow + 1).clamp(2, _maxPuntos).toInt();
   }
 
   void _buildControllers(int count) {
@@ -300,6 +309,8 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
           ],
         ),
         const SizedBox(height: 8),
+        _buildLoadCounter(isDark),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -337,6 +348,48 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
           ),
         ).animate(delay: 300.ms).fadeIn(),
       ],
+    );
+  }
+
+  Widget _buildLoadCounter(bool isDark) {
+    final used = _cargaCtrls.length;
+    final progress = used / _maxPuntos;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.teal.withOpacity(isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.teal.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.format_list_numbered_rounded,
+              size: 18, color: Colors.teal),
+          const SizedBox(width: 8),
+          Text(
+            '$used/$_maxPuntos cargas',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: isDark ? Colors.white12 : Colors.black12,
+                valueColor: const AlwaysStoppedAnimation(Colors.teal),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

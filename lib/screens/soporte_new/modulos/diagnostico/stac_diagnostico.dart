@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
@@ -20,6 +21,11 @@ class StacDiagnostico extends StatefulWidget {
   final String userName;
   final String clienteId;
   final String plantaCodigo;
+  final String clienteNombre;
+  final String clienteRazonSocial;
+  final String plantaNombre;
+  final String plantaDireccion;
+  final String plantaDepartamento;
   final Map<String, dynamic>? instrumentoData;
 
   const StacDiagnostico({
@@ -31,6 +37,11 @@ class StacDiagnostico extends StatefulWidget {
     required this.userName,
     required this.clienteId,
     required this.plantaCodigo,
+    this.clienteNombre = '',
+    this.clienteRazonSocial = '',
+    this.plantaNombre = '',
+    this.plantaDireccion = '',
+    this.plantaDepartamento = '',
     this.instrumentoData,
   });
 
@@ -42,11 +53,12 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
   late DiagnosticoController _controller;
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _isLoading = true;
 
   static const _steps = [
     StepData(
         title: 'Info General',
-        subtitle: 'Reporte y observaciones',
+        subtitle: 'Reporte y evaluación',
         icon: Icons.info_outline),
     StepData(
         title: 'Estado Final',
@@ -64,7 +76,47 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
         secaValue: widget.secaValue,
       ),
     );
+    _controller.secaValue = widget.secaValue;
+    _controller.clienteNombre = widget.clienteNombre;
+    _controller.plantaNombre = widget.plantaNombre;
+    _controller.horaInicio = DateFormat('HH:mm').format(DateTime.now());
     _controller.initCamposEstado();
+    _controller.camposEstado.clear();
+    _setBalanzaData();
+    _loadExistingData();
+  }
+
+  Future<void> _loadExistingData() async {
+    try {
+      await _controller.restoreSession();
+    } catch (error) {
+      debugPrint('Error restaurando diagnostico: $error');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _setBalanzaData() {
+    final data = widget.instrumentoData;
+    _controller.razonSocial = widget.clienteRazonSocial;
+    _controller.dirPlanta = widget.plantaDireccion;
+    _controller.depPlanta = widget.plantaDepartamento;
+    _controller.codPlanta = widget.plantaCodigo;
+    _controller.personal = widget.userName;
+    if (data == null) return;
+    _controller.infBal = data['_modifiedFields']?.toString() ?? '';
+    _controller.categoriaBalanza = data['categoria']?.toString() ?? data['categoria_balanza']?.toString() ?? '';
+    _controller.codInt = data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ?? data['tipo']?.toString() ?? data['instrumento']?.toString() ?? '';
+    _controller.marca = data['marca']?.toString() ?? '';
+    _controller.modelo = data['modelo']?.toString() ?? '';
+    _controller.serie = data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
+    _controller.unidades = data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
+    _controller.numCeldas = data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
+    _controller.ubicacion = data['ubicacion']?.toString() ?? '';
+    _controller.capMax1 = data['cap_max1']?.toString() ?? ''; _controller.d1 = data['d1']?.toString() ?? ''; _controller.e1 = data['e1']?.toString() ?? ''; _controller.dec1 = data['dec1']?.toString() ?? '';
+    _controller.capMax2 = data['cap_max2']?.toString() ?? ''; _controller.d2 = data['d2']?.toString() ?? ''; _controller.e2 = data['e2']?.toString() ?? ''; _controller.dec2 = data['dec2']?.toString() ?? '';
+    _controller.capMax3 = data['cap_max3']?.toString() ?? ''; _controller.d3 = data['d3']?.toString() ?? ''; _controller.e3 = data['e3']?.toString() ?? ''; _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
   @override
@@ -109,6 +161,10 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
               isError: true);
           return false;
         }
+        if (_controller.evaluacion.isEmpty) {
+          TopAlert.show(context, 'Complete la evaluacion tecnica', isError: true);
+          return false;
+        }
         return true;
       case 1:
         if (_controller.comentarioGeneral.isEmpty) {
@@ -116,10 +172,8 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
               isError: true);
           return false;
         }
-        if (_controller.estadoFisico.isEmpty ||
-            _controller.estadoOperacional.isEmpty ||
-            _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
+        if (_controller.horaFin.isEmpty) {
+          TopAlert.show(context, 'Registre la hora final del servicio',
               isError: true);
           return false;
         }
@@ -139,7 +193,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
     if (!_validateCurrentStep()) return;
     await _saveCurrentStep();
     if (!mounted) return;
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => FinServicioScreen(
@@ -172,6 +226,12 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: ServiceAppBar(title: 'Diagnostico'),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -211,7 +271,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
         children: [
           const ServiceStepHeader(
             title: 'Información General',
-            subtitle: 'Reporte de falla, observaciones y acciones',
+            subtitle: 'Reporte de falla y evaluación técnica',
           ),
           const SizedBox(height: 24),
           TextFormField(
@@ -225,21 +285,12 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
           ),
           const SizedBox(height: 12),
           TextFormField(
-            initialValue: _controller.observaciones,
-            decoration: serviceInputDeco('Observaciones', isDark),
-            maxLines: 3,
+            initialValue: _controller.evaluacion,
+            decoration: serviceInputDeco(
+                'Evaluacion y analisis tecnico de fallas', isDark),
+            maxLines: 4,
             onChanged: (v) {
-              _controller.observaciones = v;
-              _onFieldChanged();
-            },
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            initialValue: _controller.accionesTomadas,
-            decoration: serviceInputDeco('Acciones Tomadas', isDark),
-            maxLines: 3,
-            onChanged: (v) {
-              _controller.accionesTomadas = v;
+              _controller.evaluacion = v;
               _onFieldChanged();
             },
           ),
@@ -249,6 +300,93 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
   }
 
   Widget _buildPasoEstadoFinal() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF1E2A20) : Colors.white;
+    final mutedColor = isDark ? Colors.white70 : const Color(0xFF627066);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ServiceStepHeader(
+            title: 'Finalizar diagnóstico',
+            subtitle: 'Registre la conclusión y la hora de término',
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white12 : const Color(0xFFE2E8E2),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.login_outlined, color: Color(0xFF46824B)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Hora de inicio',
+                          style: TextStyle(color: mutedColor, fontSize: 13)),
+                      const SizedBox(height: 3),
+                      Text(_controller.horaInicio.isEmpty
+                          ? '--:--'
+                          : _controller.horaInicio),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.logout_outlined, color: Color(0xFF46824B)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Hora de finalización',
+                          style: TextStyle(color: mutedColor, fontSize: 13)),
+                      const SizedBox(height: 3),
+                      Text(_controller.horaFin.isEmpty
+                          ? 'Sin registrar'
+                          : _controller.horaFin),
+                    ],
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Registrar hora final',
+                  onPressed: () {
+                    setState(() {
+                      _controller.horaFin =
+                          DateFormat('HH:mm:ss').format(DateTime.now());
+                      _controller.markChanged();
+                    });
+                  },
+                  icon: const Icon(Icons.access_time),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          TextFormField(
+            initialValue: _controller.comentarioGeneral,
+            decoration: serviceInputDeco('Comentario general', isDark).copyWith(
+              helperText: 'Resumen final del diagnóstico realizado',
+            ),
+            maxLines: 5,
+            onChanged: (value) {
+              _controller.comentarioGeneral = value;
+              _onFieldChanged();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenericEstadoFinalUnused() {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       child: Column(
@@ -285,8 +423,17 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
               _controller.estadoMetrologico = v;
               _onFieldChanged();
             },
-            camposEstado: _controller.camposEstado,
-            onCampoChanged: _onCampoChanged,
+            camposEstado: const [],
+            onCampoChanged: (index, value, solutionValue) {},
+            horaInicio: _controller.horaInicio,
+            horaFin: _controller.horaFin,
+            onRegistrarHoraFin: () {
+              setState(() {
+                _controller.horaFin =
+                    DateFormat('HH:mm:ss').format(DateTime.now());
+                _controller.markChanged();
+              });
+            },
           ),
         ],
       ),

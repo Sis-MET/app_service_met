@@ -30,6 +30,8 @@ class _ClienteStepState extends State<ClienteStep> {
   List<Map<String, dynamic>>? _filteredClientes;
   Timer? _debounce;
   bool _isSearchEmpty = true;
+  bool _isSearching = false;
+  int _searchRequest = 0;
 
   @override
   void initState() {
@@ -47,27 +49,34 @@ class _ClienteStepState extends State<ClienteStep> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+    final request = ++_searchRequest;
     _debounce = Timer(const Duration(milliseconds: 250), () {
-      _filterClientes(query);
+      _filterClientes(query, request);
     });
   }
 
-  void _filterClientes(String query) {
-    final search = query.toLowerCase().trim();
+  Future<void> _filterClientes(String query, int request) async {
+    final search = query.trim();
     if (search.isEmpty) {
       setState(() {
         _filteredClientes = widget.controller.clientes;
+        _isSearching = false;
       });
       return;
     }
 
-    setState(() {
-      _filteredClientes = widget.controller.clientes.where((c) {
-        final searchKey = c['_searchKey'] as String? ??
-            '${c['nombre']} ${c['razonsocial']}'.toLowerCase();
-        return searchKey.contains(search);
-      }).toList();
-    });
+    setState(() => _isSearching = true);
+    try {
+      final results = await widget.controller.searchClientes(search);
+      if (!mounted || request != _searchRequest) return;
+      setState(() {
+        _filteredClientes = results;
+        _isSearching = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _searchRequest) return;
+      setState(() => _isSearching = false);
+    }
   }
 
   @override
@@ -175,8 +184,8 @@ class _ClienteStepState extends State<ClienteStep> {
               setState(() {
                 _isNewClient = false;
                 _searchController.clear();
-                _filterClientes('');
               });
+              _onSearchChanged('');
             },
           ),
           _modeTab(
@@ -414,7 +423,16 @@ class _ClienteStepState extends State<ClienteStep> {
                   fontSize: 14),
               prefixIcon: Icon(Icons.search_rounded,
                   color: isDark ? Colors.white54 : Colors.black38, size: 20),
-              suffixIcon: !_isSearchEmpty
+              suffixIcon: _isSearching
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : !_isSearchEmpty
                   ? IconButton(
                       icon: Icon(Icons.close_rounded,
                           size: 18,
@@ -439,7 +457,13 @@ class _ClienteStepState extends State<ClienteStep> {
         if (provider.isLoading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 40),
-            child: CircularProgressIndicator(),
+            child: Column(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 12),
+                Text('Cargando clientes...'),
+              ],
+            ),
           )
         else if (list.isEmpty)
           Padding(
@@ -460,12 +484,13 @@ class _ClienteStepState extends State<ClienteStep> {
             ),
           )
         else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
+          SizedBox(
+            height: 420,
+            child: ListView.separated(
+              itemCount: list.length,
+              padding: const EdgeInsets.only(bottom: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
               final cliente = list[index];
               final isSelected = provider.selectedCliente != null &&
                   (provider.selectedCliente!['cliente_id'] ==
@@ -579,7 +604,8 @@ class _ClienteStepState extends State<ClienteStep> {
                   .animate(delay: Duration(milliseconds: 40 * index))
                   .fadeIn()
                   .slideX(begin: 0.05);
-            },
+              },
+            ),
           ),
       ],
     );

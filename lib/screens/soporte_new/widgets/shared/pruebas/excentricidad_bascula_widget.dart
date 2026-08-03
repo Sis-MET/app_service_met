@@ -1,4 +1,5 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, curly_braces_in_flow_control_structures
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -78,10 +79,18 @@ class _ExcentricidadBasculaWidgetState
       _selectedPuntos = int.tryParse(match.group(1)!);
       final abrev = match.group(2)!;
       switch (abrev) {
-        case 'F': _posicionCaseta = 'frente'; break;
-        case 'A': _posicionCaseta = 'atras'; break;
-        case 'I': _posicionCaseta = 'izquierda'; break;
-        case 'D': _posicionCaseta = 'derecha'; break;
+        case 'F':
+          _posicionCaseta = 'frente';
+          break;
+        case 'A':
+          _posicionCaseta = 'atras';
+          break;
+        case 'I':
+          _posicionCaseta = 'izquierda';
+          break;
+        case 'D':
+          _posicionCaseta = 'derecha';
+          break;
       }
     } else {
       _selectedPuntos = int.tryParse(value.trim());
@@ -90,11 +99,16 @@ class _ExcentricidadBasculaWidgetState
 
   String _getPosicionAbrev() {
     switch (_posicionCaseta) {
-      case 'frente': return 'F';
-      case 'atras': return 'A';
-      case 'izquierda': return 'I';
-      case 'derecha': return 'D';
-      default: return '';
+      case 'frente':
+        return 'F';
+      case 'atras':
+        return 'A';
+      case 'izquierda':
+        return 'I';
+      case 'derecha':
+        return 'D';
+      default:
+        return '';
     }
   }
 
@@ -215,16 +229,6 @@ class _ExcentricidadBasculaWidgetState
   Widget _buildTitle(bool isDark) {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue.withOpacity(isDark ? 0.2 : 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(Icons.local_shipping,
-              size: 20, color: Colors.blue),
-        ),
-        const SizedBox(width: 12),
         Text(
           'Excentricidad — Báscula de camión',
           style: GoogleFonts.poppins(
@@ -428,23 +432,23 @@ class _ExcentricidadBasculaWidgetState
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.arrow_forward_rounded, size: 14,
-                  color: isDark ? Colors.white54 : Colors.black45),
+              const Icon(Icons.arrow_forward_rounded,
+                  size: 16, color: Color(0xFF0F9F93)),
               const SizedBox(width: 4),
               Text('IDA',
                   style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: isDark ? Colors.white54 : Colors.black45)),
-              const SizedBox(width: 16),
+                      color: const Color(0xFF0F9F93))),
+              const SizedBox(width: 20),
               Text('VUELTA',
                   style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
-                      color: isDark ? Colors.white54 : Colors.black45)),
+                      color: const Color(0xFFE67E22))),
               const SizedBox(width: 4),
-              Icon(Icons.arrow_back_rounded, size: 14,
-                  color: isDark ? Colors.white54 : Colors.black45),
+              const Icon(Icons.arrow_back_rounded,
+                  size: 16, color: Color(0xFFE67E22)),
             ],
           ),
           const SizedBox(height: 12),
@@ -648,90 +652,94 @@ class _BasculaPlatformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final pL = w * 0.14;
+    final pL = w * 0.12;
     final pT = h * 0.10;
-    final pW = w * 0.72;
-    final pH = h * 0.72;
+    final pW = w * 0.76;
+    final pH = h * 0.70;
     final platform = Rect.fromLTWH(pL, pT, pW, pH);
 
     final bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8ECF0);
     final fg = isDark ? Colors.white38 : Colors.black26;
-    final textColor = isDark ? Colors.white70 : Colors.black45;
-    final dotFill = isDark ? const Color(0xFF4A4A4A) : Colors.white;
-    final dotBorder = isDark ? Colors.white38 : Colors.black26;
+    final textColor = isDark ? Colors.white70 : Colors.black54;
+    final idaColor =
+        isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F9F93);
+    final vueltaColor =
+        isDark ? const Color(0xFFFBBF24) : const Color(0xFFE67E22);
 
-    final topRowY = platform.top + pH * 0.30;
-    final botRowY = platform.top + pH * 0.72;
+    final topRowY = platform.top + platform.height * 0.29;
+    final botRowY = platform.top + platform.height * 0.71;
 
     _drawPlatform(canvas, platform, bg, fg);
-    _drawIdaArrow(canvas, platform, topRowY, textColor);
-    _drawVueltaArrow(canvas, platform, botRowY, textColor);
-    _drawDots(canvas, platform, idaDots, topRowY, dotFill, dotBorder, textColor);
-    _drawDots(canvas, platform, vueltaDots, botRowY, dotFill, dotBorder, textColor);
-    _drawTruck(canvas, platform, textColor);
-    _drawCaseta(canvas, platform, textColor);
+    _drawLaneDivider(canvas, platform, fg);
+    _drawRouteArrow(
+      canvas,
+      Offset(platform.left + 22, topRowY),
+      Offset(platform.right - 22, topRowY),
+      idaColor,
+    );
+    _drawRouteArrow(
+      canvas,
+      Offset(platform.right - 22, botRowY),
+      Offset(platform.left + 22, botRowY),
+      vueltaColor,
+    );
+    _drawDots(canvas, platform, idaDots, topRowY, idaColor);
+    _drawDots(canvas, platform, vueltaDots, botRowY, vueltaColor);
+    _drawCaseta(canvas, platform, w, h, textColor);
   }
 
   void _drawPlatform(Canvas canvas, Rect r, Color bg, Color border) {
     final paint = Paint()..color = bg;
-    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
     paint
       ..color = border
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
-    canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(r, const Radius.circular(6)), paint);
   }
 
-  void _drawIdaArrow(Canvas canvas, Rect platform, double topRowY, Color color) {
-    final shaft = Paint()
+  void _drawLaneDivider(Canvas canvas, Rect platform, Color color) {
+    final paint = Paint()
+      ..color = color.withOpacity(0.55)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final y = platform.center.dy;
+    const dashWidth = 7.0;
+    const gapWidth = 6.0;
+    for (double x = platform.left + 12;
+        x < platform.right - 12;
+        x += dashWidth + gapWidth) {
+      canvas.drawLine(Offset(x, y), Offset(x + dashWidth, y), paint);
+    }
+  }
+
+  void _drawRouteArrow(
+      Canvas canvas, Offset from, Offset to, Color color) {
+    final paint = Paint()
       ..color = color
-      ..strokeWidth = 3
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    final head = Paint()..color = color;
-    _drawArrow(
-      canvas,
-      Offset(platform.left - platform.width * 0.125, topRowY),
-      Offset(platform.left - 6, topRowY),
-      shaft,
-      head,
-    );
+    canvas.drawLine(from, to, paint);
+    _drawArrowHead(canvas, to, to.dx >= from.dx ? 0 : math.pi, paint);
   }
 
-  void _drawVueltaArrow(Canvas canvas, Rect platform, double botRowY, Color color) {
-    final shaft = Paint()
-      ..color = color
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    final head = Paint()..color = color;
-    _drawArrow(
-      canvas,
-      Offset(platform.right + platform.width * 0.125, botRowY),
-      Offset(platform.right + 6, botRowY),
-      shaft,
-      head,
-    );
-  }
-
-  void _drawArrow(Canvas canvas, Offset from, Offset tip, Paint shaft, Paint head) {
-    final v = tip - from;
-    final len = v.distance;
-    if (len <= 0) return;
-    final d = Offset(v.dx / len, v.dy / len);
-    final headLen = 13.0;
-    final headHalf = 7.5;
-    final shaftEnd = tip - d * headLen;
-    canvas.drawLine(from, shaftEnd, shaft);
-    final perp = Offset(-d.dy, d.dx);
+  void _drawArrowHead(Canvas canvas, Offset tip, double angle, Paint paint) {
+    final headSize = 10.0;
     final path = Path()
       ..moveTo(tip.dx, tip.dy)
-      ..lineTo(shaftEnd.dx + perp.dx * headHalf,
-          shaftEnd.dy + perp.dy * headHalf)
-      ..lineTo(shaftEnd.dx - perp.dx * headHalf,
-          shaftEnd.dy - perp.dy * headHalf)
-      ..close();
-    canvas.drawPath(path, head);
+      ..lineTo(
+        tip.dx + headSize * math.cos(angle + math.pi * 0.83),
+        tip.dy + headSize * math.sin(angle + math.pi * 0.83),
+      )
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(
+        tip.dx + headSize * math.cos(angle - math.pi * 0.83),
+        tip.dy + headSize * math.sin(angle - math.pi * 0.83),
+      );
+    canvas.drawPath(path, paint);
   }
 
   void _drawDots(
@@ -739,32 +747,34 @@ class _BasculaPlatformPainter extends CustomPainter {
     Rect platform,
     List<int> dots,
     double rowY,
-    Color fill,
-    Color border,
-    Color textColor,
+    Color routeColor,
   ) {
     if (dots.isEmpty) return;
-    final dotZoneStart = platform.left + platform.width * 0.16;
-    final dotZoneWidth = platform.width * 0.84;
-    final spacing = dotZoneWidth / (dots.length + 1);
+    final horizontalPadding = 34.0;
+    final spacing =
+        (platform.width - horizontalPadding * 2) / (dots.length + 1);
     for (int i = 0; i < dots.length; i++) {
-      final cx = dotZoneStart + spacing * (i + 1);
+      final cx = platform.left + horizontalPadding + spacing * (i + 1);
       final cy = rowY;
-      final r = 11.0;
+      final r = math.min(16.0, spacing * 0.42);
 
-      canvas.drawCircle(Offset(cx, cy), r, Paint()..color = fill);
-      canvas.drawCircle(Offset(cx, cy), r, Paint()
-        ..color = border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5);
+      canvas.drawCircle(Offset(cx, cy), r, Paint()..color = routeColor);
+      canvas.drawCircle(
+          Offset(cx, cy),
+          r,
+          Paint()
+            ..color = Colors.white.withOpacity(isDark ? 0.35 : 0.85)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5);
 
       final tp = TextPainter(
         text: TextSpan(
           text: '${dots[i]}',
           style: TextStyle(
-            color: textColor,
-            fontSize: 10,
+            color: Colors.white,
+            fontSize: r < 13 ? 11 : 14,
             fontWeight: FontWeight.bold,
+            height: 1,
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -773,45 +783,8 @@ class _BasculaPlatformPainter extends CustomPainter {
     }
   }
 
-  void _drawTruck(Canvas canvas, Rect platform, Color color) {
-    final cx = platform.left + platform.width * 0.08;
-    final cy = platform.top + platform.height * 0.51;
-    final bodyW = 30.0;
-    final bodyH = 16.0;
-    final cabW = 12.0;
-    final cabH = 13.0;
-
-    final bodyPaint = Paint()
-      ..color = color.withOpacity(0.4)
-      ..style = PaintingStyle.fill;
-    final strokePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    final bodyRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(cx, cy), width: bodyW, height: bodyH),
-      const Radius.circular(3),
-    );
-    canvas.drawRRect(bodyRect, bodyPaint);
-    canvas.drawRRect(bodyRect, strokePaint);
-
-    final cabCenter = Offset(cx + bodyW / 2 + cabW / 2, cy);
-    final cabRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: cabCenter, width: cabW, height: cabH),
-      const Radius.circular(2),
-    );
-    canvas.drawRRect(cabRect, bodyPaint);
-    canvas.drawRRect(cabRect, strokePaint);
-
-    final wheelPaint = Paint()..color = color;
-    for (final dx in [-bodyW / 2 + 4, bodyW / 2 - 4]) {
-      canvas.drawCircle(Offset(cx + dx, cy - bodyH / 2 - 1.5), 2.2, wheelPaint);
-      canvas.drawCircle(Offset(cx + dx, cy + bodyH / 2 + 1.5), 2.2, wheelPaint);
-    }
-  }
-
-  void _drawCaseta(Canvas canvas, Rect platform, Color color) {
+  void _drawCaseta(
+      Canvas canvas, Rect platform, double w, double h, Color color) {
     if (posicionCaseta == null) return;
 
     final cw = 26.0;
@@ -819,18 +792,18 @@ class _BasculaPlatformPainter extends CustomPainter {
     Offset center;
     switch (posicionCaseta) {
       case 'frente':
-        center = Offset(platform.center.dx, platform.bottom + ch / 2 + 8);
+        center = Offset(w / 2, platform.bottom + ch / 2 + 8);
         break;
       case 'atras':
-        center = Offset(platform.center.dx, platform.top - ch / 2 - 8);
+        center = Offset(w / 2, platform.top - ch / 2 - 8);
         break;
       case 'izquierda':
         center = Offset(
-            platform.left - cw / 2 - 26, platform.center.dy);
+            platform.left - cw / 2 - 10, platform.top + platform.height / 2);
         break;
       case 'derecha':
         center = Offset(
-            platform.right + cw / 2 + 26, platform.center.dy);
+            platform.right + cw / 2 + 10, platform.top + platform.height / 2);
         break;
       default:
         return;
@@ -846,18 +819,28 @@ class _BasculaPlatformPainter extends CustomPainter {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(3)),
-      Paint()..color = stroke..style = PaintingStyle.stroke..strokeWidth = 1.5,
+      Paint()
+        ..color = stroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
     );
 
-    final roofPath = Path()
-      ..moveTo(center.dx - cw / 2, center.dy - ch / 2)
-      ..lineTo(center.dx, center.dy - ch / 2 - 10)
-      ..lineTo(center.dx + cw / 2, center.dy - ch / 2);
-    canvas.drawPath(roofPath, Paint()..color = fill);
-    canvas.drawPath(roofPath, Paint()
-      ..color = stroke
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5);
+    final roofRect = Rect.fromCenter(
+      center: Offset(center.dx, center.dy - ch / 2 - 2),
+      width: cw + 8,
+      height: 4,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(roofRect, const Radius.circular(2)),
+      Paint()..color = fill,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(roofRect, const Radius.circular(2)),
+      Paint()
+        ..color = stroke
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5,
+    );
   }
 
   @override

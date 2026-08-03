@@ -165,8 +165,10 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
     setState(() => _isLoading = true);
     try {
       final dbLegacy = DatabaseHelperMntPrvAvanzadoStac();
-      final registro =
-          await dbLegacy.getUltimoRegistroPorSeca(widget.secaValue);
+      final registro = await dbLegacy.getRegistroBySeca(
+        widget.secaValue,
+        widget.sessionId,
+      );
       if (registro != null && mounted) {
         await _controller.loadExistingSession(widget.sessionId, registro);
       }
@@ -348,8 +350,10 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
   }
 
   void _onRegistrarHoraFin() {
-    _controller.horaFin = DateFormat('HH:mm:ss').format(DateTime.now());
-    _controller.markChanged();
+    setState(() {
+      _controller.horaFin = DateFormat('HH:mm:ss').format(DateTime.now());
+      _controller.markChanged();
+    });
   }
 
   void _onCampoChanged(
@@ -674,8 +678,10 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                   onRegistrarHoraFin: _onRegistrarHoraFin,
                   fechaProxServicio: _controller.fechaProxServicio,
                   onFechaProxServicioChanged: (v) {
-                    _controller.fechaProxServicio = v;
-                    _controller.markChanged();
+                    setState(() {
+                      _controller.fechaProxServicio = v;
+                      _controller.markChanged();
+                    });
                   },
                   recomendacionesOptions: _recomendacionesOptions,
                   useLegacyEstados: true,

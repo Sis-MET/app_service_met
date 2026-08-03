@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
@@ -207,9 +206,18 @@ class MntPrvRegularController extends BaseSoporteController {
       'unidades': unidades,
       'num_celdas': numCeldas,
       'ubicacion': ubicacion,
-      'cap_max1': capMax1, 'd1': d1, 'e1': e1, 'dec1': dec1,
-      'cap_max2': capMax2, 'd2': d2, 'e2': e2, 'dec2': dec2,
-      'cap_max3': capMax3, 'd3': d3, 'e3': e3, 'dec3': dec3,
+      'cap_max1': capMax1,
+      'd1': d1,
+      'e1': e1,
+      'dec1': dec1,
+      'cap_max2': capMax2,
+      'd2': d2,
+      'e2': e2,
+      'dec2': dec2,
+      'cap_max3': capMax3,
+      'd3': d3,
+      'e3': e3,
+      'dec3': dec3,
       'hora_inicio': horaInicio,
       'hora_fin': horaFin,
       'comentario_general': comentarioGeneral,
@@ -234,9 +242,7 @@ class MntPrvRegularController extends BaseSoporteController {
       final campo = campos[idx];
       data['${dbKey}_estado'] = campo.value;
       data['${dbKey}_solucion'] = campo.solutionValue;
-      data['${dbKey}_foto'] = campo.fotos
-          .where((f) => f.isNotEmpty)
-          .join(',');
+      data['${dbKey}_foto'] = campo.fotos.where((f) => f.isNotEmpty).join(',');
     }
 
     // Terminal (10)
@@ -258,13 +264,15 @@ class MntPrvRegularController extends BaseSoporteController {
     addCampo('golpes_receptor', camposBalanza, 'Golpes al receptor de carga');
     addCampo('encendido', camposBalanza, 'Encendido');
     // Caja Sumadora (8 + 2)
-    addCampo('limitador_movimiento', camposCajaSumadora, 'Limitador de movimiento');
+    addCampo(
+        'limitador_movimiento', camposCajaSumadora, 'Limitador de movimiento');
     addCampo('suspension', camposCajaSumadora, 'Suspensión');
     addCampo('limitador_carga', camposCajaSumadora, 'Limitador de carga');
     addCampo('celda_carga', camposCajaSumadora, 'Celda de carga');
     addCampo('tapa_caja', camposCajaSumadora, 'Tapa de caja sumadora');
     addCampo('humedad_interna', camposCajaSumadora, 'Humedad Interna');
-    addCampo('estado_prensacables', camposCajaSumadora, 'Estado de prensacables');
+    addCampo(
+        'estado_prensacables', camposCajaSumadora, 'Estado de prensacables');
     addCampo('estado_borneas', camposCajaSumadora, 'Estado de borneas');
     addCampo('pintado', camposCajaSumadora, 'Pintado');
     addCampo('limpieza_profunda', camposCajaSumadora, 'Limpieza profunda');
@@ -381,8 +389,7 @@ class MntPrvRegularController extends BaseSoporteController {
     retornoCeroInicial =
         data['retorno_cero_inicial_valoracion']?.toString() ?? '';
     estabilidadInicial = data['estabilizacion_inicial']?.toString() ?? '';
-    retornoCeroFinal =
-        data['retorno_cero_final_valoracion']?.toString() ?? '';
+    retornoCeroFinal = data['retorno_cero_final_valoracion']?.toString() ?? '';
     estabilidadFinal = data['estabilizacion_final']?.toString() ?? '';
 
     // Campos Estado de las columnas planas
@@ -409,10 +416,8 @@ class MntPrvRegularController extends BaseSoporteController {
       if (solucion.isNotEmpty) campos[idx].solutionValue = solucion;
       final fotosRaw = data['${dbKey}_foto']?.toString() ?? '';
       if (fotosRaw.isNotEmpty) {
-        campos[idx].fotos = fotosRaw
-            .split(',')
-            .where((n) => n.isNotEmpty)
-            .toList();
+        campos[idx].fotos =
+            fotosRaw.split(',').where((n) => n.isNotEmpty).toList();
       }
     }
 
@@ -435,17 +440,15 @@ class MntPrvRegularController extends BaseSoporteController {
     loadCampo('golpes_receptor', camposBalanza, 'Golpes al receptor de carga');
     loadCampo('encendido', camposBalanza, 'Encendido');
     // Caja Sumadora (8 + 2)
-    loadCampo('limitador_movimiento', camposCajaSumadora,
-        'Limitador de movimiento');
+    loadCampo(
+        'limitador_movimiento', camposCajaSumadora, 'Limitador de movimiento');
     loadCampo('suspension', camposCajaSumadora, 'Suspensión');
     loadCampo('limitador_carga', camposCajaSumadora, 'Limitador de carga');
     loadCampo('celda_carga', camposCajaSumadora, 'Celda de carga');
+    loadCampo('tapa_caja', camposCajaSumadora, 'Tapa de caja sumadora');
+    loadCampo('humedad_interna', camposCajaSumadora, 'Humedad Interna');
     loadCampo(
-        'tapa_caja', camposCajaSumadora, 'Tapa de caja sumadora');
-    loadCampo(
-        'humedad_interna', camposCajaSumadora, 'Humedad Interna');
-    loadCampo('estado_prensacables', camposCajaSumadora,
-        'Estado de prensacables');
+        'estado_prensacables', camposCajaSumadora, 'Estado de prensacables');
     loadCampo('estado_borneas', camposCajaSumadora, 'Estado de borneas');
     loadCampo('pintado', camposCajaSumadora, 'Pintado');
     loadCampo('limpieza_profunda', camposCajaSumadora, 'Limpieza profunda');
@@ -527,8 +530,7 @@ class MntPrvRegularController extends BaseSoporteController {
 
   void _loadLinealidadFromDb(Map<String, dynamic> data, bool esInicial) {
     final tipo = esInicial ? 'inicial' : 'final';
-    final primeraLin =
-        data['lin_${tipo}_1']?.toString() ?? '';
+    final primeraLin = data['lin_${tipo}_1']?.toString() ?? '';
     if (primeraLin.isEmpty) return;
 
     final filas = <FilaLinealidad>[];
@@ -575,8 +577,9 @@ class MntPrvRegularController extends BaseSoporteController {
       }
       // Inyectamos un campo 'data' con JSON para que FinServicioScreen
       // pueda exportar CSV con el mismo código que los otros módulos.
-      final data =
-          Map<String, dynamic>.from(r)..remove('id')..remove('session_id');
+      final data = Map<String, dynamic>.from(r)
+        ..remove('id')
+        ..remove('session_id');
       result.add({...r, 'data': jsonEncode(data)});
     }
     return result;
@@ -610,31 +613,37 @@ class MntPrvRegularController extends BaseSoporteController {
         'linealidad': linealidadRealizada,
       }),
       'campos_terminal': jsonEncode(
-        camposTerminal.map((c) => {
-              'nombre': c.nombre,
-              'value': c.value,
-              'solutionValue': c.solutionValue,
-              'solutionLabel': c.solutionLabel,
-              'fotos': c.fotos,
-            }).toList(),
+        camposTerminal
+            .map((c) => {
+                  'nombre': c.nombre,
+                  'value': c.value,
+                  'solutionValue': c.solutionValue,
+                  'solutionLabel': c.solutionLabel,
+                  'fotos': c.fotos,
+                })
+            .toList(),
       ),
       'campos_balanza': jsonEncode(
-        camposBalanza.map((c) => {
-              'nombre': c.nombre,
-              'value': c.value,
-              'solutionValue': c.solutionValue,
-              'solutionLabel': c.solutionLabel,
-              'fotos': c.fotos,
-            }).toList(),
+        camposBalanza
+            .map((c) => {
+                  'nombre': c.nombre,
+                  'value': c.value,
+                  'solutionValue': c.solutionValue,
+                  'solutionLabel': c.solutionLabel,
+                  'fotos': c.fotos,
+                })
+            .toList(),
       ),
       'campos_caja_sumadora': jsonEncode(
-        camposCajaSumadora.map((c) => {
-              'nombre': c.nombre,
-              'value': c.value,
-              'solutionValue': c.solutionValue,
-              'solutionLabel': c.solutionLabel,
-              'fotos': c.fotos,
-            }).toList(),
+        camposCajaSumadora
+            .map((c) => {
+                  'nombre': c.nombre,
+                  'value': c.value,
+                  'solutionValue': c.solutionValue,
+                  'solutionLabel': c.solutionLabel,
+                  'fotos': c.fotos,
+                })
+            .toList(),
       ),
     });
     return map;
@@ -679,5 +688,4 @@ class MntPrvRegularController extends BaseSoporteController {
                 })
             .toList(),
       };
-
 }

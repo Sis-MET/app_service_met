@@ -4,6 +4,7 @@ import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_pruebas_iniciales_widget.dart';
+import 'package:service_met/screens/soporte_new/widgets/shared/paso_pruebas_finales_widget.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
@@ -22,6 +23,11 @@ class StacVerificacionesInternas extends StatefulWidget {
   final String userName;
   final String clienteId;
   final String plantaCodigo;
+  final String clienteNombre;
+  final String clienteRazonSocial;
+  final String plantaNombre;
+  final String plantaDireccion;
+  final String plantaDepartamento;
   final Map<String, dynamic>? instrumentoData;
 
   const StacVerificacionesInternas({
@@ -33,6 +39,11 @@ class StacVerificacionesInternas extends StatefulWidget {
     required this.userName,
     required this.clienteId,
     required this.plantaCodigo,
+    this.clienteNombre = '',
+    this.clienteRazonSocial = '',
+    this.plantaNombre = '',
+    this.plantaDireccion = '',
+    this.plantaDepartamento = '',
     this.instrumentoData,
   });
 
@@ -46,6 +57,7 @@ class _StacVerificacionesInternasState
   late VerificacionesInternasController _controller;
   int _currentStep = 0;
   bool _isSaving = false;
+  bool _isLoading = true;
 
   static const _steps = [
     StepData(
@@ -56,6 +68,10 @@ class _StacVerificacionesInternasState
         title: 'Pruebas Iniciales',
         subtitle: 'Metrológicas',
         icon: Icons.science_outlined),
+    StepData(
+        title: 'Pruebas Finales',
+        subtitle: 'Verificación posterior',
+        icon: Icons.task_alt_outlined),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
@@ -72,7 +88,45 @@ class _StacVerificacionesInternasState
         secaValue: widget.secaValue,
       ),
     );
+    _controller.secaValue = widget.secaValue;
+    _controller.clienteNombre = widget.clienteNombre;
+    _controller.plantaNombre = widget.plantaNombre;
     _controller.initCamposEstado();
+    _setBalanzaData();
+    _loadExistingData();
+  }
+
+  Future<void> _loadExistingData() async {
+    try {
+      await _controller.restoreSession();
+    } catch (error) {
+      debugPrint('Error restaurando verificaciones internas: $error');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _setBalanzaData() {
+    final data = widget.instrumentoData;
+    _controller.razonSocial = widget.clienteRazonSocial;
+    _controller.dirPlanta = widget.plantaDireccion;
+    _controller.depPlanta = widget.plantaDepartamento;
+    _controller.codPlanta = widget.plantaCodigo;
+    _controller.personal = widget.userName;
+    if (data == null) return;
+    _controller.infBal = data['_modifiedFields']?.toString() ?? '';
+    _controller.categoriaBalanza = data['categoria']?.toString() ?? data['categoria_balanza']?.toString() ?? '';
+    _controller.codInt = data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ?? data['tipo']?.toString() ?? '';
+    _controller.marca = data['marca']?.toString() ?? '';
+    _controller.modelo = data['modelo']?.toString() ?? '';
+    _controller.serie = data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
+    _controller.unidades = data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
+    _controller.numCeldas = data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
+    _controller.ubicacion = data['ubicacion']?.toString() ?? '';
+    _controller.capMax1 = data['cap_max1']?.toString() ?? ''; _controller.d1 = data['d1']?.toString() ?? ''; _controller.e1 = data['e1']?.toString() ?? ''; _controller.dec1 = data['dec1']?.toString() ?? '';
+    _controller.capMax2 = data['cap_max2']?.toString() ?? ''; _controller.d2 = data['d2']?.toString() ?? ''; _controller.e2 = data['e2']?.toString() ?? ''; _controller.dec2 = data['dec2']?.toString() ?? '';
+    _controller.capMax3 = data['cap_max3']?.toString() ?? ''; _controller.d3 = data['d3']?.toString() ?? ''; _controller.e3 = data['e3']?.toString() ?? ''; _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
   @override
@@ -120,7 +174,7 @@ class _StacVerificacionesInternasState
           }
         }
         return true;
-      case 2:
+      case 3:
         if (_controller.comentarioGeneral.isEmpty) {
           TopAlert.show(context, 'Complete el comentario general',
               isError: true);
@@ -149,7 +203,7 @@ class _StacVerificacionesInternasState
     if (!_validateCurrentStep()) return;
     await _saveCurrentStep();
     if (!mounted) return;
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => FinServicioScreen(
@@ -182,6 +236,12 @@ class _StacVerificacionesInternasState
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: ServiceAppBar(title: 'Verificaciones Internas'),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -192,6 +252,7 @@ class _StacVerificacionesInternasState
           stepWidgets: [
             _buildPasoInspeccion(),
             _buildPasoPruebas(),
+            _buildPasoPruebasFinales(),
             _buildPasoEstadoFinal(),
           ],
           currentStep: _currentStep,
@@ -313,6 +374,26 @@ class _StacVerificacionesInternasState
             },
             camposEstado: _controller.camposEstado,
             onCampoChanged: _onCampoChanged,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasoPruebasFinales() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ServiceStepHeader(
+            title: 'Pruebas Metrológicas Finales',
+            subtitle: 'Registros después de la verificación',
+          ),
+          const SizedBox(height: 24),
+          PasoPruebasFinalesWidget(
+            pruebasFinales: _controller.pruebasFinales,
+            onDataChanged: _onFieldChanged,
           ),
         ],
       ),

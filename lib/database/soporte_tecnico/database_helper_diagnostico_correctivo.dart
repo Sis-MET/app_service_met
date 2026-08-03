@@ -163,6 +163,33 @@ class DatabaseHelperDiagnosticoCorrectivo {
     }
   }
 
+  Future<Map<String, dynamic>?> getRegistroDiagnosticoBySeca(
+      String otst, String sessionId) async {
+    try {
+      final db = await database;
+      final result = await db.query(
+        'diagnostico',
+        where: 'otst = ? AND session_id = ?',
+        whereArgs: [otst, sessionId],
+        limit: 1,
+      );
+      return result.isNotEmpty ? result.first : null;
+    } catch (e) {
+      debugPrint('Error al obtener diagnostico por OTST y sessionId: $e');
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllRegistrosDiagnostico() async {
+    try {
+      final db = await database;
+      return db.query('diagnostico', orderBy: 'fecha_servicio DESC');
+    } catch (e) {
+      debugPrint('Error al obtener diagnosticos: $e');
+      return [];
+    }
+  }
+
   Future<void> upsertRegistroRelevamiento(Map<String, dynamic> registro) async {
     try {
       final db = await database;

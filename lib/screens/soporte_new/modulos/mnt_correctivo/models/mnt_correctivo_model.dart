@@ -22,6 +22,7 @@ class MntCorrectivoModel implements BaseSoporteModel {
   String horaFin;
   String fechaProxServicio;
   String reporteFalla;
+  String evaluacion;
   String trabajoRealizado;
   String repuestosUtilizados;
 
@@ -43,6 +44,7 @@ class MntCorrectivoModel implements BaseSoporteModel {
     this.horaFin = '',
     this.fechaProxServicio = '',
     this.reporteFalla = '',
+    this.evaluacion = '',
     this.trabajoRealizado = '',
     this.repuestosUtilizados = '',
   })  : camposEstado = camposEstado ?? [],
@@ -68,6 +70,7 @@ class MntCorrectivoModel implements BaseSoporteModel {
         'hora_fin': horaFin,
         'fecha_prox_servicio': fechaProxServicio,
         'reporte_falla': reporteFalla,
+        'evaluacion': evaluacion,
         'trabajo_realizado': trabajoRealizado,
         'repuestos_utilizados': repuestosUtilizados,
       };
