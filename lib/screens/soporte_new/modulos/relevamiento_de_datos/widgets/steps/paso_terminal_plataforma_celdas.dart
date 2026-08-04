@@ -7,6 +7,7 @@ class PasoTerminalPlataformaCeldas extends StatelessWidget {
   final void Function(int index, String value, String solutionValue) onChanged;
   final String seca;
   final String codMetrica;
+  final String title;
 
   const PasoTerminalPlataformaCeldas({
     super.key,
@@ -14,6 +15,7 @@ class PasoTerminalPlataformaCeldas extends StatelessWidget {
     required this.onChanged,
     required this.seca,
     required this.codMetrica,
+    this.title = 'Inspección',
   });
 
   @override
@@ -21,11 +23,11 @@ class PasoTerminalPlataformaCeldas extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
           child: Text(
-            'Inspección de Terminal, Plataforma y Celdas',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
         ...List.generate(campos.length, (i) {

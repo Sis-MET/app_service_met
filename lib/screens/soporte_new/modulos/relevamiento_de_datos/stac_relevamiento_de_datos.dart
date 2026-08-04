@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/controllers/relevamiento_de_datos_controller.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/models/relevamiento_de_datos_model.dart';
-import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/widgets/steps/paso_terminal_plataforma_celdas.dart';
-import 'package:service_met/screens/soporte_new/widgets/shared/paso_entorno_widget.dart';
+import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_terminal_balanza_caja.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
-import 'package:service_met/screens/soporte_new/widgets/shared/paso_pruebas_finales_widget.dart';
+import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
@@ -20,6 +20,11 @@ class StacRelevamientoDeDatos extends StatefulWidget {
   final String userName;
   final String clienteId;
   final String plantaCodigo;
+  final String clienteNombre;
+  final String clienteRazonSocial;
+  final String plantaNombre;
+  final String plantaDireccion;
+  final String plantaDepartamento;
   final Map<String, dynamic>? instrumentoData;
 
   const StacRelevamientoDeDatos({
@@ -31,6 +36,11 @@ class StacRelevamientoDeDatos extends StatefulWidget {
     required this.userName,
     required this.clienteId,
     required this.plantaCodigo,
+    this.clienteNombre = '',
+    this.clienteRazonSocial = '',
+    this.plantaNombre = '',
+    this.plantaDireccion = '',
+    this.plantaDepartamento = '',
     this.instrumentoData,
   });
 
@@ -45,13 +55,15 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
 
   static const _steps = [
     StepData(
-        title: 'Entorno',
-        subtitle: 'Condiciones ambientales',
-        icon: Icons.thermostat),
-    StepData(
-        title: 'Terminal/Plat/Celdas',
-        subtitle: 'Campos de inspección',
+        title: 'Terminal',
+        subtitle: 'Inspección',
         icon: Icons.computer_outlined),
+    StepData(
+        title: 'Plataforma',
+        subtitle: 'Inspección',
+        icon: Icons.scale_outlined),
+    StepData(
+        title: 'Celdas', subtitle: 'Inspección', icon: Icons.sensors_outlined),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Metrológicas',
@@ -62,6 +74,16 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
         icon: Icons.assignment_turned_in_outlined),
   ];
 
+  static const _recomendacionesOptions = [
+    'Diagnostico',
+    'Mnt Preventivo Regular',
+    'Mnt Preventivo Avanzado',
+    'Mnt Correctivo',
+    'Ajustes Metrológicos',
+    'Calibración',
+    'Sin recomendación',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -70,7 +92,57 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
       codMetrica: widget.codMetrica,
     );
     _controller = RelevamientoDeDatosController(model: _model);
+    _controller.secaValue = widget.secaValue;
+    _controller.clienteNombre = widget.clienteNombre;
+    _controller.plantaNombre = widget.plantaNombre;
     _controller.initCamposEstado();
+    _setBalanzaData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _controller.restoreSession();
+    });
+  }
+
+  void _setBalanzaData() {
+    final data = widget.instrumentoData;
+    _controller.razonSocial = widget.clienteRazonSocial;
+    _controller.dirPlanta = widget.plantaDireccion;
+    _controller.depPlanta = widget.plantaDepartamento;
+    _controller.codPlanta = widget.plantaCodigo;
+    _controller.personal = widget.userName;
+    if (data == null) return;
+
+    _controller.infBal = data['_modifiedFields']?.toString() ?? '';
+    _controller.categoriaBalanza = data['categoria']?.toString() ??
+        data['categoria_balanza']?.toString() ??
+        '';
+    _controller.codInt =
+        data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ??
+        data['tipo']?.toString() ??
+        data['instrumento']?.toString() ??
+        '';
+    _controller.marca = data['marca']?.toString() ?? '';
+    _controller.modelo = data['modelo']?.toString() ?? '';
+    _controller.serie =
+        data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
+    _controller.unidades =
+        data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
+    _controller.numCeldas =
+        data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
+    _controller.ubicacion = data['ubicacion']?.toString() ?? '';
+    _controller.capMax1 = data['cap_max1']?.toString() ?? '';
+    _controller.d1 = data['d1']?.toString() ?? '';
+    _controller.e1 = data['e1']?.toString() ?? '';
+    _controller.dec1 = data['dec1']?.toString() ?? '';
+    _controller.capMax2 = data['cap_max2']?.toString() ?? '';
+    _controller.d2 = data['d2']?.toString() ?? '';
+    _controller.e2 = data['e2']?.toString() ?? '';
+    _controller.dec2 = data['dec2']?.toString() ?? '';
+    _controller.capMax3 = data['cap_max3']?.toString() ?? '';
+    _controller.d3 = data['d3']?.toString() ?? '';
+    _controller.e3 = data['e3']?.toString() ?? '';
+    _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
   void _onStepTapped(int step) {
@@ -102,14 +174,23 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
           userName: widget.userName,
           clienteId: widget.clienteId,
           plantaCodigo: widget.plantaCodigo,
+          clienteNombre: widget.clienteNombre,
+          plantaNombre: widget.plantaNombre,
           config: const FinServicioConfig(
-            tableNameDefault: 'relevamiento_datos',
+            tableNameDefault: 'relevamiento_de_datos',
             csvSuffix: 'RelevDatos',
             tipoServicio: 'RELEVAMIENTO DE DATOS',
           ),
+          tableName: 'relevamiento_de_datos',
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   void _onCampoChanged(int index, String value, String solutionValue) {
@@ -138,26 +219,34 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
           stepWidgets: [
             _buildPaso(
               const ServiceStepHeader(
-                title: 'Entorno',
-                subtitle: 'Condiciones ambientales del servicio',
+                title: 'Terminal',
+                subtitle: 'Complete el estado de cada campo',
               ),
-              PasoEntornoWidget(
-                temperatura: _controller.temperatura,
-                humedad: _controller.humedad,
-                presion: _controller.presion,
-                onTemperaturaChanged: _controller.setTemperatura,
-                onHumedadChanged: _controller.setHumedad,
-                onPresionChanged: _controller.setPresion,
+              PasoTerminal(
+                campos: _controller.camposEstado.sublist(0, 6),
+                onChanged: (i, v, s) => _onCampoChanged(i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
             ),
             _buildPaso(
               const ServiceStepHeader(
-                title: 'Terminal / Plataforma / Celdas',
-                subtitle: 'Complete el estado de cada campo',
+                  title: 'Plataforma',
+                  subtitle: 'Complete el estado de cada campo'),
+              PasoTerminal(
+                campos: _controller.camposEstado.sublist(6, 12),
+                onChanged: (i, v, s) => _onCampoChanged(i + 6, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
               ),
-              PasoTerminalPlataformaCeldas(
-                campos: _controller.camposEstado,
-                onChanged: _onCampoChanged,
+            ),
+            _buildPaso(
+              const ServiceStepHeader(
+                  title: 'Celdas',
+                  subtitle: 'Complete el estado de cada campo'),
+              PasoTerminal(
+                campos: _controller.camposEstado.sublist(12, 15),
+                onChanged: (i, v, s) => _onCampoChanged(i + 12, v, s),
                 seca: widget.secaValue,
                 codMetrica: widget.codMetrica,
               ),
@@ -167,9 +256,50 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
                 title: 'Pruebas Finales',
                 subtitle: 'Pruebas metrológicas finales',
               ),
-              PasoPruebasFinalesWidget(
-                pruebasFinales: _controller.pruebasFinales,
-                onDataChanged: _controller.markChanged,
+              PasoPruebasMetrologicas(
+                balanza: buildCalBalanzaInfo(
+                    widget.instrumentoData, widget.codMetrica),
+                esInicial: false,
+                retornoCero: _controller.retornoCero,
+                estabilidad: _controller.estabilidad,
+                onRetornoCeroChanged: (v) {
+                  _controller.retornoCero = v;
+                  _controller.markChanged();
+                },
+                onEstabilidadChanged: (v) {
+                  _controller.estabilidad = v;
+                  _controller.markChanged();
+                },
+                excentricidadActiva: _controller.excentricidadRealizada,
+                repetibilidadActiva: _controller.repetibilidadRealizada,
+                linealidadActiva: _controller.linealidadRealizada,
+                onExcentricidadActivaChanged: (v) {
+                  _controller.excentricidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onRepetibilidadActivaChanged: (v) {
+                  _controller.repetibilidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onLinealidadActivaChanged: (v) {
+                  _controller.linealidadRealizada = v;
+                  _controller.markChanged();
+                },
+                excentricidad: _controller.excentricidad,
+                repetibilidad: _controller.repetibilidad,
+                linealidad: _controller.linealidad,
+                onExcentricidadChanged: (v) {
+                  _controller.excentricidad = v;
+                  _controller.markChanged();
+                },
+                onRepetibilidadChanged: (v) {
+                  _controller.repetibilidad = v;
+                  _controller.markChanged();
+                },
+                onLinealidadChanged: (v) {
+                  _controller.linealidad = v;
+                  _controller.markChanged();
+                },
               ),
             ),
             _buildPaso(
@@ -205,19 +335,36 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
                 },
                 camposEstado: const [],
                 onCampoChanged: (i, v, s) {},
+                horaInicio: _controller.horaInicio,
+                horaFin: _controller.horaFin,
+                onRegistrarHoraFin: () {
+                  setState(() {
+                    _controller.horaFin =
+                        DateFormat('HH:mm:ss').format(DateTime.now());
+                    _controller.markChanged();
+                  });
+                },
+                fechaProxServicio: _controller.fechaProxServicio,
+                onFechaProxServicioChanged: (v) {
+                  setState(() {
+                    _controller.fechaProxServicio = v;
+                    _controller.markChanged();
+                  });
+                },
+                recomendacionesOptions: _recomendacionesOptions,
+                useLegacyEstados: true,
               ),
             ),
           ],
           currentStep: _controller.currentStep,
           onStepTapped: _onStepTapped,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-          nextColor:
-              isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
+          nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
           onNext: isLast ? _onFinalizar : _onSiguiente,
           onBack: _controller.currentStep > 0 ? _onAnterior : null,
           saveStatus: _saveStatus,
-          balanzaInfo:
-              buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
+          balanzaInfo: buildServiceBalanzaInfo(
+              widget.instrumentoData, widget.codMetrica),
         );
       },
     );

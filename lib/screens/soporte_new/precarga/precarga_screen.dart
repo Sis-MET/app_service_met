@@ -76,8 +76,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       return;
     }
 
-    final hasCliente =
-        widget.clienteId != null && widget.clienteId!.isNotEmpty;
+    final hasCliente = widget.clienteId != null && widget.clienteId!.isNotEmpty;
     final hasPlanta =
         widget.plantaCodigo != null && widget.plantaCodigo!.isNotEmpty;
 
@@ -206,7 +205,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
 
     final hasAllData = _controller.canProceedFromStep(5);
     if (!hasAllData) {
-      TopAlert.show(context, 'Complete todos los pasos antes de iniciar el servicio',
+      TopAlert.show(
+          context, 'Complete todos los pasos antes de iniciar el servicio',
           isError: true);
       return;
     }
@@ -248,10 +248,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               _controller.selectedCliente?['nombre']?.toString() ?? '',
           clienteRazonSocial:
               _controller.selectedCliente?['razonsocial']?.toString() ?? '',
-          plantaNombre:
-              _controller.selectedPlanta?['nombre']?.toString() ?? '',
-          plantaDireccion:
-              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
           plantaDepartamento:
               _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
@@ -265,6 +263,14 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'MNT PREVENTIVO AVANZADO':
@@ -280,10 +286,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               _controller.selectedCliente?['nombre']?.toString() ?? '',
           clienteRazonSocial:
               _controller.selectedCliente?['razonsocial']?.toString() ?? '',
-          plantaNombre:
-              _controller.selectedPlanta?['nombre']?.toString() ?? '',
-          plantaDireccion:
-              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
           plantaDepartamento:
               _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
@@ -301,10 +305,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               _controller.selectedCliente?['nombre']?.toString() ?? '',
           clienteRazonSocial:
               _controller.selectedCliente?['razonsocial']?.toString() ?? '',
-          plantaNombre:
-              _controller.selectedPlanta?['nombre']?.toString() ?? '',
-          plantaDireccion:
-              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
           plantaDepartamento:
               _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
@@ -322,10 +324,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               _controller.selectedCliente?['nombre']?.toString() ?? '',
           clienteRazonSocial:
               _controller.selectedCliente?['razonsocial']?.toString() ?? '',
-          plantaNombre:
-              _controller.selectedPlanta?['nombre']?.toString() ?? '',
-          plantaDireccion:
-              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
           plantaDepartamento:
               _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
@@ -354,10 +354,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
               _controller.selectedCliente?['nombre']?.toString() ?? '',
           clienteRazonSocial:
               _controller.selectedCliente?['razonsocial']?.toString() ?? '',
-          plantaNombre:
-              _controller.selectedPlanta?['nombre']?.toString() ?? '',
-          plantaDireccion:
-              _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
           plantaDepartamento:
               _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
@@ -380,8 +378,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
 
   List<StepData> _buildSteps() {
     final c = _controller;
-    bool accessible(int i) =>
-        i <= c.currentStep || c.canProceedFromStep(i - 1);
+    bool accessible(int i) => i <= c.currentStep || c.canProceedFromStep(i - 1);
     return [
       StepData(
           title: 'Servicio',
@@ -470,7 +467,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
             ),
             child: Column(
               children: [
-                _resumenItem('Tipo Servicio', _controller.selectedServicio, isDark),
+                _resumenItem(
+                    'Tipo Servicio', _controller.selectedServicio, isDark),
                 const Divider(height: 16),
                 _resumenItem('Cliente',
                     _controller.selectedCliente?['nombre']?.toString(), isDark),
