@@ -53,6 +53,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   void initState() {
     super.initState();
     _campoEstado = widget.campoEstado;
+    _normalizeEstado();
   }
 
   @override
@@ -61,9 +62,15 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
     if (oldWidget.campoEstado != widget.campoEstado) {
       _campoEstado = widget.campoEstado;
     }
+    _normalizeEstado();
     if (_campoEstado.fotos.length != oldWidget.campoEstado.fotos.length) {
       setState(() {});
     }
+  }
+
+  void _normalizeEstado() {
+    if (estadoColorMap.containsKey(_campoEstado.value)) return;
+    _campoEstado.value = _campoEstado.value == '1 Bueno' ? 'Bueno' : '';
   }
 
   void _onValueChanged(String? value) {

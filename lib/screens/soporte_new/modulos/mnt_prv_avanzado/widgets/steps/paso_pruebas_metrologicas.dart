@@ -17,6 +17,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
   final String estabilidad;
   final ValueChanged<String> onRetornoCeroChanged;
   final ValueChanged<String> onEstabilidadChanged;
+  final bool showRetornoCero;
 
   final bool excentricidadActiva;
   final bool repetibilidadActiva;
@@ -45,6 +46,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
     required this.estabilidad,
     required this.onRetornoCeroChanged,
     required this.onEstabilidadChanged,
+    this.showRetornoCero = true,
     required this.excentricidadActiva,
     required this.repetibilidadActiva,
     required this.linealidadActiva,
@@ -76,8 +78,10 @@ class PasoPruebasMetrologicas extends StatelessWidget {
           _buildCopiarCard(isDark),
           const SizedBox(height: 20),
         ],
-        _buildRetornoCeroSection(isDark),
-        const SizedBox(height: 24),
+        if (showRetornoCero) ...[
+          _buildRetornoCeroSection(isDark),
+          const SizedBox(height: 24),
+        ],
         _buildSectionTitle('EXCENTRICIDAD', Icons.adjust_rounded, isDark),
         const SizedBox(height: 12),
         PruebaSkipCard(
