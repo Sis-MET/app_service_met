@@ -82,6 +82,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
   bool _isFinalizando = false;
   int _balanzasCount = 0;
   int _balanzasCountHoy = 0;
+  bool _isLoadingSummary = true;
 
   @override
   void initState() {
@@ -96,12 +97,26 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
     if (widget.controller.plantaNombre.isEmpty) {
       widget.controller.plantaNombre = widget.plantaNombre;
     }
-    _loadBalanzasCount();
+    _prepareServiceSummary();
+  }
+
+  Future<void> _prepareServiceSummary() async {
+    try {
+      // La pantalla se abre después de validar el último paso. Se completa
+      // primero la balanza actual para que el resumen no quede una unidad atrás.
+      await _finalizarServicioActual();
+    } catch (error) {
+      debugPrint('Error preparando resumen del servicio: $error');
+    }
+    await _loadBalanzasCount();
   }
 
   Future<void> _loadBalanzasCount() async {
     final seca = widget.secaValue;
-    if (seca.isEmpty) return;
+    if (seca.isEmpty) {
+      if (mounted) setState(() => _isLoadingSummary = false);
+      return;
+    }
     try {
       final registros = await widget.controller.getRegistrosPorSeca(
         widget.config.tableNameDefault,
@@ -116,9 +131,12 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         setState(() {
           _balanzasCount = registros.length;
           _balanzasCountHoy = registrosHoy.length;
+          _isLoadingSummary = false;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingSummary = false);
+    }
   }
 
   Future<void> _finalizarServicioActual() async {
@@ -649,7 +667,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
           const SizedBox(height: 16),
           _row('OTST', widget.secaValue, isDark),
           const SizedBox(height: 8),
-          _row('Balanzas atendidas', '$_balanzasCount', isDark),
+          _row('Balanzas atendidas',
+              _isLoadingSummary ? 'Cargando...' : '$_balanzasCount', isDark),
           const SizedBox(height: 8),
           _row('Fecha', DateFormat('dd MMM yyyy').format(DateTime.now()),
               isDark),
