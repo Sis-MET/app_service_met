@@ -76,6 +76,10 @@ class RelevamientoDeDatosController extends BaseSoporteController {
       CampoEstado(nombre: 'Célula(s)'),
       CampoEstado(nombre: 'Cable(s)'),
       CampoEstado(nombre: 'Cubierta de Silicona'),
+      CampoEstado(nombre: 'Entorno'),
+      CampoEstado(nombre: 'Nivelación'),
+      CampoEstado(nombre: 'Movilización'),
+      CampoEstado(nombre: 'Flujo de Pesadas'),
     ]);
   }
 
@@ -119,12 +123,20 @@ class RelevamientoDeDatosController extends BaseSoporteController {
       'bordes_puntas',
       'celulas',
       'cables',
-      'cubierta_silicona'
+      'cubierta_silicona',
+      'entorno',
+      'nivelacion',
+      'movilizacion',
+      'flujo_pesas'
     ];
     for (var i = 0; i < keys.length && i < camposEstado.length; i++) {
       camposEstado[i].value = row[keys[i]]?.toString() ?? '';
       camposEstado[i].solutionValue =
           row['${keys[i]}_comentario']?.toString() ?? 'No aplica';
+      final fotos = row['${keys[i]}_foto']?.toString() ?? '';
+      camposEstado[i].fotos = fotos.isEmpty
+          ? []
+          : fotos.split(',').where((path) => path.isNotEmpty).toList();
     }
     final positions = <session.PosicionData>[];
     for (var i = 1; i <= 12; i++) {
@@ -263,7 +275,11 @@ class RelevamientoDeDatosController extends BaseSoporteController {
       'bordes_puntas',
       'celulas',
       'cables',
-      'cubierta_silicona'
+      'cubierta_silicona',
+      'entorno',
+      'nivelacion',
+      'movilizacion',
+      'flujo_pesas'
     ];
     for (var i = 0; i < keys.length && i < camposEstado.length; i++) {
       data[keys[i]] = camposEstado[i].value;

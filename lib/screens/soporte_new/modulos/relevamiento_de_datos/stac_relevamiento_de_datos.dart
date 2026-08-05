@@ -6,6 +6,7 @@ import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/co
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/models/relevamiento_de_datos_model.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_terminal_balanza_caja.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
+import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
@@ -63,7 +64,9 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
         subtitle: 'Inspección',
         icon: Icons.scale_outlined),
     StepData(
-        title: 'Celdas', subtitle: 'Inspección', icon: Icons.sensors_outlined),
+        title: 'Celdas y Entorno',
+        subtitle: 'Inspección y condiciones',
+        icon: Icons.sensors_outlined),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Metrológicas',
@@ -82,6 +85,18 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
     'Ajustes Metrológicos',
     'Calibración',
     'Sin recomendación',
+  ];
+
+  static const List<List<String>> _entornoOptions = [
+    ['Seco', 'Polvoso', 'Muy polvoso', 'Húmedo parcial', 'Húmedo constante'],
+    ['Irregular', 'Liso', 'Nivelación correcta', 'Nivelación deficiente'],
+    ['Ninguna', 'Dentro el área', 'Fuera del área', 'Fuera del sector'],
+    [
+      '1 a 10 por día',
+      '10 a 50 por día',
+      '50 a 100 por día',
+      'Más de 100 por día'
+    ],
   ];
 
   @override
@@ -242,13 +257,35 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
             ),
             _buildPaso(
               const ServiceStepHeader(
-                  title: 'Celdas',
-                  subtitle: 'Complete el estado de cada campo'),
-              PasoTerminal(
-                campos: _controller.camposEstado.sublist(12, 15),
-                onChanged: (i, v, s) => _onCampoChanged(i + 12, v, s),
-                seca: widget.secaValue,
-                codMetrica: widget.codMetrica,
+                  title: 'Celdas y Entorno',
+                  subtitle: 'Inspeccione las celdas y condiciones de trabajo'),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  PasoTerminal(
+                    campos: _controller.camposEstado.sublist(12, 15),
+                    onChanged: (i, v, s) => _onCampoChanged(i + 12, v, s),
+                    seca: widget.secaValue,
+                    codMetrica: widget.codMetrica,
+                  ),
+                  const SizedBox(height: 28),
+                  const ServiceStepHeader(
+                    title: 'Condiciones de instalación',
+                    subtitle: 'Seleccione la condición que corresponda',
+                  ),
+                  const SizedBox(height: 12),
+                  ...List.generate(4, (index) {
+                    final campoIndex = index + 15;
+                    return CampoInspeccionWidget(
+                      campoEstado: _controller.camposEstado[campoIndex],
+                      customOptions: _entornoOptions[index],
+                      onChanged: (value, solutionValue) =>
+                          _onCampoChanged(campoIndex, value, solutionValue),
+                      seca: widget.secaValue,
+                      codMetrica: widget.codMetrica,
+                    );
+                  }),
+                ],
               ),
             ),
             _buildPaso(
