@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'package:intl/intl.dart';
+import 'package:service_met/models/service_session.dart';
+import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
-import 'package:service_met/screens/soporte_new/widgets/shared/paso_pruebas_iniciales_widget.dart';
-import 'package:service_met/screens/soporte_new/widgets/shared/paso_pruebas_finales_widget.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
@@ -22,6 +22,11 @@ class StacAjusteVerificaciones extends StatefulWidget {
   final String userName;
   final String clienteId;
   final String plantaCodigo;
+  final String clienteNombre;
+  final String clienteRazonSocial;
+  final String plantaNombre;
+  final String plantaDireccion;
+  final String plantaDepartamento;
   final Map<String, dynamic>? instrumentoData;
 
   const StacAjusteVerificaciones({
@@ -33,6 +38,11 @@ class StacAjusteVerificaciones extends StatefulWidget {
     required this.userName,
     required this.clienteId,
     required this.plantaCodigo,
+    this.clienteNombre = '',
+    this.clienteRazonSocial = '',
+    this.plantaNombre = '',
+    this.plantaDireccion = '',
+    this.plantaDepartamento = '',
     this.instrumentoData,
   });
 
@@ -42,23 +52,37 @@ class StacAjusteVerificaciones extends StatefulWidget {
 }
 
 class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
-  late AjusteVerificacionesController _controller;
-  int _currentStep = 0;
-  bool _isSaving = false;
+  late final AjusteVerificacionesController _controller;
+  late final BalanzaInfo _balanzaInfo;
+  int _copyTickFinales = 0;
+  bool _isLoading = true;
 
   static const _steps = [
     StepData(
-        title: 'Pruebas Iniciales',
-        subtitle: 'Metrológicas',
-        icon: Icons.science_outlined),
+      title: 'Pruebas Iniciales',
+      subtitle: 'Metrología inicial',
+      icon: Icons.science_outlined,
+    ),
     StepData(
-        title: 'Pruebas Finales',
-        subtitle: 'Metrológicas',
-        icon: Icons.task_alt_outlined),
+      title: 'Pruebas Finales',
+      subtitle: 'Metrología final',
+      icon: Icons.task_alt_outlined,
+    ),
     StepData(
-        title: 'Estado Final',
-        subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+      title: 'Estado Final',
+      subtitle: 'Cierre del servicio',
+      icon: Icons.assignment_turned_in_outlined,
+    ),
+  ];
+
+  static const _recomendacionesOptions = [
+    'Diagnostico',
+    'Mnt Preventivo Regular',
+    'Mnt Preventivo Avanzado',
+    'Mnt Correctivo',
+    'Ajustes Metrológicos',
+    'Calibración',
+    'Sin recomendación',
   ];
 
   @override
@@ -71,70 +95,148 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
         secaValue: widget.secaValue,
       ),
     );
-    _controller.initCamposEstado();
+    _controller.secaValue = widget.secaValue;
+    _controller.clienteNombre = widget.clienteNombre;
+    _controller.plantaNombre = widget.plantaNombre;
+    _setContextData();
+    _balanzaInfo =
+        buildCalBalanzaInfo(widget.instrumentoData, widget.codMetrica);
+    _loadExistingData();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _setContextData() {
+    final data = widget.instrumentoData;
+    _controller.razonSocial = widget.clienteRazonSocial;
+    _controller.dirPlanta = widget.plantaDireccion;
+    _controller.depPlanta = widget.plantaDepartamento;
+    _controller.codPlanta = widget.plantaCodigo;
+    _controller.personal = widget.userName;
+    if (data == null) return;
+
+    _controller.infBal = data['_modifiedFields']?.toString() ?? '';
+    _controller.categoriaBalanza = data['categoria']?.toString() ??
+        data['categoria_balanza']?.toString() ??
+        '';
+    _controller.codInt =
+        data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ??
+        data['tipo']?.toString() ??
+        data['instrumento']?.toString() ??
+        '';
+    _controller.marca = data['marca']?.toString() ?? '';
+    _controller.modelo = data['modelo']?.toString() ?? '';
+    _controller.serie =
+        data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
+    _controller.unidades =
+        data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
+    _controller.numCeldas =
+        data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
+    _controller.ubicacion = data['ubicacion']?.toString() ?? '';
+    _controller.capMax1 = data['cap_max1']?.toString() ?? '';
+    _controller.d1 = data['d1']?.toString() ?? '';
+    _controller.e1 = data['e1']?.toString() ?? '';
+    _controller.dec1 = data['dec1']?.toString() ?? '';
+    _controller.capMax2 = data['cap_max2']?.toString() ?? '';
+    _controller.d2 = data['d2']?.toString() ?? '';
+    _controller.e2 = data['e2']?.toString() ?? '';
+    _controller.dec2 = data['dec2']?.toString() ?? '';
+    _controller.capMax3 = data['cap_max3']?.toString() ?? '';
+    _controller.d3 = data['d3']?.toString() ?? '';
+    _controller.e3 = data['e3']?.toString() ?? '';
+    _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
-  void _onFieldChanged() {
-    _controller.markChanged();
-    setState(() {});
-  }
-
-  void _onCampoChanged(int index, String value, String solutionValue) {
-    if (index < _controller.camposEstado.length) {
-      _controller.camposEstado[index].value = value;
-      _controller.camposEstado[index].solutionValue = solutionValue;
-      _controller.markChanged();
-      setState(() {});
-    }
-  }
-
-  Future<void> _saveCurrentStep() async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
+  Future<void> _loadExistingData() async {
     try {
-      await _controller.guardarSesion();
-    } catch (e) {
-      if (mounted) {
-        TopAlert.show(context, 'Error al guardar: $e', isError: true);
-      }
+      await _controller.restoreSession();
+    } catch (error) {
+      debugPrint('Error restaurando ajuste de verificaciones: $error');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   bool _validateCurrentStep() {
-    if (_currentStep == 2) {
-      if (_controller.estadoFisico.isEmpty ||
-          _controller.estadoOperacional.isEmpty ||
-          _controller.estadoMetrologico.isEmpty) {
-        TopAlert.show(context, 'Complete todos los estados finales',
-            isError: true);
-        return false;
-      }
+    switch (_controller.currentStep) {
+      case 0:
+        if (_controller.retornoCeroInicial.isEmpty ||
+            _controller.estabilidadInicial.isEmpty) {
+          TopAlert.show(
+            context,
+            'Complete retorno a cero y estabilidad de las pruebas iniciales',
+            isError: true,
+          );
+          return false;
+        }
+        return true;
+      case 1:
+        if (_controller.retornoCeroFinal.isEmpty ||
+            _controller.estabilidadFinal.isEmpty) {
+          TopAlert.show(
+            context,
+            'Complete retorno a cero y estabilidad de las pruebas finales',
+            isError: true,
+          );
+          return false;
+        }
+        return true;
+      case 2:
+        if (_controller.comentarioGeneral.isEmpty) {
+          TopAlert.show(context, 'Complete el comentario general',
+              isError: true);
+          return false;
+        }
+        if (_controller.recomendacion.isEmpty) {
+          TopAlert.show(context, 'Seleccione una recomendación', isError: true);
+          return false;
+        }
+        if (_controller.fechaProxServicio.isEmpty) {
+          TopAlert.show(context, 'Seleccione la fecha del próximo servicio',
+              isError: true);
+          return false;
+        }
+        if (_controller.estadoFisico.isEmpty ||
+            _controller.estadoOperacional.isEmpty ||
+            _controller.estadoMetrologico.isEmpty) {
+          TopAlert.show(context, 'Complete todos los estados finales',
+              isError: true);
+          return false;
+        }
+        if (_controller.horaFin.isEmpty) {
+          TopAlert.show(context, 'Registre la hora final del servicio',
+              isError: true);
+          return false;
+        }
+        return true;
+      default:
+        return true;
     }
-    return true;
   }
 
-  Future<void> _goToStep(int step) async {
-    if (step > _currentStep && !_validateCurrentStep()) return;
-    await _saveCurrentStep();
-    if (mounted) setState(() => _currentStep = step);
+  void _onStepTapped(int step) {
+    if (step > _controller.currentStep && !_validateCurrentStep()) return;
+    setState(() => _controller.currentStep = step);
   }
 
-  Future<void> _finalizar() async {
+  void _onAnterior() {
+    if (_controller.currentStep > 0) {
+      setState(() => _controller.currentStep--);
+    }
+  }
+
+  void _onSiguiente() {
     if (!_validateCurrentStep()) return;
-    await _saveCurrentStep();
-    if (!mounted) return;
-    Navigator.pushReplacement(
+    if (_controller.currentStep < _controller.totalSteps - 1) {
+      setState(() => _controller.currentStep++);
+    }
+  }
+
+  void _onFinalizar() {
+    if (!_validateCurrentStep()) return;
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FinServicioScreen(
+        builder: (_) => FinServicioScreen(
           controller: _controller,
           sessionId: widget.sessionId,
           secaValue: widget.secaValue,
@@ -143,17 +245,23 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
           userName: widget.userName,
           clienteId: widget.clienteId,
           plantaCodigo: widget.plantaCodigo,
-          tableName: 'ajuste_verificaciones',
+          clienteNombre: widget.clienteNombre,
+          plantaNombre: widget.plantaNombre,
+          tableName: 'ajustes_metrologicos',
           config: const FinServicioConfig(
-            tableNameDefault: 'ajuste_verificaciones',
+            tableNameDefault: 'ajustes_metrologicos',
             csvSuffix: 'AjusteVerif',
-            additionalWhere: '',
             tipoServicio: 'AJUSTE DE VERIFICACIONES',
-            primaryColor: Color(0xFF46824B),
           ),
         ),
       ),
     );
+  }
+
+  void _onCopiarFinales() {
+    _controller.copiarPruebasInicialesAFinales();
+    setState(() => _copyTickFinales++);
+    TopAlert.show(context, 'Datos copiados de pruebas iniciales a finales');
   }
 
   SaveStatus get _saveStatus => _controller.isSaving
@@ -163,131 +271,199 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
           : SaveStatus.error);
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: ServiceAppBar(title: 'Ajuste de Verificaciones'),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final isLast = _currentStep == _steps.length - 1;
+        final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Ajuste de Verificaciones',
           steps: _steps,
           stepWidgets: [
-            _buildPasoPruebasIniciales(),
-            _buildPasoPruebasFinales(),
-            _buildPasoEstadoFinal(),
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Pruebas Metrológicas Iniciales',
+                subtitle: 'Estado del instrumento antes del ajuste',
+              ),
+              _buildMetrology(esInicial: true),
+            ),
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Pruebas Metrológicas Finales',
+                subtitle: 'Estado del instrumento después del ajuste',
+              ),
+              _buildMetrology(esInicial: false),
+            ),
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Estado Final',
+                subtitle: 'Complete la evaluación y cierre del servicio',
+              ),
+              PasoEstadoFinalWidget(
+                comentarioGeneral: _controller.comentarioGeneral,
+                recomendacion: _controller.recomendacion,
+                estadoFisico: _controller.estadoFisico,
+                estadoOperacional: _controller.estadoOperacional,
+                estadoMetrologico: _controller.estadoMetrologico,
+                onComentarioGeneralChanged: (value) {
+                  _controller.comentarioGeneral = value;
+                  _controller.markChanged();
+                },
+                onRecomendacionChanged: (value) {
+                  _controller.recomendacion = value;
+                  _controller.markChanged();
+                },
+                onEstadoFisicoChanged: (value) {
+                  _controller.estadoFisico = value;
+                  _controller.markChanged();
+                },
+                onEstadoOperacionalChanged: (value) {
+                  _controller.estadoOperacional = value;
+                  _controller.markChanged();
+                },
+                onEstadoMetrologicoChanged: (value) {
+                  _controller.estadoMetrologico = value;
+                  _controller.markChanged();
+                },
+                camposEstado: const [],
+                onCampoChanged: (index, value, solution) {},
+                horaInicio: _controller.horaInicio,
+                horaFin: _controller.horaFin,
+                onRegistrarHoraFin: () {
+                  setState(() {
+                    _controller.horaFin =
+                        DateFormat('HH:mm:ss').format(DateTime.now());
+                    _controller.markChanged();
+                  });
+                },
+                fechaProxServicio: _controller.fechaProxServicio,
+                onFechaProxServicioChanged: (value) {
+                  setState(() {
+                    _controller.fechaProxServicio = value;
+                    _controller.markChanged();
+                  });
+                },
+                recomendacionesOptions: _recomendacionesOptions,
+                useLegacyEstados: true,
+              ),
+            ),
           ],
-          currentStep: _currentStep,
-          onStepTapped: (step) => _goToStep(step),
+          currentStep: _controller.currentStep,
+          onStepTapped: _onStepTapped,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-          nextColor: isLast
-              ? const Color(0xFF3e7732)
-              : const Color(0xFF498054),
-          onNext:
-              isLast ? _finalizar : () => _goToStep(_currentStep + 1),
-          onBack: _currentStep > 0
-              ? () => _goToStep(_currentStep - 1)
-              : null,
+          nextColor: isLast ? const Color(0xFF3E7732) : const Color(0xFF498054),
+          onNext: isLast ? _onFinalizar : _onSiguiente,
+          onBack: _controller.currentStep > 0 ? _onAnterior : null,
           saveStatus: _saveStatus,
-          balanzaInfo:
-              buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
+          balanzaInfo: buildServiceBalanzaInfo(
+              widget.instrumentoData, widget.codMetrica),
         );
       },
     );
   }
 
-  Widget _buildPasoPruebasIniciales() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ServiceStepHeader(
-            title: 'Pruebas Iniciales',
-            subtitle: 'Pruebas metrológicas iniciales',
-          ),
-          const SizedBox(height: 24),
-          PasoPruebasInicialesWidget(
-            pruebasIniciales: _controller.pruebasIniciales,
-            onDataChanged: _onFieldChanged,
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: ElevatedButton.icon(
-              onPressed: () {
-                _controller.copiarPruebasInicialesAFinales();
-                TopAlert.show(
-                    context, 'Pruebas iniciales copiadas a finales');
-                setState(() {});
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('Copiar Iniciales a Finales'),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildMetrology({required bool esInicial}) {
+    return PasoPruebasMetrologicas(
+      balanza: _balanzaInfo,
+      esInicial: esInicial,
+      horaInicio: esInicial ? _controller.horaInicio : null,
+      retornoCero: esInicial
+          ? _controller.retornoCeroInicial
+          : _controller.retornoCeroFinal,
+      estabilidad: esInicial
+          ? _controller.estabilidadInicial
+          : _controller.estabilidadFinal,
+      onRetornoCeroChanged: (value) {
+        if (esInicial) {
+          _controller.retornoCeroInicial = value;
+        } else {
+          _controller.retornoCeroFinal = value;
+        }
+        _controller.markChanged();
+      },
+      onEstabilidadChanged: (value) {
+        if (esInicial) {
+          _controller.estabilidadInicial = value;
+        } else {
+          _controller.estabilidadFinal = value;
+        }
+        _controller.markChanged();
+      },
+      excentricidadActiva: _controller.excentricidadRealizada,
+      repetibilidadActiva: _controller.repetibilidadRealizada,
+      linealidadActiva: _controller.linealidadRealizada,
+      onExcentricidadActivaChanged: (value) {
+        _controller.excentricidadRealizada = value;
+        _controller.markChanged();
+      },
+      onRepetibilidadActivaChanged: (value) {
+        _controller.repetibilidadRealizada = value;
+        _controller.markChanged();
+      },
+      onLinealidadActivaChanged: (value) {
+        _controller.linealidadRealizada = value;
+        _controller.markChanged();
+      },
+      excentricidad: esInicial
+          ? _controller.excentricidadInicial
+          : _controller.excentricidadFinal,
+      repetibilidad: esInicial
+          ? _controller.repetibilidadInicial
+          : _controller.repetibilidadFinal,
+      linealidad: esInicial
+          ? _controller.linealidadInicial
+          : _controller.linealidadFinal,
+      onExcentricidadChanged: (value) {
+        if (esInicial) {
+          _controller.excentricidadInicial = value;
+        } else {
+          _controller.excentricidadFinal = value;
+        }
+        _controller.markChanged();
+      },
+      onRepetibilidadChanged: (value) {
+        if (esInicial) {
+          _controller.repetibilidadInicial = value;
+        } else {
+          _controller.repetibilidadFinal = value;
+        }
+        _controller.markChanged();
+      },
+      onLinealidadChanged: (value) {
+        if (esInicial) {
+          _controller.linealidadInicial = value;
+        } else {
+          _controller.linealidadFinal = value;
+        }
+        _controller.markChanged();
+      },
+      copyTick: esInicial ? 0 : _copyTickFinales,
+      onCopiarDeIniciales: esInicial ? null : _onCopiarFinales,
     );
   }
 
-  Widget _buildPasoPruebasFinales() {
+  Widget _buildPaso(Widget header, Widget content) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ServiceStepHeader(
-            title: 'Pruebas Finales',
-            subtitle: 'Pruebas metrológicas finales',
-          ),
+          header,
           const SizedBox(height: 24),
-          PasoPruebasFinalesWidget(
-            pruebasFinales: _controller.pruebasFinales,
-            onDataChanged: _onFieldChanged,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPasoEstadoFinal() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ServiceStepHeader(
-            title: 'Estado Final',
-            subtitle: 'Conclusión del servicio',
-          ),
-          const SizedBox(height: 24),
-          PasoEstadoFinalWidget(
-            comentarioGeneral: _controller.comentarioGeneral,
-            recomendacion: _controller.recomendacion,
-            estadoFisico: _controller.estadoFisico,
-            estadoOperacional: _controller.estadoOperacional,
-            estadoMetrologico: _controller.estadoMetrologico,
-            onComentarioGeneralChanged: (v) {
-              _controller.comentarioGeneral = v;
-              _onFieldChanged();
-            },
-            onRecomendacionChanged: (v) {
-              _controller.recomendacion = v;
-              _onFieldChanged();
-            },
-            onEstadoFisicoChanged: (v) {
-              _controller.estadoFisico = v;
-              _onFieldChanged();
-            },
-            onEstadoOperacionalChanged: (v) {
-              _controller.estadoOperacional = v;
-              _onFieldChanged();
-            },
-            onEstadoMetrologicoChanged: (v) {
-              _controller.estadoMetrologico = v;
-              _onFieldChanged();
-            },
-            camposEstado: _controller.camposEstado,
-            onCampoChanged: _onCampoChanged,
-          ),
+          content,
         ],
       ),
     );
