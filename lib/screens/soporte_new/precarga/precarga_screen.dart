@@ -339,6 +339,14 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       case 'DIAGNÓSTICO':
@@ -369,6 +377,14 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
           userName: args.userName,
           clienteId: args.clienteId,
           plantaCodigo: args.plantaCodigo,
+          clienteNombre:
+              _controller.selectedCliente?['nombre']?.toString() ?? '',
+          clienteRazonSocial:
+              _controller.selectedCliente?['razonsocial']?.toString() ?? '',
+          plantaNombre: _controller.selectedPlanta?['nombre']?.toString() ?? '',
+          plantaDireccion: _controller.selectedPlanta?['dir']?.toString() ?? '',
+          plantaDepartamento:
+              _controller.selectedPlanta?['dep']?.toString() ?? '',
           instrumentoData: args.instrumentoData,
         );
       default:
