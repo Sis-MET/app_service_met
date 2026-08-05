@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
 import 'package:service_met/screens/soporte_new/models/base_soporte_model.dart';
@@ -10,6 +11,9 @@ import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
 
 abstract class BaseSoporteController extends ChangeNotifier {
+  bool _isDisposed = false;
+  bool _postFrameNotificationScheduled = false;
+
   String get tableName;
   String get tipoServicio;
   BaseSoporteModel get model;
@@ -53,13 +57,33 @@ abstract class BaseSoporteController extends ChangeNotifier {
   // legacy puedan actualizar el estado de guardado (indicador en UI).
   void setSaveInProgress() {
     _isSaving = true;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void setSaveSuccess(bool successful) {
     _isSaving = false;
     _lastSaveSuccessful = successful;
-    notifyListeners();
+    notifyListenersSafely();
+  }
+
+  /// Notifica inmediatamente fuera de la fase de construcción y difiere la
+  /// notificación al final del frame cuando un widget todavía está en build.
+  /// Esto evita que el autoguardado intente reconstruir un ListenableBuilder
+  /// mientras Flutter mantiene bloqueado el árbol de widgets.
+  @protected
+  void notifyListenersSafely() {
+    if (_isDisposed) return;
+    if (SchedulerBinding.instance.schedulerPhase !=
+        SchedulerPhase.persistentCallbacks) {
+      notifyListeners();
+      return;
+    }
+    if (_postFrameNotificationScheduled) return;
+    _postFrameNotificationScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _postFrameNotificationScheduled = false;
+      if (!_isDisposed) notifyListeners();
+    });
   }
 
   BaseSoporteController();
@@ -77,7 +101,8 @@ abstract class BaseSoporteController extends ChangeNotifier {
     hasUnsavedChanges.value = false;
   }
 
-  Future<void> loadExistingSession(String sessionId, Map<String, dynamic> data) async {
+  Future<void> loadExistingSession(
+      String sessionId, Map<String, dynamic> data) async {
     comentarioGeneral = data['comentario_general']?.toString() ?? '';
     recomendacion = data['recomendacion']?.toString() ?? '';
     estadoFisico = data['estado_fisico']?.toString() ?? '';
@@ -91,22 +116,38 @@ abstract class BaseSoporteController extends ChangeNotifier {
       try {
         final pi = jsonDecode(data['pruebas_iniciales']);
         pruebasIniciales = PruebasMetrologicas(
-          excentricidad: (pi['excentricidad'] as List).map((e) => Excentricidad(
-            posicion: e['posicion'] ?? '', carga: e['carga'] ?? '',
-            indicacion1: e['indicacion1'] ?? '', indicacion2: e['indicacion2'] ?? '',
-            indicacion3: e['indicacion3'] ?? '', diferencia: e['diferencia'] ?? '',
-            error: e['error'] ?? '', errorMaximo: e['errorMaximo'] ?? '',
-          )).toList(),
-          repetibilidad: (pi['repetibilidad'] as List).map((r) => Repetibilidad(
-            carga: r['carga'] ?? '', indicacion1: r['indicacion1'] ?? '',
-            indicacion2: r['indicacion2'] ?? '', indicacion3: r['indicacion3'] ?? '',
-            diferencia: r['diferencia'] ?? '', errorMaximo: r['errorMaximo'] ?? '',
-          )).toList(),
-          linealidad: (pi['linealidad'] as List).map((l) => Linealidad(
-            carga: l['carga'] ?? '', indicacion1: l['indicacion1'] ?? '',
-            indicacion2: l['indicacion2'] ?? '', error: l['error'] ?? '',
-            errorMaximo: l['errorMaximo'] ?? '', incertidumbre: l['incertidumbre'] ?? '',
-          )).toList(),
+          excentricidad: (pi['excentricidad'] as List)
+              .map((e) => Excentricidad(
+                    posicion: e['posicion'] ?? '',
+                    carga: e['carga'] ?? '',
+                    indicacion1: e['indicacion1'] ?? '',
+                    indicacion2: e['indicacion2'] ?? '',
+                    indicacion3: e['indicacion3'] ?? '',
+                    diferencia: e['diferencia'] ?? '',
+                    error: e['error'] ?? '',
+                    errorMaximo: e['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          repetibilidad: (pi['repetibilidad'] as List)
+              .map((r) => Repetibilidad(
+                    carga: r['carga'] ?? '',
+                    indicacion1: r['indicacion1'] ?? '',
+                    indicacion2: r['indicacion2'] ?? '',
+                    indicacion3: r['indicacion3'] ?? '',
+                    diferencia: r['diferencia'] ?? '',
+                    errorMaximo: r['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          linealidad: (pi['linealidad'] as List)
+              .map((l) => Linealidad(
+                    carga: l['carga'] ?? '',
+                    indicacion1: l['indicacion1'] ?? '',
+                    indicacion2: l['indicacion2'] ?? '',
+                    error: l['error'] ?? '',
+                    errorMaximo: l['errorMaximo'] ?? '',
+                    incertidumbre: l['incertidumbre'] ?? '',
+                  ))
+              .toList(),
         );
       } catch (_) {}
     }
@@ -114,26 +155,42 @@ abstract class BaseSoporteController extends ChangeNotifier {
       try {
         final pf = jsonDecode(data['pruebas_finales']);
         pruebasFinales = PruebasMetrologicas(
-          excentricidad: (pf['excentricidad'] as List).map((e) => Excentricidad(
-            posicion: e['posicion'] ?? '', carga: e['carga'] ?? '',
-            indicacion1: e['indicacion1'] ?? '', indicacion2: e['indicacion2'] ?? '',
-            indicacion3: e['indicacion3'] ?? '', diferencia: e['diferencia'] ?? '',
-            error: e['error'] ?? '', errorMaximo: e['errorMaximo'] ?? '',
-          )).toList(),
-          repetibilidad: (pf['repetibilidad'] as List).map((r) => Repetibilidad(
-            carga: r['carga'] ?? '', indicacion1: r['indicacion1'] ?? '',
-            indicacion2: r['indicacion2'] ?? '', indicacion3: r['indicacion3'] ?? '',
-            diferencia: r['diferencia'] ?? '', errorMaximo: r['errorMaximo'] ?? '',
-          )).toList(),
-          linealidad: (pf['linealidad'] as List).map((l) => Linealidad(
-            carga: l['carga'] ?? '', indicacion1: l['indicacion1'] ?? '',
-            indicacion2: l['indicacion2'] ?? '', error: l['error'] ?? '',
-            errorMaximo: l['errorMaximo'] ?? '', incertidumbre: l['incertidumbre'] ?? '',
-          )).toList(),
+          excentricidad: (pf['excentricidad'] as List)
+              .map((e) => Excentricidad(
+                    posicion: e['posicion'] ?? '',
+                    carga: e['carga'] ?? '',
+                    indicacion1: e['indicacion1'] ?? '',
+                    indicacion2: e['indicacion2'] ?? '',
+                    indicacion3: e['indicacion3'] ?? '',
+                    diferencia: e['diferencia'] ?? '',
+                    error: e['error'] ?? '',
+                    errorMaximo: e['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          repetibilidad: (pf['repetibilidad'] as List)
+              .map((r) => Repetibilidad(
+                    carga: r['carga'] ?? '',
+                    indicacion1: r['indicacion1'] ?? '',
+                    indicacion2: r['indicacion2'] ?? '',
+                    indicacion3: r['indicacion3'] ?? '',
+                    diferencia: r['diferencia'] ?? '',
+                    errorMaximo: r['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          linealidad: (pf['linealidad'] as List)
+              .map((l) => Linealidad(
+                    carga: l['carga'] ?? '',
+                    indicacion1: l['indicacion1'] ?? '',
+                    indicacion2: l['indicacion2'] ?? '',
+                    error: l['error'] ?? '',
+                    errorMaximo: l['errorMaximo'] ?? '',
+                    incertidumbre: l['incertidumbre'] ?? '',
+                  ))
+              .toList(),
         );
       } catch (_) {}
     }
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   Future<Map<String, dynamic>> buildDataMap() async {
@@ -158,7 +215,7 @@ abstract class BaseSoporteController extends ChangeNotifier {
   Future<void> guardarSesion() async {
     _isGuardando = true;
     _isSaving = true;
-    notifyListeners();
+    notifyListenersSafely();
     try {
       final data = await buildDataMap();
       await dbHelper.upsert(
@@ -175,7 +232,7 @@ abstract class BaseSoporteController extends ChangeNotifier {
     } finally {
       _isGuardando = false;
       _isSaving = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 
@@ -216,43 +273,86 @@ abstract class BaseSoporteController extends ChangeNotifier {
     // Placeholder - implementar con archive package si es necesario
   }
 
-  void addExcentricidadData(PruebasMetrologicas pruebas, int index, String field, String value) {
+  void addExcentricidadData(
+      PruebasMetrologicas pruebas, int index, String field, String value) {
     if (index < 0 || index >= pruebas.excentricidad.length) return;
     switch (field) {
-      case 'posicion': pruebas.excentricidad[index].posicion = value; break;
-      case 'carga': pruebas.excentricidad[index].carga = value; break;
-      case 'indicacion1': pruebas.excentricidad[index].indicacion1 = value; break;
-      case 'indicacion2': pruebas.excentricidad[index].indicacion2 = value; break;
-      case 'indicacion3': pruebas.excentricidad[index].indicacion3 = value; break;
-      case 'diferencia': pruebas.excentricidad[index].diferencia = value; break;
-      case 'error': pruebas.excentricidad[index].error = value; break;
-      case 'errorMaximo': pruebas.excentricidad[index].errorMaximo = value; break;
+      case 'posicion':
+        pruebas.excentricidad[index].posicion = value;
+        break;
+      case 'carga':
+        pruebas.excentricidad[index].carga = value;
+        break;
+      case 'indicacion1':
+        pruebas.excentricidad[index].indicacion1 = value;
+        break;
+      case 'indicacion2':
+        pruebas.excentricidad[index].indicacion2 = value;
+        break;
+      case 'indicacion3':
+        pruebas.excentricidad[index].indicacion3 = value;
+        break;
+      case 'diferencia':
+        pruebas.excentricidad[index].diferencia = value;
+        break;
+      case 'error':
+        pruebas.excentricidad[index].error = value;
+        break;
+      case 'errorMaximo':
+        pruebas.excentricidad[index].errorMaximo = value;
+        break;
     }
     markChanged();
   }
 
-  void addRepetibilidadData(PruebasMetrologicas pruebas, int index, String field, String value) {
+  void addRepetibilidadData(
+      PruebasMetrologicas pruebas, int index, String field, String value) {
     if (index < 0 || index >= pruebas.repetibilidad.length) return;
     switch (field) {
-      case 'carga': pruebas.repetibilidad[index].carga = value; break;
-      case 'indicacion1': pruebas.repetibilidad[index].indicacion1 = value; break;
-      case 'indicacion2': pruebas.repetibilidad[index].indicacion2 = value; break;
-      case 'indicacion3': pruebas.repetibilidad[index].indicacion3 = value; break;
-      case 'diferencia': pruebas.repetibilidad[index].diferencia = value; break;
-      case 'errorMaximo': pruebas.repetibilidad[index].errorMaximo = value; break;
+      case 'carga':
+        pruebas.repetibilidad[index].carga = value;
+        break;
+      case 'indicacion1':
+        pruebas.repetibilidad[index].indicacion1 = value;
+        break;
+      case 'indicacion2':
+        pruebas.repetibilidad[index].indicacion2 = value;
+        break;
+      case 'indicacion3':
+        pruebas.repetibilidad[index].indicacion3 = value;
+        break;
+      case 'diferencia':
+        pruebas.repetibilidad[index].diferencia = value;
+        break;
+      case 'errorMaximo':
+        pruebas.repetibilidad[index].errorMaximo = value;
+        break;
     }
     markChanged();
   }
 
-  void addLinealidadData(PruebasMetrologicas pruebas, int index, String field, String value) {
+  void addLinealidadData(
+      PruebasMetrologicas pruebas, int index, String field, String value) {
     if (index < 0 || index >= pruebas.linealidad.length) return;
     switch (field) {
-      case 'carga': pruebas.linealidad[index].carga = value; break;
-      case 'indicacion1': pruebas.linealidad[index].indicacion1 = value; break;
-      case 'indicacion2': pruebas.linealidad[index].indicacion2 = value; break;
-      case 'error': pruebas.linealidad[index].error = value; break;
-      case 'errorMaximo': pruebas.linealidad[index].errorMaximo = value; break;
-      case 'incertidumbre': pruebas.linealidad[index].incertidumbre = value; break;
+      case 'carga':
+        pruebas.linealidad[index].carga = value;
+        break;
+      case 'indicacion1':
+        pruebas.linealidad[index].indicacion1 = value;
+        break;
+      case 'indicacion2':
+        pruebas.linealidad[index].indicacion2 = value;
+        break;
+      case 'error':
+        pruebas.linealidad[index].error = value;
+        break;
+      case 'errorMaximo':
+        pruebas.linealidad[index].errorMaximo = value;
+        break;
+      case 'incertidumbre':
+        pruebas.linealidad[index].incertidumbre = value;
+        break;
     }
     markChanged();
   }
@@ -271,7 +371,9 @@ abstract class BaseSoporteController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _autoSaveTimer?.cancel();
+    hasUnsavedChanges.dispose();
     super.dispose();
   }
 }

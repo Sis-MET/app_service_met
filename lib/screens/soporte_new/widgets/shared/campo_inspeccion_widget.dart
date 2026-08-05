@@ -32,6 +32,8 @@ class CampoInspeccionWidget extends StatefulWidget {
   final void Function(String value, String solutionValue) onChanged;
   final String seca;
   final String codMetrica;
+  final List<String>? customOptions;
+  final bool solutionAsComment;
 
   const CampoInspeccionWidget({
     super.key,
@@ -39,6 +41,8 @@ class CampoInspeccionWidget extends StatefulWidget {
     required this.onChanged,
     required this.seca,
     required this.codMetrica,
+    this.customOptions,
+    this.solutionAsComment = false,
   });
 
   @override
@@ -69,6 +73,12 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   }
 
   void _normalizeEstado() {
+    if (widget.customOptions != null) {
+      if (!widget.customOptions!.contains(_campoEstado.value)) {
+        _campoEstado.value = '';
+      }
+      return;
+    }
     if (estadoColorMap.containsKey(_campoEstado.value)) return;
     _campoEstado.value = _campoEstado.value == '1 Bueno' ? 'Bueno' : '';
   }
@@ -111,7 +121,9 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
 
     try {
       final savedPath = await FotoHelper.saveFoto(
-        seca, codMetrica, photo.path,
+        seca,
+        codMetrica,
+        photo.path,
         subDirName: 'soporte_fotos',
       );
       if (!mounted) return;
@@ -131,6 +143,11 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final customOptions = widget.customOptions;
+    final estadoOptions = customOptions ?? estadoColorMap.keys.toList();
+    final valueColor = customOptions == null
+        ? estadoColorMap[_campoEstado.value] ?? Colors.grey
+        : Theme.of(context).colorScheme.primary;
 
     return ExpansionTile(
       title: Text(_campoEstado.nombre,
@@ -140,7 +157,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
             ? _campoEstado.value
             : 'Seleccionar estado',
         style: TextStyle(
-          color: estadoColorMap[_campoEstado.value] ?? Colors.grey,
+          color: valueColor,
         ),
       ),
       children: [
@@ -152,16 +169,24 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
               DropdownButtonFormField<String>(
                 value:
                     _campoEstado.value.isNotEmpty ? _campoEstado.value : null,
-                decoration: serviceInputDeco('Estado', isDark),
+                decoration: serviceInputDeco(
+                    customOptions == null ? 'Estado' : 'Condición', isDark),
                 dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                items: estadoColorMap.keys.map((key) {
+                items: estadoOptions.map((key) {
                   return DropdownMenuItem(
                     value: key,
                     child: Row(
                       children: [
-                        Icon(estadoIconMap[key],
-                            color: estadoColorMap[key], size: 20),
+                        Icon(
+                          customOptions == null
+                              ? estadoIconMap[key]
+                              : Icons.tune_rounded,
+                          color: customOptions == null
+                              ? estadoColorMap[key]
+                              : Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(key),
                       ],
@@ -171,26 +196,40 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                 onChanged: _onValueChanged,
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _campoEstado.solutionValue,
-                decoration: serviceInputDeco('Solución', isDark),
-                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                items: SoporteConstants.soluciones.map((sol) {
-                  return DropdownMenuItem(
-                    value: sol,
-                    child: Row(
-                      children: [
-                        Icon(_solucionIconMap[sol],
-                            color: _solucionColorMap[sol], size: 20),
-                        const SizedBox(width: 8),
-                        Text(sol),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: _onSolutionChanged,
-              ),
+              if (widget.solutionAsComment)
+                TextFormField(
+                  initialValue: _campoEstado.solutionValue,
+                  decoration: serviceInputDeco('Comentario', isDark).copyWith(
+                    prefixIcon: const Icon(Icons.comment_outlined),
+                  ),
+                  maxLines: 2,
+                  onChanged: (value) {
+                    _campoEstado.solutionValue = value;
+                    widget.onChanged(_campoEstado.value, value);
+                  },
+                )
+              else
+                DropdownButtonFormField<String>(
+                  value: _campoEstado.solutionValue,
+                  decoration: serviceInputDeco('Solución', isDark),
+                  dropdownColor:
+                      isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  items: SoporteConstants.soluciones.map((sol) {
+                    return DropdownMenuItem(
+                      value: sol,
+                      child: Row(
+                        children: [
+                          Icon(_solucionIconMap[sol],
+                              color: _solucionColorMap[sol], size: 20),
+                          const SizedBox(width: 8),
+                          Text(sol),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: _onSolutionChanged,
+                ),
               const SizedBox(height: 12),
               const Text('Fotos:',
                   style: TextStyle(fontWeight: FontWeight.w600)),
@@ -207,8 +246,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Eliminar foto'),
-                            content:
-                                const Text('¿Desea eliminar esta foto?'),
+                            content: const Text('¿Desea eliminar esta foto?'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(ctx).pop(),
@@ -221,8 +259,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                                   setState(() {
                                     _campoEstado.fotos.removeAt(index);
                                   });
-                                  widget.onChanged(
-                                      _campoEstado.value,
+                                  widget.onChanged(_campoEstado.value,
                                       _campoEstado.solutionValue);
                                 },
                                 child: const Text('Eliminar'),
@@ -254,14 +291,11 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF2A2A2A)
-                            : Colors.grey[200],
+                        color:
+                            isDark ? const Color(0xFF2A2A2A) : Colors.grey[200],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                            color: isDark
-                                ? Colors.white24
-                                : Colors.grey[400]!),
+                            color: isDark ? Colors.white24 : Colors.grey[400]!),
                       ),
                       child: Icon(Icons.add_a_photo,
                           size: 32,
