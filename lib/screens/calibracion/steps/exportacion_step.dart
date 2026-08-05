@@ -41,9 +41,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final exp = provider.session?.exportacion;
     if (exp != null) {
       setState(() {
-        _emp = const ['Sí', 'No'].contains(exp.emp23001)
-            ? exp.emp23001
-            : null;
+        _emp = const ['Sí', 'No'].contains(exp.emp23001) ? exp.emp23001 : null;
         _regla = const ['Ninguna', 'Simple', 'Conservadora']
                 .contains(exp.reglaAceptacion)
             ? exp.reglaAceptacion
@@ -60,8 +58,14 @@ class _ExportacionStepState extends State<ExportacionStep> {
       final result = await CalibrationRepository().getEquipos();
       if (!mounted) return;
       final instrumentos = result.where((eq) {
-        final type = (eq['instrumento']?.toString() ?? eq['tipo_instrumento']?.toString() ?? '').toLowerCase();
-        return !type.contains('pesa') && !type.contains('masa') && !type.contains('patron') && !type.contains('patr');
+        final type = (eq['instrumento']?.toString() ??
+                eq['tipo_instrumento']?.toString() ??
+                '')
+            .toLowerCase();
+        return !type.contains('pesa') &&
+            !type.contains('masa') &&
+            !type.contains('patron') &&
+            !type.contains('patr');
       }).toList();
       instrumentos.sort((a, b) {
         final codeA = a['cod_instrumento']?.toString() ?? '';
@@ -80,7 +84,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final provider = context.read<ServiceSessionProvider>();
     final seca = provider.session?.sessionInfo.seca;
     if (seca == null || seca.isEmpty) return;
-    final registros = await provider.getRegistrosCompletos(seca, soloHoy: false);
+    final registros =
+        await provider.getRegistrosCompletos(seca, soloHoy: false);
     if (!mounted) return;
     setState(() => _balanzasCount = registros.length);
   }
@@ -132,9 +137,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF1A1A1A)))),
+                        color:
+                            isDark ? Colors.white : const Color(0xFF1A1A1A)))),
           ],
         ),
         content: Column(
@@ -171,8 +175,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('Cancelar',
-                style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.black54)),
+                style:
+                    TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
           ),
         ],
       ),
@@ -180,8 +184,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
 
     if (opcion == null || !mounted) return;
 
-    final registros =
-        opcion == 'hoy' ? registrosHoy : registrosTodas;
+    final registros = opcion == 'hoy' ? registrosHoy : registrosTodas;
     if (registros.isEmpty) {
       TopAlert.show(context, 'No hay registros para exportar', isError: true);
       return;
@@ -194,10 +197,12 @@ class _ExportacionStepState extends State<ExportacionStep> {
     if (instrumentos == null || !mounted) return;
 
     // Aplicar datos del certificado a todas las filas exportadas
-    final registrosConCert = registros.map((r) => ({
-      ...r,
-      ...datosCert,
-    })).toList();
+    final registrosConCert = registros
+        .map((r) => ({
+              ...r,
+              ...datosCert,
+            }))
+        .toList();
 
     _emp = datosCert['emp'];
     _indicarCtrl.text = datosCert['indicar'] ?? '';
@@ -208,16 +213,21 @@ class _ExportacionStepState extends State<ExportacionStep> {
     // Persist instrument selection
     if (instrumentos.isNotEmpty) {
       final existing = provider.session?.equipos ?? [];
-      final pesas = existing
-          .where((e) => _isPesaTipo(e.tipo))
-          .toList();
+      final pesas = existing.where((e) => _isPesaTipo(e.tipo)).toList();
       provider.updateEquipos([...pesas, ...instrumentos]);
     }
 
-    final registrosConTodo = registrosConCert.map((r) => ({
-      ...r,
+    final registrosConTodo = registrosConCert
+        .map((r) => ({
+              ...r,
+              ..._instrumentosToColumns(instrumentos),
+            }))
+        .toList();
+
+    await provider.persistSharedExportData(seca, {
+      ...datosCert,
       ..._instrumentosToColumns(instrumentos),
-    })).toList();
+    });
 
     final success = await provider.exportToCSV(registrosConTodo);
     if (!mounted) return;
@@ -235,7 +245,10 @@ class _ExportacionStepState extends State<ExportacionStep> {
 
   bool _isPesaTipo(String? value) {
     final v = value?.toLowerCase() ?? '';
-    return v.contains('pesa') || v.contains('masa') || v.contains('patron') || v.contains('patr');
+    return v.contains('pesa') ||
+        v.contains('masa') ||
+        v.contains('patron') ||
+        v.contains('patr');
   }
 
   Map<String, String> _instrumentosToColumns(List<EquipoInfo> instrumentos) {
@@ -349,13 +362,13 @@ class _ExportacionStepState extends State<ExportacionStep> {
                                 const SizedBox(height: 6),
                             itemBuilder: (_, i) {
                               final eq = filtered[i];
-                              final code = eq['cod_instrumento']
-                                      ?.toString() ??
+                              final code = eq['cod_instrumento']?.toString() ??
                                   'Sin código';
                               final type = eq['instrumento']?.toString() ?? '';
-                              final cert = eq['cert_fecha']?.toString() ?? 'S/F';
-                              final isSelected = selected
-                                  .any((e) => e.codInstrumento == code);
+                              final cert =
+                                  eq['cert_fecha']?.toString() ?? 'S/F';
+                              final isSelected =
+                                  selected.any((e) => e.codInstrumento == code);
                               final canSelect =
                                   isSelected || selected.length < 2;
 
@@ -374,9 +387,10 @@ class _ExportacionStepState extends State<ExportacionStep> {
                                               certFecha: eq['cert_fecha']
                                                       ?.toString() ??
                                                   '',
-                                              enteCalibrador: eq['ente_calibrador']
-                                                      ?.toString() ??
-                                                  '',
+                                              enteCalibrador:
+                                                  eq['ente_calibrador']
+                                                          ?.toString() ??
+                                                      '',
                                             ));
                                           }
                                         });
@@ -530,8 +544,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     dropdownColor:
                         isDark ? const Color(0xFF2A2A2A) : Colors.white,
                     items: ['Sí', 'No']
-                        .map((v) =>
-                            DropdownMenuItem(value: v, child: Text(v)))
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     onChanged: (v) {
                       setDialogState(() => empCtrl.text = v ?? '');
@@ -542,7 +555,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     Expanded(
                         child: TextField(
                       style: GoogleFonts.inter(
-                          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A1A)),
                       controller: indicarCtrl,
                       keyboardType: TextInputType.number,
                       decoration: _deco('Indicar (%)', isDark),
@@ -551,7 +565,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     Expanded(
                         child: TextField(
                       style: GoogleFonts.inter(
-                          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A1A)),
                       controller: factorCtrl,
                       keyboardType: TextInputType.number,
                       decoration: _deco('Factor Seguridad', isDark),
@@ -567,8 +582,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     dropdownColor:
                         isDark ? const Color(0xFF2A2A2A) : Colors.white,
                     items: ['Ninguna', 'Simple', 'Conservadora']
-                        .map((v) =>
-                            DropdownMenuItem(value: v, child: Text(v)))
+                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
                         .toList(),
                     onChanged: (v) {
                       setDialogState(() => regla = v ?? '');
@@ -635,9 +649,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1A1A))),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A1A))),
                   const SizedBox(height: 2),
                   Text(subtitulo,
                       style: GoogleFonts.inter(
@@ -687,8 +700,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                   onPressed: () => _seleccionarOtraBalanza(provider),
                   icon: const Icon(Icons.add_circle_outline_rounded),
                   label: const Text('SELECCIONAR OTRA BALANZA',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF326677),
                     foregroundColor: Colors.white,
@@ -705,8 +718,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                   onPressed: () => _exportar(provider),
                   icon: const Icon(Icons.file_download),
                   label: const Text('FINALIZAR Y EXPORTAR',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16)),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3e7732),
                     foregroundColor: Colors.white,

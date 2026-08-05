@@ -7,6 +7,7 @@ import 'package:service_met/providers/settings_provider.dart';
 import 'package:service_met/screens/respaldo/respaldo.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../theme/app_colors.dart';
+import '../../login/widgets/setup/connection_profile_selector.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
@@ -45,19 +46,63 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
     );
   }
 
+  Future<void> _showConnectionProfiles(bool isDark) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 720),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.dns_outlined),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Conexión al servidor',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'El perfil seleccionado se usará para la próxima validación o subida.',
+                  style: GoogleFonts.inter(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: ConnectionProfileSelector(isDark: isDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
     final accent = cs.primary;
-    final bgColor =
-        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDark ? AppColors.cardDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final titleColor = cs.onSurface;
-    final iconColor =
-        isDark ? cs.onSurface.withOpacity(0.70) : AppColors.iconLight;
 
     return Scaffold(
       appBar: AppBar(
@@ -224,6 +269,15 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                                 builder: (context) => RespaldoScreen()),
                           );
                         },
+                        accent: accent,
+                        isDark: isDark,
+                      ),
+                      _buildDivider(borderColor),
+                      _buildActionTile(
+                        icon: Icons.dns_outlined,
+                        title: 'Conexión al servidor',
+                        subtitle: 'Seleccionar red Local/VPN y URL de la API',
+                        onTap: () => _showConnectionProfiles(isDark),
                         accent: accent,
                         isDark: isDark,
                       ),

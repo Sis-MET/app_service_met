@@ -76,7 +76,9 @@ void main() async {
           create: (_) => ServiceSessionProvider(CalibrationRepository()),
         ),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        ChangeNotifierProvider(create: (_) => ConnectionProfileService()),
+        ChangeNotifierProvider(
+          create: (_) => ConnectionProfileService()..inicializar(),
+        ),
       ],
       child: MyApp(setupCompleted: setupCompleted),
     ),

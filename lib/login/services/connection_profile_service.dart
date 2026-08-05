@@ -38,6 +38,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
+      apiUrl: 'http://192.168.1.5:3000',
       esPredeterminado: true,
     ),
     ConnectionProfile(
@@ -48,6 +49,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
+      apiUrl: 'http://10.50.8.1:3000',
       esPredeterminado: true,
     ),
   ];
@@ -107,7 +109,8 @@ class ConnectionProfileService extends ChangeNotifier {
           puerto: '',
           baseDatos: '',
           usuarioBD: '',
-          contrasenaBD: ''),
+          contrasenaBD: '',
+          apiUrl: ''),
     );
     if (perfil.esPredeterminado) return false;
 
@@ -131,6 +134,7 @@ class ConnectionProfileService extends ChangeNotifier {
         'database': '',
         'username': '',
         'password': '',
+        'apiUrl': '',
       };
     }
     return {
@@ -139,6 +143,7 @@ class ConnectionProfileService extends ChangeNotifier {
       'database': perfil.baseDatos,
       'username': perfil.usuarioBD,
       'password': perfil.contrasenaBD,
+      'apiUrl': perfil.apiUrl,
     };
   }
 

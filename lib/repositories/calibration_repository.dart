@@ -109,9 +109,15 @@ class CalibrationRepository {
     return await _precargaDb.getClientes();
   }
 
+  Future<List<Map<String, dynamic>>> searchClientes(
+    String query, {
+    int limit = 50,
+  }) async {
+    return _precargaDb.searchClientes(query, limit: limit);
+  }
+
   Future<List<Map<String, dynamic>>> getPlantas(String clienteId) async {
-    final allPlantas = await _precargaDb.getPlantas();
-    return allPlantas.where((p) => p['cliente_id'] == clienteId).toList();
+    return _precargaDb.getPlantasPorCliente(clienteId);
   }
 
   Future<List<Map<String, dynamic>>> getBalanzas(String? clienteCodigo, String? plantaCodigo) async {
@@ -123,7 +129,7 @@ class CalibrationRepository {
         prefix = '$clienteCodigo-$plantaCodigo';
       } else {
         // Fallback si no tenemos clienteCodigo pero la planta no tiene guion
-        prefix = plantaCodigo; 
+        prefix = plantaCodigo;
       }
       return await _precargaDb.getBalanzasPorPrefix(prefix);
     }
@@ -209,6 +215,25 @@ class CalibrationRepository {
     return await _db.getRegistrosPorSeca(seca);
   }
 
+  Future<Map<String, Map<String, dynamic>>> getUploadStatus(String seca) {
+    return _db.getCalibrationUploadStatus(seca);
+  }
+
+  Future<void> markRecordsUploaded(
+    List<Map<String, dynamic>> records, {
+    required String uploadedBy,
+  }) {
+    return _db.markCalibrationRecordsUploaded(
+      records,
+      uploadedBy: uploadedBy,
+    );
+  }
+
+  Future<void> updateSharedExportData(
+      String seca, Map<String, dynamic> values) {
+    return _db.updateCalibrationRecordsBySeca(seca, values);
+  }
+
   Future<void> createBackup(String testType) async {
     final mainPath = join(await getDatabasesPath(), 'metrica_service.db');
     final backupPath = join(await getDatabasesPath(), 'metrica_service_${testType}_backup.db');
@@ -219,4 +244,3 @@ class CalibrationRepository {
     }
   }
 }
-

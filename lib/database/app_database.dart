@@ -43,7 +43,8 @@ class AppDatabase {
 
       final List<Map<String, dynamic>> result = await db.query(
         'registros_calibracion',
-        where: 'cod_metrica = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
+        where:
+            'cod_metrica = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
         whereArgs: [codMetrica],
         orderBy: 'id DESC',
         limit: 1,
@@ -87,7 +88,8 @@ class AppDatabase {
 
       final List<Map<String, dynamic>> result = await db.query(
         'registros_calibracion',
-        where: 'cliente = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
+        where:
+            'cliente = ? AND (estado_servicio_bal IS NULL OR estado_servicio_bal = "")',
         whereArgs: [cliente],
         orderBy: 'fecha_servicio DESC',
       );
@@ -240,8 +242,6 @@ class AppDatabase {
     }
   }
 
-
-
   Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
     try {
       final db = await database;
@@ -330,7 +330,9 @@ class AppDatabase {
         path,
         version: 1,
         onCreate: _onCreate,
-        onOpen: (db) {
+        onOpen: (db) async {
+          await _createServicioStatusTable(db);
+          await _createCalibrationUploadStatusTable(db);
           debugPrint('Base de datos abierta correctamente: $path');
         },
       );
@@ -790,6 +792,7 @@ class AppDatabase {
       debugPrint('Tabla registros_calibracion creada exitosamente');
 
       await _createServicioStatusTable(db);
+      await _createCalibrationUploadStatusTable(db);
       debugPrint('Tabla servicio_status creada exitosamente');
     } catch (e) {
       debugPrint('Error creando tabla: $e');
@@ -812,6 +815,75 @@ class AppDatabase {
         PRIMARY KEY (seca, session_id)
       )
     ''');
+  }
+
+  Future<void> _createCalibrationUploadStatusTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS calibration_upload_status (
+        seca TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        codigo_registro TEXT NOT NULL,
+        server_n INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'uploaded',
+        uploaded_at TEXT NOT NULL,
+        uploaded_by TEXT DEFAULT '',
+        PRIMARY KEY (seca, session_id),
+        UNIQUE (codigo_registro)
+      )
+    ''');
+  }
+
+  Future<Map<String, Map<String, dynamic>>> getCalibrationUploadStatus(
+      String seca) async {
+    final db = await database;
+    final rows = await db.query(
+      'calibration_upload_status',
+      where: 'seca = ?',
+      whereArgs: [seca],
+    );
+    return {
+      for (final row in rows) row['session_id'].toString(): row,
+    };
+  }
+
+  Future<void> markCalibrationRecordsUploaded(
+    List<Map<String, dynamic>> records, {
+    required String uploadedBy,
+  }) async {
+    if (records.isEmpty) return;
+    final db = await database;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      final uploadedAt = DateTime.now().toIso8601String();
+      for (final record in records) {
+        batch.insert(
+          'calibration_upload_status',
+          {
+            'seca': record['seca'],
+            'session_id': record['session_id'],
+            'codigo_registro': record['codigo_registro'],
+            'server_n': record['server_n'],
+            'status': 'uploaded',
+            'uploaded_at': uploadedAt,
+            'uploaded_by': uploadedBy,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  Future<void> updateCalibrationRecordsBySeca(
+      String seca, Map<String, dynamic> values) async {
+    if (values.isEmpty) return;
+    final db = await database;
+    await db.update(
+      'registros_calibracion',
+      values,
+      where: 'seca = ?',
+      whereArgs: [seca],
+    );
   }
 
   // ─── servicio_status CRUD ────────────────────────────────────────────────
@@ -887,8 +959,7 @@ class AppDatabase {
     }
   }
 
-  Future<void> markServicioCompletado(
-      String seca, String sessionId) async {
+  Future<void> markServicioCompletado(String seca, String sessionId) async {
     try {
       final db = await database;
       await db.update(

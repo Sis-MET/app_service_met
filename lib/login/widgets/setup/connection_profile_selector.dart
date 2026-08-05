@@ -22,8 +22,7 @@ class ConnectionProfileSelector extends StatefulWidget {
       _ConnectionProfileSelectorState();
 }
 
-class _ConnectionProfileSelectorState
-    extends State<ConnectionProfileSelector> {
+class _ConnectionProfileSelectorState extends State<ConnectionProfileSelector> {
   @override
   Widget build(BuildContext context) {
     final profileService = context.watch<ConnectionProfileService>();
@@ -63,8 +62,7 @@ class _ConnectionProfileSelectorState
           width: double.infinity,
           child: OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor:
-                  widget.isDark ? Colors.white60 : Colors.black54,
+              foregroundColor: widget.isDark ? Colors.white60 : Colors.black54,
               side: BorderSide(
                 color: widget.isDark ? Colors.white24 : Colors.black12,
                 style: BorderStyle.solid,
@@ -110,6 +108,7 @@ class _ConnectionProfileSelectorState
         baseDatos: result['baseDatos']!,
         usuarioBD: result['usuarioBD']!,
         contrasenaBD: result['contrasenaBD']!,
+        apiUrl: result['apiUrl']!,
         esPredeterminado: false,
       );
       await service.guardarPerfil(nuevoPerfil);
@@ -138,6 +137,7 @@ class _ConnectionProfileSelectorState
         baseDatos: result['baseDatos'],
         usuarioBD: result['usuarioBD'],
         contrasenaBD: result['contrasenaBD'],
+        apiUrl: result['apiUrl'],
       );
       await service.guardarPerfil(editado);
     }
@@ -202,11 +202,11 @@ Future<Map<String, String>?> _showProfileEditorDialog({
 }) async {
   final nombreCtrl = TextEditingController(text: perfil?.nombre ?? '');
   final ipCtrl = TextEditingController(text: perfil?.ip ?? '');
-  final portCtrl =
-      TextEditingController(text: perfil?.puerto ?? '1433');
+  final portCtrl = TextEditingController(text: perfil?.puerto ?? '1433');
   final dbCtrl = TextEditingController(text: perfil?.baseDatos ?? '');
   final userCtrl = TextEditingController(text: perfil?.usuarioBD ?? '');
   final passCtrl = TextEditingController(text: perfil?.contrasenaBD ?? '');
+  final apiUrlCtrl = TextEditingController(text: perfil?.apiUrl ?? '');
   final formKey = GlobalKey<FormState>();
 
   final result = await showDialog<Map<String, String>>(
@@ -321,6 +321,25 @@ Future<Map<String, String>?> _showProfileEditorDialog({
                       (v == null || v.isEmpty) ? 'Requerido' : null,
                 ),
 
+                const SizedBox(height: 16),
+
+                _buildField(
+                  label: 'URL API Node.js',
+                  controller: apiUrlCtrl,
+                  icon: Icons.api_outlined,
+                  isDark: isDark,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final uri = Uri.tryParse(v.trim());
+                    if (uri == null ||
+                        !uri.hasAuthority ||
+                        (uri.scheme != 'http' && uri.scheme != 'https')) {
+                      return 'Ingrese una URL http(s) válida';
+                    }
+                    return null;
+                  },
+                ),
+
                 const SizedBox(height: 24),
 
                 SizedBox(
@@ -343,6 +362,10 @@ Future<Map<String, String>?> _showProfileEditorDialog({
                         'baseDatos': dbCtrl.text.trim(),
                         'usuarioBD': userCtrl.text.trim(),
                         'contrasenaBD': passCtrl.text.trim(),
+                        'apiUrl': (apiUrlCtrl.text.trim().isEmpty
+                                ? 'http://${ipCtrl.text.trim()}:3000'
+                                : apiUrlCtrl.text.trim())
+                            .replaceAll(RegExp(r'/+$'), ''),
                       });
                     },
                     child: Text(
@@ -368,6 +391,7 @@ Future<Map<String, String>?> _showProfileEditorDialog({
   dbCtrl.dispose();
   userCtrl.dispose();
   passCtrl.dispose();
+  apiUrlCtrl.dispose();
 
   return result;
 }
@@ -401,8 +425,7 @@ Widget _buildField({
           TextFormField(
             controller: controller,
             obscureText: isPassword && obscure,
-            keyboardType:
-                isNumber ? TextInputType.number : TextInputType.text,
+            keyboardType: isNumber ? TextInputType.number : TextInputType.text,
             style: GoogleFonts.inter(
               fontSize: 14,
               color: isDark ? Colors.white : Colors.black87,
@@ -414,9 +437,8 @@ Widget _buildField({
                 fontSize: 13,
               ),
               filled: true,
-              fillColor: isDark
-                  ? const Color(0xFF1A1A1A)
-                  : const Color(0xFFF5F7FA),
+              fillColor:
+                  isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF5F7FA),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
@@ -424,9 +446,8 @@ Widget _buildField({
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(
-                  color: isDark
-                      ? Colors.white24
-                      : Colors.black.withOpacity(0.15),
+                  color:
+                      isDark ? Colors.white24 : Colors.black.withOpacity(0.15),
                 ),
               ),
               contentPadding: const EdgeInsets.symmetric(
@@ -601,8 +622,8 @@ class _ProfileCard extends StatelessWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline, size: 18,
-                              color: Colors.red),
+                          Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red),
                           SizedBox(width: 10),
                           Text('Eliminar', style: TextStyle(color: Colors.red)),
                         ],

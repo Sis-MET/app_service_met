@@ -12,6 +12,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
 import '../../theme/app_colors.dart';
+import 'calibration_upload_screen.dart';
 
 class ServicioDetallesScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -68,7 +69,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   List<Map<String, dynamic>> _getFilteredItems({bool soloCompletos = false}) {
     if (!soloCompletos) return itemsEditados;
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    final estadoField = isCalibracion ? 'estado_servicio_bal' : 'estado_servicio';
+    final estadoField =
+        isCalibracion ? 'estado_servicio_bal' : 'estado_servicio';
     final estadoValor = isCalibracion ? 'Balanza Calibrada' : 'Completo';
     return itemsEditados.where((item) {
       final estado = item[estadoField]?.toString() ?? '';
@@ -89,10 +91,12 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         csvData.add(item.values.toList());
       }
 
-      final csv = const ListToCsvConverter(fieldDelimiter: ';').convert(csvData);
+      final csv =
+          const ListToCsvConverter(fieldDelimiter: ';').convert(csvData);
       final List<int> csvBytes = utf8.encode(csv);
 
-      final fileName = '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final fileName =
+          '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el respaldo',
@@ -108,14 +112,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleCheck,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Archivo guardado en: ${file.path}')),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -125,14 +131,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark, color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleXmark,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar: $e')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -154,7 +162,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           ? await PdfGenerator.generateCalibracionPdf(servicioFiltrado)
           : await PdfGenerator.generateSoportePdf(servicioFiltrado);
 
-      final fileName = 'Resumen_${servicioFiltrado.nombreTipo.replaceAll(" ", "_")}_${servicioFiltrado.prefijo}_${servicioFiltrado.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fileName =
+          'Resumen_${servicioFiltrado.nombreTipo.replaceAll(" ", "_")}_${servicioFiltrado.prefijo}_${servicioFiltrado.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
       final String? directoryPath = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el PDF',
@@ -170,14 +179,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleCheck, color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleCheck,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('PDF guardado en: ${file.path}')),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -187,21 +198,24 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark, color: Colors.white, size: 20),
+                const FaIcon(FontAwesomeIcons.circleXmark,
+                    color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar PDF: $e')),
               ],
             ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     }
   }
 
-  Future<void> _mostrarDialogoExportacion(BuildContext context, bool isPdf) async {
+  Future<void> _mostrarDialogoExportacion(
+      BuildContext context, bool isPdf) async {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     const Color primaryColor = Color(0xFF4CAF50);
@@ -213,8 +227,10 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            FaIcon(isPdf ? FontAwesomeIcons.filePdf : FontAwesomeIcons.fileExport,
-                color: primaryColor, size: 20),
+            FaIcon(
+                isPdf ? FontAwesomeIcons.filePdf : FontAwesomeIcons.fileExport,
+                color: primaryColor,
+                size: 20),
             const SizedBox(width: 12),
             Text(
               'Exportar ${isPdf ? "PDF" : "CSV"}',
@@ -228,13 +244,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         ),
         content: Text(
           '¿Desea exportar todos los registros o solo los completos?',
-          style: GoogleFonts.inter(fontSize: 14, color: cs.onSurface.withOpacity(0.7)),
+          style: GoogleFonts.inter(
+              fontSize: 14, color: cs.onSurface.withOpacity(0.7)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, 'todos'),
             child: Text('Todos los datos',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: cs.onSurface.withOpacity(0.6))),
+                style: GoogleFonts.inter(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface.withOpacity(0.6))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, 'completos'),
@@ -242,7 +261,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
             child: Text('Solo completos',
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
@@ -266,13 +286,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
-    
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     const Color primaryColor = Color(0xFF4CAF50);
-    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
-    
+    final icon = isCalibracion
+        ? FontAwesomeIcons.scaleBalanced
+        : FontAwesomeIcons.screwdriverWrench;
+
     final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
         camposConDatos['modelo']?.toString() ??
@@ -369,15 +390,17 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       BuildContext context, int index, Map<String, dynamic> item) {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    
+
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     const Color primaryColor = Color(0xFF4CAF50);
-    final icon = isCalibracion ? FontAwesomeIcons.scaleBalanced : FontAwesomeIcons.screwdriverWrench;
-    
-    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
-        
+    final icon = isCalibracion
+        ? FontAwesomeIcons.scaleBalanced
+        : FontAwesomeIcons.screwdriverWrench;
+
+    final bgColor =
+        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
         camposConDatos['modelo']?.toString() ??
@@ -394,8 +417,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         builder: (_, controller) => Container(
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             children: [
@@ -413,8 +435,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  border: Border(
-                      bottom: BorderSide(color: borderColor, width: 1)),
+                  border:
+                      Border(bottom: BorderSide(color: borderColor, width: 1)),
                 ),
                 child: Row(
                   children: [
@@ -538,9 +560,9 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final isDarkMode = cs.brightness == Brightness.dark;
-    
+
     const Color primaryColor = Color(0xFF4CAF50);
-    
+
     final bgColor =
         isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight;
     final cardColor = isDarkMode ? AppColors.cardDark : Colors.white;
@@ -565,6 +587,24 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             height: 1.1,
           ),
         ),
+        actions: [
+          if (widget.servicio.tipo == TipoServicio.calibracion)
+            TextButton.icon(
+              icon: const Icon(Icons.cloud_upload_outlined, size: 19),
+              label: const Text('Subir'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CalibrationUploadScreen(seca: widget.servicio.codigo),
+                ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: primaryColor,
+                textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -688,9 +728,9 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       BuildContext context, int index, Map<String, dynamic> item) {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    
+
     const Color primaryColor = Color(0xFF4CAF50);
-    
+
     final camposConDatos = _obtenerCamposConDatos(item);
     final Map<String, TextEditingController> controllers = {};
 
@@ -819,8 +859,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

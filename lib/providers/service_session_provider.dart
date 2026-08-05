@@ -234,7 +234,13 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   void updateCliente(ClienteInfo cliente) {
     if (_session == null) return;
-    _session = _session!.copyWith(cliente: cliente);
+    final anterior = _session!.cliente;
+    final cambioCliente =
+        anterior?.id != cliente.id || anterior?.isNew != cliente.isNew;
+    _session = _session!.copyWith(
+      cliente: cliente,
+      planta: cambioCliente ? PlantaInfo() : _session!.planta,
+    );
     notifyListeners();
     _scheduleAutoSave();
   }
@@ -877,6 +883,11 @@ class ServiceSessionProvider extends ChangeNotifier {
       debugPrint('Error exportando CSV: $e');
       return false;
     }
+  }
+
+  Future<void> persistSharedExportData(
+      String seca, Map<String, dynamic> values) async {
+    await _repository.updateSharedExportData(seca, values);
   }
 
   @override
