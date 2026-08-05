@@ -26,11 +26,12 @@ class _ClienteStepState extends State<ClienteStep> {
 
   bool _isNewClient = false;
   bool _showQrBanner = true;
-  List<Map<String, dynamic>>? _allClientes;
   List<Map<String, dynamic>>? _filteredClientes;
   Timer? _debounce;
   bool _isSearchEmpty = true;
   bool _isLoading = false;
+  bool _isSearching = false;
+  int _searchRequest = 0;
   String? _errorMessage;
 
   @override
@@ -48,38 +49,29 @@ class _ClienteStepState extends State<ClienteStep> {
   }
 
   Future<void> _loadClientes() async {
+    final request = ++_searchRequest;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final clientes = await _repository.getClientes();
+      final clientes = await _repository.searchClientes('', limit: 50);
 
-      final processedClientes = clientes.map((c) {
-        final newMap = Map<String, dynamic>.from(c);
-        final nombre = c['cliente']?.toString().toLowerCase() ?? '';
-        final razon = c['razonsocial']?.toString().toLowerCase() ?? '';
-        newMap['_searchKey'] = '$nombre $razon';
-        return newMap;
-      }).toList();
-
-      if (mounted) {
+      if (mounted && request == _searchRequest) {
         setState(() {
-          _allClientes = processedClientes;
-          _filteredClientes = processedClientes;
+          _filteredClientes = clientes;
         });
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && request == _searchRequest) {
         setState(() {
-          _allClientes = [];
           _filteredClientes = [];
           _errorMessage = 'Error al cargar clientes: $e';
         });
       }
     } finally {
-      if (mounted) {
+      if (mounted && request == _searchRequest) {
         setState(() {
           _isLoading = false;
         });
@@ -89,28 +81,34 @@ class _ClienteStepState extends State<ClienteStep> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+    final request = ++_searchRequest;
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      _filterClientes(query);
+      _filterClientes(query, request);
     });
   }
 
-  void _filterClientes(String query) {
-    if (_allClientes == null) return;
-
-    final search = query.toLowerCase().trim();
-    if (search.isEmpty) {
+  Future<void> _filterClientes(String query, int request) async {
+    if (mounted) {
       setState(() {
-        _filteredClientes = _allClientes;
+        _isLoading = false;
+        _isSearching = true;
       });
-      return;
     }
-
-    setState(() {
-      _filteredClientes = _allClientes!.where((c) {
-        final searchKey = c['_searchKey'] as String? ?? '';
-        return searchKey.contains(search);
-      }).toList();
-    });
+    try {
+      final results = await _repository.searchClientes(query.trim(), limit: 50);
+      if (!mounted || request != _searchRequest) return;
+      setState(() {
+        _filteredClientes = results;
+        _isSearching = false;
+        _errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted || request != _searchRequest) return;
+      setState(() {
+        _isSearching = false;
+        _errorMessage = 'Error al buscar clientes: $error';
+      });
+    }
   }
 
   @override
@@ -214,9 +212,9 @@ class _ClienteStepState extends State<ClienteStep> {
               setState(() {
                 _isNewClient = false;
                 _searchController.clear();
-                _filterClientes('');
                 provider.updateCliente(ClienteInfo());
               });
+              _onSearchChanged('');
             },
           ),
           _modeTab(
@@ -475,6 +473,11 @@ class _ClienteStepState extends State<ClienteStep> {
         ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.2),
         const SizedBox(height: 12),
 
+        if (_isSearching) ...[
+          const LinearProgressIndicator(minHeight: 2),
+          const SizedBox(height: 10),
+        ],
+
         // Client list
         if (_isLoading)
           _buildLoadingState(isDark)
@@ -595,8 +598,8 @@ class _ClienteStepState extends State<ClienteStep> {
         final cliente = _filteredClientes![index];
         final isSelected =
             provider.session?.cliente?.id == cliente['cliente_id']?.toString();
-        final nombre = cliente['cliente'] ?? 'Cliente desconocido';
-        final razon = cliente['razonsocial'] ?? '';
+        final nombre = cliente['cliente']?.toString() ?? 'Cliente desconocido';
+        final razon = cliente['razonsocial']?.toString() ?? '';
         final initials = nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
 
         return GestureDetector(
@@ -716,10 +719,7 @@ class _ClienteStepState extends State<ClienteStep> {
               ],
             ),
           ),
-        )
-            .animate(delay: Duration(milliseconds: 50 * index))
-            .fadeIn()
-            .slideX(begin: 0.05);
+        );
       },
     );
   }

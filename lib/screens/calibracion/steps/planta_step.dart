@@ -23,18 +23,29 @@ class _PlantaStepState extends State<PlantaStep> {
   List<Map<String, dynamic>>? _plantas;
   bool _isLoading = false;
   bool _isNewPlanta = false;
+  String? _loadedClienteKey;
+  bool _loadScheduled = false;
+  int _loadRequest = 0;
 
-  @override
-  void initState() {
-    super.initState();
+  String? _clienteKey(ClienteInfo? cliente) {
+    if (cliente == null) return null;
+    if (cliente.isNew == true) return '__nuevo__';
+    return cliente.id;
+  }
+
+  void _scheduleLoad(ClienteInfo? cliente) {
+    final key = _clienteKey(cliente);
+    if (_loadScheduled || key == _loadedClienteKey) return;
+    _loadScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadPlantas();
+      _loadScheduled = false;
+      if (mounted) _loadPlantas(cliente);
     });
   }
 
-  void _loadPlantas() async {
-    final provider = context.read<ServiceSessionProvider>();
-    final cliente = provider.session?.cliente;
+  Future<void> _loadPlantas(ClienteInfo? cliente) async {
+    final request = ++_loadRequest;
+    _loadedClienteKey = _clienteKey(cliente);
 
     // Si el cliente es nuevo, forzamos la creación de planta nueva
     if (cliente?.isNew == true) {
@@ -47,19 +58,26 @@ class _PlantaStepState extends State<PlantaStep> {
 
     if (cliente != null && cliente.id != null) {
       setState(() => _isLoading = true);
-      final result = await _repository.getPlantas(cliente.id!);
-      if (mounted) {
+      try {
+        final result = await _repository.getPlantas(cliente.id!);
+        if (!mounted || request != _loadRequest) return;
         setState(() {
           _plantas = result;
           _isLoading = false;
-          // Si no hay plantas, forzamos a crear una nueva
-          if (result.isEmpty) {
-            _isNewPlanta = true;
-          }
+          _isNewPlanta = result.isEmpty;
+        });
+      } catch (_) {
+        if (!mounted || request != _loadRequest) return;
+        setState(() {
+          _plantas = [];
+          _isLoading = false;
         });
       }
     } else {
-      setState(() => _plantas = []);
+      setState(() {
+        _plantas = [];
+        _isLoading = false;
+      });
     }
   }
 
@@ -78,6 +96,7 @@ class _PlantaStepState extends State<PlantaStep> {
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, child) {
         final cliente = provider.session?.cliente;
+        _scheduleLoad(cliente);
         final isNewClient = cliente?.isNew ?? false;
         final selectedPlanta = provider.session?.planta;
         final hasSelection =

@@ -50,7 +50,19 @@ class DatabaseHelperPrecarga {
       path,
       version: 1,
       onCreate: _onCreate,
+      onOpen: _onOpen,
       readOnly: false, // Asegúrate de que no esté en modo solo lectura
+    );
+  }
+
+  Future<void> _onOpen(Database db) async {
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_clientes_nombre '
+      'ON clientes(cliente COLLATE NOCASE)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_plantas_cliente '
+      'ON plantas(cliente_id)',
     );
   }
 
@@ -239,10 +251,19 @@ class DatabaseHelperPrecarga {
     int limit = 100,
   }) async {
     final db = await database;
-    final pattern = '%${query.trim()}%';
+    final normalized = query.trim();
+    if (normalized.isEmpty) {
+      return db.query(
+        'clientes',
+        orderBy: 'cliente COLLATE NOCASE',
+        limit: limit,
+      );
+    }
+    final pattern = '%$normalized%';
     return db.query(
       'clientes',
-      where: 'cliente LIKE ? COLLATE NOCASE OR razonsocial LIKE ? COLLATE NOCASE',
+      where:
+          'cliente LIKE ? COLLATE NOCASE OR razonsocial LIKE ? COLLATE NOCASE',
       whereArgs: [pattern, pattern],
       orderBy: 'cliente COLLATE NOCASE',
       limit: limit,
@@ -252,6 +273,18 @@ class DatabaseHelperPrecarga {
   Future<List<Map<String, dynamic>>> getPlantas() async {
     final db = await database;
     return await db.query('plantas');
+  }
+
+  Future<List<Map<String, dynamic>>> getPlantasPorCliente(
+    String clienteId,
+  ) async {
+    final db = await database;
+    return db.query(
+      'plantas',
+      where: 'cliente_id = ?',
+      whereArgs: [clienteId],
+      orderBy: 'planta COLLATE NOCASE',
+    );
   }
 
   Future<List<Map<String, dynamic>>> getBalanzas() async {

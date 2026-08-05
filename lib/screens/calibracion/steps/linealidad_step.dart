@@ -42,6 +42,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
   final _notaCtrl = TextEditingController();
   final ImagePicker _picker = ImagePicker();
   List<String> _fotosPaths = [];
+  bool _isTakingFoto = false;
 
   List<TextEditingController> _cargaCtrls = [];
   List<TextEditingController> _indCtrls = [];
@@ -62,9 +63,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
     if (lin == null) return;
 
     _notaCtrl.text = lin.nota ?? '';
-    _metodoCarga = _metodoCargaOptions.contains(lin.metodo)
-        ? lin.metodo
-        : null;
+    _metodoCarga = _metodoCargaOptions.contains(lin.metodo) ? lin.metodo : null;
     _metodoCargasSustitutivas =
         _metodoCargasSustitutivasOptions.contains(lin.metodoCarga)
             ? lin.metodoCarga
@@ -128,8 +127,8 @@ class _LinealidadStepState extends State<LinealidadStep> {
     }
 
     if (linValues.isEmpty) {
-      TopAlert.show(context,
-          'No hay datos del servicio anterior para Linealidad');
+      TopAlert.show(
+          context, 'No hay datos del servicio anterior para Linealidad');
       return;
     }
 
@@ -143,10 +142,10 @@ class _LinealidadStepState extends State<LinealidadStep> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Linealidad - Servicio anterior'),
-        content: Text(
-            'Se encontraron cargas registradas del servicio anterior:\n\n'
-            '${linValues.join(', ')}\n\n'
-            '¿Desea usar estos valores?'),
+        content:
+            Text('Se encontraron cargas registradas del servicio anterior:\n\n'
+                '${linValues.join(', ')}\n\n'
+                '¿Desea usar estos valores?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -315,22 +314,29 @@ class _LinealidadStepState extends State<LinealidadStep> {
   }
 
   Future<void> _takeFoto() async {
+    if (_isTakingFoto) return;
+
     final provider = context.read<ServiceSessionProvider>();
     final seca = provider.session?.sessionInfo.seca;
     final codMetrica = provider.session?.balanza?.codMetrica;
 
-    if (seca == null || seca.isEmpty || codMetrica == null || codMetrica.isEmpty) {
-      TopAlert.show(context, 'Debe seleccionar un instrumento primero', isError: true);
+    if (seca == null ||
+        seca.isEmpty ||
+        codMetrica == null ||
+        codMetrica.isEmpty) {
+      TopAlert.show(context, 'Debe seleccionar un instrumento primero',
+          isError: true);
       return;
     }
 
-    if (!await FotoHelper.isConfigured()) {
-      if (!mounted) return;
-      final configured = await FotoStorageDialog.show(context);
-      if (!configured || !mounted) return;
-    }
-
+    setState(() => _isTakingFoto = true);
     try {
+      if (!await FotoHelper.isConfigured()) {
+        if (!mounted) return;
+        final configured = await FotoStorageDialog.show(context);
+        if (!configured || !mounted) return;
+      }
+
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
         imageQuality: 85,
@@ -342,23 +348,48 @@ class _LinealidadStepState extends State<LinealidadStep> {
 
       setState(() => _fotosPaths.add(savedPath));
       _saveToProvider();
+    } on PlatformException catch (e) {
+      if (mounted) {
+        TopAlert.show(
+          context,
+          e.code == 'camera_access_denied'
+              ? 'No se concedió permiso para usar la cámara'
+              : 'No se pudo abrir la cámara. Intente nuevamente.',
+          isError: true,
+        );
+      }
+    } on FileSystemException {
+      await FotoHelper.reset();
+      if (mounted) {
+        TopAlert.show(
+          context,
+          'No se pudo guardar la foto. Seleccione nuevamente la carpeta de almacenamiento.',
+          isError: true,
+        );
+      }
     } catch (e) {
       if (mounted) {
-        TopAlert.show(context, 'Error al tomar foto: $e', isError: true);
+        TopAlert.show(context, 'No se pudo registrar la fotografía',
+            isError: true);
       }
+    } finally {
+      if (mounted) setState(() => _isTakingFoto = false);
     }
   }
 
   void _viewFoto(String path) {
     if (!File(path).existsSync()) {
-      TopAlert.show(context, 'La foto ya no existe en el dispositivo', isError: true);
+      TopAlert.show(context, 'La foto ya no existe en el dispositivo',
+          isError: true);
       return;
     }
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+          appBar: AppBar(
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(color: Colors.white)),
           body: Container(
             color: Colors.black,
             child: PhotoView(imageProvider: FileImage(File(path))),
@@ -1224,9 +1255,12 @@ class _LinealidadStepState extends State<LinealidadStep> {
         context.read<ServiceSessionProvider>().session?.sessionInfo.seca;
     final codMetrica =
         context.read<ServiceSessionProvider>().session?.balanza?.codMetrica;
-    final canTakePhoto = _fotosPaths.length < 5 &&
-        seca != null && seca.isNotEmpty &&
-        codMetrica != null && codMetrica.isNotEmpty;
+    final canTakePhoto = !_isTakingFoto &&
+        _fotosPaths.length < 5 &&
+        seca != null &&
+        seca.isNotEmpty &&
+        codMetrica != null &&
+        codMetrica.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1263,7 +1297,8 @@ class _LinealidadStepState extends State<LinealidadStep> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
+        color:
+            isDark ? Colors.white.withOpacity(0.03) : const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
