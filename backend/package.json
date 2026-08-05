@@ -1,0 +1,19 @@
+{
+  "name": "servicemet-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API interna para sincronizar servicios de ServiceMET con DataMET.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "mssql": "^12.5.5"
+  }
+}
