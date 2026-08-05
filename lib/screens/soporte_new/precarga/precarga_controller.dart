@@ -42,56 +42,64 @@ class PrecargaController extends ChangeNotifier {
   static const List<ServicioInfo> serviciosDisponibles = [
     ServicioInfo(
       nombre: 'MNT PREVENTIVO REGULAR',
-      descripcion: 'Mantenimiento preventivo periódico básico y limpieza general del equipo.',
+      descripcion:
+          'Mantenimiento preventivo periódico básico y limpieza general del equipo.',
       icon: Icons.build_circle_outlined,
       color: Color(0xFFE65100),
       tag: 'PREVENTIVO',
     ),
     ServicioInfo(
       nombre: 'MNT PREVENTIVO AVANZADO',
-      descripcion: 'Mantenimiento preventivo profundo con inspección detallada de componentes.',
+      descripcion:
+          'Mantenimiento preventivo profundo con inspección detallada de componentes.',
       icon: Icons.handyman_outlined,
       color: Color(0xFFBF360C),
       tag: 'AVANZADO',
     ),
     ServicioInfo(
       nombre: 'MANTENIMIENTO CORRECTIVO',
-      descripcion: 'Reparación de fallas, reemplazo de repuestos o ajustes por avería.',
+      descripcion:
+          'Reparación de fallas, reemplazo de repuestos o ajustes por avería.',
       icon: Icons.healing_outlined,
       color: Color(0xFFC62828),
       tag: 'CORRECTIVO',
     ),
     ServicioInfo(
       nombre: 'DIAGNÓSTICO',
-      descripcion: 'Evaluación técnica inicial para determinar el estado y fallas del equipo.',
+      descripcion:
+          'Evaluación técnica inicial para determinar el estado y fallas del equipo.',
       icon: Icons.search_rounded,
       color: Color(0xFF00838F),
       tag: 'EVALUACIÓN',
     ),
     ServicioInfo(
       nombre: 'VERIFICACIONES INTERNAS',
-      descripcion: 'Comprobación interna de tolerancias y rendimiento del instrumento.',
+      descripcion:
+          'Comprobación interna de tolerancias y rendimiento del instrumento.',
       icon: Icons.fact_check_outlined,
       color: Color(0xFF46824B),
       tag: 'VERIFICACIÓN',
     ),
     ServicioInfo(
       nombre: 'RELEVAMIENTO DE DATOS',
-      descripcion: 'Toma de datos técnicos y levantamiento de inventario en planta.',
+      descripcion:
+          'Toma de datos técnicos y levantamiento de inventario en planta.',
       icon: Icons.assignment_outlined,
       color: Color(0xFF6A1B9A),
       tag: 'INVENTARIO',
     ),
     ServicioInfo(
       nombre: 'INSTALACIÓN',
-      descripcion: 'Puesta en marcha, montaje y configuración inicial en ubicación final.',
+      descripcion:
+          'Puesta en marcha, montaje y configuración inicial en ubicación final.',
       icon: Icons.precision_manufacturing_outlined,
       color: Color(0xFF2E7D32),
       tag: 'INSTALACIÓN',
     ),
     ServicioInfo(
       nombre: 'AJUSTE DE VERIFICACIONES',
-      descripcion: 'Calibración interna, ajuste de cero, span o linealidad según norma.',
+      descripcion:
+          'Calibración interna, ajuste de cero, span o linealidad según norma.',
       icon: Icons.tune_rounded,
       color: Color(0xFF4A148C),
       tag: 'AJUSTE',
@@ -149,8 +157,7 @@ class PrecargaController extends ChangeNotifier {
     return _mapClientes(result);
   }
 
-  List<Map<String, dynamic>> _mapClientes(
-      List<Map<String, dynamic>> rows) {
+  List<Map<String, dynamic>> _mapClientes(List<Map<String, dynamic>> rows) {
     return rows.map((row) {
       final nombre = row['cliente']?.toString() ?? 'Sin nombre';
       final razon = row['razonsocial']?.toString() ?? '';
@@ -168,12 +175,15 @@ class PrecargaController extends ChangeNotifier {
     _setLoading(true);
     try {
       final todas = await _precargaDb.getPlantas();
-      final result = todas.where((p) => p['cliente_id']?.toString() == clienteId).toList();
-      plantas = result.map((row) => {
-        ...row,
-        'nombre': row['planta'] ?? 'Sin nombre',
-        'codigo': row['codigo_planta'] ?? '',
-      }).toList();
+      final result =
+          todas.where((p) => p['cliente_id']?.toString() == clienteId).toList();
+      plantas = result
+          .map((row) => {
+                ...row,
+                'nombre': row['planta'] ?? 'Sin nombre',
+                'codigo': row['codigo_planta'] ?? '',
+              })
+          .toList();
       errorMessage = null;
     } catch (e) {
       errorMessage = 'Error al cargar plantas: $e';
@@ -214,8 +224,7 @@ class PrecargaController extends ChangeNotifier {
   Future<bool> checkSecaExists(String seca) async {
     if (seca.isEmpty) return false;
     try {
-      final registros =
-          await _soporteDb.getRegistrosPorSeca('precarga', seca);
+      final registros = await _soporteDb.getRegistrosPorSeca('precarga', seca);
       return registros.isNotEmpty;
     } catch (_) {
       return false;
@@ -240,10 +249,14 @@ class PrecargaController extends ChangeNotifier {
     _setLoading(true);
     try {
       final result = await _precargaDb.getBalanzasPorPrefix(plantaCodigo!);
-      instrumentos = result.map((row) => {
-        ...row,
-        'descripcion': row['instrumento']?.toString() ?? row['cod_metrica']?.toString() ?? 'Sin descripción',
-      }).toList();
+      instrumentos = result
+          .map((row) => {
+                ...row,
+                'descripcion': row['instrumento']?.toString() ??
+                    row['cod_metrica']?.toString() ??
+                    'Sin descripción',
+              })
+          .toList();
       errorMessage = null;
     } catch (e) {
       errorMessage = 'Error al cargar instrumentos: $e';
@@ -292,7 +305,8 @@ class PrecargaController extends ChangeNotifier {
 
   void selectPlanta(Map<String, dynamic> planta) {
     selectedPlanta = planta;
-    plantaCodigo = planta['codigo_planta']?.toString() ?? planta['codigo']?.toString();
+    plantaCodigo =
+        planta['codigo_planta']?.toString() ?? planta['codigo']?.toString();
     selectedSeca = null;
     secaConfirmed = false;
     selectedInstrumento = null;
@@ -303,13 +317,15 @@ class PrecargaController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectInstrumento(Map<String, dynamic> instrumento) {
+  void selectInstrumento(Map<String, dynamic> instrumento,
+      {bool notify = true}) {
     selectedInstrumentoData = instrumento;
-    selectedInstrumento = instrumento['cod_metrica']?.toString() ?? instrumento['codigo']?.toString();
+    selectedInstrumento = instrumento['cod_metrica']?.toString() ??
+        instrumento['codigo']?.toString();
     nReca = instrumento['n_reca']?.toString();
     codMetrica = selectedInstrumento;
     stepErrors[4] = null;
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
   void setStep(int step) {
@@ -329,15 +345,28 @@ class PrecargaController extends ChangeNotifier {
   String? getStepError(int step) {
     switch (step) {
       case 0:
-        return selectedServicio == null ? 'Seleccione un tipo de servicio' : null;
+        return selectedServicio == null
+            ? 'Seleccione un tipo de servicio'
+            : null;
       case 1:
         return selectedCliente == null ? 'Seleccione un cliente' : null;
       case 2:
         return selectedPlanta == null ? 'Seleccione una planta' : null;
       case 3:
-        return (!secaConfirmed || selectedSeca == null) ? 'Debe confirmar la OTST' : null;
+        return (!secaConfirmed || selectedSeca == null)
+            ? 'Debe confirmar la OTST'
+            : null;
       case 4:
-        return selectedInstrumento == null ? 'Seleccione un instrumento' : null;
+        if (selectedInstrumento == null) {
+          return selectedServicio == 'INSTALACIÓN'
+              ? 'Debe registrar una balanza nueva para la instalación'
+              : 'Seleccione un instrumento';
+        }
+        if (selectedServicio == 'INSTALACIÓN' &&
+            selectedInstrumentoData?['isNew'] != true) {
+          return 'Instalación solo admite una balanza nueva';
+        }
+        return null;
       case 5:
         return null;
       default:
@@ -376,8 +405,7 @@ class PrecargaController extends ChangeNotifier {
 
     await loadClientes();
     final cliente = clientes.firstWhere(
-      (c) =>
-          (c['cliente_id']?.toString() ?? c['id']?.toString()) == clienteId,
+      (c) => (c['cliente_id']?.toString() ?? c['id']?.toString()) == clienteId,
       orElse: () => <String, dynamic>{},
     );
     if (cliente.isNotEmpty) {
