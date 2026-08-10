@@ -247,12 +247,14 @@ class AppDatabase {
   Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
     try {
       final db = await database;
-      return await db.query(
-        'registros_calibracion',
-        where: 'seca = ?',
-        whereArgs: [seca],
-        orderBy: 'fecha_servicio DESC, session_id DESC',
-      );
+      return await db.rawQuery('''
+        SELECT r.*, s.nombre_csv, s.finalized_at
+        FROM registros_calibracion r
+        LEFT JOIN servicio_status s
+          ON r.seca = s.seca AND r.session_id = s.session_id
+        WHERE r.seca = ?
+        ORDER BY r.fecha_servicio DESC, r.session_id DESC
+      ''', [seca]);
     } catch (e) {
       debugPrint('Error al obtener registros por SECA: $e');
       return [];
@@ -335,6 +337,7 @@ class AppDatabase {
         onCreate: _onCreate,
         onOpen: (db) async {
           await _createServicioStatusTable(db);
+          await _ensureServicioStatusColumns(db);
           await _createCalibrationUploadStatusTable(db);
           debugPrint('Base de datos abierta correctamente: $path');
         },
@@ -795,6 +798,7 @@ class AppDatabase {
       debugPrint('Tabla registros_calibracion creada exitosamente');
 
       await _createServicioStatusTable(db);
+      await _ensureServicioStatusColumns(db);
       await _createCalibrationUploadStatusTable(db);
       debugPrint('Tabla servicio_status creada exitosamente');
     } catch (e) {
@@ -813,11 +817,26 @@ class AppDatabase {
         seca_confirmed INTEGER DEFAULT 0,
         balanza_confirmed INTEGER DEFAULT 0,
         status TEXT DEFAULT 'in_progress',
+        nombre_csv TEXT,
+        finalized_at TEXT,
         created_at TEXT DEFAULT '',
         updated_at TEXT DEFAULT '',
         PRIMARY KEY (seca, session_id)
       )
     ''');
+  }
+
+  Future<void> _ensureServicioStatusColumns(Database db) async {
+    final columns = await db.rawQuery('PRAGMA table_info(servicio_status)');
+    final names = columns.map((column) => column['name']?.toString()).toSet();
+    if (!names.contains('nombre_csv')) {
+      await db
+          .execute('ALTER TABLE servicio_status ADD COLUMN nombre_csv TEXT');
+    }
+    if (!names.contains('finalized_at')) {
+      await db
+          .execute('ALTER TABLE servicio_status ADD COLUMN finalized_at TEXT');
+    }
   }
 
   Future<void> _createCalibrationUploadStatusTable(Database db) async {
@@ -888,6 +907,43 @@ class AppDatabase {
       where: 'seca = ?',
       whereArgs: [seca],
     );
+  }
+
+  Future<void> finalizeCalibrationRecords({
+    required String seca,
+    required Iterable<String> sessionIds,
+    required String nombreCsv,
+    required String finalizedAt,
+  }) async {
+    final ids = sessionIds.where((id) => id.isNotEmpty).toSet();
+    if (ids.isEmpty) return;
+    final db = await database;
+    await db.transaction((txn) async {
+      for (final sessionId in ids) {
+        final affected = await txn.update(
+          'servicio_status',
+          {
+            'status': 'completed',
+            'nombre_csv': nombreCsv,
+            'finalized_at': finalizedAt,
+            'updated_at': finalizedAt,
+          },
+          where: 'seca = ? AND session_id = ?',
+          whereArgs: [seca, sessionId],
+        );
+        if (affected == 0) {
+          await txn.insert('servicio_status', {
+            'seca': seca,
+            'session_id': sessionId,
+            'status': 'completed',
+            'nombre_csv': nombreCsv,
+            'finalized_at': finalizedAt,
+            'created_at': finalizedAt,
+            'updated_at': finalizedAt,
+          });
+        }
+      }
+    });
   }
 
   Future<void> updateRegistroCalibracion(

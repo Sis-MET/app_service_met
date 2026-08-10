@@ -152,7 +152,7 @@ class _CalibrationWorkspaceScreenState
           icon: Icons.check_circle,
           isAccessible: hasSeca),
       StepData(
-          title: 'Exportar',
+          title: 'Finalizar',
           subtitle: 'Reporte',
           icon: Icons.download,
           isAccessible: hasSeca),

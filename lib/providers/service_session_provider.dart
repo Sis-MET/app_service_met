@@ -1,13 +1,8 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
-import 'package:service_met/utils/foto_helper.dart';
 
 class ServiceSessionProvider extends ChangeNotifier {
   final CalibrationRepository _repository;
@@ -32,7 +27,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   // vuelve directo a condiciones finales (paso 10) en vez de paso 6
   bool _returnToCondicionesFinales = false;
 
-  // Navigation flag: indica que el usuario agregó otra balanza desde exportación
+  // Navigation flag: indica que el usuario agregó otra balanza desde finalización
   bool _addingNuevaBalanza = false;
 
   ServiceSessionProvider(this._repository);
@@ -98,8 +93,7 @@ class ServiceSessionProvider extends ChangeNotifier {
         resolvedStatus = status;
       } else {
         final existing = await _repository.loadProgress(seca, sessionId);
-        resolvedStatus =
-            existing?['status']?.toString() ?? 'in_progress';
+        resolvedStatus = existing?['status']?.toString() ?? 'in_progress';
       }
 
       await _repository.saveProgress(
@@ -136,7 +130,8 @@ class ServiceSessionProvider extends ChangeNotifier {
     }
 
     // Crear/actualizar entrada de progreso al iniciar
-    if (_session != null && _session!.sessionInfo.seca != null &&
+    if (_session != null &&
+        _session!.sessionInfo.seca != null &&
         _session!.sessionInfo.sessionId != null) {
       await _saveCurrentProgress();
     }
@@ -422,9 +417,9 @@ class ServiceSessionProvider extends ChangeNotifier {
     // 1. Buscar y auto-seleccionar cliente
     final clientes = await _repository.getClientes();
     final clienteMatch = clientes.cast<Map<String, dynamic>?>().firstWhere(
-      (c) => c?['codigo_cliente']?.toString().trim() == codigoCliente,
-      orElse: () => null,
-    );
+          (c) => c?['codigo_cliente']?.toString().trim() == codigoCliente,
+          orElse: () => null,
+        );
 
     if (clienteMatch == null) {
       _isQrMode = false;
@@ -441,12 +436,13 @@ class ServiceSessionProvider extends ChangeNotifier {
     ));
 
     // 2. Buscar y auto-seleccionar planta
-    final allPlantas = await _repository.getPlantas(clienteMatch['cliente_id']?.toString() ?? '');
+    final allPlantas = await _repository
+        .getPlantas(clienteMatch['cliente_id']?.toString() ?? '');
 
     final plantaMatch = allPlantas.cast<Map<String, dynamic>?>().firstWhere(
-      (p) => p?['codigo_planta']?.toString().trim() == codigoPlanta,
-      orElse: () => null,
-    );
+          (p) => p?['codigo_planta']?.toString().trim() == codigoPlanta,
+          orElse: () => null,
+        );
 
     if (plantaMatch == null) {
       _isQrMode = false;
@@ -455,7 +451,8 @@ class ServiceSessionProvider extends ChangeNotifier {
     }
 
     updatePlanta(PlantaInfo(
-      id: plantaMatch['planta_id']?.toString() ?? plantaMatch['unique_key']?.toString(),
+      id: plantaMatch['planta_id']?.toString() ??
+          plantaMatch['unique_key']?.toString(),
       codigo: codigoPlanta,
       nombre: plantaMatch['planta']?.toString(),
       direccion: plantaMatch['dir']?.toString(),
@@ -477,9 +474,9 @@ class ServiceSessionProvider extends ChangeNotifier {
     final balanzas = await _repository.getBalanzas(clienteCod, plantaCod);
 
     final balanzaMatch = balanzas.cast<Map<String, dynamic>?>().firstWhere(
-      (b) => b?['cod_metrica']?.toString().trim() == _qrCodMetrica?.trim(),
-      orElse: () => null,
-    );
+          (b) => b?['cod_metrica']?.toString().trim() == _qrCodMetrica?.trim(),
+          orElse: () => null,
+        );
 
     if (balanzaMatch == null) {
       return 'El código QR no pertenece al cliente y planta seleccionados';
@@ -491,10 +488,12 @@ class ServiceSessionProvider extends ChangeNotifier {
       tecnologia: balanzaMatch['tecnologia']?.toString(),
       clase: balanzaMatch['clase']?.toString(),
       codInterno: balanzaMatch['cod_interno']?.toString(),
-      tipo: balanzaMatch['tipo_instrumento']?.toString() ?? balanzaMatch['instrumento']?.toString(),
+      tipo: balanzaMatch['tipo_instrumento']?.toString() ??
+          balanzaMatch['instrumento']?.toString(),
       marca: balanzaMatch['marca']?.toString(),
       modelo: balanzaMatch['modelo']?.toString(),
-      serie: balanzaMatch['inf_serie']?.toString() ?? balanzaMatch['serie']?.toString(),
+      serie: balanzaMatch['inf_serie']?.toString() ??
+          balanzaMatch['serie']?.toString(),
       unidad: balanzaMatch['unidad']?.toString(),
       ubicacion: balanzaMatch['ubicacion']?.toString(),
       rango: balanzaMatch['rango']?.toString(),
@@ -814,7 +813,7 @@ class ServiceSessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Exportación ---
+  // --- Finalización ---
 
   Future<List<Map<String, dynamic>>> getRegistrosCompletos(String seca,
       {bool soloHoy = false}) async {
@@ -828,66 +827,23 @@ class ServiceSessionProvider extends ChangeNotifier {
     return registros;
   }
 
-  Future<bool> exportToCSV(
-    List<Map<String, dynamic>> registros,
-  ) async {
-    if (registros.isEmpty) return false;
-
-    try {
-      final columnas = registros.first.keys.toList();
-      final buffer = StringBuffer();
-
-      // Header
-      buffer.writeln(columnas.join(';'));
-
-      // Data rows
-      for (final row in registros) {
-        final valores = columnas.map((c) {
-          final v = row[c];
-          if (v == null) return '';
-          final s = v.toString();
-          // Escapar punto y coma y comillas
-          if (s.contains(';') || s.contains('"')) {
-            return '"${s.replaceAll('"', '""')}"';
-          }
-          return s;
-        });
-        buffer.writeln(valores.join(';'));
-      }
-
-      final bytes = utf8.encode('\uFEFF${buffer.toString()}');
-
-      // Guardar junto a las fotos: {baseFotos}/calibracion_fotos/{seca}/
-      final fecha = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final seca = _session?.sessionInfo.seca ?? 'SIN_SECA';
-      String dirPath;
-      try {
-        final baseFotos = await FotoHelper.getBaseDir();
-        dirPath = p.join(baseFotos.path, seca);
-      } catch (_) {
-        final appDir = await getApplicationDocumentsDirectory();
-        dirPath = p.join(appDir.path, 'calibracion_csv', seca);
-      }
-      final dir = Directory(dirPath);
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-
-      final fileName = '${seca}_$fecha.csv';
-      final file = File(p.join(dir.path, fileName));
-      await file.writeAsBytes(bytes);
-
-      debugPrint('CSV exportado exitosamente: ${file.path}');
-      return true;
-    } catch (e) {
-      debugPrint('Error exportando CSV: $e');
-      return false;
-    }
-  }
-
   Future<void> persistSharedExportData(
       String seca, Map<String, dynamic> values) async {
     await _repository.updateSharedExportData(seca, values);
+  }
+
+  Future<void> finalizeCalibrationRecords({
+    required String seca,
+    required Iterable<String> sessionIds,
+    required String nombreCsv,
+    required DateTime finalizedAt,
+  }) {
+    return _repository.finalizeCalibrationRecords(
+      seca: seca,
+      sessionIds: sessionIds,
+      nombreCsv: nombreCsv,
+      finalizedAt: finalizedAt.toIso8601String(),
+    );
   }
 
   @override

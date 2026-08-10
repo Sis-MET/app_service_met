@@ -105,7 +105,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
     await provider.resetearParaNuevaBalanza();
   }
 
-  Future<void> _exportar(ServiceSessionProvider provider) async {
+  Future<void> _finalizar(ServiceSessionProvider provider) async {
     _saveToProvider();
     await provider.flushAutoSave();
 
@@ -114,95 +114,14 @@ class _ExportacionStepState extends State<ExportacionStep> {
       if (mounted) TopAlert.show(context, 'SECA no disponible', isError: true);
       return;
     }
-
-    final registrosHoy =
-        await provider.getRegistrosCompletos(seca, soloHoy: true);
-    final registrosTodas =
-        await provider.getRegistrosCompletos(seca, soloHoy: false);
-
     if (!mounted) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final opcion = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.file_download_rounded,
-                color: isDark ? Colors.green[300] : Colors.green[700],
-                size: 22),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text('Exportar datos',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isDark ? Colors.white : const Color(0xFF1A1A1A)))),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '¿Qué balanzas desea exportar?',
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white70 : Colors.black87),
-            ),
-            const SizedBox(height: 16),
-            _opcionExportacion(
-              ctx,
-              icon: Icons.today_rounded,
-              titulo: 'Solo las de hoy',
-              subtitulo: '${registrosHoy.length} balanza(s)',
-              isDark: isDark,
-              onTap: () => Navigator.pop(ctx, 'hoy'),
-            ),
-            const SizedBox(height: 12),
-            _opcionExportacion(
-              ctx,
-              icon: Icons.calendar_month_rounded,
-              titulo: 'Todas las del SECA',
-              subtitulo: '${registrosTodas.length} balanza(s)',
-              isDark: isDark,
-              onTap: () => Navigator.pop(ctx, 'todas'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style:
-                    TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
-          ),
-        ],
-      ),
-    );
-
-    if (opcion == null || !mounted) return;
-
-    final registros = opcion == 'hoy' ? registrosHoy : registrosTodas;
-    if (registros.isEmpty) {
-      TopAlert.show(context, 'No hay registros para exportar', isError: true);
-      return;
-    }
-
     final datosCert = await _showCertificadoDialog(isDark);
     if (datosCert == null || !mounted) return;
 
     final instrumentos = await _showInstrumentosDialog(isDark);
     if (instrumentos == null || !mounted) return;
-
-    // Aplicar datos del certificado a todas las filas exportadas
-    final registrosConCert = registros
-        .map((r) => ({
-              ...r,
-              ...datosCert,
-            }))
-        .toList();
 
     _emp = datosCert['emp'];
     _indicarCtrl.text = datosCert['indicar'] ?? '';
@@ -217,29 +136,58 @@ class _ExportacionStepState extends State<ExportacionStep> {
       provider.updateEquipos([...pesas, ...instrumentos]);
     }
 
-    final registrosConTodo = registrosConCert
-        .map((r) => ({
-              ...r,
-              ..._instrumentosToColumns(instrumentos),
-            }))
-        .toList();
-
     await provider.persistSharedExportData(seca, {
       ...datosCert,
       ..._instrumentosToColumns(instrumentos),
     });
 
-    final success = await provider.exportToCSV(registrosConTodo);
-    if (!mounted) return;
+    try {
+      await provider.marcarBalanzaCompleta();
+      final registros = (await provider.getRegistrosCompletos(
+        seca,
+        soloHoy: true,
+      ))
+          .where((record) =>
+              record['estado_servicio_bal']?.toString() ==
+                  'Balanza Calibrada' &&
+              (record['finalized_at']?.toString().isEmpty ?? true))
+          .toList();
+      if (registros.isEmpty) {
+        throw StateError('No hay balanzas completas para finalizar.');
+      }
 
-    if (success) {
-      TopAlert.show(context,
-          'Exportación exitosa: ${registros.length} balanza(s) exportada(s)',
-          isError: false);
+      final finalizedAt = DateTime.now();
+      final nombreCsv =
+          '${seca}_${DateFormat('yyyyMMdd_HHmmss').format(finalizedAt)}.csv';
+      if (nombreCsv.length > 100) {
+        throw StateError(
+          'El nombre lógico del servicio supera los 100 caracteres.',
+        );
+      }
+      await provider.finalizeCalibrationRecords(
+        seca: seca,
+        sessionIds:
+            registros.map((record) => record['session_id']?.toString() ?? ''),
+        nombreCsv: nombreCsv,
+        finalizedAt: finalizedAt,
+      );
+      if (!mounted) return;
+      TopAlert.show(
+        context,
+        'Servicio finalizado: ${registros.length} balanza(s) guardada(s)',
+        isError: false,
+      );
       Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()), (r) => false);
-    } else {
-      TopAlert.show(context, 'Error al exportar CSV', isError: true);
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      TopAlert.show(
+        context,
+        'No se pudo finalizar el servicio: $error',
+        isError: true,
+      );
     }
   }
 
@@ -616,57 +564,6 @@ class _ExportacionStepState extends State<ExportacionStep> {
     return result;
   }
 
-  Widget _opcionExportacion(
-    BuildContext ctx, {
-    required IconData icon,
-    required String titulo,
-    required String subtitulo,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon,
-                color: isDark ? Colors.white54 : Colors.black54, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(titulo,
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                  const SizedBox(height: 2),
-                  Text(subtitulo,
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: isDark ? Colors.white60 : Colors.black54)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: isDark ? Colors.white24 : Colors.black26),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _indicarCtrl.dispose();
@@ -715,9 +612,9 @@ class _ExportacionStepState extends State<ExportacionStep> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: () => _exportar(provider),
-                  icon: const Icon(Icons.file_download),
-                  label: const Text('FINALIZAR Y EXPORTAR',
+                  onPressed: () => _finalizar(provider),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: const Text('FINALIZAR SERVICIO',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   style: ElevatedButton.styleFrom(
@@ -740,7 +637,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Exportación',
+          'Finalización',
           style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.w700,
@@ -750,7 +647,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
         ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
         const SizedBox(height: 4),
         Text(
-          'Finalización del servicio y descarga de datos',
+          'Revisión y cierre del servicio de calibración',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: isDark ? Colors.white54 : Colors.black45,

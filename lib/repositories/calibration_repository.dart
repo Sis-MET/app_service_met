@@ -22,7 +22,8 @@ class CalibrationRepository {
     return ServiceSession.fromMap(merged);
   }
 
-  Future<void> saveSession(String seca, String sessionId, ServiceSession session) async {
+  Future<void> saveSession(
+      String seca, String sessionId, ServiceSession session) async {
     final Map<String, dynamic> data = session.toMap();
     data['seca'] = seca;
     data['session_id'] = sessionId;
@@ -39,12 +40,14 @@ class CalibrationRepository {
 
   // --- Legacy methods (to be removed in Phase 7) ---
 
-  Future<Map<String, dynamic>> getCalibrationData(String secaValue, String sessionId) async {
+  Future<Map<String, dynamic>> getCalibrationData(
+      String secaValue, String sessionId) async {
     final result = await _db.getRegistroBySeca(secaValue, sessionId);
     return result ?? {};
   }
 
-  Future<void> saveCalibrationData(String secaValue, Map<String, dynamic> data) async {
+  Future<void> saveCalibrationData(
+      String secaValue, Map<String, dynamic> data) async {
     final Map<String, dynamic> newData = {
       'seca': secaValue,
       ...data,
@@ -61,8 +64,10 @@ class CalibrationRepository {
     Map<String, double> dValues = {};
 
     void addDValue(String capKey, String dKey) {
-      if (result[capKey] != null && result[capKey].toString().isNotEmpty &&
-          result[dKey] != null && result[dKey].toString().isNotEmpty) {
+      if (result[capKey] != null &&
+          result[capKey].toString().isNotEmpty &&
+          result[dKey] != null &&
+          result[dKey].toString().isNotEmpty) {
         double? cap = double.tryParse(result[capKey].toString());
         double? d = double.tryParse(result[dKey].toString());
         if (cap != null && d != null) {
@@ -81,7 +86,8 @@ class CalibrationRepository {
   double getDFromCarga(double carga, Map<String, double> dValues) {
     if (dValues.isEmpty) return 0.0;
 
-    List<double> caps = dValues.keys.map((k) => double.tryParse(k) ?? 0.0).toList();
+    List<double> caps =
+        dValues.keys.map((k) => double.tryParse(k) ?? 0.0).toList();
     caps.sort();
 
     for (double cap in caps) {
@@ -120,7 +126,8 @@ class CalibrationRepository {
     return _precargaDb.getPlantasPorCliente(clienteId);
   }
 
-  Future<List<Map<String, dynamic>>> getBalanzas(String? clienteCodigo, String? plantaCodigo) async {
+  Future<List<Map<String, dynamic>>> getBalanzas(
+      String? clienteCodigo, String? plantaCodigo) async {
     if (plantaCodigo != null && plantaCodigo.isNotEmpty) {
       String prefix;
       if (plantaCodigo.contains('-')) {
@@ -206,8 +213,7 @@ class CalibrationRepository {
     return await _db.getServicioStatus(seca, sessionId);
   }
 
-  Future<void> markServicioCompletado(
-      String seca, String sessionId) async {
+  Future<void> markServicioCompletado(String seca, String sessionId) async {
     await _db.markServicioCompletado(seca, sessionId);
   }
 
@@ -234,11 +240,26 @@ class CalibrationRepository {
     return _db.updateCalibrationRecordsBySeca(seca, values);
   }
 
+  Future<void> finalizeCalibrationRecords({
+    required String seca,
+    required Iterable<String> sessionIds,
+    required String nombreCsv,
+    required String finalizedAt,
+  }) {
+    return _db.finalizeCalibrationRecords(
+      seca: seca,
+      sessionIds: sessionIds,
+      nombreCsv: nombreCsv,
+      finalizedAt: finalizedAt,
+    );
+  }
+
   Future<void> createBackup(String testType) async {
     final mainPath = join(await getDatabasesPath(), 'metrica_service.db');
-    final backupPath = join(await getDatabasesPath(), 'metrica_service_${testType}_backup.db');
+    final backupPath =
+        join(await getDatabasesPath(), 'metrica_service_${testType}_backup.db');
     try {
-       await File(mainPath).copy(backupPath);
+      await File(mainPath).copy(backupPath);
     } catch (e) {
       // Ignorar
     }

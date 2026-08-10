@@ -24,6 +24,8 @@ class CalibrationDataNormalizer {
     'id',
     'foto_balanza',
     'nombre_zip',
+    'nombre_csv',
+    'finalized_at',
     'directorio_zip',
     'estado_servicio_csv',
   };
@@ -73,6 +75,7 @@ class CalibrationDataNormalizer {
   static Map<String, dynamic> normalizeForUpload(
     Map<String, dynamic> record,
   ) {
+    final nombreCsv = record['nombre_csv']?.toString().trim();
     final filtered = Map<String, dynamic>.fromEntries(
       record.entries.where(
         (entry) =>
@@ -80,7 +83,11 @@ class CalibrationDataNormalizer {
             !_isLocalFileField(entry.key),
       ),
     );
-    return normalizeRecord(filtered);
+    final normalized = normalizeRecord(filtered);
+    if (nombreCsv != null && nombreCsv.isNotEmpty) {
+      normalized['nombre_csv'] = nombreCsv;
+    }
+    return normalized;
   }
 
   static dynamic normalizeValue(

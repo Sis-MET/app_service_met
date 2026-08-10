@@ -76,4 +76,16 @@ void main() {
     expect(result['cap_max1'], '2100.5');
     expect(result['cap_max1'], isA<String>());
   });
+
+  test('conserva el nombre lógico del CSV solo para el resumen', () {
+    final result = CalibrationDataNormalizer.normalizeForUpload({
+      'carga': '2100.0',
+      'nombre_csv': 'SECA-01_20260810_143433.csv',
+      'finalized_at': '2026-08-10T14:34:33',
+    });
+
+    expect(result['carga'], 2100);
+    expect(result['nombre_csv'], 'SECA-01_20260810_143433.csv');
+    expect(result.containsKey('finalized_at'), isFalse);
+  });
 }
