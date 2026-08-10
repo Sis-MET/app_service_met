@@ -40,12 +40,17 @@ class CalibrationUploadApiService {
     final prefs = await SharedPreferences.getInstance();
     final usuario = prefs.getString('logged_user');
     if (usuario == null || usuario.isEmpty) {
-      throw CalibrationUploadException('No hay un usuario autenticado.');
+      throw CalibrationUploadException(
+        'No hay un usuario autenticado.',
+        code: 'LOCAL_USER_MISSING',
+      );
     }
     final dbPath = p.join(await getDatabasesPath(), 'usuarios.db');
     if (!await databaseExists(dbPath)) {
       throw CalibrationUploadException(
-          'No se encontró la sesión local del usuario.');
+        'No se encontró la sesión local del usuario.',
+        code: 'LOCAL_CREDENTIALS_MISSING',
+      );
     }
     final db = await openDatabase(dbPath, readOnly: true);
     try {
@@ -58,7 +63,9 @@ class CalibrationUploadApiService {
       );
       if (rows.isEmpty || (rows.first['pass']?.toString() ?? '').isEmpty) {
         throw CalibrationUploadException(
-            'No se encontraron credenciales para autenticar la subida.');
+          'No se encontraron credenciales para autenticar la subida.',
+          code: 'LOCAL_CREDENTIALS_MISSING',
+        );
       }
       return {'usuario': usuario, 'password': rows.first['pass'].toString()};
     } finally {
@@ -79,11 +86,21 @@ class CalibrationUploadApiService {
     }
 
     final credentials = await _loadLocalCredentials();
+    return authenticate(
+      usuario: credentials['usuario']!,
+      password: credentials['password']!,
+    );
+  }
+
+  Future<String> authenticate({
+    required String usuario,
+    required String password,
+  }) async {
     final response = await _client
         .post(
           Uri.parse('$baseUrl/api/auth/login'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(credentials),
+          body: jsonEncode({'usuario': usuario, 'password': password}),
         )
         .timeout(const Duration(seconds: 20));
     final body = _decode(response);

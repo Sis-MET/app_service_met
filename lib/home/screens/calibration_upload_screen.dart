@@ -87,7 +87,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     CalibrationUploadApiService? api;
     try {
       api = _api();
-      final result = await api.validate(_pendingRecords);
+      final result = await _validateWithAuthentication(api);
+      if (result == null) return;
       if (!mounted) return;
       setState(() => _validation = result);
     } on TimeoutException {
@@ -98,6 +99,86 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
       api?.close();
       if (mounted) setState(() => _working = false);
     }
+  }
+
+  Future<CalibrationValidationResult?> _validateWithAuthentication(
+      CalibrationUploadApiService api) async {
+    try {
+      return await api.validate(_pendingRecords);
+    } on CalibrationUploadException catch (error) {
+      if (!_requiresCredentials(error)) rethrow;
+      final authenticated = await _requestPasswordAndAuthenticate(api);
+      if (!authenticated) return null;
+      return api.validate(_pendingRecords);
+    }
+  }
+
+  bool _requiresCredentials(CalibrationUploadException error) {
+    return error.code == 'LOCAL_CREDENTIALS_MISSING' ||
+        error.code == 'MISSING_CREDENTIALS' ||
+        error.code == 'INVALID_CREDENTIALS';
+  }
+
+  Future<bool> _requestPasswordAndAuthenticate(
+      CalibrationUploadApiService api) async {
+    final prefs = await SharedPreferences.getInstance();
+    final usuario = prefs.getString('logged_user');
+    if (usuario == null || usuario.isEmpty || !mounted) {
+      throw CalibrationUploadException(
+        'No hay un usuario activo. Cierre sesión e ingrese nuevamente.',
+      );
+    }
+
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Autenticar subida'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Usuario: $usuario'),
+            const SizedBox(height: 8),
+            const Text(
+              'Ingrese su contraseña para obtener una autorización temporal del servidor.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Contraseña',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              onSubmitted: (value) {
+                if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = passwordController.text;
+              if (value.isNotEmpty) Navigator.pop(dialogContext, value);
+            },
+            child: const Text('Autenticar'),
+          ),
+        ],
+      ),
+    );
+    passwordController.dispose();
+    if (password == null || password.isEmpty) return false;
+
+    await api.authenticate(usuario: usuario, password: password);
+    return true;
   }
 
   Future<void> _upload({required bool validOnly}) async {
@@ -131,7 +212,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     CalibrationUploadApiService? api;
     try {
       api = _api();
-      final result = await api.upload(_pendingRecords, validOnly: validOnly);
+      final result = await _uploadWithAuthentication(api, validOnly);
+      if (result == null) return;
       final prefs = await SharedPreferences.getInstance();
       final uploadedBy = prefs.getString('logged_user') ?? '';
       final localStatuses = <Map<String, dynamic>>[];
@@ -166,6 +248,18 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     } finally {
       api?.close();
       if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<CalibrationUploadResult?> _uploadWithAuthentication(
+      CalibrationUploadApiService api, bool validOnly) async {
+    try {
+      return await api.upload(_pendingRecords, validOnly: validOnly);
+    } on CalibrationUploadException catch (error) {
+      if (!_requiresCredentials(error)) rethrow;
+      final authenticated = await _requestPasswordAndAuthenticate(api);
+      if (!authenticated) return null;
+      return api.upload(_pendingRecords, validOnly: validOnly);
     }
   }
 
