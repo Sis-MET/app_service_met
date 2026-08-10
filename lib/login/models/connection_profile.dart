@@ -36,7 +36,7 @@ class ConnectionProfile {
       usuarioBD: json['usuarioBD'] as String,
       contrasenaBD: json['contrasenaBD'] as String,
       apiUrl: json['apiUrl']?.toString() ??
-          'http://${json['ip']}:${json['apiPort'] ?? '3000'}',
+          'http://${json['ip']}:${json['apiPort'] ?? '3100'}',
       esPredeterminado: json['esPredeterminado'] as bool? ?? false,
       fechaCreacion: json['fechaCreacion'] != null
           ? DateTime.parse(json['fechaCreacion'] as String)

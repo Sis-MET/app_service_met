@@ -38,7 +38,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
-      apiUrl: 'http://192.168.1.5:3000',
+      apiUrl: 'http://192.168.1.5:3100',
       esPredeterminado: true,
     ),
     ConnectionProfile(
@@ -49,7 +49,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
-      apiUrl: 'http://10.50.8.1:3000',
+      apiUrl: 'http://10.50.8.1:3100',
       esPredeterminado: true,
     ),
   ];
