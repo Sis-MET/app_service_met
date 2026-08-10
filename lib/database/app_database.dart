@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'calibration_data_normalizer.dart';
+
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
   factory AppDatabase() => _instance;
@@ -260,26 +262,27 @@ class AppDatabase {
   Future<void> upsertRegistroCalibracion(Map<String, dynamic> registro) async {
     try {
       final db = await database;
+      final normalized = CalibrationDataNormalizer.normalizeRecord(registro);
 
       final existing = await db.query(
         'registros_calibracion',
         where: 'seca = ? AND session_id = ?',
-        whereArgs: [registro['seca'], registro['session_id']],
+        whereArgs: [normalized['seca'], normalized['session_id']],
       );
 
       if (existing.isNotEmpty) {
         await db.update(
           'registros_calibracion',
-          registro,
+          normalized,
           where: 'seca = ? AND session_id = ?',
-          whereArgs: [registro['seca'], registro['session_id']],
+          whereArgs: [normalized['seca'], normalized['session_id']],
         );
         debugPrint(
-            'Registro ACTUALIZADO - SECA: ${registro['seca']}, Session: ${registro['session_id']}');
+            'Registro ACTUALIZADO - SECA: ${normalized['seca']}, Session: ${normalized['session_id']}');
       } else {
-        await db.insert('registros_calibracion', registro);
+        await db.insert('registros_calibracion', normalized);
         debugPrint(
-            'NUEVO registro INSERTADO - SECA: ${registro['seca']}, Session: ${registro['session_id']}');
+            'NUEVO registro INSERTADO - SECA: ${normalized['seca']}, Session: ${normalized['session_id']}');
       }
     } catch (e) {
       debugPrint('Error en upsertRegistroCalibracion: $e');
@@ -878,11 +881,28 @@ class AppDatabase {
       String seca, Map<String, dynamic> values) async {
     if (values.isEmpty) return;
     final db = await database;
+    final normalized = CalibrationDataNormalizer.normalizeRecord(values);
     await db.update(
       'registros_calibracion',
-      values,
+      normalized,
       where: 'seca = ?',
       whereArgs: [seca],
+    );
+  }
+
+  Future<void> updateRegistroCalibracion(
+    String seca,
+    String sessionId,
+    Map<String, dynamic> values,
+  ) async {
+    if (values.isEmpty) return;
+    final db = await database;
+    final normalized = CalibrationDataNormalizer.normalizeRecord(values);
+    await db.update(
+      'registros_calibracion',
+      normalized,
+      where: 'seca = ? AND session_id = ?',
+      whereArgs: [seca, sessionId],
     );
   }
 
@@ -979,7 +999,8 @@ class AppDatabase {
   Future<int> insertRegistroCalibracion(Map<String, dynamic> registro) async {
     try {
       final db = await database;
-      return await db.insert('registros_calibracion', registro);
+      final normalized = CalibrationDataNormalizer.normalizeRecord(registro);
+      return await db.insert('registros_calibracion', normalized);
     } catch (e) {
       debugPrint('Error insertando registro: $e');
       rethrow;

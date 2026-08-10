@@ -61,13 +61,7 @@ class CalibrationService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final db = await _dbHelper.database;
-      await db.update(
-        'registros_calibracion',
-        data,
-        where: 'seca = ? AND session_id = ?',
-        whereArgs: [seca, sessionId],
-      );
+      await _dbHelper.updateRegistroCalibracion(seca, sessionId, data);
     } catch (e) {
       debugPrint('Error al guardar datos de excentricidad: $e');
       rethrow;
@@ -80,13 +74,7 @@ class CalibrationService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final db = await _dbHelper.database;
-      await db.update(
-        'registros_calibracion',
-        data,
-        where: 'seca = ? AND session_id = ?',
-        whereArgs: [seca, sessionId],
-      );
+      await _dbHelper.updateRegistroCalibracion(seca, sessionId, data);
     } catch (e) {
       debugPrint('Error al guardar datos de repetibilidad: $e');
       rethrow;
@@ -99,13 +87,7 @@ class CalibrationService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final db = await _dbHelper.database;
-      await db.update(
-        'registros_calibracion',
-        data,
-        where: 'seca = ? AND session_id = ?',
-        whereArgs: [seca, sessionId],
-      );
+      await _dbHelper.updateRegistroCalibracion(seca, sessionId, data);
     } catch (e) {
       debugPrint('Error al guardar datos de linealidad: $e');
       rethrow;

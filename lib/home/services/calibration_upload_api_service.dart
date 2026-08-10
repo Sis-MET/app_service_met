@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../database/calibration_data_normalizer.dart';
 import '../models/calibration_upload_models.dart';
 
 class CalibrationUploadException implements Exception {
@@ -186,8 +187,13 @@ class CalibrationUploadApiService {
 
   Future<CalibrationValidationResult> validate(
       List<Map<String, dynamic>> records) async {
-    final response =
-        await _authorizedPost('/api/calibracion/validar', {'records': records});
+    final normalized = records
+        .map(CalibrationDataNormalizer.normalizeForUpload)
+        .toList(growable: false);
+    final response = await _authorizedPost(
+      '/api/calibracion/validar',
+      {'records': normalized},
+    );
     final body = _decode(response);
     if (response.statusCode != 200) throw _exception(response.statusCode, body);
     return CalibrationValidationResult.fromJson(body);
@@ -197,9 +203,12 @@ class CalibrationUploadApiService {
     List<Map<String, dynamic>> records, {
     required bool validOnly,
   }) async {
+    final normalized = records
+        .map(CalibrationDataNormalizer.normalizeForUpload)
+        .toList(growable: false);
     final response = await _authorizedPost('/api/calibracion/subir', {
       'mode': validOnly ? 'valid_only' : 'all',
-      'records': records,
+      'records': normalized,
     });
     final body = _decode(response);
     if (response.statusCode != 201) throw _exception(response.statusCode, body);
