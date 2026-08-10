@@ -38,7 +38,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
-      apiUrl: 'http://192.168.1.5:3100',
+      apiUrl: 'https://192.168.1.5:3100',
       esPredeterminado: true,
     ),
     ConnectionProfile(
@@ -49,7 +49,7 @@ class ConnectionProfileService extends ChangeNotifier {
       baseDatos: 'DataMET',
       usuarioBD: 'ServiceMET',
       contrasenaBD: 'Met25',
-      apiUrl: 'http://10.50.8.1:3100',
+      apiUrl: 'https://10.50.8.1:3100',
       esPredeterminado: true,
     ),
   ];
@@ -65,6 +65,14 @@ class ConnectionProfileService extends ChangeNotifier {
           .map((item) =>
               ConnectionProfile.fromJson(item as Map<String, dynamic>))
           .toList();
+      var migrated = false;
+      _perfiles = _perfiles.map((profile) {
+        final secureApiUrl = _migrateInternalApiUrl(profile.apiUrl);
+        if (secureApiUrl == profile.apiUrl) return profile;
+        migrated = true;
+        return profile.copyWith(apiUrl: secureApiUrl);
+      }).toList();
+      if (migrated) await _guardar();
     } else {
       _perfiles = List.from(perfilesPredeterminados);
       await _guardar();
@@ -150,6 +158,16 @@ class ConnectionProfileService extends ChangeNotifier {
   // Generar ID único
   String generarId() {
     return 'profile_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  static String _migrateInternalApiUrl(String value) {
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null || uri.scheme != 'http' || uri.port != 3100) return value;
+    if (uri.host != '192.168.1.5' && uri.host != '10.50.8.1') return value;
+    return uri
+        .replace(scheme: 'https')
+        .toString()
+        .replaceAll(RegExp(r'/+$'), '');
   }
 
   Future<void> _guardar() async {

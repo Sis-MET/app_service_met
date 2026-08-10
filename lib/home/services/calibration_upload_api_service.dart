@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
@@ -20,6 +23,10 @@ class CalibrationUploadException implements Exception {
 }
 
 class CalibrationUploadApiService {
+  static const _certificateSha256 =
+      '9B77AAF79EC28476AEA6C18B16F8F98A07D4F264E3B92F22224BCB7AAAF85678';
+  static const _allowedHosts = {'192.168.1.5', '10.50.8.1'};
+
   final String baseUrl;
   final http.Client _client;
   final FlutterSecureStorage _secureStorage;
@@ -29,8 +36,40 @@ class CalibrationUploadApiService {
     http.Client? client,
     FlutterSecureStorage? secureStorage,
   })  : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
-        _client = client ?? http.Client(),
+        _client = client ?? _createPinnedClient(baseUrl),
         _secureStorage = secureStorage ?? const FlutterSecureStorage();
+
+  static http.Client _createPinnedClient(String rawBaseUrl) {
+    final uri = Uri.tryParse(rawBaseUrl.trim());
+    if (uri == null ||
+        uri.scheme != 'https' ||
+        !_allowedHosts.contains(uri.host) ||
+        uri.port != 3100) {
+      throw CalibrationUploadException(
+        'La API debe usar HTTPS en una dirección interna autorizada.',
+        code: 'INSECURE_API_URL',
+      );
+    }
+
+    final context = SecurityContext(withTrustedRoots: false);
+    final ioClient = HttpClient(context: context)
+      ..connectionTimeout = const Duration(seconds: 20)
+      ..badCertificateCallback = (certificate, host, port) {
+        if (!_allowedHosts.contains(host) || port != 3100) return false;
+        final now = DateTime.now();
+        if (now.isBefore(certificate.startValidity) ||
+            now.isAfter(certificate.endValidity)) {
+          return false;
+        }
+        final fingerprint = sha256
+            .convert(certificate.der)
+            .toString()
+            .replaceAll(':', '')
+            .toUpperCase();
+        return fingerprint == _certificateSha256;
+      };
+    return IOClient(ioClient);
+  }
 
   String get _tokenKey =>
       'servicemet_api_token_${base64Url.encode(utf8.encode(baseUrl))}';

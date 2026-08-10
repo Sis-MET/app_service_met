@@ -363,7 +363,7 @@ Future<Map<String, String>?> _showProfileEditorDialog({
                         'usuarioBD': userCtrl.text.trim(),
                         'contrasenaBD': passCtrl.text.trim(),
                         'apiUrl': (apiUrlCtrl.text.trim().isEmpty
-                                ? 'http://${ipCtrl.text.trim()}:3100'
+                                ? 'https://${ipCtrl.text.trim()}:3100'
                                 : apiUrlCtrl.text.trim())
                             .replaceAll(RegExp(r'/+$'), ''),
                       });
