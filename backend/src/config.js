@@ -51,6 +51,15 @@ function getConfig() {
   return {
     nodeEnv,
     port: integer('PORT', 3100),
+    tls: {
+      enabled: bool('TLS_ENABLED', nodeEnv === 'production'),
+      pfxPath: bool('TLS_ENABLED', nodeEnv === 'production')
+        ? required('TLS_PFX_PATH')
+        : null,
+      pfxPassword: bool('TLS_ENABLED', nodeEnv === 'production')
+        ? required('TLS_PFX_PASSWORD')
+        : null,
+    },
     trustProxy: bool('TRUST_PROXY', false),
     corsOrigins: (process.env.CORS_ORIGINS || '')
       .split(',')

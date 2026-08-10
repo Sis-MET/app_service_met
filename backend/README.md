@@ -7,7 +7,8 @@ API interna para validar y subir servicios de calibración desde Flutter hacia
 
 1. Instalar Node.js 18 o superior en el servidor principal.
 2. Copiar `.env.example` como `.env` y completar las credenciales SQL y un
-   `JWT_SECRET` aleatorio de al menos 32 caracteres.
+   `JWT_SECRET` aleatorio de al menos 32 caracteres. En producción también se
+   requieren `TLS_PFX_PATH` y `TLS_PFX_PASSWORD` para servir HTTPS.
 3. Ejecutar `pnpm install --frozen-lockfile` dentro de `backend/`.
 4. Ejecutar `pnpm test` y luego `pnpm start`.
 
@@ -18,6 +19,10 @@ de consulta y permite conocer los duplicados históricos sin modificar datos.
 En producción, publicar la API detrás de HTTPS (IIS, Nginx u otro proxy
 inverso). La contraseña del usuario y el JWT no deben viajar por HTTP fuera de
 un entorno de prueba controlado.
+
+En la red interna de ServiceMET, Node sirve HTTPS directamente con un PFX que
+incluye las IP `192.168.1.5` y `10.50.8.1`. La app fija la huella SHA-256 del
+certificado; nunca desactive la validación TLS ni acepte cualquier certificado.
 
 ## Endpoints
 

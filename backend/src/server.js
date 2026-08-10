@@ -1,5 +1,8 @@
 'use strict';
 
+const fs = require('node:fs');
+const http = require('node:http');
+const https = require('node:https');
 const { getConfig } = require('./config');
 const { loadTableSchema } = require('./schema');
 const { createApp } = require('./app');
@@ -9,8 +12,16 @@ async function main() {
   const config = getConfig();
   const schema = loadTableSchema();
   const app = createApp(config, schema);
-  const server = app.listen(config.port, () => {
-    console.log(`ServiceMET API escuchando en el puerto ${config.port}`);
+  const server = config.tls.enabled
+    ? https.createServer({
+      pfx: fs.readFileSync(config.tls.pfxPath),
+      passphrase: config.tls.pfxPassword,
+      minVersion: 'TLSv1.2',
+    }, app)
+    : http.createServer(app);
+  server.listen(config.port, () => {
+    const protocol = config.tls.enabled ? 'HTTPS' : 'HTTP';
+    console.log(`ServiceMET API escuchando con ${protocol} en el puerto ${config.port}`);
   });
 
   async function shutdown(signal) {
