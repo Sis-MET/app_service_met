@@ -63,6 +63,24 @@ test('detecta codigo_registro repetido dentro del lote', () => {
   assert.equal(result.records[1].errors[0].code, 'DUPLICATE_IN_BATCH');
 });
 
+test('detecta codigo_registro repetido sin distinguir mayúsculas', () => {
+  const result = validateRecords([
+    {
+      seca: 'seca-100',
+      cod_metrica: 'bal-01',
+      estado_servicio_bal: 'Balanza Calibrada',
+    },
+    {
+      seca: 'SECA-100',
+      cod_metrica: 'BAL-01',
+      estado_servicio_bal: 'Balanza Calibrada',
+    },
+  ], schema);
+  assert.equal(result.records[0].valid, false);
+  assert.equal(result.records[1].valid, false);
+  assert.equal(result.records[0].errors[0].code, 'DUPLICATE_IN_BATCH');
+});
+
 test('firma y verifica JWT con expiración', () => {
   const secret = '01234567890123456789012345678901';
   const token = signJwt({ sub: 'tecnico' }, secret, 60);

@@ -24,6 +24,10 @@ function normalizeDecimal(raw) {
   return text;
 }
 
+function canonicalCode(value) {
+  return value.normalize('NFKC').toUpperCase();
+}
+
 function validateDecimal(column, raw, definition) {
   const value = normalizeDecimal(raw);
   if (!/^-?(?:\d+\.?\d*|\.\d+)$/.test(value)) {
@@ -105,7 +109,7 @@ function validateRecords(records, schema) {
     const seca = String(record.seca ?? '').trim();
     const codMetrica = String(record.cod_metrica ?? '').trim();
     if (!seca || !codMetrica) continue;
-    const code = `${seca}-${codMetrica}`;
+    const code = canonicalCode(`${seca}-${codMetrica}`);
     codeCounts.set(code, (codeCounts.get(code) ?? 0) + 1);
   }
 
@@ -125,7 +129,7 @@ function validateRecords(records, schema) {
       issues.push(error('estado_servicio_bal', record.estado_servicio_bal, 'INCOMPLETE_SERVICE', 'La balanza no está marcada como servicio completo.', 'Balanza Calibrada'));
     }
     if (codigoRegistro) {
-      if ((codeCounts.get(codigoRegistro) ?? 0) > 1) {
+      if ((codeCounts.get(canonicalCode(codigoRegistro)) ?? 0) > 1) {
         issues.push(error('codigo_registro', codigoRegistro, 'DUPLICATE_IN_BATCH', 'La misma balanza aparece más de una vez en el lote.', 'SECA-COD_METRICA único'));
       }
     }
@@ -148,4 +152,4 @@ function validateRecords(records, schema) {
   return { records: results, batchErrors: [] };
 }
 
-module.exports = { EXCLUDED_FIELDS, normalizeValue, validateRecords };
+module.exports = { EXCLUDED_FIELDS, canonicalCode, normalizeValue, validateRecords };

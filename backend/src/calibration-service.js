@@ -5,6 +5,30 @@ const { CALIBRATION_TABLE } = require('./schema');
 const { validateRecords } = require('./validation');
 
 const qualifiedTable = `[dbo].[${CALIBRATION_TABLE}]`;
+const uploadLockResource = 'ServiceMET:calibracion:upload';
+
+async function acquireUploadLock(transaction) {
+  const request = new sql.Request(transaction);
+  request.input('resource', sql.NVarChar(255), uploadLockResource);
+  request.input('timeout', sql.Int, 30000);
+  const result = await request.query(`
+    DECLARE @lockResult int;
+    EXEC @lockResult = sys.sp_getapplock
+      @Resource = @resource,
+      @LockMode = 'Exclusive',
+      @LockOwner = 'Transaction',
+      @LockTimeout = @timeout,
+      @DbPrincipal = 'public';
+    SELECT @lockResult AS [lockResult];
+  `);
+  const lockResult = Number(result.recordset[0]?.lockResult);
+  if (!Number.isFinite(lockResult) || lockResult < 0) {
+    const error = new Error('Otra subida está en curso. Espere y vuelva a validar el lote.');
+    error.statusCode = 503;
+    error.code = 'UPLOAD_LOCK_TIMEOUT';
+    throw error;
+  }
+}
 
 function addDatabaseDuplicates(validation, existingCodes) {
   for (const record of validation.records) {
@@ -105,6 +129,9 @@ async function uploadRecords(config, schema, records, mode) {
   const transaction = new sql.Transaction(pool);
   await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
   try {
+    // Serializa todas las cargas realizadas por esta API, incluso si hay varias
+    // instancias o varios celulares, sin crear objetos en DataMET_prueba.
+    await acquireUploadLock(transaction);
     const validation = validateRecords(records, schema);
     const existing = await findExistingCodes(
       transaction,
@@ -143,4 +170,10 @@ async function uploadRecords(config, schema, records, mode) {
   }
 }
 
-module.exports = { addDatabaseDuplicates, findExistingCodes, validateAgainstDatabase, uploadRecords };
+module.exports = {
+  acquireUploadLock,
+  addDatabaseDuplicates,
+  findExistingCodes,
+  validateAgainstDatabase,
+  uploadRecords,
+};
