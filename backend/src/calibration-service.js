@@ -99,8 +99,19 @@ function inputValue(request, name, definition, value) {
   }
 }
 
-async function insertRecord(transaction, schema, record, n) {
-  const data = { ...record.normalized, n };
+function buildInsertQuery(columns, parameters) {
+  return `
+    INSERT INTO ${qualifiedTable} (${columns.join(',')})
+    VALUES (${parameters.join(',')});
+    SELECT CONVERT(int, SCOPE_IDENTITY()) AS [n];
+  `;
+}
+
+async function insertRecord(transaction, schema, record) {
+  // n es IDENTITY en SQL Server; nunca debe enviarse explícitamente.
+  const data = { ...record.normalized };
+  delete data.n;
+  delete data.id;
   const entries = Object.entries(data).filter(([column]) => schema.has(column));
   const request = new sql.Request(transaction);
   const columns = [];
@@ -112,9 +123,15 @@ async function insertRecord(transaction, schema, record, n) {
     parameters.push(`@${parameter}`);
     inputValue(request, parameter, schema.get(column), value);
   }
-  await request.query(
-    `INSERT INTO ${qualifiedTable} (${columns.join(',')}) VALUES (${parameters.join(',')})`,
-  );
+  const result = await request.query(buildInsertQuery(columns, parameters));
+  const assignedN = Number(result.recordset[0]?.n);
+  if (!Number.isSafeInteger(assignedN)) {
+    const error = new Error('SQL Server no devolvió el correlativo n asignado.');
+    error.statusCode = 500;
+    error.code = 'IDENTITY_NOT_RETURNED';
+    throw error;
+  }
+  return assignedN;
 }
 
 async function uploadRecords(config, schema, records, mode) {
@@ -146,15 +163,9 @@ async function uploadRecords(config, schema, records, mode) {
       return { uploaded: [], validation, rejected: true };
     }
 
-    const maxResult = await new sql.Request(transaction).query(
-      `SELECT ISNULL(MAX([n]), 0) AS [maxN] FROM ${qualifiedTable} WITH (UPDLOCK, HOLDLOCK)`,
-    );
-    let nextN = Number(maxResult.recordset[0].maxN) + 1;
     const uploaded = [];
     for (const record of valid) {
-      const assignedN = nextN;
-      nextN += 1;
-      await insertRecord(transaction, schema, record, assignedN);
+      const assignedN = await insertRecord(transaction, schema, record);
       uploaded.push({
         index: record.index,
         codigoRegistro: record.codigoRegistro,
@@ -173,6 +184,7 @@ async function uploadRecords(config, schema, records, mode) {
 module.exports = {
   acquireUploadLock,
   addDatabaseDuplicates,
+  buildInsertQuery,
   findExistingCodes,
   validateAgainstDatabase,
   uploadRecords,

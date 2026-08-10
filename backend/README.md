@@ -37,11 +37,12 @@ registros efectivamente elegidos se insertan o se revierten juntos.
 
 ## Asignación de identificadores
 
-Dentro de una transacción serializable, la API obtiene el máximo `n`, asigna
-correlativos consecutivos y genera `codigo_registro` como
-`SECA-COD_METRICA`. Los duplicados históricos permanecen intactos. Antes de
-insertar, la API impide repetir códigos dentro del lote o agregar un código que
-ya exista en DataMET, sin exigir cambios en el esquema de la base.
+Dentro de una transacción serializable, SQL Server asigna el correlativo `n`
+mediante su columna `IDENTITY`, y la API recupera el valor real con
+`SCOPE_IDENTITY()`. La API genera `codigo_registro` como `SECA-COD_METRICA`.
+Los duplicados históricos permanecen intactos. Antes de insertar, la API impide
+repetir códigos dentro del lote o agregar un código que ya exista en DataMET,
+sin exigir cambios en el esquema de la base.
 
 Las subidas adquieren además un bloqueo transaccional con `sp_getapplock`. De
 esta forma, dos dispositivos o instancias de la API no pueden validar e insertar
