@@ -8,10 +8,12 @@ API interna para validar y subir servicios de calibración desde Flutter hacia
 1. Instalar Node.js 18 o superior en el servidor principal.
 2. Copiar `.env.example` como `.env` y completar las credenciales SQL y un
    `JWT_SECRET` aleatorio de al menos 32 caracteres.
-3. Ejecutar `npm install` dentro de `backend/`.
-4. Revisar y ejecutar `sql/001_calibration_unique_keys.sql`. Los índices únicos
-   son la última barrera contra duplicados concurrentes.
-5. Ejecutar `npm test` y luego `npm start`.
+3. Ejecutar `pnpm install --frozen-lockfile` dentro de `backend/`.
+4. Ejecutar `pnpm test` y luego `pnpm start`.
+
+La API no requiere crear índices, restricciones ni otros objetos en
+`DataMET_prueba`. El archivo `sql/001_calibration_data_audit.sql` es únicamente
+de consulta y permite conocer los duplicados históricos sin modificar datos.
 
 En producción, publicar la API detrás de HTTPS (IIS, Nginx u otro proxy
 inverso). La contraseña del usuario y el JWT no deben viajar por HTTP fuera de
@@ -30,7 +32,8 @@ registros efectivamente elegidos se insertan o se revierten juntos.
 
 ## Asignación de identificadores
 
-Dentro de una transacción serializable, la API bloquea el rango, obtiene el
-máximo `n`, asigna correlativos consecutivos y genera `codigo_registro` como
-`SECA-COD_METRICA`. Antes de insertar comprueba duplicados tanto dentro del lote
-como en DataMET.
+Dentro de una transacción serializable, la API obtiene el máximo `n`, asigna
+correlativos consecutivos y genera `codigo_registro` como
+`SECA-COD_METRICA`. Los duplicados históricos permanecen intactos. Antes de
+insertar, la API impide repetir códigos dentro del lote o agregar un código que
+ya exista en DataMET, sin exigir cambios en el esquema de la base.

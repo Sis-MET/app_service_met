@@ -50,7 +50,7 @@ function getConfig() {
 
   return {
     nodeEnv,
-    port: integer('PORT', 3000),
+    port: integer('PORT', 3100),
     trustProxy: bool('TRUST_PROXY', false),
     corsOrigins: (process.env.CORS_ORIGINS || '')
       .split(',')

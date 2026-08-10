@@ -33,7 +33,14 @@ async function findExistingCodes(executor, codes) {
       return `@${name}`;
     });
     const result = await request.query(
-      `SELECT [codigo_registro] FROM ${qualifiedTable} WHERE [codigo_registro] IN (${parameters.join(',')})`,
+      `SELECT DISTINCT incoming.[codigo_registro]
+       FROM (VALUES ${parameters.map((parameter) => `(${parameter})`).join(',')})
+         AS incoming([codigo_registro])
+       WHERE EXISTS (
+         SELECT 1
+         FROM ${qualifiedTable} AS stored
+         WHERE stored.[codigo_registro] = incoming.[codigo_registro]
+       )`,
     );
     for (const row of result.recordset) found.add(row.codigo_registro);
   }
