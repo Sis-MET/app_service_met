@@ -60,11 +60,11 @@ function normalizeValue(column, raw, definition) {
       return { value };
     }
     case 'int': {
-      const value = String(raw).trim();
-      if (!/^-?\d+$/.test(value)) {
+      const value = String(raw).trim().replace(',', '.');
+      if (!/^-?\d+(?:\.0+)?$/.test(value)) {
         return { issue: error(column, raw, 'INVALID_INTEGER', 'El valor debe ser un número entero.', 'entero de 32 bits') };
       }
-      const parsed = Number(value);
+      const parsed = Number(value.split('.')[0]);
       if (!Number.isSafeInteger(parsed) || parsed < -2147483648 || parsed > 2147483647) {
         return { issue: error(column, raw, 'INTEGER_OVERFLOW', 'El entero excede el rango de SQL Server.', '-2147483648 a 2147483647') };
       }

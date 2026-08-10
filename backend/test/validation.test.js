@@ -51,6 +51,17 @@ test('rechaza decimales que exceden precisión o escala', () => {
   assert.equal(result.records[0].errors[0].code, 'DECIMAL_OVERFLOW');
 });
 
+test('normaliza una representación decimal exacta de un entero', () => {
+  const result = validateRecords([{
+    seca: '1234',
+    cod_metrica: 'ABC-01',
+    estado_servicio_bal: 'Balanza Calibrada',
+    carga: '2100.0',
+  }], schema);
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].normalized.carga, 2100);
+});
+
 test('detecta codigo_registro repetido dentro del lote', () => {
   const record = {
     seca: '1234',
