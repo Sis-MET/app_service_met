@@ -62,6 +62,19 @@ test('normaliza una representación decimal exacta de un entero', () => {
   assert.equal(result.records[0].normalized.carga, 2100);
 });
 
+test('valida y conserva el nombre lógico del CSV para el resumen', () => {
+  const result = validateRecords([{
+    seca: '1234',
+    cod_metrica: 'ABC-01',
+    estado_servicio_bal: 'Balanza Calibrada',
+    nombre_csv: '1234_20260810_143433.csv',
+  }], schema);
+
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].nombreCsv, '1234_20260810_143433.csv');
+  assert.equal(result.records[0].normalized.nombre_csv, undefined);
+});
+
 test('detecta codigo_registro repetido dentro del lote', () => {
   const record = {
     seca: '1234',

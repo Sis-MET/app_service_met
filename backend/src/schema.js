@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const CALIBRATION_TABLE = 'DATA_SERVICIOS_DATOS_CALIBRACION';
+const SERVICE_SUMMARY_TABLE = 'DATA_SERVICIOS_DATOS';
 
 function parsePrecision(raw) {
   if (!raw || raw === '-') return { precision: null, scale: null, maxLength: null };
@@ -44,4 +45,8 @@ function loadTableSchema(tableName = CALIBRATION_TABLE) {
   return columns;
 }
 
-module.exports = { CALIBRATION_TABLE, loadTableSchema };
+module.exports = {
+  CALIBRATION_TABLE,
+  SERVICE_SUMMARY_TABLE,
+  loadTableSchema,
+};

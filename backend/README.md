@@ -16,6 +16,14 @@ La API no requiere crear índices, restricciones ni otros objetos en
 `DataMET_prueba`. El archivo `sql/001_calibration_data_audit.sql` es únicamente
 de consulta y permite conocer los duplicados históricos sin modificar datos.
 
+El usuario SQL de la API necesita permisos mínimos sobre las dos tablas de la
+subida:
+
+```sql
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_CALIBRACION TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS TO ServiceMET;
+```
+
 En producción, publicar la API detrás de HTTPS (IIS, Nginx u otro proxy
 inverso). La contraseña del usuario y el JWT no deben viajar por HTTP fuera de
 un entorno de prueba controlado.
@@ -43,6 +51,12 @@ mediante su columna `IDENTITY`, y la API recupera el valor real con
 Los duplicados históricos permanecen intactos. Antes de insertar, la API impide
 repetir códigos dentro del lote o agregar un código que ya exista en DataMET,
 sin exigir cambios en el esquema de la base.
+
+Cada fila de calibración genera además una fila en `DATA_SERVICIOS_DATOS`
+dentro de la misma transacción. El resumen usa la fecha del servidor, el nombre
+del usuario autenticado, el nombre lógico del CSV conservado por la app y el
+estado fijo `EN OBSERVACION`. Si cualquiera de los dos `INSERT` falla, se
+revierte el lote completo.
 
 Las subidas adquieren además un bloqueo transaccional con `sp_getapplock`. De
 esta forma, dos dispositivos o instancias de la API no pueden validar e insertar

@@ -1,10 +1,11 @@
 'use strict';
 
 const { sql, getPool } = require('./database');
-const { CALIBRATION_TABLE } = require('./schema');
+const { CALIBRATION_TABLE, SERVICE_SUMMARY_TABLE } = require('./schema');
 const { validateRecords } = require('./validation');
 
 const qualifiedTable = `[dbo].[${CALIBRATION_TABLE}]`;
+const qualifiedSummaryTable = `[dbo].[${SERVICE_SUMMARY_TABLE}]`;
 const uploadLockResource = 'ServiceMET:calibracion:upload';
 
 async function acquireUploadLock(transaction) {
@@ -64,6 +65,10 @@ async function findExistingCodes(executor, codes) {
          SELECT 1
          FROM ${qualifiedTable} AS stored
          WHERE stored.[codigo_registro] = incoming.[codigo_registro]
+       ) OR EXISTS (
+         SELECT 1
+         FROM ${qualifiedSummaryTable} AS summary
+         WHERE summary.[codigo_registro] = incoming.[codigo_registro]
        )`,
     );
     for (const row of result.recordset) found.add(row.codigo_registro);
@@ -71,15 +76,49 @@ async function findExistingCodes(executor, codes) {
   return found;
 }
 
-async function validateAgainstDatabase(config, schema, records) {
+async function resolveRegisteredBy(executor, username) {
+  const request = new sql.Request(executor);
+  request.input('username', sql.NVarChar(100), username);
+  const result = await request.query(`
+    SELECT TOP (1) [titulo_abr], [nombre1], [apellido1], [apellido2]
+    FROM [dbo].[data_users]
+    WHERE [usuario] = @username
+  `);
+  const user = result.recordset[0];
+  if (!user) return '';
+  return [user.titulo_abr, user.nombre1, user.apellido1, user.apellido2]
+    .map((value) => String(value ?? '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+function addRegisteredByErrors(validation, registeredBy) {
+  if (registeredBy && registeredBy.length <= 50) return validation;
+  for (const record of validation.records) {
+    record.errors.push({
+      column: 'reg_por',
+      value: registeredBy || null,
+      code: registeredBy ? 'MAX_LENGTH' : 'REGISTERED_USER_NOT_FOUND',
+      message: registeredBy
+        ? 'El nombre del usuario supera la longitud permitida.'
+        : 'No se encontró el nombre del usuario autenticado.',
+      expected: 'usuario registrado de hasta 50 caracteres',
+    });
+    record.valid = false;
+  }
+  return validation;
+}
+
+async function validateAgainstDatabase(config, schema, records, username) {
   const validation = validateRecords(records, schema);
   if (validation.records.length === 0) return validation;
   const pool = await getPool(config);
-  const existing = await findExistingCodes(
-    pool,
-    validation.records.map((record) => record.codigoRegistro),
-  );
-  return addDatabaseDuplicates(validation, existing);
+  const [existing, registeredBy] = await Promise.all([
+    findExistingCodes(pool, validation.records.map((record) => record.codigoRegistro)),
+    resolveRegisteredBy(pool, username),
+  ]);
+  addDatabaseDuplicates(validation, existing);
+  return addRegisteredByErrors(validation, registeredBy);
 }
 
 function inputValue(request, name, definition, value) {
@@ -134,7 +173,34 @@ async function insertRecord(transaction, schema, record) {
   return assignedN;
 }
 
-async function uploadRecords(config, schema, records, mode) {
+function buildSummaryInsertQuery() {
+  return `
+    INSERT INTO ${qualifiedSummaryTable}
+      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio])
+    VALUES
+      (@codigoRegistro, CONVERT(date, GETDATE()), @registeredBy, @nombreCsv, @estadoServicio);
+    SELECT CONVERT(int, SCOPE_IDENTITY()) AS [n];
+  `;
+}
+
+async function insertSummaryRecord(transaction, record, registeredBy) {
+  const request = new sql.Request(transaction);
+  request.input('codigoRegistro', sql.NVarChar(100), record.codigoRegistro);
+  request.input('registeredBy', sql.NVarChar(50), registeredBy);
+  request.input('nombreCsv', sql.NVarChar(100), record.nombreCsv);
+  request.input('estadoServicio', sql.NVarChar(50), 'EN OBSERVACION');
+  const result = await request.query(buildSummaryInsertQuery());
+  const assignedN = Number(result.recordset[0]?.n);
+  if (!Number.isSafeInteger(assignedN)) {
+    const error = new Error('SQL Server no devolvió el identificador del resumen.');
+    error.statusCode = 500;
+    error.code = 'SUMMARY_IDENTITY_NOT_RETURNED';
+    throw error;
+  }
+  return assignedN;
+}
+
+async function uploadRecords(config, schema, records, mode, username) {
   if (mode !== 'all' && mode !== 'valid_only') {
     const error = new Error('Modo de subida inválido');
     error.statusCode = 400;
@@ -154,7 +220,9 @@ async function uploadRecords(config, schema, records, mode) {
       transaction,
       validation.records.map((record) => record.codigoRegistro),
     );
+    const registeredBy = await resolveRegisteredBy(transaction, username);
     addDatabaseDuplicates(validation, existing);
+    addRegisteredByErrors(validation, registeredBy);
 
     const valid = validation.records.filter((record) => record.valid);
     const invalid = validation.records.filter((record) => !record.valid);
@@ -166,10 +234,12 @@ async function uploadRecords(config, schema, records, mode) {
     const uploaded = [];
     for (const record of valid) {
       const assignedN = await insertRecord(transaction, schema, record);
+      const summaryN = await insertSummaryRecord(transaction, record, registeredBy);
       uploaded.push({
         index: record.index,
         codigoRegistro: record.codigoRegistro,
         n: assignedN,
+        summaryN,
         sessionId: record.normalized.session_id ?? null,
       });
     }
@@ -184,8 +254,11 @@ async function uploadRecords(config, schema, records, mode) {
 module.exports = {
   acquireUploadLock,
   addDatabaseDuplicates,
+  addRegisteredByErrors,
   buildInsertQuery,
+  buildSummaryInsertQuery,
   findExistingCodes,
+  resolveRegisteredBy,
   validateAgainstDatabase,
   uploadRecords,
 };

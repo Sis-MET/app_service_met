@@ -71,7 +71,12 @@ function createApp(config, schema) {
 
   app.post('/api/calibracion/validar', requireAuth, async (req, res, next) => {
     try {
-      const validation = await validateAgainstDatabase(config, schema, req.body?.records);
+      const validation = await validateAgainstDatabase(
+        config,
+        schema,
+        req.body?.records,
+        req.auth.sub,
+      );
       const validCount = validation.records.filter((record) => record.valid).length;
       return res.json({
         valid: validation.batchErrors.length === 0 && validCount === validation.records.length,
@@ -88,7 +93,13 @@ function createApp(config, schema) {
 
   app.post('/api/calibracion/subir', requireAuth, async (req, res, next) => {
     try {
-      const result = await uploadRecords(config, schema, req.body?.records, req.body?.mode ?? 'all');
+      const result = await uploadRecords(
+        config,
+        schema,
+        req.body?.records,
+        req.body?.mode ?? 'all',
+        req.auth.sub,
+      );
       const invalidRecords = result.validation.records
         .filter((record) => !record.valid)
         .map(({ normalized, ...record }) => record);

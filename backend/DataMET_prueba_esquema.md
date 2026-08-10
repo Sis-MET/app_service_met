@@ -6,6 +6,7 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 
 ## Índice de tablas
 
+- [DATA_SERVICIOS_DATOS](#data-servicios-datos) (8 columnas)
 - [DATA_SERVICIOS_DATOS_CALIBRACION](#data-servicios-datos-calibracion) (426 columnas)
 - [DATA_SERVICIOS_DATOS_DIG](#data-servicios-datos-dig) (47 columnas)
 - [DATA_SERVICIOS_DATOS_IBM](#data-servicios-datos-ibm) (268 columnas)
@@ -15,6 +16,23 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 - [DATA_SERVICIOS_DATOS_MPR_STIL](#data-servicios-datos-mpr-stil) (315 columnas)
 - [DATA_SERVICIOS_DATOS_RVD](#data-servicios-datos-rvd) (188 columnas)
 - [DATA_SERVICIOS_DATOS_VFI](#data-servicios-datos-vfi) (170 columnas)
+
+---
+
+## DATA_SERVICIOS_DATOS
+
+Total de columnas: **8**
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `n` | int | 10,0 | No | IDENTITY(1,1) |
+| 2 | `codigo_registro` | nvarchar | 100 | Sí | - |
+| 3 | `fecha_reg` | date | - | Sí | - |
+| 4 | `reg_por` | nvarchar | 50 | Sí | - |
+| 5 | `nombre_csv` | nvarchar | 100 | Sí | - |
+| 6 | `estado_servicio` | nvarchar | 50 | Sí | - |
+| 7 | `obs_servicio` | nvarchar | max | Sí | - |
+| 8 | `campos_observados` | nvarchar | max | Sí | - |
 
 ---
 

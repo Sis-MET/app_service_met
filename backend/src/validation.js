@@ -6,6 +6,8 @@ const EXCLUDED_FIELDS = new Set([
   'id',
   'foto_balanza',
   'nombre_zip',
+  'nombre_csv',
+  'finalized_at',
   'directorio_zip',
   'estado_servicio_csv',
 ]);
@@ -123,10 +125,14 @@ function validateRecords(records, schema) {
     const seca = String(record.seca ?? '').trim();
     const codMetrica = String(record.cod_metrica ?? '').trim();
     const codigoRegistro = seca && codMetrica ? `${seca}-${codMetrica}` : null;
+    const nombreCsv = String(record.nombre_csv ?? '').trim();
     if (!seca) issues.push(error('seca', record.seca, 'REQUIRED', 'Falta el SECA.', 'texto no vacío'));
     if (!codMetrica) issues.push(error('cod_metrica', record.cod_metrica, 'REQUIRED', 'Falta el código métrica.', 'texto no vacío'));
     if (String(record.estado_servicio_bal ?? '').trim() !== 'Balanza Calibrada') {
       issues.push(error('estado_servicio_bal', record.estado_servicio_bal, 'INCOMPLETE_SERVICE', 'La balanza no está marcada como servicio completo.', 'Balanza Calibrada'));
+    }
+    if (nombreCsv.length > 100) {
+      issues.push(error('nombre_csv', nombreCsv, 'MAX_LENGTH', 'El nombre lógico del CSV supera la longitud permitida.', 'máximo 100 caracteres'));
     }
     if (codigoRegistro) {
       if ((codeCounts.get(canonicalCode(codigoRegistro)) ?? 0) > 1) {
@@ -147,7 +153,16 @@ function validateRecords(records, schema) {
     }
 
     normalized.codigo_registro = codigoRegistro;
-    return { index, codigoRegistro, seca, codMetrica, valid: issues.length === 0, errors: issues, normalized };
+    return {
+      index,
+      codigoRegistro,
+      seca,
+      codMetrica,
+      nombreCsv: nombreCsv || null,
+      valid: issues.length === 0,
+      errors: issues,
+      normalized,
+    };
   });
   return { records: results, batchErrors: [] };
 }
