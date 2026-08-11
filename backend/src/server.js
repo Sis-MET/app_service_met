@@ -4,14 +4,15 @@ const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
 const { getConfig } = require('./config');
-const { loadTableSchema } = require('./schema');
+const { loadTableSchema, loadSupportSchemas } = require('./schema');
 const { createApp } = require('./app');
 const { closePool } = require('./database');
 
 async function main() {
   const config = getConfig();
   const schema = loadTableSchema();
-  const app = createApp(config, schema);
+  const supportSchemas = loadSupportSchemas();
+  const app = createApp(config, schema, supportSchemas);
   const server = config.tls.enabled
     ? https.createServer({
       pfx: fs.readFileSync(config.tls.pfxPath),

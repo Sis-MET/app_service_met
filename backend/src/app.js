@@ -5,8 +5,13 @@ const cors = require('cors');
 const { sql, getPool } = require('./database');
 const { signJwt, authMiddleware, createLoginLimiter } = require('./security');
 const { validateAgainstDatabase, uploadRecords } = require('./calibration-service');
+const {
+  validateAgainstDatabase: validateSupportAgainstDatabase,
+  uploadSupportRecords,
+} = require('./support-service');
+const { readBootstrap } = require('./bootstrap-service');
 
-function createApp(config, schema) {
+function createApp(config, schema, supportSchemas = new Map()) {
   const app = express();
   if (config.trustProxy) app.set('trust proxy', 1);
   app.disable('x-powered-by');
@@ -53,12 +58,22 @@ function createApp(config, schema) {
       if (String(user.acceso_app) !== '1' || String(user.estado).toUpperCase() !== 'ACTIVO') {
         return res.status(403).json({ error: 'ACCESS_DENIED', message: 'El usuario no está habilitado para ServiceMET.' });
       }
-      const token = signJwt({ sub: user.usuario, scope: ['calibracion:upload'] }, config.jwtSecret, config.jwtTtlSeconds);
+      const token = signJwt(
+        { sub: user.usuario, scope: ['calibracion:upload', 'soporte:upload', 'bootstrap:read'] },
+        config.jwtSecret,
+        config.jwtTtlSeconds,
+      );
       return res.json({
         token,
         expiresIn: config.jwtTtlSeconds,
         user: {
           usuario: user.usuario,
+          nombre1: user.nombre1,
+          apellido1: user.apellido1,
+          apellido2: user.apellido2,
+          tituloAbr: user.titulo_abr,
+          estado: user.estado,
+          accesoApp: String(user.acceso_app),
           nombre: [user.titulo_abr, user.nombre1, user.apellido1, user.apellido2].filter(Boolean).join(' '),
         },
       });
@@ -68,6 +83,15 @@ function createApp(config, schema) {
   });
 
   const requireAuth = authMiddleware(config);
+
+  app.get('/api/bootstrap', requireAuth, async (_req, res, next) => {
+    try {
+      const pool = await getPool(config);
+      return res.json(await readBootstrap(pool));
+    } catch (error) {
+      return next(error);
+    }
+  });
 
   app.post('/api/calibracion/validar', requireAuth, async (req, res, next) => {
     try {
@@ -114,6 +138,59 @@ function createApp(config, schema) {
       }
       return res.status(201).json({
         message: `${result.uploaded.length} registro(s) insertado(s) correctamente.`,
+        uploaded: result.uploaded,
+        invalidRecords,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.post('/api/soporte/validar', requireAuth, async (req, res, next) => {
+    try {
+      const validation = await validateSupportAgainstDatabase(
+        config,
+        supportSchemas,
+        req.body?.records,
+        req.auth.sub,
+      );
+      const validCount = validation.records.filter((record) => record.valid).length;
+      return res.json({
+        valid: validation.batchErrors.length === 0 && validCount === validation.records.length,
+        total: validation.records.length,
+        validCount,
+        invalidCount: validation.records.length - validCount,
+        batchErrors: validation.batchErrors,
+        records: validation.records.map(({ normalized, ...record }) => record),
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.post('/api/soporte/subir', requireAuth, async (req, res, next) => {
+    try {
+      const result = await uploadSupportRecords(
+        config,
+        supportSchemas,
+        req.body?.records,
+        req.body?.mode ?? 'all',
+        req.auth.sub,
+      );
+      const invalidRecords = result.validation.records
+        .filter((record) => !record.valid)
+        .map(({ normalized, ...record }) => record);
+      if (result.rejected) {
+        return res.status(422).json({
+          error: 'BATCH_REJECTED',
+          message: 'No se insertó ningún registro de soporte.',
+          uploaded: [],
+          invalidRecords,
+          batchErrors: result.validation.batchErrors,
+        });
+      }
+      return res.status(201).json({
+        message: `${result.uploaded.length} registro(s) de soporte insertado(s) correctamente.`,
         uploaded: result.uploaded,
         invalidRecords,
       });

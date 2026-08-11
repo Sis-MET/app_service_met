@@ -5,6 +5,23 @@ const path = require('node:path');
 
 const CALIBRATION_TABLE = 'DATA_SERVICIOS_DATOS_CALIBRACION';
 const SERVICE_SUMMARY_TABLE = 'DATA_SERVICIOS_DATOS';
+const SUPPORT_MODULES = Object.freeze({
+  ajuste_verificaciones: { table: 'DATA_SERVICIOS_DATOS_IBM', columns: 268 },
+  diagnostico: { table: 'DATA_SERVICIOS_DATOS_DIG', columns: 47 },
+  instalacion: { table: 'DATA_SERVICIOS_DATOS_INT', columns: 168 },
+  mnt_correctivo: { table: 'DATA_SERVICIOS_DATOS_MCR', columns: 135 },
+  mnt_prv_avanzado: { table: 'DATA_SERVICIOS_DATOS_MPA_STAC', columns: 381 },
+  mnt_prv_regular: { table: 'DATA_SERVICIOS_DATOS_MPR_STIL', columns: 315 },
+  relevamiento_de_datos: { table: 'DATA_SERVICIOS_DATOS_RVD', columns: 188 },
+  verificaciones_internas: { table: 'DATA_SERVICIOS_DATOS_VFI', columns: 170 },
+});
+
+const EXPECTED_COLUMNS = Object.freeze({
+  [CALIBRATION_TABLE]: 426,
+  ...Object.fromEntries(
+    Object.values(SUPPORT_MODULES).map(({ table, columns }) => [table, columns]),
+  ),
+});
 
 function parsePrecision(raw) {
   if (!raw || raw === '-') return { precision: null, scale: null, maxLength: null };
@@ -39,14 +56,29 @@ function loadTableSchema(tableName = CALIBRATION_TABLE) {
     });
   }
 
-  if (columns.size !== 426) {
-    throw new Error(`Esquema de calibración incompleto: se esperaban 426 columnas y se leyeron ${columns.size}`);
+  const expected = EXPECTED_COLUMNS[tableName];
+  if (expected === undefined) {
+    throw new Error(`No hay un conteo de columnas configurado para ${tableName}`);
+  }
+  if (columns.size !== expected) {
+    throw new Error(`Esquema de ${tableName} incompleto: se esperaban ${expected} columnas y se leyeron ${columns.size}`);
   }
   return columns;
+}
+
+function loadSupportSchemas() {
+  return new Map(
+    Object.entries(SUPPORT_MODULES).map(([module, definition]) => [
+      module,
+      loadTableSchema(definition.table),
+    ]),
+  );
 }
 
 module.exports = {
   CALIBRATION_TABLE,
   SERVICE_SUMMARY_TABLE,
+  SUPPORT_MODULES,
   loadTableSchema,
+  loadSupportSchemas,
 };

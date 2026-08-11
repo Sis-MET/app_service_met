@@ -1,6 +1,6 @@
 # ServiceMET Backend
 
-API interna para validar y subir servicios de calibración desde Flutter hacia
+API interna para validar y subir servicios de calibración y soporte desde Flutter hacia
 `DataMET_prueba` sin usar CSV. No recibe fotografías ni archivos ZIP.
 
 ## Configuración
@@ -22,6 +22,14 @@ subida:
 ```sql
 GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_CALIBRACION TO ServiceMET;
 GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_DIG TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_IBM TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_INT TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_MCR TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_MPA_STAC TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_MPR_STIL TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_RVD TO ServiceMET;
+GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_VFI TO ServiceMET;
 ```
 
 En producción, publicar la API detrás de HTTPS (IIS, Nginx u otro proxy
@@ -36,10 +44,13 @@ certificado; nunca desactive la validación TLS ni acepte cualquier certificado.
 
 - `GET /health`: verifica API y SQL Server.
 - `POST /api/auth/login`: valida `data_users` y emite un JWT temporal.
+- `GET /api/bootstrap`: descarga autenticada de los datos necesarios para trabajar offline.
 - `POST /api/calibracion/validar`: valida el lote sin insertar.
 - `POST /api/calibracion/subir`: vuelve a validar y usa una transacción SQL.
+- `POST /api/soporte/validar`: valida registros de los ocho módulos de soporte sin insertar.
+- `POST /api/soporte/subir`: inserta el lote de soporte y sus resúmenes en una transacción.
 
-Los endpoints de calibración requieren `Authorization: Bearer <token>`. La
+Los endpoints de calibración y soporte requieren `Authorization: Bearer <token>`. La
 subida acepta `mode: "all"` o `mode: "valid_only"`. En ambos casos, todos los
 registros efectivamente elegidos se insertan o se revierten juntos.
 
