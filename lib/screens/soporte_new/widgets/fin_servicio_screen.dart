@@ -16,6 +16,8 @@ import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
+import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_design.dart';
 
 class FinServicioConfig {
   final String tableNameDefault;
@@ -29,7 +31,7 @@ class FinServicioConfig {
     this.csvSuffix = 'servicio',
     this.additionalWhere = '',
     this.tipoServicio = 'Servicio',
-    this.primaryColor = const Color(0xFF46824B),
+    this.primaryColor = AppColors.actionPositive,
   });
 }
 
@@ -232,9 +234,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                     style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF1A1A1A)))),
+                        color:
+                            isDark ? Colors.white : const Color(0xFF1A1A1A)))),
           ],
         ),
         content: Column(
@@ -271,8 +272,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text('Cancelar',
-                style: TextStyle(
-                    color: isDark ? Colors.white60 : Colors.black54)),
+                style:
+                    TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
           ),
         ],
       ),
@@ -299,8 +300,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
       if (!mounted) return;
 
       if (registros.isEmpty) {
-        TopAlert.show(context, 'No hay registros para exportar',
-            isError: true);
+        TopAlert.show(context, 'No hay registros para exportar', isError: true);
         return;
       }
 
@@ -349,10 +349,11 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         return;
       }
 
-      final csv = const ListToCsvConverter(
+      final csv = Csv(
         fieldDelimiter: ';',
-        textDelimiter: '"',
-      ).convert(rows);
+        quoteCharacter: '"',
+        autoDetect: false,
+      ).encode(rows);
 
       final csvBytes = utf8.encode(csv);
       final timestamp =
@@ -375,8 +376,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
       // Guardar también en el directorio de fotos (como calibración)
       try {
-        final baseFotos = await FotoHelper.getBaseDir(
-            subDirName: 'soporte_fotos');
+        final baseFotos =
+            await FotoHelper.getBaseDir(subDirName: 'soporte_fotos');
         final csvDir = Directory(p.join(baseFotos.path, widget.secaValue));
         if (!await csvDir.exists()) {
           await csvDir.create(recursive: true);
@@ -448,12 +449,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
             child:
                 Text(cancelLabel, style: const TextStyle(color: Colors.grey)),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isDestructive ? Colors.red : widget.config.primaryColor,
-              foregroundColor: Colors.white,
-            ),
+          FilledButton(
+            style: isDestructive ? AppDesign.negativeButtonStyle() : null,
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(confirmLabel),
           ),
@@ -495,9 +492,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF1A1A1A))),
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A1A))),
                   const SizedBox(height: 2),
                   Text(subtitulo,
                       style: GoogleFonts.inter(
@@ -553,26 +549,19 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed:
-                        _isFinalizando ? null : _seleccionarOtraBalanza,
+                  child: OutlinedButton.icon(
+                    onPressed: _isFinalizando ? null : _seleccionarOtraBalanza,
                     icon: const Icon(Icons.add_circle_outline_rounded),
                     label: const Text('SELECCIONAR OTRA BALANZA',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF326677),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
                   ),
                 ).animate(delay: 300.ms).fadeIn().scale(),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton.icon(
+                  child: FilledButton.icon(
                     onPressed: (_isFinalizando || _isExporting)
                         ? null
                         : _finalizarYExportar,
@@ -583,17 +572,11 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white)))
+                                    AppColors.actionPositiveInk)))
                         : const Icon(Icons.file_download),
                     label: const Text('FINALIZAR Y EXPORTAR',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3e7732),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
                   ),
                 ).animate(delay: 400.ms).fadeIn().scale(),
               ],

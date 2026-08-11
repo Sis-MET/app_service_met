@@ -129,10 +129,10 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     _hasCheckedPrevData = false;
   }
 
-  static final _puntosIndicacionRegex =
-      RegExp(r'^(\w+)\s+(\d+)([FAID])$');
+  static final _puntosIndicacionRegex = RegExp(r'^(\w+)\s+(\d+)([FAID])$');
 
-  void _parsePuntosIndicacion(String? value, String? tipoPlataformaFromSession) {
+  void _parsePuntosIndicacion(
+      String? value, String? tipoPlataformaFromSession) {
     if (value == null || value.trim().isEmpty) return;
 
     final match = _puntosIndicacionRegex.firstMatch(value.trim());
@@ -191,8 +191,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
     final exc = prev['exc']?.toString() ?? '';
     if (exc.isEmpty) {
-      TopAlert.show(context,
-          'No hay datos del servicio anterior para Excentricidad');
+      TopAlert.show(
+          context, 'No hay datos del servicio anterior para Excentricidad');
       return;
     }
 
@@ -204,10 +204,10 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Excentricidad - Servicio anterior'),
-        content: Text(
-            'Se encontró una carga registrada del servicio anterior:\n\n'
-            'Carga: $exc\n\n'
-            '¿Desea usar este valor?'),
+        content:
+            Text('Se encontró una carga registrada del servicio anterior:\n\n'
+                'Carga: $exc\n\n'
+                '¿Desea usar este valor?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -215,10 +215,6 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Usar datos'),
           ),
         ],
@@ -836,8 +832,9 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         children: List.generate(rangos.length, (index) {
           final pmax = rangos[index]['capMax']!;
           final d = rangos[index]['d']!;
-          
-          final suggested = SuggestionHelper.roundToNearestMultiple(pmax / 3, d);
+
+          final suggested =
+              SuggestionHelper.roundToNearestMultiple(pmax / 3, d);
           final decimals = SuggestionHelper.getDecimalPlaces(d);
           final formatted = suggested.toStringAsFixed(decimals);
           final unidad = _getBalanceUnit();
@@ -858,7 +855,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded, size: 14, color: Colors.teal),
+                  const Icon(Icons.lightbulb_outline_rounded,
+                      size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (⅓ $label)',

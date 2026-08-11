@@ -21,8 +21,7 @@ class LinealidadPruebaWidget extends StatefulWidget {
   });
 
   @override
-  State<LinealidadPruebaWidget> createState() =>
-      _LinealidadPruebaWidgetState();
+  State<LinealidadPruebaWidget> createState() => _LinealidadPruebaWidgetState();
 }
 
 class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
@@ -80,9 +79,15 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
   }
 
   void _buildControllers(int count) {
-    for (final c in _cargaCtrls) { c.dispose(); }
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
+    for (final c in _cargaCtrls) {
+      c.dispose();
+    }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
     _cargaCtrls = List.generate(count, (_) => TextEditingController());
     _indCtrls = List.generate(count, (_) => TextEditingController());
     _retCtrls = List.generate(count, (_) => TextEditingController(text: '0'));
@@ -211,9 +216,15 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
 
   @override
   void dispose() {
-    for (final c in _cargaCtrls) { c.dispose(); }
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
+    for (final c in _cargaCtrls) {
+      c.dispose();
+    }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -318,24 +329,14 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
                 onPressed: _cargasValidadas ? null : _validatePatronLoads,
                 icon: const Icon(Icons.verified_outlined, size: 18),
                 label: const Text('Validar cargas'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed:
-                    _cargasValidadas ? _showCargaSustitutivaSheet : null,
+                onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
                 icon: const Icon(Icons.calculate_outlined, size: 18),
                 label: const Text('Carga sustitutiva'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
           ],
@@ -471,8 +472,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
         fontSize: 12,
         color: isDark ? Colors.white54 : Colors.black54,
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
@@ -482,16 +482,14 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
           borderSide:
               BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       suffixIcon: suffixIcon,
-      suffixIconConstraints:
-          const BoxConstraints(minWidth: 42, minHeight: 42),
+      suffixIconConstraints: const BoxConstraints(minWidth: 42, minHeight: 42),
     );
   }
 
   Widget _cargaField(int i, bool isDark) {
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 14,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _cargaCtrls[i],
       onChanged: (val) => _onCargaChanged(i, val),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -506,8 +504,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
     final hasBase = _cargaCtrls[i].text.isNotEmpty;
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 14,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[i],
       onChanged: (val) => _onIndicacionChanged(i, val),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -531,8 +528,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
   Widget _retornoField(int i, bool isDark) {
     return TextField(
       style: GoogleFonts.inter(
-          fontSize: 14,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+          fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _retCtrls[i],
       onChanged: (_) => _onRetornoChanged(),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -610,7 +606,6 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
     showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -632,8 +627,8 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
             final acumulado = selectedBase.carga + cargaRealSustitutiva;
 
             return Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20,
-                  MediaQuery.of(ctx).viewInsets.bottom + 20),
+              padding: EdgeInsets.fromLTRB(
+                  20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,9 +749,9 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
                       final reference = double.tryParse(value);
                       setSheetState(() {
                         if (!referenceSelectedManually && reference != null) {
-                          selectedLoadIndex = _nearestReferenceLoad(
-                                  reference, validatedLoads)
-                              .index;
+                          selectedLoadIndex =
+                              _nearestReferenceLoad(reference, validatedLoads)
+                                  .index;
                         }
                       });
                     },
@@ -779,11 +774,6 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
                           : () => Navigator.pop(ctx, _fmt(acumulado)),
                       icon: const Icon(Icons.check_rounded),
                       label: const Text('Guardar carga sustitutiva'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
                   ),
                 ],
@@ -955,8 +945,8 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide:

@@ -9,8 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_design.dart';
+import 'package:service_met/widgets/service_ui/service_app_bar.dart';
+import 'package:provider/provider.dart';
 
 import '../../login/services/setup_service.dart';
+import '../../login/services/connection_profile_service.dart';
 import '../../login/widgets/setup/setup_loading.dart';
 import '../../login/screens/initial_setup_screen.dart';
 
@@ -55,8 +59,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _lastUpdate = prefs.getString('lastUpdate');
-      _savedIp = prefs.getString('ip') ?? 'Desconocida';
-      _savedDb = prefs.getString('database') ?? 'Desconocida';
+      _savedIp = prefs.getString('api_url') ?? 'Desconocida';
+      _savedDb = 'API Node.js';
     });
 
     try {
@@ -173,22 +177,9 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
               ),
             ),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, 'actual'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18),
-              ),
-            ),
-            child: Text(
-              'Usar actual',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            child: const Text('Usar actual'),
           ),
         ],
       ),
@@ -212,6 +203,45 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
   }
 
   Future<void> _updateData() async {
+    final profile = context.read<ConnectionProfileService>().perfilSeleccionado;
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final usuario = prefs.getString('logged_user');
+    final apiUrl = profile?.apiUrl ?? prefs.getString('api_url');
+    if (usuario == null || apiUrl == null || apiUrl.isEmpty) {
+      _showError('No hay un usuario o servidor configurado.');
+      return;
+    }
+    final passwordController = TextEditingController();
+    final password = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Autorizar actualización'),
+        content: TextField(
+          controller: passwordController,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Contraseña',
+            prefixIcon: Icon(Icons.lock_outline_rounded),
+          ),
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, passwordController.text),
+            child: const Text('Actualizar'),
+          ),
+        ],
+      ),
+    );
+    passwordController.dispose();
+    if (password == null || password.isEmpty || !mounted) return;
     setState(() {
       _loading = true;
       _statusMessage = 'Conectando al servidor...';
@@ -219,17 +249,11 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
     });
 
     try {
-      final connectionResult =
-          await _setupService.connectFromSavedConfiguration();
-
-      if (!connectionResult.success) {
-        _showError(connectionResult.message);
-        setState(() => _loading = false);
-        return;
-      }
-
-      final downloadResult = await _setupService.downloadPrecargaData(
-        (message, progress) {
+      final downloadResult = await _setupService.refreshBootstrap(
+        apiUrl: apiUrl,
+        usuario: usuario,
+        password: password,
+        onProgress: (message, progress) {
           setState(() {
             _statusMessage = message;
             _progressValue = progress;
@@ -296,23 +320,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
     final accent = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-        ),
-        title: Text(
-          'Precarga de Datos',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
-        ),
-      ),
+      appBar: const ServiceAppBar(title: 'Precarga de datos'),
       body: _loading
           ? SetupLoading(
               isDark: isDark,
@@ -325,12 +333,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Estado de Sincronización',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: cs.onSurface,
-                    ),
+                    'Estado de sincronización',
+                    style: AppDesign.displayStyle(context),
                   ).animate().fadeIn().slideX(begin: -0.1),
                   const SizedBox(height: 8),
                   Text(
@@ -344,24 +348,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                   const SizedBox(height: 28),
 
                   // ── Tarjeta Resumen Principal ──
-                  Container(
+                  AppPanel(
                     padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.surfaceDark : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
                     child: Column(
                       children: [
                         // Stats Row
@@ -454,19 +442,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                   const SizedBox(height: 32),
 
                   // ── Configuración Info ──
-                  Container(
+                  AppPanel(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surfaceDark
-                          : AppColors.backgroundLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark
-                            ? AppColors.borderDark
-                            : AppColors.borderLight,
-                      ),
-                    ),
                     child: Row(
                       children: [
                         FaIcon(FontAwesomeIcons.server,
@@ -505,16 +482,8 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     child: SizedBox(
                       width: 250,
                       height: 52,
-                      child: ElevatedButton.icon(
+                      child: FilledButton.icon(
                         onPressed: _showUpdateDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                        ),
                         icon: const Icon(Icons.cloud_sync_outlined),
                         label: Text(
                           'Actualizar Datos',
@@ -522,6 +491,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
+                            color: AppColors.actionPositiveInk,
                           ),
                         ),
                       ),

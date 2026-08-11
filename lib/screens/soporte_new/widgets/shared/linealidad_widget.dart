@@ -151,14 +151,6 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
               onPressed: _addPunto,
               icon: const Icon(Icons.add, size: 16),
               label: const Text('Agregar Punto'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF46824B),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
             ),
           ],
         ),
@@ -254,8 +246,8 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
           fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle:
-            GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle: GoogleFonts.inter(
+            fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -266,7 +258,8 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
           borderSide:
               BorderSide(color: isDark ? Colors.white12 : Colors.black12),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
       items: items
           .map((v) => DropdownMenuItem(

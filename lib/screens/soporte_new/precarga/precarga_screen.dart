@@ -187,10 +187,6 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
                     TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
-              foregroundColor: Colors.white,
-            ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Continuar de todas formas'),
           ),

@@ -192,15 +192,6 @@ class PruebaCopiarCard extends StatelessWidget {
                 fontSize: 13,
               ),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF46824B),
-              foregroundColor: Colors.white,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
           ),
         ],
       ),
@@ -225,8 +216,7 @@ class PruebaSectionTitle extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon,
-            size: 20, color: isDark ? Colors.white54 : Colors.black54),
+        Icon(icon, size: 20, color: isDark ? Colors.white54 : Colors.black54),
         const SizedBox(width: 8),
         Text(
           title,

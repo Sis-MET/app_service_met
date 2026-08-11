@@ -9,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
-import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
@@ -153,10 +152,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Usar datos'),
           ),
         ],
@@ -645,10 +640,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
                 onPressed: _cargasValidadas ? null : _validatePatronLoads,
                 icon: const Icon(Icons.verified_outlined, size: 18),
                 label: const Text('Validar cargas'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -657,11 +648,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
                 onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
                 icon: const Icon(Icons.calculate_outlined, size: 18),
                 label: const Text('Carga sustitutiva'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
               ),
             ),
           ],
@@ -891,7 +877,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
     showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1060,11 +1045,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
                           : () => Navigator.pop(ctx, _fmt(acumulado)),
                       icon: const Icon(Icons.check_rounded),
                       label: const Text('Guardar carga sustitutiva'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
                     ),
                   ),
                 ],
@@ -1320,14 +1300,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
             onPressed: canTakePhoto ? _takeFoto : null,
             icon: const Icon(Icons.camera_alt, size: 18),
             label: const Text('Tomar Foto'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.calibracion,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.calibracion.withOpacity(0.4),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
-            ),
           ),
         ],
       ),
@@ -1346,13 +1318,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
                 onPressed: _takeFoto,
                 icon: const Icon(Icons.camera_alt, size: 18),
                 label: const Text('Agregar Fotografía'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.calibracion,
-                  side: const BorderSide(color: AppColors.calibracion),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
               ),
             ),
           ),

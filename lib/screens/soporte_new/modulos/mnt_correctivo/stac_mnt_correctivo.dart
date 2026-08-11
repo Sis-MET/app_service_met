@@ -56,7 +56,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   late MntCorrectivoController _controller;
   late final BalanzaInfo _balanzaInfo;
   int _currentStep = 0;
-  int _copyTickFinales = 0;
+  final int _copyTickFinales = 0;
   int _formRefreshTick = 0;
   bool _isSaving = false;
   bool _isImporting = false;
@@ -193,14 +193,13 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     switch (_currentStep) {
       case 0:
         if (_controller.reporteFalla.isEmpty) {
-          TopAlert.show(context, 'Complete el reporte de falla',
-              isError: true);
+          TopAlert.show(context, 'Complete el reporte de falla', isError: true);
           return false;
         }
         if (_controller.evaluacion.isEmpty ||
             _controller.trabajoRealizado.isEmpty) {
-          TopAlert.show(context,
-              'Complete la evaluacion tecnica y el trabajo realizado',
+          TopAlert.show(
+              context, 'Complete la evaluacion tecnica y el trabajo realizado',
               isError: true);
           return false;
         }
@@ -303,17 +302,12 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
           currentStep: _currentStep,
           onStepTapped: (step) => _goToStep(step),
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-          nextColor: isLast
-              ? const Color(0xFF3e7732)
-              : const Color(0xFF498054),
-          onNext:
-              isLast ? _finalizar : () => _goToStep(_currentStep + 1),
-          onBack: _currentStep > 0
-              ? () => _goToStep(_currentStep - 1)
-              : null,
+          nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
+          onNext: isLast ? _finalizar : () => _goToStep(_currentStep + 1),
+          onBack: _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
           saveStatus: _saveStatus,
-          balanzaInfo:
-              buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
+          balanzaInfo: buildServiceBalanzaInfo(
+              widget.instrumentoData, widget.codMetrica),
         );
       },
     );
@@ -430,11 +424,6 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
               label: Text(_isImporting
                   ? 'Importando diagnostico...'
                   : 'Importar diagnostico (CSV)'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
             ),
           ),
           const SizedBox(height: 16),

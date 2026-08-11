@@ -176,10 +176,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
               },
               icon: const Icon(Icons.add_rounded),
               label: const Text('Registrar nueva balanza'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF327734),
-                foregroundColor: Colors.white,
-              ),
             ),
           ],
         ),
@@ -398,18 +394,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
     if (_isInstallation) {
       return SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: FilledButton.icon(
           onPressed: _startNewBalanza,
           icon: const Icon(Icons.add_rounded, size: 20),
           label: const Text('Registrar nueva balanza'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF327734),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
         ),
       ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2);
     }
@@ -418,52 +406,28 @@ class _BalanzaStepState extends State<BalanzaStep> {
       children: [
         Expanded(
           flex: 3,
-          child: ElevatedButton.icon(
+          child: OutlinedButton.icon(
             onPressed: () => _showSearchDialog(provider),
             icon: const Icon(Icons.search_rounded, size: 18),
             label: const Text('Buscar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF326677),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           flex: 3,
-          child: ElevatedButton.icon(
+          child: FilledButton.icon(
             onPressed: _startNewBalanza,
             icon: const Icon(Icons.add_rounded, size: 18),
             label: const Text('Nuevo'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF327734),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           flex: 2,
-          child: ElevatedButton.icon(
+          child: OutlinedButton.icon(
             onPressed: () => _scanQrForBalanza(provider),
             icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
             label: const Text('QR'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF04376E),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
           ),
         ),
       ],

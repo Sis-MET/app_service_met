@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../theme/app_design.dart';
+
 class ServicioIncompletoDialog extends StatelessWidget {
   final VoidCallback onConfirmSalir;
   final VoidCallback onContinuar;
@@ -33,11 +35,8 @@ class ServicioIncompletoDialog extends StatelessWidget {
           },
           child: const Text('Continuar'),
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            foregroundColor: Colors.white,
-          ),
+        FilledButton(
+          style: AppDesign.negativeButtonStyle(),
           onPressed: () {
             Navigator.of(context).pop();
             onConfirmSalir();

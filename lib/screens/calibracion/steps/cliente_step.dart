@@ -549,14 +549,6 @@ class _ClienteStepState extends State<ClienteStep> {
               'Reintentar',
               style: GoogleFonts.inter(fontSize: 13),
             ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF04376E),
-              side: const BorderSide(color: Color(0xFF04376E)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
           ),
         ],
       ),

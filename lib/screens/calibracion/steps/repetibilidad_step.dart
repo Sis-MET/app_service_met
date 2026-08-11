@@ -87,8 +87,8 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     }
 
     if (repValues.isEmpty) {
-      TopAlert.show(context,
-          'No hay datos del servicio anterior para Repetibilidad');
+      TopAlert.show(
+          context, 'No hay datos del servicio anterior para Repetibilidad');
       return;
     }
 
@@ -100,10 +100,10 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: const Text('Repetibilidad - Servicio anterior'),
-        content: Text(
-            'Se encontraron cargas registradas del servicio anterior:\n\n'
-            'Cargas: $valoresStr\n\n'
-            '¿Desea usar estos valores?'),
+        content:
+            Text('Se encontraron cargas registradas del servicio anterior:\n\n'
+                'Cargas: $valoresStr\n\n'
+                '¿Desea usar estos valores?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -111,10 +111,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Usar datos'),
           ),
         ],
@@ -141,15 +137,27 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   }
 
   void _buildControllers(int nCargas, int nMediciones) {
-    for (final c in _cargasCtrls) { c.dispose(); }
-    for (final row in _indCtrls) { for (final c in row) { c.dispose(); } }
-    for (final row in _retCtrls) { for (final c in row) { c.dispose(); } }
+    for (final c in _cargasCtrls) {
+      c.dispose();
+    }
+    for (final row in _indCtrls) {
+      for (final c in row) {
+        c.dispose();
+      }
+    }
+    for (final row in _retCtrls) {
+      for (final c in row) {
+        c.dispose();
+      }
+    }
 
     _cargasCtrls = List.generate(nCargas, (_) => TextEditingController());
-    _indCtrls = List.generate(
-        nCargas, (_) => List.generate(nMediciones, (_) => TextEditingController()));
+    _indCtrls = List.generate(nCargas,
+        (_) => List.generate(nMediciones, (_) => TextEditingController()));
     _retCtrls = List.generate(
-        nCargas, (_) => List.generate(nMediciones, (_) => TextEditingController(text: '0')));
+        nCargas,
+        (_) => List.generate(
+            nMediciones, (_) => TextEditingController(text: '0')));
   }
 
   void _onCargasChanged(String? v) {
@@ -207,15 +215,17 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     final provider = context.read<ServiceSessionProvider>();
     provider.updateRepetibilidad(RepetibilidadData(
       nota: _notaCtrl.text,
-      cargas: List.generate(n, (i) => CargaRepetibilidad(
-        carga: _cargasCtrls[i].text,
-        indicaciones: _indCtrls[i]
-            .map((c) => c.text.isEmpty ? null : c.text)
-            .toList(),
-        retornos: _retCtrls[i]
-            .map((c) => c.text.isEmpty ? null : c.text)
-            .toList(),
-      )),
+      cargas: List.generate(
+          n,
+          (i) => CargaRepetibilidad(
+                carga: _cargasCtrls[i].text,
+                indicaciones: _indCtrls[i]
+                    .map((c) => c.text.isEmpty ? null : c.text)
+                    .toList(),
+                retornos: _retCtrls[i]
+                    .map((c) => c.text.isEmpty ? null : c.text)
+                    .toList(),
+              )),
     ));
   }
 
@@ -236,9 +246,19 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
 
   @override
   void dispose() {
-    for (final c in _cargasCtrls) { c.dispose(); }
-    for (final row in _indCtrls) { for (final c in row) { c.dispose(); } }
-    for (final row in _retCtrls) { for (final c in row) { c.dispose(); } }
+    for (final c in _cargasCtrls) {
+      c.dispose();
+    }
+    for (final row in _indCtrls) {
+      for (final c in row) {
+        c.dispose();
+      }
+    }
+    for (final row in _retCtrls) {
+      for (final c in row) {
+        c.dispose();
+      }
+    }
     _notaCtrl.dispose();
     super.dispose();
   }
@@ -256,15 +276,13 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
             children: [
               _buildHeader(isDark),
               const SizedBox(height: 24),
-
               DropdownButtonFormField<String>(
                 value: _cargasCount,
                 decoration: _deco('N° de Cargas', isDark),
                 hint: Text('Seleccione',
                     style: GoogleFonts.inter(
                         color: isDark ? Colors.white54 : Colors.black45)),
-                dropdownColor:
-                    isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
                 items: _cargasOptions
                     .map((v) => DropdownMenuItem(
                         value: v,
@@ -277,7 +295,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                 onChanged: _onCargasChanged,
               ).animate(delay: 200.ms).fadeIn(),
               const SizedBox(height: 16),
-
               if (_cargasCount != null) ...[
                 DropdownButtonFormField<String>(
                   value: _medicionesCount,
@@ -300,14 +317,11 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                 ).animate(delay: 300.ms).fadeIn(),
                 const SizedBox(height: 24),
               ],
-
               if (_cargasCount != null && _medicionesCount != null) ...[
-                ...List.generate(
-                    int.tryParse(_cargasCount!) ?? 1,
+                ...List.generate(int.tryParse(_cargasCount!) ?? 1,
                     (i) => _buildCargaCard(i, isDark)),
                 const SizedBox(height: 20),
               ],
-
               TextField(
                 style: GoogleFonts.inter(
                     color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
@@ -405,18 +419,14 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: isDark
-                              ? Colors.white70
-                              : Colors.grey[600]),
+                          color: isDark ? Colors.white70 : Colors.grey[600]),
                       textAlign: TextAlign.center)),
               Expanded(
                   child: Text('Retorno',
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color: isDark
-                              ? Colors.white70
-                              : Colors.grey[600]),
+                          color: isDark ? Colors.white70 : Colors.grey[600]),
                       textAlign: TextAlign.center)),
             ]),
           ),
@@ -424,8 +434,8 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           ...List.generate(
               nMediciones,
               (j) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Row(children: [
                       SizedBox(
                           width: 30,
@@ -438,11 +448,9 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                                       ? Colors.white70
                                       : Colors.black87))),
                       const SizedBox(width: 8),
-                      Expanded(
-                          child: _indicationField(i, j, isDark)),
+                      Expanded(child: _indicationField(i, j, isDark)),
                       const SizedBox(width: 8),
-                      Expanded(
-                          child: _numField(_retCtrls[i][j], isDark)),
+                      Expanded(child: _numField(_retCtrls[i][j], isDark)),
                     ]),
                   )),
           const SizedBox(height: 12),
@@ -454,8 +462,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   InputDecoration _fieldDecoration(bool isDark, {Widget? suffixIcon}) {
     return InputDecoration(
       isDense: true,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -475,12 +482,12 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[cargaIdx][medIdx],
       onChanged: (_) => _saveToProvider(),
-      keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
       ],
-      decoration: _fieldDecoration(isDark,
+      decoration: _fieldDecoration(
+        isDark,
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(cargaIdx, medIdx),
@@ -498,8 +505,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     if (cargaValue == null) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final balanza =
-        context.read<ServiceSessionProvider>().session?.balanza;
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
     if (balanza == null) return;
 
     SuggestionHelper.showSuggestedValues(
@@ -568,8 +574,9 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         children: List.generate(rangos.length, (index) {
           final pmax = rangos[index]['capMax']!;
           final d = rangos[index]['d']!;
-          
-          final suggested = SuggestionHelper.roundToNearestMultiple(pmax * 0.5, d);
+
+          final suggested =
+              SuggestionHelper.roundToNearestMultiple(pmax * 0.5, d);
           final decimals = SuggestionHelper.getDecimalPlaces(d);
           final formatted = suggested.toStringAsFixed(decimals);
           final unidad = balanza.unidad ?? 'kg';
@@ -594,7 +601,8 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded, size: 14, color: Colors.teal),
+                  const Icon(Icons.lightbulb_outline_rounded,
+                      size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (50% $label)',

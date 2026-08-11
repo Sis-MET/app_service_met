@@ -490,28 +490,22 @@ class _BalanzaStepState extends State<BalanzaStep> {
       children: [
         Expanded(
           flex: 3,
-          child: ElevatedButton.icon(
+          child: OutlinedButton.icon(
             onPressed:
                 _isLoadingBalanzas ? null : () => _showSearchDialog(provider),
             icon: _isLoadingBalanzas
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
+                    child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.search, size: 18),
             label: const Text('Buscar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF326677),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           flex: 3,
-          child: ElevatedButton.icon(
+          child: FilledButton.icon(
             onPressed: () {
               setState(() {
                 _isNewBalanza = true;
@@ -532,26 +526,16 @@ class _BalanzaStepState extends State<BalanzaStep> {
             },
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nuevo'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF327734),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
           flex: 2,
-          child: ElevatedButton.icon(
+          child: OutlinedButton.icon(
             onPressed:
                 _isLoadingBalanzas ? null : () => _scanQrForBalanza(provider),
             icon: const Icon(Icons.qr_code_scanner, size: 18),
             label: const Text('QR'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF04376E),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
           ),
         ),
       ],
@@ -799,18 +783,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
             ),
           ),
           const SizedBox(height: 12),
-          ElevatedButton.icon(
+          FilledButton.icon(
             onPressed: canTakePhoto ? _takeInstrumentoFoto : null,
             icon: const Icon(Icons.camera_alt, size: 18),
             label: const Text('Tomar Foto'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF04376E),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF04376E).withOpacity(0.4),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
-            ),
           ),
         ],
       ),
@@ -829,13 +805,6 @@ class _BalanzaStepState extends State<BalanzaStep> {
                 onPressed: _takeInstrumentoFoto,
                 icon: const Icon(Icons.camera_alt, size: 18),
                 label: const Text('Agregar Fotografía'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF04376E),
-                  side: const BorderSide(color: Color(0xFF04376E)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
               ),
             ),
           ),

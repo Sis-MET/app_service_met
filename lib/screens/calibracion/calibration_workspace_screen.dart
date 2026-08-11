@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/widgets/service_ui/service_app_bar.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/theme/app_colors.dart';
 
 import 'steps/cliente_step.dart';
@@ -167,53 +168,16 @@ class _CalibrationWorkspaceScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-        ),
-        systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        ),
-        title: Text(
-          'Calibración',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
-        ),
+      appBar: ServiceAppBar(
+        title: 'Calibración',
         actions: [
-          if (provider.isSaving)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                ),
-              ),
-            )
-          else if (!provider.lastSaveSuccessful)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: Icon(Icons.error_outline, color: Colors.red),
-              ),
-            )
-          else
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: 16.0),
-                child: Icon(Icons.cloud_done, color: Colors.green),
-              ),
-            ),
+          SaveStatusIndicator(
+            status: provider.isSaving
+                ? SaveStatus.saving
+                : provider.lastSaveSuccessful
+                    ? SaveStatus.success
+                    : SaveStatus.error,
+          ),
         ],
       ),
       body: Column(
@@ -276,12 +240,12 @@ class _CalibrationWorkspaceScreenState
                       final meta = provider.session?.metadata;
 
                       String label = 'Siguiente';
-                      Color actionColor = const Color(0xFF498054);
+                      Color actionColor = AppColors.actionPositive;
                       VoidCallback? onNext;
 
                       if (step == 2 && meta != null && !meta.secaConfirmed) {
                         label = 'Confirmar SECA';
-                        actionColor = Colors.blue[700]!;
+                        actionColor = AppColors.actionPositive;
                         onNext = () async {
                           await provider.confirmSeca();
                         };
@@ -289,7 +253,7 @@ class _CalibrationWorkspaceScreenState
                           meta != null &&
                           meta.secaConfirmed) {
                         label = 'Siguiente';
-                        actionColor = const Color(0xFF498054);
+                        actionColor = AppColors.actionPositive;
                         onNext = () async {
                           if (provider.isQrMode) {
                             final error =
@@ -311,7 +275,7 @@ class _CalibrationWorkspaceScreenState
                           meta != null &&
                           !meta.balanzaConfirmed) {
                         label = 'Guardar Datos';
-                        actionColor = const Color(0xFF3e7732);
+                        actionColor = AppColors.actionPositive;
                         onNext = () async {
                           final error = provider.validateBalanza();
                           if (error != null) {
@@ -426,10 +390,6 @@ class _CalibrationWorkspaceScreenState
                                   ),
                                   ElevatedButton(
                                     onPressed: () => Navigator.pop(ctx2, true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF3e7732),
-                                      foregroundColor: Colors.white,
-                                    ),
                                     child: const Text('Confirmar y Guardar'),
                                   ),
                                 ],
@@ -566,10 +526,6 @@ class _CalibrationWorkspaceScreenState
                                   ElevatedButton(
                                     onPressed: () =>
                                         Navigator.pop(ctx2, 'ignorar'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF3e7732),
-                                      foregroundColor: Colors.white,
-                                    ),
                                     child: const Text('Ignorar y continuar'),
                                   ),
                                 ],
@@ -592,111 +548,13 @@ class _CalibrationWorkspaceScreenState
                             : null;
                       }
 
-                      final canGoBack = provider.currentStep > 0;
-                      final isDarkMode =
-                          Theme.of(ctx).brightness == Brightness.dark;
-                      final pillBg =
-                          isDarkMode ? AppColors.cardDark : Colors.white;
-                      final backColor =
-                          isDarkMode ? Colors.white24 : Colors.black12;
-
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: pillBg,
-                          borderRadius: BorderRadius.circular(50),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.18),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Back button
-                            Tooltip(
-                              message: 'Anterior',
-                              child: InkWell(
-                                onTap: canGoBack
-                                    ? () => provider.previousStep()
-                                    : null,
-                                borderRadius: BorderRadius.circular(50),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: canGoBack
-                                        ? backColor
-                                        : Colors.transparent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.arrow_back_ios_new_rounded,
-                                    size: 18,
-                                    color: canGoBack
-                                        ? (isDarkMode
-                                            ? Colors.white70
-                                            : Colors.black54)
-                                        : (isDarkMode
-                                            ? Colors.white24
-                                            : Colors.black26),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            // Dynamic action button
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              transitionBuilder: (child, animation) =>
-                                  FadeTransition(
-                                opacity: animation,
-                                child: ScaleTransition(
-                                    scale: animation, child: child),
-                              ),
-                              child: Material(
-                                key: ValueKey<String>(label),
-                                color: onNext != null
-                                    ? actionColor
-                                    : Colors.grey[400],
-                                borderRadius: BorderRadius.circular(50),
-                                child: InkWell(
-                                  onTap: onNext,
-                                  borderRadius: BorderRadius.circular(50),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 11),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          label,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        if (label == 'Siguiente') ...[
-                                          const SizedBox(width: 6),
-                                          const Icon(
-                                              Icons.arrow_forward_ios_rounded,
-                                              size: 14,
-                                              color: Colors.white),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      return ServiceNavPill(
+                        label: label,
+                        actionColor: actionColor,
+                        onNext: onNext,
+                        onBack: provider.currentStep > 0
+                            ? provider.previousStep
+                            : null,
                       );
                     },
                   ),

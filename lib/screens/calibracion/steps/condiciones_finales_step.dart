@@ -452,7 +452,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
-          child: ElevatedButton.icon(
+          child: FilledButton.icon(
             onPressed: _isLoadingEquipamientos
                 ? null
                 : () => _showEquipamientosDialog(
@@ -461,14 +461,6 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                     ),
             icon: const Icon(Icons.fitness_center, size: 18),
             label: Text('Pesas (${_selectedPesas.length}/5)'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF365666),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor:
-                  const Color(0xFF365666).withOpacity(0.45),
-              disabledForegroundColor: Colors.white70,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -583,12 +575,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                 style: GoogleFonts.inter(
                     color: isDark ? Colors.white70 : Colors.black54)),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx, ctrl.text),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF326677),
-              foregroundColor: Colors.white,
-            ),
             child: const Text('Guardar'),
           ),
         ],
@@ -927,14 +915,6 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
             onPressed: canTakePhoto ? _takeFinalFoto : null,
             icon: const Icon(Icons.camera_alt, size: 18),
             label: const Text('Tomar Foto'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF04376E),
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: const Color(0xFF04376E).withOpacity(0.4),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
           ),
         ],
       ),
@@ -953,13 +933,6 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                 onPressed: _takeFinalFoto,
                 icon: const Icon(Icons.camera_alt, size: 18),
                 label: const Text('Agregar Fotografía'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF04376E),
-                  side: const BorderSide(color: Color(0xFF04376E)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
               ),
             ),
           ),

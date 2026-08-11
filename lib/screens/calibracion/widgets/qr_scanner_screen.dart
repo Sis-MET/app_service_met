@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../theme/app_colors.dart';
+import '../../../theme/app_design.dart';
+import '../../../widgets/service_ui/service_app_bar.dart';
+
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
 
@@ -25,23 +29,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-        ),
-        title: Text(
-          'Escanear QR',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
-        ),
-      ),
+      appBar: const ServiceAppBar(title: 'Escanear QR'),
       body: Column(
         children: [
           const SizedBox(height: 20),
@@ -67,7 +55,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF04376E).withOpacity(isDark ? 0.4 : 0.2),
+                      color: AppColors.accentYellow
+                          .withOpacity(isDark ? 0.14 : 0.24),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -97,7 +86,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: const Color(0xFFf9e300).withOpacity(0.8),
+                          color: AppColors.accentYellow.withOpacity(0.8),
                           width: 3,
                         ),
                         borderRadius: BorderRadius.circular(24),
@@ -147,23 +136,25 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: AppDesign.mediumRadius,
               border: Border.all(
-                color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                color: isDark
+                    ? AppColors.borderDarkSoft
+                    : AppColors.accentYellow.withOpacity(0.28),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: AppColors.accentYellow.withOpacity(0.09),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
             child: Icon(
               icon,
               size: 28,
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+              color: isDark ? Colors.white : AppDesign.ink,
             ),
           ),
         ),

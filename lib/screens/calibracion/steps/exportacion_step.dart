@@ -593,36 +593,24 @@ class _ExportacionStepState extends State<ExportacionStep> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: () => _seleccionarOtraBalanza(provider),
                   icon: const Icon(Icons.add_circle_outline_rounded),
                   label: const Text('SELECCIONAR OTRA BALANZA',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF326677),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ).animate(delay: 300.ms).fadeIn().scale(),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   onPressed: () => _finalizar(provider),
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: const Text('FINALIZAR SERVICIO',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3e7732),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ).animate(delay: 400.ms).fadeIn().scale(),
             ],

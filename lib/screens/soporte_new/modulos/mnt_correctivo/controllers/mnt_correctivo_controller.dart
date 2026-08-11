@@ -60,12 +60,13 @@ class MntCorrectivoController extends BaseSoporteController {
   session.RepetibilidadData repetibilidadFinal = session.RepetibilidadData();
   session.LinealidadData linealidadFinal = session.LinealidadData();
 
-  MntCorrectivoController({required MntCorrectivoModel model}) : _model = model {
+  MntCorrectivoController({required MntCorrectivoModel model})
+      : _model = model {
     totalSteps = 3;
   }
 
   Future<bool> importDiagnosticoCsv() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
@@ -74,8 +75,11 @@ class MntCorrectivoController extends BaseSoporteController {
     final rows = await File(result.files.single.path!)
         .openRead()
         .transform(utf8.decoder)
-        .transform(const CsvToListConverter(
-            fieldDelimiter: ';', textDelimiter: '"'))
+        .transform(Csv(
+          fieldDelimiter: ';',
+          quoteCharacter: '"',
+          autoDetect: false,
+        ).decoder)
         .toList();
     if (rows.length < 2) return false;
 
@@ -92,11 +96,14 @@ class MntCorrectivoController extends BaseSoporteController {
         continue;
       }
       final values = <String, String>{};
-      for (int index = 0; index < headers.length && index < row.length; index++) {
+      for (int index = 0;
+          index < headers.length && index < row.length;
+          index++) {
         values[headers[index]] = row[index].toString().trim();
       }
       reporteFalla = values['reporte'] ?? reporteFalla;
-      evaluacion = values['evaluacion'] ?? values['comentario_general'] ?? evaluacion;
+      evaluacion =
+          values['evaluacion'] ?? values['comentario_general'] ?? evaluacion;
       trabajoRealizado = values['trabajo_realizado'] ?? trabajoRealizado;
       markChanged();
       notifyListeners();
@@ -170,7 +177,8 @@ class MntCorrectivoController extends BaseSoporteController {
       'cod_metrica': model.codMetrica,
       'tipo_servicio': 'MCR.BL',
       'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
-      'fecha_servicio': DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
+      'fecha_servicio':
+          DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()),
       'cliente': clienteNombre,
       'razon_social': razonSocial,
       'planta': plantaNombre,
@@ -308,17 +316,20 @@ class MntCorrectivoController extends BaseSoporteController {
       'repuestos_utilizados': repuestosUtilizados,
     };
     if (camposEstado.isNotEmpty) {
-      map['campos_estado'] = jsonEncode(camposEstado.map((c) => {
-        'nombre': c.nombre,
-        'value': c.value,
-        'solutionValue': c.solutionValue,
-      }).toList());
+      map['campos_estado'] = jsonEncode(camposEstado
+          .map((c) => {
+                'nombre': c.nombre,
+                'value': c.value,
+                'solutionValue': c.solutionValue,
+              })
+          .toList());
     }
     return map;
   }
 
   @override
-  Future<void> loadExistingSession(String sessionId, Map<String, dynamic> data) async {
+  Future<void> loadExistingSession(
+      String sessionId, Map<String, dynamic> data) async {
     comentarioGeneral = data['comentario_general']?.toString() ?? '';
     recomendacion = data['recomendacion']?.toString() ?? '';
     estadoFisico =
@@ -348,22 +359,38 @@ class MntCorrectivoController extends BaseSoporteController {
       try {
         final pf = jsonDecode(data['pruebas_finales']);
         pruebasFinales = PruebasMetrologicas(
-          excentricidad: (pf['excentricidad'] as List).map((e) => Excentricidad(
-            posicion: e['posicion'] ?? '', carga: e['carga'] ?? '',
-            indicacion1: e['indicacion1'] ?? '', indicacion2: e['indicacion2'] ?? '',
-            indicacion3: e['indicacion3'] ?? '', diferencia: e['diferencia'] ?? '',
-            error: e['error'] ?? '', errorMaximo: e['errorMaximo'] ?? '',
-          )).toList(),
-          repetibilidad: (pf['repetibilidad'] as List).map((r) => Repetibilidad(
-            carga: r['carga'] ?? '', indicacion1: r['indicacion1'] ?? '',
-            indicacion2: r['indicacion2'] ?? '', indicacion3: r['indicacion3'] ?? '',
-            diferencia: r['diferencia'] ?? '', errorMaximo: r['errorMaximo'] ?? '',
-          )).toList(),
-          linealidad: (pf['linealidad'] as List).map((l) => Linealidad(
-            carga: l['carga'] ?? '', indicacion1: l['indicacion1'] ?? '',
-            indicacion2: l['indicacion2'] ?? '', error: l['error'] ?? '',
-            errorMaximo: l['errorMaximo'] ?? '', incertidumbre: l['incertidumbre'] ?? '',
-          )).toList(),
+          excentricidad: (pf['excentricidad'] as List)
+              .map((e) => Excentricidad(
+                    posicion: e['posicion'] ?? '',
+                    carga: e['carga'] ?? '',
+                    indicacion1: e['indicacion1'] ?? '',
+                    indicacion2: e['indicacion2'] ?? '',
+                    indicacion3: e['indicacion3'] ?? '',
+                    diferencia: e['diferencia'] ?? '',
+                    error: e['error'] ?? '',
+                    errorMaximo: e['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          repetibilidad: (pf['repetibilidad'] as List)
+              .map((r) => Repetibilidad(
+                    carga: r['carga'] ?? '',
+                    indicacion1: r['indicacion1'] ?? '',
+                    indicacion2: r['indicacion2'] ?? '',
+                    indicacion3: r['indicacion3'] ?? '',
+                    diferencia: r['diferencia'] ?? '',
+                    errorMaximo: r['errorMaximo'] ?? '',
+                  ))
+              .toList(),
+          linealidad: (pf['linealidad'] as List)
+              .map((l) => Linealidad(
+                    carga: l['carga'] ?? '',
+                    indicacion1: l['indicacion1'] ?? '',
+                    indicacion2: l['indicacion2'] ?? '',
+                    error: l['error'] ?? '',
+                    errorMaximo: l['errorMaximo'] ?? '',
+                    incertidumbre: l['incertidumbre'] ?? '',
+                  ))
+              .toList(),
         );
       } catch (_) {}
     }
@@ -376,7 +403,8 @@ class MntCorrectivoController extends BaseSoporteController {
         final decoded = jsonDecode(data['campos_estado']);
         for (int i = 0; i < decoded.length && i < camposEstado.length; i++) {
           camposEstado[i].value = decoded[i]['value'] ?? '';
-          camposEstado[i].solutionValue = decoded[i]['solutionValue'] ?? 'No aplica';
+          camposEstado[i].solutionValue =
+              decoded[i]['solutionValue'] ?? 'No aplica';
         }
       } catch (_) {}
     }
@@ -506,7 +534,8 @@ class MntCorrectivoController extends BaseSoporteController {
         retorno: data['retorno_lin_final_$i']?.toString() ?? '0',
       ));
     }
-    if (filas.isNotEmpty) linealidadFinal = session.LinealidadData(filas: filas);
+    if (filas.isNotEmpty)
+      linealidadFinal = session.LinealidadData(filas: filas);
   }
 
   static Map<String, dynamic> _excToMap(session.ExcentricidadData data) => {
