@@ -1,14 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
-import 'package:path/path.dart' as p;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
 
+import '../../core/network/service_met_http_client.dart';
 import '../../database/calibration_data_normalizer.dart';
 import '../models/calibration_upload_models.dart';
 
@@ -24,10 +19,6 @@ class CalibrationUploadException implements Exception {
 }
 
 class CalibrationUploadApiService {
-  static const _certificateSha256 =
-      '9B77AAF79EC28476AEA6C18B16F8F98A07D4F264E3B92F22224BCB7AAAF85678';
-  static const _allowedHosts = {'192.168.1.5', '10.50.8.1'};
-
   final String baseUrl;
   final http.Client _client;
   final FlutterSecureStorage _secureStorage;
@@ -37,81 +28,12 @@ class CalibrationUploadApiService {
     http.Client? client,
     FlutterSecureStorage? secureStorage,
   })  : baseUrl = baseUrl.replaceAll(RegExp(r'/+$'), ''),
-        _client = client ?? _createPinnedClient(baseUrl),
+        _client = client ?? ServiceMetHttpClient.create(baseUrl),
         _secureStorage = secureStorage ?? const FlutterSecureStorage();
-
-  static http.Client _createPinnedClient(String rawBaseUrl) {
-    final uri = Uri.tryParse(rawBaseUrl.trim());
-    if (uri == null ||
-        uri.scheme != 'https' ||
-        !_allowedHosts.contains(uri.host) ||
-        uri.port != 3100) {
-      throw CalibrationUploadException(
-        'La API debe usar HTTPS en una dirección interna autorizada.',
-        code: 'INSECURE_API_URL',
-      );
-    }
-
-    final context = SecurityContext(withTrustedRoots: false);
-    final ioClient = HttpClient(context: context)
-      ..connectionTimeout = const Duration(seconds: 20)
-      ..badCertificateCallback = (certificate, host, port) {
-        if (!_allowedHosts.contains(host) || port != 3100) return false;
-        final now = DateTime.now();
-        if (now.isBefore(certificate.startValidity) ||
-            now.isAfter(certificate.endValidity)) {
-          return false;
-        }
-        final fingerprint = sha256
-            .convert(certificate.der)
-            .toString()
-            .replaceAll(':', '')
-            .toUpperCase();
-        return fingerprint == _certificateSha256;
-      };
-    return IOClient(ioClient);
-  }
 
   String get _tokenKey =>
       'servicemet_api_token_${base64Url.encode(utf8.encode(baseUrl))}';
   String get _expiryKey => '${_tokenKey}_expiry';
-
-  Future<Map<String, String>> _loadLocalCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    final usuario = prefs.getString('logged_user');
-    if (usuario == null || usuario.isEmpty) {
-      throw CalibrationUploadException(
-        'No hay un usuario autenticado.',
-        code: 'LOCAL_USER_MISSING',
-      );
-    }
-    final dbPath = p.join(await getDatabasesPath(), 'usuarios.db');
-    if (!await databaseExists(dbPath)) {
-      throw CalibrationUploadException(
-        'No se encontró la sesión local del usuario.',
-        code: 'LOCAL_CREDENTIALS_MISSING',
-      );
-    }
-    final db = await openDatabase(dbPath, readOnly: true);
-    try {
-      final rows = await db.query(
-        'usuarios',
-        columns: ['usuario', 'pass'],
-        where: 'usuario = ?',
-        whereArgs: [usuario],
-        limit: 1,
-      );
-      if (rows.isEmpty || (rows.first['pass']?.toString() ?? '').isEmpty) {
-        throw CalibrationUploadException(
-          'No se encontraron credenciales para autenticar la subida.',
-          code: 'LOCAL_CREDENTIALS_MISSING',
-        );
-      }
-      return {'usuario': usuario, 'password': rows.first['pass'].toString()};
-    } finally {
-      await db.close();
-    }
-  }
 
   Future<String> _getToken({bool forceRefresh = false}) async {
     if (!forceRefresh) {
@@ -125,10 +47,9 @@ class CalibrationUploadApiService {
       }
     }
 
-    final credentials = await _loadLocalCredentials();
-    return authenticate(
-      usuario: credentials['usuario']!,
-      password: credentials['password']!,
+    throw CalibrationUploadException(
+      'Ingresa tu contraseña para renovar la sesión con el servidor.',
+      code: 'LOCAL_CREDENTIALS_MISSING',
     );
   }
 

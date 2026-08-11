@@ -223,27 +223,8 @@ class DatabaseMaintenanceService {
     try {
       final authService = AuthService();
       debugPrint('Migrando Usuarios...');
-
-      // 1. Backup
-      final users = await authService.getSavedUsers();
-      debugPrint('Usuarios respaldados: ${users.length}');
-
-      // 2. Delete
-      // Nota: AuthService cierra la conexión en cada operación, así que no es necesario un close() explicito aquí
-      // si usamos getSavedUsers(). Pero para borrar el archivo sí necesitamos asegurar que nadie lo tenga tomado,
-      // aunque sqflite maneja pool. De todas formas, lo borraremos.
-      final path = join(await getDatabasesPath(), 'usuarios.db');
-      await _deleteDbFile(path);
-
-      // 3. Restore
-      // Al llamar a saveUserToDatabase, el AuthService automáticamente ejecutará _openDb(),
-      // lo cual creará la tabla con la NUEVA estructura definida en AuthService (versión actualizada).
-      int restored = 0;
-      for (var user in users) {
-        await authService.saveUserToDatabase(user);
-        restored++;
-      }
-      debugPrint('Usuarios restaurados: $restored');
+      await authService.migrateDatabase();
+      debugPrint('Usuarios migrados sin eliminar verificadores offline');
     } catch (e) {
       debugPrint('Error migrando Usuarios: $e');
     }

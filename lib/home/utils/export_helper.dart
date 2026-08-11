@@ -21,7 +21,7 @@ class ExportHelper {
         csvData.add(item.values.toList());
       }
 
-      String csv = const ListToCsvConverter().convert(csvData);
+      String csv = Csv().encode(csvData);
       final directory = await getDownloadsDirectory();
       final path = directory?.path;
 

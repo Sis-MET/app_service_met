@@ -38,7 +38,7 @@ class FotoHelper {
       return null;
     }
 
-    final path = await FilePicker.platform.getDirectoryPath(
+    final path = await FilePicker.getDirectoryPath(
       dialogTitle: 'Seleccione o cree la carpeta ServiceMET',
     );
     if (path == null) return null;

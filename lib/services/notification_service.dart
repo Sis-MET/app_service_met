@@ -37,7 +37,7 @@ class NotificationService {
     );
 
     await flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
+      settings: initializationSettings,
       onDidReceiveNotificationResponse:
           (fln.NotificationResponse notificationResponse) async {
         // Manejar toque en notificación si es necesario
@@ -59,11 +59,12 @@ class NotificationService {
   // 1. Recordatorio diario de actualización (Ej: 8:00 AM)
   Future<void> scheduleDailyUpdateReminder() async {
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      0, // ID único
-      'Actualización de Datos',
-      'Recuerda actualizar la precarga de datos para trabajar con información al día.',
-      _nextInstanceOfTime(8, 0), // 8:00 AM
-      const fln.NotificationDetails(
+      id: 0, // ID único
+      title: 'Actualización de Datos',
+      body:
+          'Recuerda actualizar la precarga de datos para trabajar con información al día.',
+      scheduledDate: _nextInstanceOfTime(8, 0), // 8:00 AM
+      notificationDetails: const fln.NotificationDetails(
         android: fln.AndroidNotificationDetails(
           'daily_reminders',
           'Recordatorios Diarios',
@@ -141,10 +142,10 @@ class NotificationService {
         }
 
         await flutterLocalNotificationsPlugin.show(
-          1, // ID único
-          'Alerta de Equipos',
-          bodyText,
-          fln.NotificationDetails(
+          id: 1, // ID único
+          title: 'Alerta de Equipos',
+          body: bodyText,
+          notificationDetails: fln.NotificationDetails(
             android: fln.AndroidNotificationDetails(
               'calibration_alerts',
               'Alertas de Calibración',

@@ -30,26 +30,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_typeahead: ^5.2.0
-  mssql_connection: 2.0.1
+  flutter_typeahead: ^6.0.0
   encrypt: ^5.0.3
-  flutter_secure_storage: ^9.2.4
+  flutter_secure_storage: ^11.0.0
   crypto: ^3.0.6
-  package_info_plus: ^9.0.0
+  package_info_plus: ^10.2.1
   flutter_animate: ^4.5.2
-  google_fonts: ^6.2.1
+  google_fonts: ^8.2.1
   awesome_dialog: ^3.2.1
   open_filex: ^4.7.0
-  share_plus: ^11.0.0
+  share_plus: ^13.3.0
   flutter_file_dialog: ^3.0.2
   archive: ^4.0.7
-  file_picker: ^10.1.9
-  firebase_core: ^3.13.1
-  firebase_auth: ^5.5.4
-  cloud_firestore: ^5.6.8
+  file_picker: ^12.0.0-beta.7
+  firebase_core: ^4.13.0
+  firebase_auth: ^6.5.7
+  cloud_firestore: ^6.8.0
   sqflite: ^2.4.2
   path_provider: ^2.1.5
-  connectivity_plus: ^6.1.4
+  connectivity_plus: ^7.3.1
   path: ^1.9.1
   http: ^1.4.0
   shared_preferences: ^2.5.3
@@ -60,16 +59,16 @@ dependencies:
   multi_select_flutter: ^4.1.3
   provider: ^6.1.5
   flutter_speed_dial: ^7.0.0
-  csv: ^6.0.0
-  permission_handler: ^12.0.0+1
-  flutter_local_notifications: ^19.2.1
-  smooth_page_indicator: ^1.2.1
+  csv: ^8.0.0
+  permission_handler: ^13.0.1
+  flutter_local_notifications: ^22.3.0
+  smooth_page_indicator: ^2.0.1
   photo_view: ^0.15.0
   flutter_image_compress: ^2.4.0
   mobile_scanner: ^7.0.1
   font_awesome_flutter: ^11.0.0
-  timezone: ^0.10.0
-  local_auth: ^2.3.0
+  timezone: ^0.11.1
+  local_auth: ^3.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -93,53 +92,7 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - images/iconos/icono_balanza_industrial.png
-    - images/logo_sm.png
     - images/logo_met.png
-    - images/sm_logo.png
-    - images/Circular_4A.png
-    - images/Circular_4D.png
-    - images/Circular_4F.png
-    - images/Circular_4I.png
-    - images/Circular_5A.png
-    - images/Circular_5D.png
-    - images/Circular_5F.png
-    - images/Circular_5I.png
-    - images/Cuadrada_A.png
-    - images/Cuadrada_D.png
-    - images/Cuadrada_F.png
-    - images/Cuadrada_I.png
-    - images/Rectangular_3A.png
-    - images/Rectangular_3D.png
-    - images/Rectangular_3F.png
-    - images/Rectangular_3I.png
-    - images/Rectangular_5A.png
-    - images/Rectangular_5D.png
-    - images/Rectangular_5F.png
-    - images/Rectangular_5I.png
-    - images/Triangular_A.png
-    - images/Triangular_D.png
-    - images/Triangular_F.png
-    - images/Triangular_I.png
-    - images/Caceta_A.png
-    - images/Caceta_D.png
-    - images/Caceta_F.png
-    - images/Caceta_I.png
-    - images/tarjetas/b_new.png
-    - images/tarjetas/ca_home.png
-    - images/tarjetas/st_home.png
-    - images/tarjetas/t1.png
-    - images/tarjetas/t2.png
-    - images/tarjetas/t3.png
-    - images/tarjetas/t4.png
-    - images/tarjetas/t5.png
-    - images/tarjetas/t6.png
-    - images/tarjetas/t7.png
-    - images/tarjetas/t8.png
-    - images/tarjetas/t9.png
-    - images/tarjetas/t10.png
-    - images/tarjetas/pre_car.png
-    - images/tarjetas/ver_ser.png
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

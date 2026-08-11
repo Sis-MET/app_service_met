@@ -16,6 +16,8 @@ class ServicioResumen {
   });
 
   String get prefijo => tipo == TipoServicio.calibracion ? 'SECA' : 'OTST';
-  String get nombreTipo => tipo == TipoServicio.calibracion ? 'Calibración' : 'Soporte Técnico';
-  String get nombreItem => tipo == TipoServicio.calibracion ? 'balanza' : 'servicio';
+  String get nombreTipo =>
+      tipo == TipoServicio.calibracion ? 'Calibración' : 'Soporte Técnico';
+  String get nombreItem =>
+      tipo == TipoServicio.calibracion ? 'balanza' : 'servicio';
 }

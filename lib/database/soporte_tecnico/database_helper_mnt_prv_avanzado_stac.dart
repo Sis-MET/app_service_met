@@ -809,7 +809,7 @@ class DatabaseHelperMntPrvAvanzadoStac {
         rows.add(registro.values.toList());
       }
 
-      final String csv = const ListToCsvConverter().convert(rows);
+      final String csv = Csv().encode(rows);
       final Uint8List bytes = Uint8List.fromList(csv.codeUnits);
       final String fileName =
           'mnt_prv_avanzado_stac_${DateTime.now().millisecondsSinceEpoch}.csv';

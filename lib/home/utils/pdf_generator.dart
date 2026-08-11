@@ -6,7 +6,8 @@ import '../models/servicio_model.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class PdfGenerator {
-  static Future<Uint8List> generateCalibracionPdf(ServicioResumen servicio) async {
+  static Future<Uint8List> generateCalibracionPdf(
+      ServicioResumen servicio) async {
     final pdf = pw.Document();
     final font = await PdfGoogleFonts.nunitoExtraLight();
     final fontBold = await PdfGoogleFonts.nunitoExtraBold();
@@ -16,8 +17,7 @@ class PdfGenerator {
     final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
 
     // Obtener datos del encabezado (del primer registro)
-    final firstRecord =
-        servicio.items.isNotEmpty ? servicio.items.first : {};
+    final firstRecord = servicio.items.isNotEmpty ? servicio.items.first : {};
     final String cliente = firstRecord['cliente']?.toString() ?? '';
     final String razonSocial = firstRecord['razon_social']?.toString() ?? '';
     final String planta = firstRecord['planta']?.toString() ?? '';
@@ -68,8 +68,7 @@ class PdfGenerator {
     final logo = pw.MemoryImage(logoBytes.buffer.asUint8List());
 
     // Obtener datos del encabezado
-    final firstRecord =
-        servicio.items.isNotEmpty ? servicio.items.first : {};
+    final firstRecord = servicio.items.isNotEmpty ? servicio.items.first : {};
     final String cliente = firstRecord['cliente']?.toString() ?? '';
     final String razonSocial = firstRecord['razon_social']?.toString() ?? '';
     final String planta = firstRecord['planta']?.toString() ?? '';

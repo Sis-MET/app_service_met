@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:csv/csv.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
@@ -504,18 +506,18 @@ class DatabaseHelperRelevamiento {
         rows.add(registro.values.toList());
       }
 
-      String csv = const ListToCsvConverter().convert(rows);
+      String csv = Csv().encode(rows);
 
-      String? outputFile = await FilePicker.platform.saveFile(
+      String? outputFile = await FilePicker.saveFile(
         dialogTitle: 'Guardar archivo CSV',
         fileName:
             'relevamiento_de_datos${DateTime.now().toIso8601String()}.csv',
         type: FileType.custom,
         allowedExtensions: ['csv'],
+        bytes: Uint8List.fromList(utf8.encode(csv)),
       );
 
       if (outputFile != null) {
-        await File(outputFile).writeAsString(csv);
         debugPrint('Datos exportados a $outputFile');
       }
     } catch (e) {
