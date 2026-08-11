@@ -1,5 +1,5 @@
-// Modelo de perfil de conexión a la base de datos.
-// Representa una configuración guardada con nombre, servidor y credenciales.
+// Perfil de la API interna. Los campos de base de datos se conservan únicamente
+// para migrar instalaciones antiguas y ya no se utilizan desde Flutter.
 
 class ConnectionProfile {
   final String id;
@@ -30,11 +30,11 @@ class ConnectionProfile {
     return ConnectionProfile(
       id: json['id'] as String,
       nombre: json['nombre'] as String,
-      ip: json['ip'] as String,
-      puerto: json['puerto'] as String,
-      baseDatos: json['baseDatos'] as String,
-      usuarioBD: json['usuarioBD'] as String,
-      contrasenaBD: json['contrasenaBD'] as String,
+      ip: json['ip']?.toString() ?? '',
+      puerto: json['puerto']?.toString() ?? '',
+      baseDatos: json['baseDatos']?.toString() ?? '',
+      usuarioBD: json['usuarioBD']?.toString() ?? '',
+      contrasenaBD: json['contrasenaBD']?.toString() ?? '',
       apiUrl: json['apiUrl']?.toString() ??
           'https://${json['ip']}:${json['apiPort'] ?? '3100'}',
       esPredeterminado: json['esPredeterminado'] as bool? ?? false,

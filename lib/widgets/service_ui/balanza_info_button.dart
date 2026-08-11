@@ -124,8 +124,7 @@ void showBalanzaInfoSheet(
                 style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color:
-                        isDark ? Colors.white : AppColors.textPrimaryLight)),
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight)),
             const SizedBox(height: 16),
             Expanded(
               child: ListView(
@@ -170,20 +169,17 @@ void showBalanzaInfoSheet(
                       child: Text('Sin pesas patrón seleccionadas',
                           style: GoogleFonts.inter(
                               fontSize: 12,
-                              color:
-                                  isDark ? Colors.white38 : Colors.black38)),
+                              color: isDark ? Colors.white38 : Colors.black38)),
                     )
                   else ...[
                     Text('Pesas Patrón (${b.pesasPatron.length})',
                         style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color:
-                                isDark ? Colors.white70 : Colors.black54)),
+                            color: isDark ? Colors.white70 : Colors.black54)),
                     const SizedBox(height: 4),
                     ...b.pesasPatron.map((e) => Padding(
-                          padding:
-                              const EdgeInsets.only(left: 12, bottom: 4),
+                          padding: const EdgeInsets.only(left: 12, bottom: 4),
                           child: Text(e,
                               style: GoogleFonts.inter(
                                   fontSize: 12,
@@ -196,24 +192,20 @@ void showBalanzaInfoSheet(
                   if (b.ambiente.isEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                          'Sin instrumentos de ambiente seleccionados',
+                      child: Text('Sin instrumentos de ambiente seleccionados',
                           style: GoogleFonts.inter(
                               fontSize: 12,
-                              color:
-                                  isDark ? Colors.white38 : Colors.black38)),
+                              color: isDark ? Colors.white38 : Colors.black38)),
                     )
                   else ...[
                     Text('Ambiente (${b.ambiente.length})',
                         style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color:
-                                isDark ? Colors.white70 : Colors.black54)),
+                            color: isDark ? Colors.white70 : Colors.black54)),
                     const SizedBox(height: 4),
                     ...b.ambiente.map((e) => Padding(
-                          padding:
-                              const EdgeInsets.only(left: 12, bottom: 4),
+                          padding: const EdgeInsets.only(left: 12, bottom: 4),
                           child: Text(e,
                               style: GoogleFonts.inter(
                                   fontSize: 12,

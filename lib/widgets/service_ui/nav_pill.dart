@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_design.dart';
 
 /// Pill flotante de navegación (Atrás + acción dinámica),
 /// idéntica a la usada en el workspace de Calibración.
@@ -23,7 +24,7 @@ class ServiceNavPill extends StatelessWidget {
   const ServiceNavPill({
     super.key,
     required this.label,
-    this.actionColor = const Color(0xFF498054),
+    this.actionColor = AppColors.actionPositive,
     this.onNext,
     this.onBack,
   });
@@ -32,14 +33,24 @@ class ServiceNavPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pillBg = isDark ? AppColors.cardDark : Colors.white;
-    final backColor = isDark ? Colors.white24 : Colors.black12;
+    final backColor = AppColors.accentYellow.withOpacity(isDark ? 0.10 : 0.12);
     final canGoBack = onBack != null;
 
     return Container(
       decoration: BoxDecoration(
         color: pillBg,
-        borderRadius: BorderRadius.circular(50),
+        borderRadius: AppDesign.largeRadius,
+        border: Border.all(
+          color: isDark
+              ? AppColors.borderDarkSoft
+              : AppColors.accentYellow.withOpacity(0.28),
+        ),
         boxShadow: [
+          BoxShadow(
+            color: AppColors.accentYellow.withOpacity(isDark ? 0.04 : 0.10),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
           BoxShadow(
             color: Colors.black.withOpacity(0.18),
             blurRadius: 16,
@@ -85,21 +96,22 @@ class ServiceNavPill extends StatelessWidget {
             ),
             child: Material(
               key: ValueKey<String>(label),
-              color: onNext != null ? actionColor : Colors.grey[400],
+              color:
+                  onNext != null ? AppColors.actionPositive : Colors.grey[400],
               borderRadius: BorderRadius.circular(50),
               child: InkWell(
                 onTap: onNext,
                 borderRadius: BorderRadius.circular(50),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 11),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         label,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.actionPositiveInk,
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -107,7 +119,7 @@ class ServiceNavPill extends StatelessWidget {
                       if (label == 'Siguiente') ...[
                         const SizedBox(width: 6),
                         const Icon(Icons.arrow_forward_ios_rounded,
-                            size: 14, color: Colors.white),
+                            size: 14, color: AppColors.actionPositiveInk),
                       ],
                     ],
                   ),

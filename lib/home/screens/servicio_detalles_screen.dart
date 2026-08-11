@@ -13,6 +13,7 @@ import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
 import '../../theme/app_colors.dart';
 import 'calibration_upload_screen.dart';
+import 'support_upload_screen.dart';
 
 class ServicioDetallesScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -91,14 +92,13 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         csvData.add(item.values.toList());
       }
 
-      final csv =
-          const ListToCsvConverter(fieldDelimiter: ';').convert(csvData);
+      final csv = Csv(fieldDelimiter: ';', autoDetect: false).encode(csvData);
       final List<int> csvBytes = utf8.encode(csv);
 
       final fileName =
           '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
-      final String? directoryPath = await FilePicker.platform.getDirectoryPath(
+      final String? directoryPath = await FilePicker.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el respaldo',
       );
       if (directoryPath == null) return;
@@ -165,7 +165,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       final fileName =
           'Resumen_${servicioFiltrado.nombreTipo.replaceAll(" ", "_")}_${servicioFiltrado.prefijo}_${servicioFiltrado.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
-      final String? directoryPath = await FilePicker.platform.getDirectoryPath(
+      final String? directoryPath = await FilePicker.getDirectoryPath(
         dialogTitle: 'Seleccione carpeta para guardar el PDF',
       );
       if (directoryPath == null) return;
@@ -556,6 +556,152 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     );
   }
 
+  Future<void> _mostrarMenuAcciones() async {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Acciones del servicio',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Elige qué deseas hacer con estos registros.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.filePdf,
+              iconColor: Colors.red,
+              title: 'Exportar PDF',
+              subtitle: 'Generar un informe para compartir o imprimir',
+              value: 'pdf',
+            ),
+            const SizedBox(height: 10),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.fileArrowDown,
+              iconColor: const Color(0xFF4CAF50),
+              title: 'Respaldo CSV',
+              subtitle: 'Guardar una copia editable de los datos',
+              value: 'csv',
+            ),
+            const SizedBox(height: 10),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.cloudArrowUp,
+              iconColor: widget.servicio.tipo == TipoServicio.calibracion
+                  ? AppColors.calibracion
+                  : AppColors.soporte,
+              title: 'Subir datos',
+              subtitle: 'Validar y enviar los registros al servidor',
+              value: 'upload',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case 'pdf':
+        await _mostrarDialogoExportacion(context, true);
+      case 'csv':
+        await _mostrarDialogoExportacion(context, false);
+      case 'upload':
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => widget.servicio.tipo == TipoServicio.calibracion
+                ? CalibrationUploadScreen(seca: widget.servicio.codigo)
+                : SupportUploadScreen(servicio: widget.servicio),
+          ),
+        );
+    }
+  }
+
+  Widget _buildActionTile({
+    required BuildContext context,
+    required FaIconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required String value,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.surfaceContainerHighest.withOpacity(0.45),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: () => Navigator.pop(context, value),
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: FaIcon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -565,9 +711,6 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     final bgColor =
         isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight;
-    final cardColor = isDarkMode ? AppColors.cardDark : Colors.white;
-    final borderColor =
-        isDarkMode ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -587,79 +730,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             height: 1.1,
           ),
         ),
-        actions: [
-          if (widget.servicio.tipo == TipoServicio.calibracion)
-            TextButton.icon(
-              icon: const Icon(Icons.cloud_upload_outlined, size: 19),
-              label: const Text('Subir'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CalibrationUploadScreen(seca: widget.servicio.codigo),
-                ),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: primaryColor,
-                textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          border: Border(top: BorderSide(color: borderColor, width: 1)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _mostrarDialogoExportacion(context, true),
-                  icon: const FaIcon(FontAwesomeIcons.filePdf,
-                      size: 16, color: Colors.red),
-                  label: Text(
-                    'Exportar PDF',
-                    style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    side: BorderSide(color: Colors.red.withOpacity(0.4)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _mostrarDialogoExportacion(context, false),
-                  icon: const FaIcon(FontAwesomeIcons.fileArrowDown,
-                      size: 16, color: Colors.white),
-                  label: Text(
-                    'Respaldo CSV',
-                    style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'acciones_registros',
+        onPressed: _mostrarMenuAcciones,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.tune_rounded),
+        label: Text(
+          'ACCIONES',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
       ),
       body: itemsEditados.isEmpty
@@ -682,7 +762,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 96),
               itemCount: itemsEditados.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {

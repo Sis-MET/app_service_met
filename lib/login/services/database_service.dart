@@ -82,7 +82,8 @@ class DatabaseService {
 
     // Tabla servicios con campos dinámicos
     final serviciosFields = [
-      'cod_metrica TEXT PRIMARY KEY',
+      'id INTEGER PRIMARY KEY AUTOINCREMENT',
+      'cod_metrica TEXT',
       'seca TEXT',
       'reg_fecha TEXT',
       'reg_usuario TEXT',
@@ -232,7 +233,7 @@ class DatabaseService {
 
     return await openDatabase(
       usersDbPath,
-      version: 4, // Sincronizado con AuthService
+      version: 5, // Sincronizado con AuthService
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE usuarios (
@@ -245,6 +246,9 @@ class DatabaseService {
             titulo_abr TEXT,
             estado TEXT,
             acceso_app TEXT,
+            password_salt TEXT,
+            password_hash TEXT,
+            last_verified_at TEXT,
             fecha_guardado TEXT
           )
         ''');
@@ -255,6 +259,17 @@ class DatabaseService {
             await db.execute('ALTER TABLE usuarios ADD COLUMN acceso_app TEXT');
           } catch (e) {
             print('Error upgrade DBService: $e');
+          }
+        }
+        if (oldVersion < 5) {
+          for (final column in const [
+            'password_salt TEXT',
+            'password_hash TEXT',
+            'last_verified_at TEXT',
+          ]) {
+            try {
+              await db.execute('ALTER TABLE usuarios ADD COLUMN $column');
+            } catch (_) {}
           }
         }
       },

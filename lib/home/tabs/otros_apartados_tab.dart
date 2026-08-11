@@ -1,11 +1,8 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/screens/precarga/descarga_de_datos.dart';
+
+import '../../screens/precarga/descarga_de_datos.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
 
 class OtrosApartadosTab extends StatelessWidget {
   final String userName;
@@ -14,200 +11,125 @@ class OtrosApartadosTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.delayed(const Duration(milliseconds: 500));
-      },
-      color: Theme.of(context).colorScheme.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Encabezado ──
-            _buildHeader(context),
-            const SizedBox(height: 40),
-
-            // ── Lista de Herramientas ──
-            _buildServiceCard(
-              context,
-              icon: FontAwesomeIcons.cloudArrowDown,
-              title: 'Precarga BD Principal',
-              subtitle: 'Descarga de datos de clientes, plantas y equipos desde DataMET',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        DescargaDeDatosScreen(userName: userName),
-                  ),
-                );
-              },
-              delay: 300.ms,
-            ),
-
-            const SizedBox(height: 30),
-
-            // ── Información ──
-            _buildInfoSection(context),
-          ],
-        ),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        AppDesign.pagePadding,
+        24,
+        AppDesign.pagePadding,
+        112,
       ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Herramientas',
-          style: GoogleFonts.poppins(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface,
-            height: 1.1,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Funciones complementarias para tu trabajo',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: cs.onSurface.withOpacity(0.54),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1);
-  }
-
-  Widget _buildServiceCard(
-    BuildContext context, {
-    required dynamic icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required Duration delay,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = isDark ? Colors.white : cs.primary;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                width: 32,
-                child: Center(
-                  child: icon is IconData ? Icon(icon, size: 30, color: accent) : FaIcon(icon, size: 30, color: accent),
+              Text('Precarga', style: AppDesign.displayStyle(context)),
+              const SizedBox(height: 8),
+              Text(
+                'Mantén disponibles los datos maestros que necesitas para trabajar sin conexión.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: AppStatusPill(
+                  icon: Icons.offline_bolt_outlined,
+                  label: 'Preparado para trabajo offline',
+                  color: AppColors.actionPositive,
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
+              const SizedBox(height: 28),
+              AppPanel(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
+                    Container(
+                      width: 56,
+                      height: 56,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentYellow.withOpacity(0.15),
+                        borderRadius: AppDesign.mediumRadius,
+                      ),
+                      child: const Icon(
+                        Icons.cloud_download_outlined,
+                        color: AppColors.shimmerGold,
+                        size: 27,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 18),
                     Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.54),
-                        height: 1.4,
+                      'Base de datos principal',
+                      style: AppDesign.titleStyle(context),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      'Descarga desde DataMET la información actualizada de clientes, plantas, balanzas, equipamientos y servicios anteriores.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: const [
+                        AppStatusPill(
+                          icon: Icons.business_outlined,
+                          label: 'Clientes y plantas',
+                          color: AppColors.shimmerGold,
+                        ),
+                        AppStatusPill(
+                          icon: Icons.scale_outlined,
+                          label: 'Balanzas',
+                          color: AppColors.shimmerGold,
+                        ),
+                        AppStatusPill(
+                          icon: Icons.history_rounded,
+                          label: 'Historial',
+                          color: AppColors.shimmerGold,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              DescargaDeDatosScreen(userName: userName),
+                        ),
+                      ),
+                      icon: const Icon(Icons.sync_rounded),
+                      label: const Text('Actualizar datos'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              AppPanel(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppColors.actionPositive,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'La descarga reemplaza los datos maestros locales, pero no elimina tus servicios ni las calibraciones pendientes de subir.',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: cs.onSurface.withOpacity(0.54),
-              ),
             ],
           ),
         ),
       ),
-    ).animate(delay: delay).fadeIn().slideX(begin: 0.1);
-  }
-
-  Widget _buildInfoSection(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = isDark ? Colors.white : cs.primary;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FaIcon(FontAwesomeIcons.circleInfo, color: accent, size: 18),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Herramientas Complementarias',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Estas herramientas complementan los servicios principales, permitiendo descargar datos de DataMET y mantener la app actualizada.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: cs.onSurface.withOpacity(0.54),
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 500.ms).fadeIn().slideY(begin: 0.1);
+    );
   }
 }

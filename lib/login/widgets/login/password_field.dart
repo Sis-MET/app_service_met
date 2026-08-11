@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/theme/app_colors.dart';
 
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
@@ -35,8 +34,9 @@ class _PasswordFieldState extends State<PasswordField> {
           'Contraseña',
           style: GoogleFonts.inter(
             fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: widget.isDark ? Colors.white70 : AppColors.textPrimaryLight,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
+            color: widget.isDark ? Colors.white70 : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
@@ -57,9 +57,8 @@ class _PasswordFieldState extends State<PasswordField> {
               fontSize: 14,
             ),
             filled: true,
-            fillColor: widget.isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.03),
+            fillColor:
+                widget.isDark ? Colors.white.withOpacity(0.06) : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
@@ -75,8 +74,8 @@ class _PasswordFieldState extends State<PasswordField> {
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(
-                color: widget.isDark ? Colors.white : AppColors.primary,
-                width: 1.5,
+                color: widget.isDark ? Colors.white : Colors.black,
+                width: 1.4,
               ),
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -85,7 +84,7 @@ class _PasswordFieldState extends State<PasswordField> {
             ),
             prefixIcon: Icon(
               Icons.lock_outline_rounded,
-              color: widget.isDark ? Colors.white70 : AppColors.primary,
+              color: widget.isDark ? Colors.white70 : Colors.black87,
               size: 22,
             ),
             suffixIcon: IconButton(
@@ -93,7 +92,7 @@ class _PasswordFieldState extends State<PasswordField> {
                 _obscurePassword
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                color: widget.isDark ? Colors.white70 : AppColors.primary.withOpacity(0.6),
+                color: widget.isDark ? Colors.white70 : Colors.black54,
                 size: 22,
               ),
               onPressed: () {

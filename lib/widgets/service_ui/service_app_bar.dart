@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+
 /// Estado del guardado automático para el indicador del AppBar.
 enum SaveStatus { idle, saving, success, error }
 
@@ -24,11 +27,17 @@ class SaveStatusIndicator extends StatelessWidget {
         );
         break;
       case SaveStatus.error:
-        child = const Icon(Icons.error_outline, color: Colors.red);
+        child = const Icon(
+          Icons.error_outline_rounded,
+          color: AppColors.actionNegative,
+        );
         break;
       case SaveStatus.success:
       case SaveStatus.idle:
-        child = const Icon(Icons.cloud_done, color: Colors.green);
+        child = const Icon(
+          Icons.cloud_done_outlined,
+          color: AppColors.actionPositive,
+        );
         break;
     }
     return Center(
@@ -70,7 +79,7 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       automaticallyImplyLeading: automaticallyImplyLeading,
       iconTheme: IconThemeData(
-        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        color: isDark ? Colors.white : AppDesign.ink,
       ),
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -80,8 +89,9 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
         title,
         style: GoogleFonts.poppins(
           fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.35,
+          color: isDark ? Colors.white : AppDesign.ink,
           height: 1.1,
         ),
       ),

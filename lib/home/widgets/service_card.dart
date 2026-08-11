@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/servicio_detalles_screen.dart';
-import '../models/servicio_model.dart';
+
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+import '../models/servicio_model.dart';
+import '../screens/servicio_detalles_screen.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServicioResumen servicio;
@@ -12,59 +14,34 @@ class ServiceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
-
-    final isCalibracion = servicio.tipo == TipoServicio.calibracion;
-    final Color flatColor = const Color(0xFF4CAF50);
-    final icon = isCalibracion
+    final colors = Theme.of(context).colorScheme;
+    final calibration = servicio.tipo == TipoServicio.calibracion;
+    final accent =
+        calibration ? AppColors.actionPositive : AppColors.shimmerGold;
+    final icon = calibration
         ? FontAwesomeIcons.scaleBalanced
         : FontAwesomeIcons.screwdriverWrench;
-    final String labelSuffix = isCalibracion ? 'calibrada' : 'técnico';
-    final String pluralSuffixItem = servicio.cantidad != 1 ? 's' : '';
-    final String pluralSuffixLabel = servicio.cantidad != 1 ? 's' : '';
-    final String fechaStr = _formatFecha(servicio.fecha);
+    final date = _formatDate(servicio.fecha);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: AppPanel(
+        padding: EdgeInsets.zero,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    ServicioDetallesScreen(servicio: servicio),
-              ),
-            );
-          },
+          borderRadius: AppDesign.largeRadius,
+          onTap: () => _open(context),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: flatColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    color: accent.withOpacity(0.13),
+                    borderRadius: AppDesign.smallRadius,
                   ),
-                  child: FaIcon(icon, color: flatColor, size: 18),
+                  child: Center(child: FaIcon(icon, color: accent, size: 19)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -76,63 +53,35 @@ class ServiceCard extends StatelessWidget {
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: cs.onSurface,
-                          height: 1.2,
+                          color: colors.onSurface,
                         ),
                       ),
-                      if (fechaStr.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          fechaStr,
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: cs.onSurface.withOpacity(0.45),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        '${servicio.cantidad} ${servicio.nombreItem}$pluralSuffixItem $labelSuffix$pluralSuffixLabel',
+                        _description(),
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: cs.onSurface.withOpacity(0.54),
                           fontWeight: FontWeight.w500,
+                          color: colors.onSurfaceVariant,
                         ),
                       ),
+                      if (date.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(date,
+                            style: Theme.of(context).textTheme.bodySmall),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  height: 38,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ServicioDetallesScreen(servicio: servicio),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: flatColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Ver',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                const SizedBox(width: 10),
+                IconButton.filledTonal(
+                  tooltip: 'Ver detalle',
+                  onPressed: () => _open(context),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.accentYellow.withOpacity(0.12),
+                    foregroundColor: colors.onSurface,
                   ),
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 19),
                 ),
               ],
             ),
@@ -142,16 +91,27 @@ class ServiceCard extends StatelessWidget {
     );
   }
 
-  String _formatFecha(String? fecha) {
-    if (fecha == null || fecha.isEmpty) return '';
-    try {
-      final parts = fecha.split('-');
-      if (parts.length == 3) {
-        return '${parts[2]}/${parts[1]}/${parts[0]}';
-      }
-      return fecha;
-    } catch (_) {
-      return fecha;
-    }
+  String _description() {
+    final plural = servicio.cantidad == 1 ? '' : 's';
+    final item = servicio.tipo == TipoServicio.calibracion
+        ? 'balanza calibrada'
+        : 'registro técnico';
+    return '${servicio.cantidad} $item$plural';
+  }
+
+  void _open(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ServicioDetallesScreen(servicio: servicio),
+      ),
+    );
+  }
+
+  String _formatDate(String? value) {
+    if (value == null || value.isEmpty) return '';
+    final parts = value.split('-');
+    if (parts.length == 3) return '${parts[2]}/${parts[1]}/${parts[0]}';
+    return value;
   }
 }

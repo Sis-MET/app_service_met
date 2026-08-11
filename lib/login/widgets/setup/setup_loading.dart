@@ -1,9 +1,5 @@
-// Pantalla de carga durante la configuración inicial.
-// Muestra el progreso de descarga de datos con indicador visual mejorado.
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/theme/app_colors.dart';
 
 class SetupLoading extends StatelessWidget {
   final bool isDark;
@@ -19,97 +15,81 @@ class SetupLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final percent = (progressValue.clamp(0, 1) * 100).round();
+    final cardColor =
+        isDark ? const Color(0xFFF1F1ED) : const Color(0xFF1C1C1C);
+    final foreground = isDark ? Colors.black : Colors.white;
     return Center(
-      child: Container(
-        margin: const EdgeInsets.all(40),
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icono con animación de brillo
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.cloud_download_rounded,
-                size: 48,
-                color: AppColors.success,
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Text(
-              'Configurando Aplicación',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Mensaje de estado con estilo
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                statusMessage,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Barra de progreso
-            Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: progressValue,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.success,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 430),
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: foreground.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                    minHeight: 10,
+                    child: Icon(
+                      Icons.sync_rounded,
+                      color: foreground,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  '${(progressValue * 100).toInt()}%',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.success,
+                  const Spacer(),
+                  Text(
+                    '$percent%',
+                    style: GoogleFonts.inter(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: -1.2,
+                      color: foreground,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 34),
+              Text(
+                'Preparando ServiceMET',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.6,
+                  color: foreground,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                statusMessage,
+                style: GoogleFonts.inter(
+                  height: 1.4,
+                  fontSize: 13,
+                  color: foreground.withOpacity(0.58),
+                ),
+              ),
+              const SizedBox(height: 28),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(99),
+                child: LinearProgressIndicator(
+                  value: progressValue.clamp(0, 1),
+                  minHeight: 7,
+                  backgroundColor: foreground.withOpacity(0.12),
+                  valueColor: AlwaysStoppedAnimation(foreground),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,24 +1,24 @@
-// ignore_for_file: library_private_types_in_public_api, deprecated_member_use
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/providers/settings_provider.dart';
-import 'package:service_met/screens/respaldo/respaldo.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../../theme/app_colors.dart';
+import 'package:provider/provider.dart';
+
 import '../../login/widgets/setup/connection_profile_selector.dart';
+import '../../providers/settings_provider.dart';
+import '../../screens/respaldo/respaldo.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
 
   @override
-  _ConfiguracionScreenState createState() => _ConfiguracionScreenState();
+  State<ConfiguracionScreen> createState() => _ConfiguracionScreenState();
 }
 
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   String appVersion = '5.1.3';
-  String appName = 'METRICA LTDA';
+  String appName = 'ServiceMET';
   bool syncBackground = true;
   bool notifications = true;
 
@@ -29,24 +29,306 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   }
 
   Future<void> _loadAppInfo() async {
-    final packageInfo = await PackageInfo.fromPlatform();
+    final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
-      appVersion = packageInfo.version;
-      appName = packageInfo.appName;
+      appVersion = info.version;
+      appName = info.appName;
     });
   }
 
-  void _showMockDialog(String title) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('La opción "$title" estará disponible próximamente.'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Theme.of(context).colorScheme.primary,
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final dark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppDesign.pagePadding,
+            14,
+            AppDesign.pagePadding,
+            36,
+          ),
+          children: [
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildTopBar(context),
+                    const SizedBox(height: 30),
+                    Text('Ajustes', style: AppDesign.displayStyle(context)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Personaliza ServiceMET y administra los datos de este dispositivo.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: AppStatusPill(
+                        icon: Icons.verified_outlined,
+                        label: 'Versión $appVersion',
+                        color: AppColors.actionPositive,
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    _sectionTitle(context, 'Apariencia'),
+                    const SizedBox(height: 10),
+                    AppPanel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _switchTile(
+                            context,
+                            icon: Icons.dark_mode_outlined,
+                            title: 'Modo oscuro',
+                            subtitle: 'Reduce el brillo de la interfaz',
+                            value: settings.themeMode == ThemeMode.dark ||
+                                (settings.themeMode == ThemeMode.system &&
+                                    dark),
+                            onChanged: settings.toggleTheme,
+                          ),
+                          _divider(context),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    _settingIcon(Icons.text_fields_rounded),
+                                    const SizedBox(width: 12),
+                                    const Expanded(
+                                      child: Text(
+                                        'Tamaño del texto',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(settings.textScaleFactor * 100).round()}%',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.actionPositive,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Slider(
+                                  value: settings.textScaleFactor,
+                                  min: 0.8,
+                                  max: 1.4,
+                                  divisions: 6,
+                                  activeColor: AppColors.actionPositive,
+                                  label: settings.textScaleFactor
+                                      .toStringAsFixed(1),
+                                  onChanged: settings.setTextScale,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _sectionTitle(context, 'Actividad'),
+                    const SizedBox(height: 10),
+                    AppPanel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _switchTile(
+                            context,
+                            icon: Icons.sync_rounded,
+                            title: 'Sincronización automática',
+                            subtitle: 'Mantener actualizados los datos locales',
+                            value: syncBackground,
+                            onChanged: (value) =>
+                                setState(() => syncBackground = value),
+                          ),
+                          _divider(context),
+                          _switchTile(
+                            context,
+                            icon: Icons.notifications_none_rounded,
+                            title: 'Notificaciones',
+                            subtitle: 'Avisos de tareas y mantenimientos',
+                            value: notifications,
+                            onChanged: (value) =>
+                                setState(() => notifications = value),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _sectionTitle(context, 'Datos y conexión'),
+                    const SizedBox(height: 10),
+                    AppPanel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _actionTile(
+                            context,
+                            icon: Icons.backup_outlined,
+                            title: 'Respaldo de datos',
+                            subtitle:
+                                'Crear o restaurar una copia de seguridad',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RespaldoScreen(),
+                              ),
+                            ),
+                          ),
+                          _divider(context),
+                          _actionTile(
+                            context,
+                            icon: Icons.dns_outlined,
+                            title: 'Conexión al servidor',
+                            subtitle: 'Red Local/VPN y dirección de la API',
+                            onTap: () => _showConnectionProfiles(dark),
+                          ),
+                          _divider(context),
+                          _actionTile(
+                            context,
+                            icon: Icons.person_outline_rounded,
+                            title: 'Perfil de usuario',
+                            subtitle: 'Credenciales y acceso local',
+                            onTap: () => _showComingSoon('Perfil de usuario'),
+                          ),
+                          _divider(context),
+                          _actionTile(
+                            context,
+                            icon: Icons.support_agent_outlined,
+                            title: 'Soporte técnico',
+                            subtitle: 'Contactar al administrador del sistema',
+                            onTap: () => _showComingSoon('Soporte técnico'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 26),
+                    Text(
+                      '$appName · $appVersion',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _showConnectionProfiles(bool isDark) async {
+  Widget _buildTopBar(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        IconButton.outlined(
+          tooltip: 'Volver',
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_rounded),
+          style: IconButton.styleFrom(
+            foregroundColor: dark ? Colors.white : AppDesign.ink,
+          ),
+        ),
+        const Spacer(),
+        SizedBox(
+          width: 122,
+          height: 38,
+          child: Image.asset(
+            'images/logo_met.png',
+            fit: BoxFit.contain,
+            alignment: Alignment.centerRight,
+            filterQuality: FilterQuality.high,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: GoogleFonts.inter(
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.7,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Widget _settingIcon(IconData icon) {
+    return Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: AppColors.accentYellow.withOpacity(0.11),
+        borderRadius: AppDesign.smallRadius,
+      ),
+      child: Icon(icon, size: 20, color: AppColors.shimmerGold),
+    );
+  }
+
+  Widget _switchTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      leading: _settingIcon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      subtitle: Text(subtitle),
+      trailing: Switch(value: value, onChanged: onChanged),
+    );
+  }
+
+  Widget _actionTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      leading: _settingIcon(icon),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right_rounded),
+      onTap: onTap,
+    );
+  }
+
+  Widget _divider(BuildContext context) => Divider(
+        height: 1,
+        indent: 66,
+        color: Theme.of(context).colorScheme.outlineVariant,
+      );
+
+  void _showComingSoon(String title) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('La opción "$title" estará disponible próximamente.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _showConnectionProfiles(bool dark) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
@@ -55,36 +337,33 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
                     const Icon(Icons.dns_outlined),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Conexión al servidor',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppDesign.titleStyle(context),
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(dialogContext),
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  'El perfil seleccionado se usará para la próxima validación o subida.',
-                  style: GoogleFonts.inter(fontSize: 13),
+                  'El perfil seleccionado se utilizará para validar y subir datos.',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
                 Expanded(
                   child: SingleChildScrollView(
-                    child: ConnectionProfileSelector(isDark: isDark),
+                    child: ConnectionProfileSelector(isDark: dark),
                   ),
                 ),
               ],
@@ -92,334 +371,6 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-        ),
-        title: Text(
-          'Configuración',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              children: [
-                // SECCIÓN: PREFERENCIAS
-                _buildSectionTitle('Preferencias de Sistema', isDark),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildSwitchTile(
-                        icon: Icons.dark_mode_outlined,
-                        title: 'Modo Oscuro',
-                        subtitle: 'Activar tema oscuro en la app',
-                        value: settings.themeMode == ThemeMode.dark ||
-                            (settings.themeMode == ThemeMode.system && isDark),
-                        onChanged: (value) => settings.toggleTheme(value),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                      _buildDivider(borderColor),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.text_fields,
-                                    size: 22, color: accent),
-                                const SizedBox(width: 16),
-                                Text(
-                                  'Tamaño de Texto',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: cs.onSurface
-                                        .withOpacity(isDark ? 1.0 : 0.87),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text('A',
-                                    style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        color: cs.onSurface.withOpacity(0.54))),
-                                Expanded(
-                                  child: Slider(
-                                    value: settings.textScaleFactor,
-                                    min: 0.8,
-                                    max: 1.4,
-                                    divisions: 6,
-                                    activeColor: accent,
-                                    inactiveColor: accent.withOpacity(0.2),
-                                    label: settings.textScaleFactor
-                                        .toStringAsFixed(1),
-                                    onChanged: (value) =>
-                                        settings.setTextScale(value),
-                                  ),
-                                ),
-                                Text('A',
-                                    style: GoogleFonts.inter(
-                                        fontSize: 20,
-                                        color: cs.onSurface.withOpacity(0.54),
-                                        fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // SECCIÓN: FUNCIONALIDAD
-                _buildSectionTitle('Funcionalidad', isDark),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildSwitchTile(
-                        icon: Icons.sync,
-                        title: 'Sincronización Automática',
-                        subtitle: 'Descarga datos en segundo plano',
-                        value: syncBackground,
-                        onChanged: (value) =>
-                            setState(() => syncBackground = value),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                      _buildDivider(borderColor),
-                      _buildSwitchTile(
-                        icon: Icons.notifications_none_rounded,
-                        title: 'Notificaciones',
-                        subtitle: 'Avisos de tareas y mantenimientos',
-                        value: notifications,
-                        onChanged: (value) =>
-                            setState(() => notifications = value),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // SECCIÓN: GESTIÓN
-                _buildSectionTitle('Gestión', isDark),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildActionTile(
-                        icon: Icons.backup_outlined,
-                        title: 'Respaldo de Datos',
-                        subtitle: 'Crear o restaurar copias de seguridad',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => RespaldoScreen()),
-                          );
-                        },
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                      _buildDivider(borderColor),
-                      _buildActionTile(
-                        icon: Icons.dns_outlined,
-                        title: 'Conexión al servidor',
-                        subtitle: 'Seleccionar red Local/VPN y URL de la API',
-                        onTap: () => _showConnectionProfiles(isDark),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                      _buildDivider(borderColor),
-                      _buildActionTile(
-                        icon: Icons.person_outline,
-                        title: 'Perfil de Usuario',
-                        subtitle: 'Gestionar credenciales locales',
-                        onTap: () => _showMockDialog('Perfil de Usuario'),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                      _buildDivider(borderColor),
-                      _buildActionTile(
-                        icon: Icons.help_outline,
-                        title: 'Soporte Técnico',
-                        subtitle: 'Contactar administrador del sistema',
-                        onTap: () => _showMockDialog('Soporte Técnico'),
-                        accent: accent,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, bool isDark) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
-      child: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurface.withOpacity(0.54),
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider(Color borderColor) {
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: borderColor,
-      indent: 56, // para que alinee con el texto y no bajo el ícono
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-    required Color accent,
-    required bool isDark,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: accent.withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: accent, size: 22),
-      ),
-      title: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
-        ),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: Colors.white,
-        activeTrackColor: const Color(0xFF4CAF50),
-        inactiveThumbColor: isDark ? Colors.grey[400] : Colors.grey[600],
-        inactiveTrackColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-      ),
-    );
-  }
-
-  Widget _buildActionTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required Color accent,
-    required bool isDark,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: accent.withOpacity(0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: accent, size: 22),
-      ),
-      title: Text(
-        title,
-        style: GoogleFonts.inter(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-          color: cs.onSurface.withOpacity(isDark ? 1.0 : 0.87),
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: GoogleFonts.inter(
-          fontSize: 12,
-          color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
-        ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: cs.onSurface.withOpacity(0.38),
-      ),
-      onTap: onTap,
     );
   }
 }

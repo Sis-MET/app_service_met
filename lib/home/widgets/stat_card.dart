@@ -27,8 +27,7 @@ class StatCard extends StatelessWidget {
     final accent = cs.primary;
 
     final cardBg = isDark ? AppColors.surfaceDark : Colors.white;
-    final borderColor =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Expanded(
       child: GestureDetector(

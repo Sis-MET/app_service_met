@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class TipoServicioSelector extends StatelessWidget {
@@ -18,18 +19,21 @@ class TipoServicioSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-
-    final trackBg = isDark ? AppColors.surfaceDark : cs.surfaceVariant;
-    final trackBorder =
-        isDark ? AppColors.borderDark : AppColors.borderLight;
+    final trackBg = isDark
+        ? AppColors.surfaceDark
+        : AppColors.accentYellow.withOpacity(0.07);
+    final trackBorder = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: trackBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: trackBorder, width: 1),
+        borderRadius: AppDesign.mediumRadius,
+        border: Border.all(
+          color:
+              isDark ? trackBorder : AppColors.accentYellow.withOpacity(0.28),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -60,7 +64,6 @@ class TipoServicioSelector extends StatelessWidget {
     required bool isSelected,
   }) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
     return Expanded(
       child: GestureDetector(
         onTap: () => onSelected(index),
@@ -69,12 +72,12 @@ class TipoServicioSelector extends StatelessWidget {
           curve: Curves.easeInOut,
           padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
           decoration: BoxDecoration(
-            color: isSelected ? cs.primary : Colors.transparent,
+            color: isSelected ? AppColors.actionPositive : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: cs.primary.withOpacity(0.25),
+                      color: AppColors.accentYellow.withOpacity(0.28),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     )
@@ -84,28 +87,29 @@ class TipoServicioSelector extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              icon is IconData ? Icon(
-                icon,
-                size: 14,
-                color: isSelected
-                    ? (isDark ? const Color(0xFF292929) : Colors.white)
-                    : cs.onSurface.withOpacity(0.38),
-              ) : FaIcon(
-                icon,
-                size: 14,
-                color: isSelected
-                    ? (isDark ? const Color(0xFF292929) : Colors.white)
-                    : cs.onSurface.withOpacity(0.38),
-              ),
+              icon is IconData
+                  ? Icon(
+                      icon,
+                      size: 14,
+                      color: isSelected
+                          ? AppColors.actionPositiveInk
+                          : cs.onSurface.withOpacity(0.38),
+                    )
+                  : FaIcon(
+                      icon,
+                      size: 14,
+                      color: isSelected
+                          ? AppColors.actionPositiveInk
+                          : cs.onSurface.withOpacity(0.38),
+                    ),
               const SizedBox(width: 7),
               Text(
                 label,
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
-                      ? (isDark ? const Color(0xFF292929) : Colors.white)
+                      ? AppColors.actionPositiveInk
                       : cs.onSurface.withOpacity(0.38),
                 ),
               ),

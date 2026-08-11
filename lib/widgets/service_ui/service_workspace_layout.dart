@@ -3,6 +3,7 @@ import 'package:service_met/widgets/service_ui/balanza_info_button.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 /// Layout base de pantalla de servicio, réplica del workspace de Calibración:
 /// Scaffold + AppBar plano + StepIndicator + PageView (sin swipe) +
@@ -61,7 +62,7 @@ class ServiceWorkspaceLayout extends StatefulWidget {
     required this.currentStep,
     this.onStepTapped,
     this.nextLabel = 'Siguiente',
-    this.nextColor = const Color(0xFF498054),
+    this.nextColor = AppColors.actionPositive,
     this.onNext,
     this.onBack,
     this.saveStatus = SaveStatus.idle,
@@ -72,8 +73,7 @@ class ServiceWorkspaceLayout extends StatefulWidget {
   });
 
   @override
-  State<ServiceWorkspaceLayout> createState() =>
-      _ServiceWorkspaceLayoutState();
+  State<ServiceWorkspaceLayout> createState() => _ServiceWorkspaceLayoutState();
 }
 
 class _ServiceWorkspaceLayoutState extends State<ServiceWorkspaceLayout> {
@@ -100,6 +100,7 @@ class _ServiceWorkspaceLayoutState extends State<ServiceWorkspaceLayout> {
     }
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: ServiceAppBar(
         title: widget.title,
         automaticallyImplyLeading: !widget.hideBackButton,
@@ -139,7 +140,7 @@ class _ServiceWorkspaceLayoutState extends State<ServiceWorkspaceLayout> {
                   right: 20,
                   child: ServiceNavPill(
                     label: widget.nextLabel,
-                    actionColor: widget.nextColor,
+                    actionColor: AppColors.actionPositive,
                     onNext: widget.onNext,
                     onBack: widget.onBack,
                   ),

@@ -54,14 +54,13 @@ class BiometricService {
   }) async {
     try {
       // stickyAuth: true → el diálogo NO se descarta si el usuario cambia de app momentáneamente
-      // biometricOnly: true → fuerza sólo huella/Face ID, sin PIN como fallback
+      // Este acceso fue habilitado expresamente como biométrico. El fallback
+      // del sistema (PIN/patrón) se mantiene fuera de este flujo.
       final result = await _localAuth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: true,
-          sensitiveTransaction: false,
-        ),
+        persistAcrossBackgrounding: true,
+        biometricOnly: true,
+        sensitiveTransaction: false,
       );
       return result;
     } on PlatformException catch (e) {
@@ -109,7 +108,8 @@ class BiometricService {
   }
 
   // ── Obtiene el estado completo (disponible + habilitado para usuario) ──
-  Future<({bool available, bool enabled})> checkFullStatus(String? usuario) async {
+  Future<({bool available, bool enabled})> checkFullStatus(
+      String? usuario) async {
     final available = await isBiometricAvailable();
     bool enabled = false;
     if (available && usuario != null) {

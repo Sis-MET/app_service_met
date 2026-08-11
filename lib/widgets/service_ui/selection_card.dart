@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_design.dart';
 
 /// Tarjeta de selección estilo Calibración:
 /// seleccionada → fondo amarillo suave + borde `#f9e300`;
@@ -32,17 +33,24 @@ class ServiceSelectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isSelected
-            ? (isDark
-                ? accent.withOpacity(0.08)
-                : const Color(0xFFFFFDE6))
+            ? (isDark ? accent.withOpacity(0.08) : const Color(0xFFFFFDE6))
             : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppDesign.mediumRadius,
         border: Border.all(
           color: isSelected
-              ? accent
+              ? AppColors.actionPositive
               : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-          width: isSelected ? 1.5 : 1,
+          width: isSelected ? 1.4 : 1,
         ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: accent.withOpacity(isDark ? 0.04 : 0.10),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
+                ),
+              ]
+            : null,
       ),
       child: InkWell(
         onTap: onTap,
@@ -57,9 +65,7 @@ class ServiceSelectionCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isSelected
                       ? accent
-                      : (isDark
-                          ? Colors.white12
-                          : const Color(0xFFF0F2F5)),
+                      : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -85,9 +91,7 @@ class ServiceSelectionCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? Colors.white
-                            : const Color(0xFF1A1A1A),
+                        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                       ),
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
@@ -96,8 +100,7 @@ class ServiceSelectionCard extends StatelessWidget {
                         subtitle!,
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color:
-                              isDark ? Colors.white54 : Colors.black45,
+                          color: isDark ? Colors.white54 : Colors.black45,
                         ),
                       ),
                     ],
@@ -109,11 +112,11 @@ class ServiceSelectionCard extends StatelessWidget {
                   width: 24,
                   height: 24,
                   decoration: const BoxDecoration(
-                    color: accent,
+                    color: AppColors.actionPositive,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check_rounded,
-                      size: 16, color: Colors.black),
+                      size: 16, color: AppColors.actionPositiveInk),
                 ),
             ],
           ),

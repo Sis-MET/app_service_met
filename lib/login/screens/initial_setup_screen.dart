@@ -1,29 +1,18 @@
-// Pantalla de configuración inicial (setup wizard).
-// Flujo en 2 pasos: 1) Conexión BD por perfiles → 2) Credenciales de usuario.
-// Diseño renovado con perfiles de conexión guardables y reutilizables.
-
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
-import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:service_met/theme/app_colors.dart';
-import '../services/setup_service.dart';
+
+import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
 import '../services/connection_profile_service.dart';
+import '../services/setup_service.dart';
+import '../widgets/setup/connection_profile_selector.dart';
 import '../widgets/setup/setup_loading.dart';
-import '../widgets/setup/step_indicator.dart';
-import '../widgets/setup/connection_step.dart';
-import '../widgets/setup/user_credentials_step.dart';
-import '../widgets/setup/info_card.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   final bool isUpdateMode;
 
-  const InitialSetupScreen({
-    super.key,
-    this.isUpdateMode = false,
-  });
+  const InitialSetupScreen({super.key, this.isUpdateMode = false});
 
   @override
   State<InitialSetupScreen> createState() => _InitialSetupScreenState();
@@ -31,329 +20,381 @@ class InitialSetupScreen extends StatefulWidget {
 
 class _InitialSetupScreenState extends State<InitialSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final SetupService _setupService = SetupService();
-
-  // Controladores - Usuario App
-  final TextEditingController _appUserController = TextEditingController();
-  final TextEditingController _appPassController = TextEditingController();
-
-  int _currentStep = 0;
+  final _userController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _setupService = SetupService();
+  int _step = 0;
   bool _loading = false;
-
-  String _statusMessage = '';
-  double _progressValue = 0.0;
-
-  @override
-  void initState() {
-    super.initState();
-    // Inicializar perfiles de conexión si no se ha hecho
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ConnectionProfileService>().inicializar();
-    });
-  }
+  String _status = '';
+  double _progress = 0;
 
   @override
   void dispose() {
-    _appUserController.dispose();
-    _appPassController.dispose();
-    _setupService.disconnect();
+    _userController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  // ── Ejecutar configuración ──
-  Future<void> _executeSetup(BuildContext context) async {
-    // Paso 1: Conexión BD
-    if (_currentStep == 0) {
-      if (!_formKey.currentState!.validate()) return;
-
-      final profileService = context.read<ConnectionProfileService>();
-      final valores = profileService.getValoresConexion();
-
-      if (valores['ip']!.isEmpty) {
-        _showError(context, 'Selecciona o crea un perfil de conexión primero');
+  Future<void> _continue() async {
+    final profile = context.read<ConnectionProfileService>().perfilSeleccionado;
+    if (_step == 0) {
+      if (profile == null || profile.apiUrl.isEmpty) {
+        _message('Selecciona un servidor para continuar.', error: true);
         return;
       }
-
-      setState(() => _loading = true);
-
-      final result = await _setupService.validateConnection(
-        ip: valores['ip']!,
-        port: valores['port']!,
-        database: valores['database']!,
-        username: valores['username']!,
-        password: valores['password']!,
-      );
-
-      if (!result.success) {
-        _showError(context, result.message);
-        setState(() => _loading = false);
-        return;
-      }
-
-      if (widget.isUpdateMode) {
-        await _setupService.saveConfiguration(
-          ip: valores['ip']!,
-          port: valores['port']!,
-          database: valores['database']!,
-          dbUser: valores['username']!,
-          dbPass: valores['password']!,
-        );
-
-        setState(() => _loading = false);
-
-        if (mounted) {
-          _showSuccess(context, 'Conexión actualizada correctamente');
-          Navigator.pop(context);
-        }
-        return;
-      }
-
       setState(() {
-        _currentStep = 1;
+        _loading = true;
+        _status = 'Comprobando servidor...';
+        _progress = 0.25;
+      });
+      final result =
+          await _setupService.validateConnection(apiUrl: profile.apiUrl);
+      if (!mounted) return;
+      if (!result.success) {
+        setState(() => _loading = false);
+        _message(result.message, error: true);
+        return;
+      }
+      if (widget.isUpdateMode) {
+        await _setupService.saveConfiguration(apiUrl: profile.apiUrl);
+        if (!mounted) return;
+        Navigator.pop(context);
+        return;
+      }
+      setState(() {
+        _step = 1;
         _loading = false;
       });
-
       return;
     }
 
-    // Paso 2: Credenciales de usuario
-    if (_currentStep == 1) {
-      if (!_formKey.currentState!.validate()) return;
-
-      setState(() => _loading = true);
-
-      try {
-        // 1. Validar usuario en SQL Server
-        final userResult = await _setupService.validateUserInServer(
-          _appUserController.text.trim(),
-          _appPassController.text.trim(),
-        );
-
-        if (!userResult.success || userResult.userData == null) {
-          _showError(context, userResult.message);
-          setState(() => _loading = false);
-          return;
-        }
-
-        // 2. Guardar usuario autenticado en SQLite
-        final saveResult =
-            await _setupService.saveAuthenticatedUser(userResult.userData!);
-
-        if (!saveResult.success) {
-          _showError(context, saveResult.message);
-          setState(() => _loading = false);
-          return;
-        }
-
-        // 3. Descargar datos de precarga
-        final downloadResult = await _setupService.downloadPrecargaData(
-          (message, progress) {
-            setState(() {
-              _statusMessage = message;
-              _progressValue = progress;
-            });
-          },
-        );
-
-        if (!downloadResult.success) {
-          _showError(context, downloadResult.message);
-          setState(() => _loading = false);
-          return;
-        }
-
-        // 4. Guardar configuración de conexión (desde el perfil activo)
-        final profileService = context.read<ConnectionProfileService>();
-        final valores = profileService.getValoresConexion();
-
-        await _setupService.saveConfiguration(
-          ip: valores['ip']!,
-          port: valores['port']!,
-          database: valores['database']!,
-          dbUser: valores['username']!,
-          dbPass: valores['password']!,
-        );
-
-        // 5. Completado
+    if (_formKey.currentState?.validate() != true || profile == null) return;
+    setState(() {
+      _loading = true;
+      _status = 'Iniciando configuración...';
+      _progress = 0;
+    });
+    final result = await _setupService.configureDevice(
+      apiUrl: profile.apiUrl,
+      usuario: _userController.text.trim(),
+      password: _passwordController.text,
+      onProgress: (message, progress) {
+        if (!mounted) return;
         setState(() {
-          _statusMessage = 'Configuración completada exitosamente';
-          _progressValue = 1.0;
+          _status = message;
+          _progress = progress;
         });
-
-        await Future.delayed(const Duration(seconds: 1));
-
-        if (mounted) {
-          await _setupService.disconnect();
-          _showSuccess(context, 'Todo listo. Inicia sesión.');
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      } catch (e) {
-        _showError(context, 'Error en configuración: ${e.toString()}');
-        setState(() => _loading = false);
-      }
-
+      },
+    );
+    if (!mounted) return;
+    if (!result.success) {
+      setState(() => _loading = false);
+      _message(result.message, error: true);
       return;
     }
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
-  void _showError(BuildContext context, String message) {
-    if (!mounted) return;
+  void _message(String message, {required bool error}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: error ? AppColors.error : AppColors.success,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  void _showSuccess(BuildContext context, String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = dark ? Colors.white : Colors.black;
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [
-                    AppColors.loginBgDark,
-                    AppColors.loginBgDarkEnd,
-                  ]
-                : [
-                    AppColors.loginBgLight,
-                    AppColors.loginBgLight,
-                  ],
-          ),
-        ),
-        child: SafeArea(
-          child: _loading
-              ? SetupLoading(
-                  isDark: isDark,
-                  statusMessage: _statusMessage,
-                  progressValue: _progressValue,
-                )
-              : _buildSetupForm(context, isDark),
-        ),
+      backgroundColor: dark ? const Color(0xFF101010) : const Color(0xFFFAFAF8),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: _step == 1
+            ? IconButton(
+                onPressed: _loading ? null : () => setState(() => _step = 0),
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            : widget.isUpdateMode
+                ? const BackButton()
+                : null,
+      ),
+      body: SafeArea(
+        top: false,
+        child: _loading
+            ? SetupLoading(
+                isDark: dark,
+                statusMessage: _status,
+                progressValue: _progress,
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Form(
+                    key: _formKey,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      children: [
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 134,
+                              height: 42,
+                              child: Image.asset(
+                                'images/logo_met.png',
+                                fit: BoxFit.contain,
+                                alignment: Alignment.centerLeft,
+                                filterQuality: FilterQuality.high,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: dark
+                                    ? Colors.white10
+                                    : Colors.black.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(99),
+                              ),
+                              child: Text(
+                                widget.isUpdateMode
+                                    ? 'SERVIDOR'
+                                    : '${_step + 1} DE 2',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        Row(
+                          children: [
+                            for (var index = 0; index < 2; index++) ...[
+                              Expanded(
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 220),
+                                  height: 5,
+                                  decoration: BoxDecoration(
+                                    color: index <= _step
+                                        ? foreground
+                                        : dark
+                                            ? Colors.white12
+                                            : Colors.black12,
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                ),
+                              ),
+                              if (index == 0) const SizedBox(width: 8),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                        Text(
+                          _step == 0
+                              ? 'Configura tu espacio de trabajo'
+                              : 'Vincula tu usuario',
+                          style: GoogleFonts.poppins(
+                            fontSize: 31,
+                            height: 1.08,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _step == 0
+                              ? 'Selecciona cómo llegar a la API interna desde este dispositivo.'
+                              : 'Validaremos tu acceso y prepararemos los datos para trabajar sin conexión.',
+                          style: GoogleFonts.inter(
+                            height: 1.4,
+                            fontSize: 14,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        _SetupOverviewCard(step: _step, dark: dark),
+                        const SizedBox(height: 20),
+                        if (_step == 0)
+                          ConnectionProfileSelector(isDark: dark)
+                        else
+                          _CredentialsPanel(
+                            userController: _userController,
+                            passwordController: _passwordController,
+                            dark: dark,
+                            onSubmitted: _continue,
+                          ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          height: 56,
+                          child: FilledButton(
+                            onPressed: _continue,
+                            style: AppDesign.positiveButtonStyle(),
+                            child: Text(
+                              _step == 0
+                                  ? 'Comprobar y continuar'
+                                  : 'Validar y preparar datos',
+                              style: GoogleFonts.inter(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
       ),
     );
   }
+}
 
-  Widget _buildSetupForm(BuildContext context, bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
+class _SetupOverviewCard extends StatelessWidget {
+  final int step;
+  final bool dark;
+
+  const _SetupOverviewCard({required this.step, required this.dark});
+
+  @override
+  Widget build(BuildContext context) {
+    final background = dark ? const Color(0xFFF1F1ED) : const Color(0xFF1C1C1C);
+    final foreground = dark ? Colors.black : Colors.white;
+    return Container(
+      height: 164,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(26),
+      ),
+      child: Row(
         children: [
-          const SizedBox(height: 20),
-
-          // Logo
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.cardDark : Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  step == 0 ? 'CONEXIÓN INTERNA' : 'ACCESO SEGURO',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.9,
+                    color: foreground.withOpacity(0.55),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  step == 0 ? 'Local o VPN' : 'Una sola vez',
+                  style: GoogleFonts.inter(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.7,
+                    color: foreground,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  step == 0
+                      ? 'Elige la red disponible'
+                      : 'Luego podrás trabajar offline',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: foreground.withOpacity(0.55),
+                  ),
                 ),
               ],
             ),
-            child: Image.asset(
-              'images/logo_met.png',
-              height: 72,
+          ),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: foreground.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              step == 0 ? Icons.lan_outlined : Icons.verified_user_outlined,
+              color: foreground,
+              size: 29,
             ),
           ),
-
-          const SizedBox(height: 28),
-
-          // Indicador de pasos
-          StepIndicator(
-            currentStep: _currentStep,
-            isDark: isDark,
-          ),
-
-          const SizedBox(height: 24),
-
-          // Card principal del formulario
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: isDark 
-                      ? AppColors.surfaceDark.withOpacity(0.6) 
-                      : Colors.white.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isDark
-                        ? AppColors.glassBorder
-                        : Colors.white.withOpacity(0.5),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: _currentStep == 0
-                      ? ConnectionStep(
-                          isDark: isDark,
-                          loading: _loading,
-                          onContinue: () => _executeSetup(context),
-                        )
-                      : UserCredentialsStep(
-                          isDark: isDark,
-                          loading: _loading,
-                          appUserController: _appUserController,
-                          appPassController: _appPassController,
-                          onBack: () => setState(() => _currentStep = 0),
-                          onFinish: () => _executeSetup(context),
-                        ),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Card de información del paso actual
-          InfoCard(
-            isDark: isDark,
-            currentStep: _currentStep,
-          ),
-
-          const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+class _CredentialsPanel extends StatelessWidget {
+  final TextEditingController userController;
+  final TextEditingController passwordController;
+  final bool dark;
+  final VoidCallback onSubmitted;
+
+  const _CredentialsPanel({
+    required this.userController,
+    required this.passwordController,
+    required this.dark,
+    required this.onSubmitted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final border = dark ? Colors.white24 : Colors.black12;
+    InputDecoration decoration(String label, IconData icon) => InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: dark ? Colors.white.withOpacity(0.06) : Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(color: border),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(color: border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(18),
+            borderSide: BorderSide(
+              color: dark ? Colors.white : Colors.black,
+              width: 1.4,
+            ),
+          ),
+        );
+
+    return Column(
+      children: [
+        TextFormField(
+          controller: userController,
+          textInputAction: TextInputAction.next,
+          autofillHints: const [AutofillHints.username],
+          decoration: decoration('Usuario', Icons.person_outline_rounded),
+          validator: (value) => value == null || value.trim().isEmpty
+              ? 'Ingresa tu usuario'
+              : null,
+        ),
+        const SizedBox(height: 14),
+        TextFormField(
+          controller: passwordController,
+          obscureText: true,
+          autofillHints: const [AutofillHints.password],
+          onFieldSubmitted: (_) => onSubmitted(),
+          decoration: decoration('Contraseña', Icons.lock_outline_rounded),
+          validator: (value) =>
+              value == null || value.isEmpty ? 'Ingresa tu contraseña' : null,
+        ),
+      ],
     );
   }
 }

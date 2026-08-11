@@ -1,26 +1,25 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
-import 'package:intl/intl.dart';
 
-import '../models/servicio_model.dart';
-import '../widgets/welcome_header.dart';
-import '../widgets/tipo_servicio_selector.dart';
-import '../widgets/service_card.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+import '../models/home_dashboard_data.dart';
+import '../screens/calibration_upload_screen.dart';
+import '../services/home_dashboard_service.dart';
+import '../widgets/service_card.dart';
+import '../widgets/tipo_servicio_selector.dart';
+import '../widgets/welcome_header.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final String userName;
   final VoidCallback goToServicios;
+  final VoidCallback onSettings;
 
   const HomeDashboardTab({
     super.key,
     required this.userName,
     required this.goToServicios,
+    required this.onSettings,
   });
 
   @override
@@ -28,535 +27,464 @@ class HomeDashboardTab extends StatefulWidget {
 }
 
 class _HomeDashboardTabState extends State<HomeDashboardTab> {
-  int _tipoServicioSeleccionado = 0;
-  int totalServiciosCal = 0;
-  int totalServiciosSop = 0;
-  String fechaUltimaPrecarga = "Sin datos";
+  final HomeDashboardService _service = HomeDashboardService();
+  late Future<HomeDashboardData> _dashboard;
+  int _selectedServiceType = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadDashboardData();
+    _dashboard = _service.load();
   }
 
-  Future<void> _loadDashboardData() async {
-    await _getTotalServiciosCal();
-    await _getFechaUltimaPrecarga();
-    await _getTotalServiciosSop();
+  Future<void> _refresh() async {
+    final next = _service.load();
+    setState(() => _dashboard = next);
+    await next;
   }
-
-  Future<void> _getTotalServiciosSop() async {
-    try {
-      final Map<String, String> databasesMap = {
-        'ajustes.db': 'ajustes_metrologicos',
-        'diagnostico.db': 'diagnostico',
-        'instalacion.db': 'instalacion',
-        'mnt_correctivo.db': 'mnt_correctivo',
-        'mnt_prv_avanzado_stac.db': 'mnt_prv_avanzado_stac',
-        'mnt_prv_avanzado_stil.db': 'mnt_prv_avanzado_stil',
-        'mnt_prv_regular_stac.db': 'mnt_prv_regular_stac',
-        'mnt_prv_regular_stil.db': 'mnt_prv_regular_stil',
-        'relevamiento_de_datos.db': 'relevamiento_de_datos',
-        'verificaciones.db': 'verificaciones_internas',
-      };
-      final databasesPath = await getDatabasesPath();
-      final results = await Future.wait(
-        databasesMap.entries.map((entry) async {
-          final dbPath = p.join(databasesPath, entry.key);
-          if (await databaseExists(dbPath)) {
-            try {
-              final db = await openDatabase(dbPath, readOnly: true);
-              final result = await db
-                  .rawQuery('SELECT COUNT(*) as total FROM ${entry.value}');
-              await db.close();
-              return result.isNotEmpty ? (result.first['total'] as int) : 0;
-            } catch (_) {
-              return 0;
-            }
-          }
-          return 0;
-        }),
-      );
-      if (mounted) {
-        setState(() {
-          totalServiciosSop = results.fold(0, (s, c) => s + c);
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => totalServiciosSop = 0);
-    }
-  }
-
-  Future<void> _getTotalServiciosCal() async {
-    try {
-      final dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
-      if (await databaseExists(dbPath)) {
-        final db = await openDatabase(dbPath);
-        final result = await db.rawQuery(
-            'SELECT COUNT(*) as total FROM registros_calibracion WHERE estado_servicio_bal = ?',
-            ['Balanza Calibrada']);
-        await db.close();
-        if (mounted) {
-          setState(() {
-            totalServiciosCal =
-                result.isNotEmpty ? result.first['total'] as int : 0;
-          });
-        }
-      } else {
-        if (mounted) setState(() => totalServiciosCal = 0);
-      }
-    } catch (_) {
-      if (mounted) setState(() => totalServiciosCal = 0);
-    }
-  }
-
-  Future<void> _getFechaUltimaPrecarga() async {
-    try {
-      final dbPath =
-          p.join(await getDatabasesPath(), 'precarga_database.db');
-      if (await databaseExists(dbPath)) {
-        final lastModified = await File(dbPath).lastModified();
-        final formatted =
-            DateFormat("d 'de' MMMM 'de' y", 'es_ES').format(lastModified);
-        if (mounted) setState(() => fechaUltimaPrecarga = formatted);
-      } else {
-        if (mounted) setState(() => fechaUltimaPrecarga = "No existe");
-      }
-    } catch (_) {
-      if (mounted) setState(() => fechaUltimaPrecarga = "Error");
-    }
-  }
-
-  String _obtenerTipoServicio(String dbName) {
-    switch (dbName) {
-      case 'ajustes.db':
-        return 'Ajustes';
-      case 'diagnostico.db':
-        return 'Diagnóstico';
-      case 'instalacion.db':
-        return 'Instalación';
-      case 'mnt_correctivo.db':
-        return 'Mantenimiento Correctivo';
-      case 'mnt_prv_avanzado_stac.db':
-        return 'Mnt. Preventivo Avanzado STAC';
-      case 'mnt_prv_avanzado_stil.db':
-        return 'Mnt. Preventivo Avanzado STIL';
-      case 'mnt_prv_regular_stac.db':
-        return 'Mnt. Preventivo Regular STAC';
-      case 'mnt_prv_regular_stil.db':
-        return 'Mnt. Preventivo Regular STIL';
-      case 'relevamiento_de_datos.db':
-        return 'Relevamiento';
-      case 'verificaciones.db':
-        return 'Verificaciones';
-      default:
-        return 'Soporte Técnico';
-    }
-  }
-
-  Future<List<ServicioResumen>> _getServiciosCalibracionPorSeca() async {
-    final List<ServicioResumen> servicios = [];
-    try {
-      final dbPath = p.join(await getDatabasesPath(), 'calibracion.db');
-      if (await databaseExists(dbPath)) {
-        final db = await openDatabase(dbPath);
-        final registros = await db.query('registros_calibracion');
-        final Map<String, List<Map<String, dynamic>>> agrupados = {};
-        for (var r in registros) {
-          final seca = r['seca']?.toString() ?? 'Sin SECA';
-          agrupados.putIfAbsent(seca, () => []).add(r);
-        }
-        agrupados.forEach((seca, balanzas) {
-          final fechas = balanzas
-              .map((b) => b['fecha_servicio']?.toString() ?? '')
-              .where((f) => f.isNotEmpty)
-              .toList()
-            ..sort((a, b) => b.compareTo(a));
-          servicios.add(ServicioResumen(
-              tipo: TipoServicio.calibracion,
-              codigo: seca,
-              cantidad: balanzas.length,
-              items: balanzas,
-              fecha: fechas.isNotEmpty ? fechas.first : null));
-        });
-        await db.close();
-      }
-      servicios.sort((a, b) => a.codigo.compareTo(b.codigo));
-    } catch (_) {}
-    return servicios;
-  }
-
-  Future<List<ServicioResumen>> _getServiciosSoportePorOtst() async {
-    final List<ServicioResumen> servicios = [];
-    try {
-      final Map<String, String> databasesMap = {
-        'ajustes.db': 'ajustes_metrologicos',
-        'diagnostico.db': 'diagnostico',
-        'instalacion.db': 'instalacion',
-        'mnt_correctivo.db': 'mnt_correctivo',
-        'mnt_prv_avanzado_stac.db': 'mnt_prv_avanzado_stac',
-        'mnt_prv_avanzado_stil.db': 'mnt_prv_avanzado_stil',
-        'mnt_prv_regular_stac.db': 'mnt_prv_regular_stac',
-        'mnt_prv_regular_stil.db': 'mnt_prv_regular_stil',
-        'relevamiento_de_datos.db': 'relevamiento_de_datos',
-        'verificaciones.db': 'verificaciones_internas',
-      };
-      final Map<String, List<Map<String, dynamic>>> agrupados = {};
-      final databasesPath = await getDatabasesPath();
-      final results = await Future.wait(
-        databasesMap.entries.map((entry) async {
-          final dbPath = p.join(databasesPath, entry.key);
-          if (await databaseExists(dbPath)) {
-            try {
-              final db = await openDatabase(dbPath, readOnly: true);
-              final registros = await db.query(entry.value);
-              await db.close();
-              return registros.map((r) {
-                final m = Map<String, dynamic>.from(r);
-                m['tipo_servicio'] = _obtenerTipoServicio(entry.key);
-                return m;
-              }).toList();
-            } catch (_) {
-              return <Map<String, dynamic>>[];
-            }
-          }
-          return <Map<String, dynamic>>[];
-        }),
-      );
-      for (var dbRegistros in results) {
-        for (var r in dbRegistros) {
-          final otst = r['otst']?.toString() ?? 'Sin OTST';
-          agrupados.putIfAbsent(otst, () => []).add(r);
-        }
-      }
-      agrupados.forEach((otst, list) {
-        final fechas = list
-            .map((s) => s['fecha_servicio']?.toString() ?? '')
-            .where((f) => f.isNotEmpty)
-            .toList()
-          ..sort((a, b) => b.compareTo(a));
-        servicios.add(ServicioResumen(
-            tipo: TipoServicio.soporte,
-            codigo: otst,
-            cantidad: list.length,
-            items: list,
-            fecha: fechas.isNotEmpty ? fechas.first : null));
-      });
-      servicios.sort((a, b) => a.codigo.compareTo(b.codigo));
-    } catch (_) {}
-    return servicios;
-  }
-
-  // ─────────────────────────────────────────
-  //  UI HELPERS
-  // ─────────────────────────────────────────
-
-  Widget _buildSummaryCard(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.brightness == Brightness.dark ? Colors.white : cs.primary;
-    final cardBg = cs.brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white;
-    final divider = cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(cs.brightness == Brightness.dark ? 0.25 : 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // ── Dos stats ──
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  icon: FontAwesomeIcons.screwdriverWrench,
-                  value: totalServiciosSop.toString(),
-                  label: 'Soporte\nTécnico',
-                  accent: accent,
-                  onTap: () => setState(() => _tipoServicioSeleccionado = 1),
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 64,
-                color: divider,
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  icon: FontAwesomeIcons.scaleBalanced,
-                  value: totalServiciosCal.toString(),
-                  label: 'Balanzas\nCalibradas',
-                  accent: accent,
-                  onTap: () => setState(() => _tipoServicioSeleccionado = 0),
-                ),
-              ),
-            ],
-          ),
-          // ── Divider + precarga ──
-          Container(
-            height: 1,
-            color: divider,
-            margin: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          Row(
-            children: [
-              FaIcon(
-                FontAwesomeIcons.cloudArrowDown,
-                size: 13,
-                color: cs.onSurface.withOpacity(0.38),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Última precarga: ',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: cs.onSurface.withOpacity(0.38),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  fechaUltimaPrecarga,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: cs.onSurface.withOpacity(0.70),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2);
-  }
-
-  Widget _buildStatItem({
-    required dynamic icon,
-    required String value,
-    required String label,
-    required Color accent,
-    VoidCallback? onTap,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          icon is IconData ? Icon(icon, size: 26, color: accent) : FaIcon(icon, size: 26, color: accent),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-              color: cs.onSurface,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: cs.onSurface.withOpacity(0.38),
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Mis Servicios',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
-              ),
-            ),
-            Text(
-              'Registros en este dispositivo',
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: cs.onSurface.withOpacity(0.38),
-              ),
-            ),
-          ],
-        ),
-      ],
-    ).animate().fadeIn(delay: 500.ms);
-  }
-
-  Widget _buildEmptyState({
-    required BuildContext context,
-    required dynamic icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-      decoration: BoxDecoration(
-        color: cs.brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: cs.brightness == Brightness.dark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-      ),
-      child: Column(
-        children: [
-          icon is IconData ? Icon(icon,
-              size: 40,
-              color: cs.onSurface.withOpacity(0.24)) : FaIcon(icon,
-              size: 40,
-              color: cs.onSurface.withOpacity(0.24)),
-          const SizedBox(height: 16),
-          Text(title,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurface.withOpacity(0.54),
-              )),
-          const SizedBox(height: 6),
-          Text(subtitle,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: cs.onSurface.withOpacity(0.38),
-              ),
-              textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
-
-  // ─────────────────────────────────────────
-  //  BUILD
-  // ─────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return RefreshIndicator(
-      onRefresh: () async {
-        await _loadDashboardData();
-        setState(() {});
-      },
-      color: cs.brightness == Brightness.dark ? Colors.white : cs.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── 1. Saludo ──
-            WelcomeHeader(userName: widget.userName),
-            const SizedBox(height: 28),
-
-            // ── 2. Card resumen ──
-            _buildSummaryCard(context),
-            const SizedBox(height: 32),
-
-            // ── 3. Encabezado sección ──
-            _buildSectionHeader(context),
-            const SizedBox(height: 14),
-
-            // ── 4. Selector tipo ──
-            TipoServicioSelector(
-              selectedIndex: _tipoServicioSeleccionado,
-              onSelected: (i) =>
-                  setState(() => _tipoServicioSeleccionado = i),
-            ).animate().fadeIn(delay: 550.ms),
-            const SizedBox(height: 20),
-
-            // ── 5. Lista ──
-            if (_tipoServicioSeleccionado == 0)
-              _buildListaCalibracion(context)
-            else
-              _buildListaSoporte(context),
-          ],
-        ),
+      color: AppColors.actionPositive,
+      onRefresh: _refresh,
+      child: FutureBuilder<HomeDashboardData>(
+        future: _dashboard,
+        builder: (context, snapshot) {
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppDesign.pagePadding,
+              14,
+              AppDesign.pagePadding,
+              112,
+            ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    WelcomeHeader(
+                      userName: widget.userName,
+                      onSettings: widget.onSettings,
+                    ),
+                    const SizedBox(height: 26),
+                    if (snapshot.connectionState == ConnectionState.waiting)
+                      const AppPanel(
+                        child: SizedBox(
+                          height: 190,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      )
+                    else if (snapshot.hasError)
+                      _buildErrorPanel(snapshot.error)
+                    else
+                      ..._buildDashboard(snapshot.requireData),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildListaCalibracion(BuildContext context) {
-    return FutureBuilder<List<ServicioResumen>>(
-      future: _getServiciosCalibracionPorSeca(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyState(
-            context: context,
-            icon: FontAwesomeIcons.scaleBalanced,
-            title: 'Sin servicios de calibración',
-            subtitle:
-                'Los registros de calibración aparecerán aquí cuando estén disponibles.',
-          );
-        }
-        return Column(
-          children: snapshot.data!.asMap().entries.map((e) {
-            return ServiceCard(servicio: e.value)
-                .animate(delay: Duration(milliseconds: 600 + e.key * 80))
-                .fadeIn()
-                .slideX(begin: 0.2);
-          }).toList(),
-        );
-      },
+  List<Widget> _buildDashboard(HomeDashboardData data) {
+    final services = _selectedServiceType == 0
+        ? data.calibrationServices
+        : data.supportServiceGroups;
+
+    return [
+      _buildSummary(data),
+      const SizedBox(height: 16),
+      _buildSyncPanel(data),
+      const SizedBox(height: 32),
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Actividad local', style: AppDesign.titleStyle(context)),
+                const SizedBox(height: 3),
+                Text(
+                  'Servicios guardados en este dispositivo',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: widget.goToServicios,
+            child: const Text('Nuevo servicio'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 14),
+      TipoServicioSelector(
+        selectedIndex: _selectedServiceType,
+        onSelected: (index) => setState(() => _selectedServiceType = index),
+      ),
+      const SizedBox(height: 16),
+      if (services.isEmpty)
+        _buildEmptyState()
+      else
+        ...services.take(8).map((service) => ServiceCard(servicio: service)),
+      if (services.length > 8)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: OutlinedButton(
+            onPressed: widget.goToServicios,
+            child: Text('Ver los ${services.length} servicios'),
+          ),
+        ),
+    ];
+  }
+
+  Widget _buildSummary(HomeDashboardData data) {
+    return AppPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Resumen de trabajo',
+                  style: AppDesign.titleStyle(context),
+                ),
+              ),
+              AppStatusPill(
+                icon: data.servicesInProgress == 0
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.pending_actions_rounded,
+                label: data.servicesInProgress == 0
+                    ? 'Todo al día'
+                    : '${data.servicesInProgress} en proceso',
+                color: data.servicesInProgress == 0
+                    ? AppColors.success
+                    : AppColors.warning,
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final metrics = [
+                _MetricData(
+                  icon: Icons.scale_rounded,
+                  value: data.calibratedScales,
+                  label: 'Balanzas calibradas',
+                  color: AppColors.actionPositive,
+                ),
+                _MetricData(
+                  icon: Icons.build_circle_outlined,
+                  value: data.supportServices,
+                  label: 'Servicios de soporte',
+                  color: AppColors.shimmerGold,
+                ),
+                _MetricData(
+                  icon: Icons.cloud_upload_outlined,
+                  value: data.pendingUploads,
+                  label: 'Pendientes de subir',
+                  color: data.pendingUploads == 0
+                      ? AppColors.success
+                      : AppColors.warning,
+                ),
+              ];
+              if (compact) {
+                return Column(
+                  children: metrics
+                      .map((metric) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _buildMetric(metric, horizontal: true),
+                          ))
+                      .toList(),
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: metrics
+                    .map((metric) => Expanded(child: _buildMetric(metric)))
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.cloud_download_outlined,
+                size: 17,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Última precarga',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  data.lastPreload,
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildListaSoporte(BuildContext context) {
-    return FutureBuilder<List<ServicioResumen>>(
-      future: _getServiciosSoportePorOtst(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyState(
-            context: context,
-            icon: FontAwesomeIcons.screwdriverWrench,
-            title: 'Sin servicios de soporte',
-            subtitle:
-                'Los registros de soporte técnico aparecerán aquí cuando estén disponibles.',
-          );
-        }
-        return Column(
-          children: snapshot.data!.asMap().entries.map((e) {
-            return ServiceCard(servicio: e.value)
-                .animate(delay: Duration(milliseconds: 600 + e.key * 80))
-                .fadeIn()
-                .slideX(begin: 0.2);
-          }).toList(),
-        );
-      },
+  Widget _buildMetric(_MetricData metric, {bool horizontal = false}) {
+    final colors = Theme.of(context).colorScheme;
+    final icon = Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: metric.color.withOpacity(0.12),
+        borderRadius: AppDesign.smallRadius,
+      ),
+      child: Icon(metric.icon, color: metric.color, size: 21),
+    );
+    final text = Column(
+      crossAxisAlignment:
+          horizontal ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      children: [
+        Text(
+          metric.value.toString(),
+          style: GoogleFonts.poppins(
+            fontSize: 25,
+            height: 1,
+            fontWeight: FontWeight.w800,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          metric.label,
+          textAlign: horizontal ? TextAlign.start : TextAlign.center,
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            height: 1.25,
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+    if (horizontal) {
+      return Row(
+        children: [
+          icon,
+          const SizedBox(width: 13),
+          Expanded(child: text),
+        ],
+      );
+    }
+    return Column(children: [icon, const SizedBox(height: 10), text]);
+  }
+
+  Widget _buildSyncPanel(HomeDashboardData data) {
+    final hasPending = data.pendingUploads > 0;
+    return AppPanel(
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: (hasPending
+                      ? AppColors.accentYellow
+                      : AppColors.actionPositive)
+                  .withOpacity(0.16),
+              borderRadius: AppDesign.mediumRadius,
+            ),
+            child: Icon(
+              hasPending
+                  ? Icons.cloud_upload_outlined
+                  : Icons.cloud_done_outlined,
+              color:
+                  hasPending ? AppColors.shimmerGold : AppColors.actionPositive,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasPending
+                      ? '${data.pendingUploads} balanzas por sincronizar'
+                      : 'Datos sincronizados',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  hasPending
+                      ? 'Revisa y envía las calibraciones listas al servidor.'
+                      : 'No tienes calibraciones terminadas pendientes de envío.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          if (hasPending) ...[
+            const SizedBox(width: 8),
+            IconButton.filled(
+              tooltip: 'Ver pendientes',
+              onPressed: () => _openPendingUploads(data.pendingUploadGroups),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.actionPositive,
+                foregroundColor: AppColors.actionPositiveInk,
+              ),
+              icon: const Icon(Icons.arrow_forward_rounded),
+            ),
+          ],
+        ],
+      ),
     );
   }
+
+  Future<void> _openPendingUploads(List<PendingUploadGroup> groups) async {
+    if (groups.length == 1) {
+      await _openUpload(groups.first.seca);
+      return;
+    }
+    final seca = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Pendientes por SECA', style: AppDesign.titleStyle(context)),
+            const SizedBox(height: 6),
+            Text(
+              'Selecciona el grupo de balanzas que deseas revisar.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: groups.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                itemBuilder: (_, index) {
+                  final group = groups[index];
+                  return AppPanel(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: const Icon(Icons.scale_outlined),
+                      title: Text('SECA ${group.seca}'),
+                      subtitle: Text('${group.count} pendientes'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => Navigator.pop(sheetContext, group.seca),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (seca != null && mounted) await _openUpload(seca);
+  }
+
+  Future<void> _openUpload(String seca) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CalibrationUploadScreen(seca: seca),
+      ),
+    );
+    if (mounted) await _refresh();
+  }
+
+  Widget _buildEmptyState() {
+    return AppPanel(
+      child: Column(
+        children: [
+          Icon(
+            Icons.inbox_outlined,
+            size: 38,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text('Aún no hay servicios', style: AppDesign.titleStyle(context)),
+          const SizedBox(height: 6),
+          Text(
+            'Cuando comiences tu trabajo, los registros aparecerán aquí.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: widget.goToServicios,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Crear servicio'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorPanel(Object? error) {
+    return AppPanel(
+      child: Column(
+        children: [
+          const Icon(
+            Icons.cloud_off_rounded,
+            color: AppColors.actionNegative,
+            size: 38,
+          ),
+          const SizedBox(height: 12),
+          Text('No pudimos cargar el resumen',
+              style: AppDesign.titleStyle(context)),
+          const SizedBox(height: 6),
+          Text(
+            'Tus datos siguen guardados. Intenta actualizar nuevamente.',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 18),
+          OutlinedButton.icon(
+            onPressed: _refresh,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricData {
+  final IconData icon;
+  final int value;
+  final String label;
+  final Color color;
+
+  const _MetricData({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
 }

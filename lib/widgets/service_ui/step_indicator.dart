@@ -2,6 +2,9 @@
 
 import 'package:flutter/material.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+
 class StepData {
   final String title;
   final String subtitle;
@@ -33,11 +36,27 @@ class StepIndicator extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final safeStep = currentStep.clamp(0, steps.length - 1);
     final step = steps[safeStep];
-    final primaryColor = Theme.of(context).primaryColor;
+    const primaryColor = AppColors.actionPositive;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      color: Colors.transparent,
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: AppDesign.mediumRadius,
+        border: Border.all(
+          color: isDark
+              ? AppColors.borderDarkSoft
+              : AppColors.accentYellow.withOpacity(0.22),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accentYellow.withOpacity(isDark ? 0.03 : 0.07),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -49,10 +68,10 @@ class StepIndicator extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.12),
+                  color: AppColors.accentYellow.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: primaryColor.withOpacity(0.3),
+                    color: AppColors.accentYellow.withOpacity(0.34),
                     width: 1,
                   ),
                 ),
@@ -127,7 +146,7 @@ class StepIndicator extends StatelessWidget {
                         color: isCompleted
                             ? primaryColor
                             : isCurrent
-                                ? primaryColor.withOpacity(0.55)
+                                ? AppColors.accentYellow
                                 : (isAccessible
                                     ? (isDark
                                         ? Colors.white24

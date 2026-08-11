@@ -5,12 +5,21 @@ class AppColors {
 
   // ── Colores de texto corporativo ──
   // Dark mode: texto blanco | Light mode: #292929 oscuro
-  static const Color primary = Color(0xFF292929);       // Texto e íconos en light mode
-  static const Color primaryDark = Color(0xFF1A1A1A);   // Variante oscura para contrastes
+  static const Color primary =
+      Color(0xFF292929); // Texto e íconos en light mode
+  static const Color primaryDark =
+      Color(0xFF1A1A1A); // Variante oscura para contrastes
 
   // ── Acento (Amarillo Métrica - uso puntual: logo, badges) ──
   static const Color accentYellow = Color(0xFFf9e300);
   static const Color shimmerGold = Color(0xFFD4A017);
+
+  // ── Acciones ──
+  // El amarillo acompaña como luz de marca; no compite con la semántica.
+  static const Color actionPositive = Color(0xFF8BC251);
+  static const Color actionPositiveInk = Color(0xFF20310F);
+  static const Color actionNegative = Color(0xFFC95744);
+  static const Color actionNegativeInk = Colors.white;
 
   // ── Colores semánticos de servicio ──
   static const Color calibracion = Color(0xFF667EEA);
@@ -26,11 +35,11 @@ class AppColors {
   static const Color loginBgLight = Color(0xFFFCFAFA);
 
   // ── Borde glass sutil (para BackdropFilter) ──
-  static const Color glassBorder = Color(0x22FFFFFF);   // Blanco 13% opacidad
+  static const Color glassBorder = Color(0x22FFFFFF); // Blanco 13% opacidad
 
   // ── Superficies (dark) ──
-  static const Color surfaceDark = Color(0xFF333333);   // Cards en dark
-  static const Color cardDark = Color(0xFF3A3A3A);      // Cards secundarias
+  static const Color surfaceDark = Color(0xFF333333); // Cards en dark
+  static const Color cardDark = Color(0xFF3A3A3A); // Cards secundarias
   static const Color backgroundDark = Color(0xFF292929);
   static const Color borderDark = Color(0xFF444444);
   static const Color borderDarkSoft = Color(0xFF3D3D3D);

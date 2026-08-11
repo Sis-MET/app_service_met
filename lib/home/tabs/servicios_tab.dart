@@ -1,18 +1,25 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/repositories/calibration_repository.dart';
-import 'package:service_met/screens/calibracion/calibration_workspace_screen.dart';
-import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
+
+import '../../repositories/calibration_repository.dart';
+import '../../screens/calibracion/calibration_workspace_screen.dart';
+import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
 
 const _stepNames = [
-  'Cliente', 'Planta', 'SECA', 'Instrumento', 'Inspección Visual',
-  'Precarga/Ajuste', 'Excentricidad', 'Repetibilidad', 'Linealidad',
-  'Foto Carga', 'Condiciones Finales', 'Exportación'
+  'Cliente',
+  'Planta',
+  'SECA',
+  'Instrumento',
+  'Inspección visual',
+  'Precarga/Ajuste',
+  'Excentricidad',
+  'Repetibilidad',
+  'Linealidad',
+  'Foto de carga',
+  'Condiciones finales',
+  'Exportación',
 ];
 
 class ServiciosTab extends StatelessWidget {
@@ -22,296 +29,151 @@ class ServiciosTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.delayed(const Duration(milliseconds: 500));
-      },
-      color: Theme.of(context).colorScheme.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 30, 20, 100),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Encabezado ──
-            _buildHeader(context),
-            const SizedBox(height: 40),
-
-            // ── Lista de Servicios ──
-            _buildServiceCard(
-              context,
-              icon: FontAwesomeIcons.scaleBalanced,
-              title: 'Calibración',
-              subtitle:
-                  'Procesos de calibración de balanzas, tanques y pesas patrón',
-              onTap: () => _openCalibracion(context),
-              delay: 300.ms,
-            ),
-
-            _buildServiceCard(
-              context,
-              icon: FontAwesomeIcons.screwdriverWrench,
-              title: 'Soporte Técnico',
-              subtitle:
-                  'Soporte y mantenimiento de balanzas y básculas de camiones',
-              onTap: () {
-                Navigator.push(
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(
+        AppDesign.pagePadding,
+        24,
+        AppDesign.pagePadding,
+        112,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Servicios', style: AppDesign.displayStyle(context)),
+              const SizedBox(height: 8),
+              Text(
+                'Selecciona el tipo de trabajo que realizarás hoy.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: AppStatusPill(
+                  icon: Icons.work_outline_rounded,
+                  label: '2 módulos disponibles',
+                  color: AppColors.actionPositive,
+                ),
+              ),
+              const SizedBox(height: 28),
+              _ServiceModuleCard(
+                icon: FontAwesomeIcons.scaleBalanced,
+                title: 'Calibración',
+                eyebrow: 'METROLOGÍA',
+                description:
+                    'Calibración de balanzas, tanques y pesas patrón con seguimiento por etapas.',
+                actionLabel: 'Iniciar calibración',
+                color: AppColors.actionPositive,
+                onTap: () => _openCalibration(context),
+              ),
+              const SizedBox(height: 14),
+              _ServiceModuleCard(
+                icon: FontAwesomeIcons.screwdriverWrench,
+                title: 'Soporte técnico',
+                eyebrow: 'MANTENIMIENTO',
+                description:
+                    'Diagnóstico, instalación y mantenimiento de balanzas y básculas de camiones.',
+                actionLabel: 'Abrir soporte',
+                color: AppColors.shimmerGold,
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => PrecargaScreenSop(
+                    builder: (_) => PrecargaScreenSop(
                       userName: userName,
                       clienteId: '',
                       plantaCodigo: '',
                       tableName: '',
                     ),
                   ),
-                );
-              },
-              delay: 400.ms,
-            ),
-
-            const SizedBox(height: 30),
-
-            // ── Información ──
-            _buildInfoSection(context),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Área de Servicios',
-          style: GoogleFonts.poppins(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface,
-            height: 1.1,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Selecciona un módulo para continuar con tu trabajo',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: cs.onSurface.withOpacity(0.54),
-          ),
-        ),
-      ],
-    ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1);
-  }
-
-  Widget _buildServiceCard(
-    BuildContext context, {
-    required dynamic icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    required Duration delay,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 32,
-                child: Center(
-                  child: icon is IconData ? Icon(icon, size: 30, color: (isDark ? Colors.white : cs.primary)) : FaIcon(icon, size: 30, color: (isDark ? Colors.white : cs.primary)),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
+              const SizedBox(height: 22),
+              AppPanel(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: cs.onSurface,
-                      ),
+                    const Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: AppColors.shimmerGold,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.54),
-                        height: 1.4,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Si tienes una calibración sin finalizar, ServiceMET te ofrecerá continuar exactamente desde el último paso guardado.',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: cs.onSurface.withOpacity(0.54),
-              ),
             ],
           ),
         ),
       ),
-    ).animate(delay: delay).fadeIn().slideX(begin: 0.1);
+    );
   }
 
-  Widget _buildInfoSection(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
+  Future<void> _openCalibration(BuildContext context) async {
+    final pending =
+        await CalibrationRepository().getServiciosIncompletos(userName);
+    if (!context.mounted) return;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? AppColors.borderDarkSoft : AppColors.borderLight,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FaIcon(FontAwesomeIcons.lightbulb, color: (isDark ? Colors.white : cs.primary), size: 18),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Información',
-                  style: GoogleFonts.poppins(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Selecciona el módulo que deseas utilizar. Cada uno tiene herramientas específicas para realizar tu trabajo diario.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: cs.onSurface.withOpacity(0.54),
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 500.ms).fadeIn().slideY(begin: 0.1);
-  }
-
-  Future<void> _openCalibracion(BuildContext context) async {
-    final incompletos = await CalibrationRepository().getServiciosIncompletos(userName);
-
-    if (incompletos.isNotEmpty && context.mounted) {
-      final ultimo = incompletos.first;
-      final step = _inferStep(ultimo);
-      final stepName = step < _stepNames.length ? _stepNames[step] : 'Desconocido';
-
-      final continuar = await showDialog<bool>(
+    if (pending.isNotEmpty) {
+      final last = pending.first;
+      final step = _inferStep(last);
+      final continueService = await showDialog<bool>(
         context: context,
-        builder: (ctx) {
-          final cs = Theme.of(ctx).colorScheme;
-          final isDark = cs.brightness == Brightness.dark;
-
-          return AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.info_outline_rounded,
-                    color: isDark ? Colors.amber[300] : Colors.amber[800],
-                    size: 22),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Servicio Pendiente',
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onSurface)),
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(
+            Icons.pending_actions_rounded,
+            color: AppColors.warning,
+          ),
+          title: const Text('Calibración pendiente'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Encontramos un proceso que todavía no finalizaste.'),
+              const SizedBox(height: 16),
+              AppPanel(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    _detail('Cliente', last['cliente']),
+                    _detail('Planta', last['planta']),
+                    _detail('SECA', last['seca']),
+                    _detail('Instrumento', last['cod_metrica']),
+                    _detail('Último paso', _stepNames[step]),
+                  ],
                 ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tiene un proceso de calibración sin finalizar:',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? cs.onSurface.withOpacity(0.7) : cs.onSurface.withOpacity(0.87)),
-                ),
-                const SizedBox(height: 16),
-                _detRow('Cliente', ultimo['cliente']?.toString() ?? '-', isDark),
-                const SizedBox(height: 8),
-                _detRow('Planta', ultimo['planta']?.toString() ?? '-', isDark),
-                const SizedBox(height: 8),
-                _detRow('SECA', ultimo['seca']?.toString() ?? '-', isDark),
-                const SizedBox(height: 8),
-                _detRow('Instrumento', ultimo['cod_metrica']?.toString() ?? '-', isDark),
-                const SizedBox(height: 8),
-                _detRow('Paso', stepName, isDark),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Nuevo Servicio',
-                    style: TextStyle(
-                        color: isDark ? cs.onSurface.withOpacity(0.6) : cs.onSurface.withOpacity(0.54))),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF326677),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Continuar Servicio'),
               ),
             ],
-          );
-        },
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Crear otro'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Continuar'),
+            ),
+          ],
+        ),
       );
 
-      if (continuar == true && context.mounted) {
-        Navigator.push(
+      if (continueService == true && context.mounted) {
+        await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CalibrationWorkspaceScreen(
+            builder: (_) => CalibrationWorkspaceScreen(
               userName: userName,
-              secaValue: ultimo['seca']?.toString(),
-              sessionId: ultimo['session_id']?.toString(),
+              secaValue: last['seca']?.toString(),
+              sessionId: last['session_id']?.toString(),
             ),
           ),
         );
@@ -319,11 +181,29 @@ class ServiciosTab extends StatelessWidget {
       }
     }
 
-    if (!context.mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CalibrationWorkspaceScreen(userName: userName),
+    if (context.mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CalibrationWorkspaceScreen(userName: userName),
+        ),
+      );
+    }
+  }
+
+  Widget _detail(String label, Object? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(width: 92, child: Text(label)),
+          Expanded(
+            child: Text(
+              value?.toString().isNotEmpty == true ? value.toString() : '—',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -341,28 +221,78 @@ class ServiciosTab extends StatelessWidget {
     return 0;
   }
 
-  bool _hasData(dynamic value) => value != null && value.toString().isNotEmpty;
+  bool _hasData(Object? value) =>
+      value != null && value.toString().trim().isNotEmpty;
+}
 
-  Widget _detRow(String label, String value, bool isDark) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white54 : Colors.black54)),
-        ),
-        Expanded(
-          child: Text(value,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-        ),
-      ],
+class _ServiceModuleCard extends StatelessWidget {
+  final dynamic icon;
+  final String title;
+  final String eyebrow;
+  final String description;
+  final String actionLabel;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ServiceModuleCard({
+    required this.icon,
+    required this.title,
+    required this.eyebrow,
+    required this.description,
+    required this.actionLabel,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.13),
+                  borderRadius: AppDesign.mediumRadius,
+                ),
+                child: Center(child: FaIcon(icon, color: color, size: 22)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      eyebrow,
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(title, style: AppDesign.titleStyle(context)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(description, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: onTap,
+            icon: const Icon(Icons.arrow_forward_rounded),
+            label: Text(actionLabel),
+          ),
+        ],
+      ),
     );
   }
 }

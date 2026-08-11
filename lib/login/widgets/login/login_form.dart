@@ -1,486 +1,399 @@
-// Formulario de login rediseñado con glassmorphism, biometría
-// y experiencia de usuario corporativa.
-
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-import 'package:service_met/theme/app_colors.dart';
-import 'user_card.dart';
-import 'password_field.dart';
-import 'biometric_button.dart';
 
-class LoginForm extends StatefulWidget {
+import '../../../theme/app_colors.dart';
+import '../../../theme/app_design.dart';
+import 'password_field.dart';
+
+class LoginForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController passController;
   final TextEditingController userController;
-  final bool isDark;
   final bool loading;
   final String? savedUser;
   final String? savedUserFullName;
+  final String? lastUpdate;
   final bool isAddingNewUser;
-  final bool biometricAvailable;
-  final bool biometricEnabled;
-  final VoidCallback onLogin;
-  final VoidCallback onLoginDemo;
-  final VoidCallback onReconfigure;
-  final VoidCallback onShowUserSelector;
-  final VoidCallback onStartAddingUser;
+  final bool deviceAuthAvailable;
+  final bool deviceAuthEnabled;
+  final VoidCallback onSubmit;
+  final VoidCallback onDeviceAuth;
+  final VoidCallback onSelectUser;
   final VoidCallback onCancelAddingUser;
-  final VoidCallback onUpdateDatabases;
-  final VoidCallback onBiometricAuth;
 
   const LoginForm({
     super.key,
     required this.formKey,
     required this.passController,
     required this.userController,
-    required this.isDark,
     required this.loading,
-    this.savedUser,
-    this.savedUserFullName,
+    required this.savedUser,
+    required this.savedUserFullName,
+    required this.lastUpdate,
     required this.isAddingNewUser,
-    required this.onLogin,
-    required this.onLoginDemo,
-    required this.onReconfigure,
-    required this.onShowUserSelector,
-    required this.onStartAddingUser,
+    required this.deviceAuthAvailable,
+    required this.deviceAuthEnabled,
+    required this.onSubmit,
+    required this.onDeviceAuth,
+    required this.onSelectUser,
     required this.onCancelAddingUser,
-    required this.onUpdateDatabases,
-    required this.onBiometricAuth,
-    this.biometricAvailable = false,
-    this.biometricEnabled = false,
   });
 
   @override
-  State<LoginForm> createState() => _LoginFormState();
-}
-
-class _LoginFormState extends State<LoginForm> {
-  String? _appVersion;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadVersion();
-  }
-
-  Future<void> _loadVersion() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      if (mounted) {
-        setState(() => _appVersion = info.version);
-      }
-    } catch (_) {
-      _appVersion = '1.0.0';
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hasUsers = widget.savedUser != null && widget.savedUser!.isNotEmpty;
+    final colors = Theme.of(context).colorScheme;
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final hasUser = savedUser?.isNotEmpty == true;
+    final enrollment = isAddingNewUser || !hasUser;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+    return Form(
+      key: formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 48),
-
-          // ── Logo con glow sutil ──
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: widget.isDark
-                  ? AppColors.cardDark.withOpacity(0.8)
-                  : Colors.white.withOpacity(0.9),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: widget.isDark
-                    ? AppColors.borderDark.withOpacity(0.5)
-                    : AppColors.borderLight.withOpacity(0.5),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(widget.isDark ? 0.25 : 0.06),
-                  blurRadius: 24,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+          Text(
+            enrollment ? 'Vincula tu acceso' : 'Bienvenido de nuevo',
+            style: GoogleFonts.poppins(
+              fontSize: 31,
+              height: 1.08,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -1.1,
             ),
-            child: Image.asset('images/logo_met.png', height: 72),
-          ).animate().fadeIn(duration: 500.ms).slideY(begin: -0.1, end: 0),
-
-          const SizedBox(height: 32),
-
-          // ── Card principal (Glassmorphism) ──
-          ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                padding: const EdgeInsets.all(28),
-                decoration: BoxDecoration(
-                  color: widget.isDark
-                      ? AppColors.surfaceDark.withOpacity(0.6)
-                      : Colors.white.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: widget.isDark
-                        ? AppColors.glassBorder
-                        : Colors.white.withOpacity(0.5),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          Colors.black.withOpacity(widget.isDark ? 0.3 : 0.05),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Form(
-                  key: widget.formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Título
-                      Text(
-                        'Bienvenido',
-                        style: GoogleFonts.poppins(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: widget.isDark
-                              ? Colors.white
-                              : AppColors.textPrimaryLight,
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 100.ms),
-
-                      const SizedBox(height: 4),
-
-                      Text(
-                        widget.isAddingNewUser
-                            ? 'Ingresa credenciales del nuevo usuario'
-                            : hasUsers
-                                ? 'Ingresa tu contraseña para continuar'
-                                : 'Agrega tu primer usuario para comenzar',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color:
-                              widget.isDark ? Colors.white70 : Colors.black54,
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
-
-                      const SizedBox(height: 28),
-
-                      // ── Campo de usuario (nuevo o sin usuarios) ──
-                      if (widget.isAddingNewUser || !hasUsers) ...[
-                        _buildLabel('Usuario'),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: widget.userController,
-                          autofocus: true,
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            color:
-                                widget.isDark ? Colors.white : Colors.black87,
-                          ),
-                          decoration: _buildInputDecoration(
-                            hint: 'Ingresa el usuario',
-                            icon: Icons.person_outline,
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor ingrese el usuario';
-                            }
-                            return null;
-                          },
-                        ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // ── Usuario guardado ──
-                      if (hasUsers && !widget.isAddingNewUser) ...[
-                        UserCard(
-                          isDark: widget.isDark,
-                          savedUser: widget.savedUser!,
-                          savedUserFullName: widget.savedUserFullName,
-                          onShowUserSelector: widget.onShowUserSelector,
-                        ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
-                        const SizedBox(height: 20),
-                      ],
-
-                      // ── Campo de contraseña ──
-                      PasswordField(
-                        controller: widget.passController,
-                        isDark: widget.isDark,
-                        autofocus: hasUsers && !widget.isAddingNewUser,
-                      ).animate().fadeIn(duration: 400.ms, delay: 250.ms),
-
-                      const SizedBox(height: 32),
-
-                      // ── Botón principal ──
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 36, 92, 45),
-                            foregroundColor: Colors.white,
-                            elevation: 8,
-                            shadowColor: AppColors.primary.withOpacity(0.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          onPressed: widget.loading ? null : widget.onLogin,
-                          child: widget.loading
-                              ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2.5,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      widget.isAddingNewUser || !hasUsers
-                                          ? Icons.person_add_outlined
-                                          : Icons.login_outlined,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      widget.isAddingNewUser || !hasUsers
-                                          ? 'Agregar Usuario'
-                                          : 'Iniciar sesión',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
-
-                      // ── Botón cancelar ──
-                      if (widget.isAddingNewUser && hasUsers) ...[
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: TextButton(
-                            onPressed: widget.onCancelAddingUser,
-                            child: Text(
-                              'Cancelar',
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: widget.isDark
-                                    ? Colors.white60
-                                    : Colors.black54,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            enrollment
+                ? 'Confirma tu usuario corporativo para preparar este dispositivo.'
+                : 'Accede a tus servicios y continúa desde donde lo dejaste.',
+            style: GoogleFonts.inter(
+              height: 1.4,
+              fontSize: 14,
+              color: colors.onSurfaceVariant,
             ),
-          ).animate().fadeIn(duration: 500.ms, delay: 100.ms),
-
-          // ── Separador biométrico ──
-          if (widget.biometricAvailable &&
-              widget.biometricEnabled &&
-              hasUsers) ...[
-            const SizedBox(height: 24),
-            BiometricButton(
-              isDark: widget.isDark,
-              isLoading: widget.loading,
-              onAuthenticate: widget.onBiometricAuth,
+          ),
+          const SizedBox(height: 26),
+          _AccessOverviewCard(
+            enrollment: enrollment,
+            status: enrollment
+                ? 'Conexión interna requerida'
+                : _offlineStatusLabel(),
+          ),
+          const SizedBox(height: 24),
+          if (enrollment) ...[
+            Text('USUARIO', style: _fieldLabel(colors)),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: userController,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.username],
+              decoration: _fieldDecoration(
+                context,
+                hint: 'Usuario corporativo',
+                icon: Icons.person_outline_rounded,
+              ),
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Ingresa tu usuario'
+                  : null,
+            ),
+            const SizedBox(height: 18),
+          ] else ...[
+            _UserTile(
+              name: savedUserFullName ?? savedUser!,
+              username: savedUser!,
+              initials: _initials(savedUserFullName ?? savedUser!),
+              loading: loading,
+              onTap: onSelectUser,
+            ),
+            const SizedBox(height: 20),
+          ],
+          PasswordField(
+            controller: passController,
+            isDark: dark,
+            autofocus: false,
+          ),
+          if (!enrollment && deviceAuthAvailable && deviceAuthEnabled) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: IconButton.filled(
+                key: const ValueKey('biometric-login-button'),
+                tooltip: 'Ingresar con huella',
+                onPressed: loading ? null : onDeviceAuth,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size(56, 56),
+                  backgroundColor: AppColors.actionPositive,
+                  foregroundColor: AppColors.actionPositiveInk,
+                  disabledBackgroundColor:
+                      AppColors.actionPositive.withOpacity(0.42),
+                ),
+                icon: const Icon(Icons.fingerprint_rounded, size: 30),
+              ),
             ),
           ],
-
-          const SizedBox(height: 24),
-
-          // ── Acciones secundarias ──
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              if (!widget.isAddingNewUser && hasUsers)
-                _buildActionChip(
-                  icon: Icons.people_alt_outlined,
-                  label: 'Cambiar Usuario',
-                  onPressed: widget.loading ? null : widget.onStartAddingUser,
-                  color: widget.isDark ? Colors.white70 : AppColors.primary,
-                ),
-              _buildActionChip(
-                icon: Icons.cloud_off_outlined,
-                label: 'Offline',
-                onPressed: widget.loading ? null : widget.onLoginDemo,
-                color: const Color(0xFFFF9800),
-              ),
-              _buildActionChip(
-                icon: Icons.sync_rounded,
-                label: 'Actualizar BD',
-                onPressed: widget.loading ? null : widget.onUpdateDatabases,
-                color: widget.isDark ? Colors.white70 : AppColors.primary,
-              ),
-              _buildActionChip(
-                icon: Icons.settings_outlined,
-                label: 'Reconfigurar',
-                onPressed: widget.loading ? null : widget.onReconfigure,
-                color: widget.isDark ? Colors.white70 : AppColors.primary,
-              ),
-            ],
-          ).animate().fadeIn(duration: 400.ms, delay: 350.ms),
-
-          const SizedBox(height: 32),
-
-          // ── Footer ──
-          Column(
-            children: [
-              if (_appVersion != null)
-                Text(
-                  'versión $_appVersion',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: widget.isDark ? Colors.white38 : Colors.black38,
-                  ),
-                ),
-              const SizedBox(height: 6),
-              Text(
-                'DESARROLLADO POR: J.FARFAN',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  letterSpacing: 1.2,
-                  color: widget.isDark ? Colors.white30 : Colors.black26,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '© ${DateTime.now().year} METRICA LTDA',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  letterSpacing: 1.2,
-                  color: widget.isDark ? Colors.white30 : Colors.black26,
-                ),
-              ),
-            ],
-          ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 56,
+            child: FilledButton(
+              onPressed: loading ? null : onSubmit,
+              style: AppDesign.positiveButtonStyle(),
+              child: loading
+                  ? SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: AppColors.actionPositiveInk,
+                      ),
+                    )
+                  : Text(
+                      enrollment ? 'Vincular usuario' : 'Ingresar',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                    ),
+            ),
+          ),
+          if (isAddingNewUser && hasUser) ...[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: loading ? null : onCancelAddingUser,
+              child: const Text('Cancelar'),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  // ── Label de campo ──
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: widget.isDark ? Colors.white70 : AppColors.textPrimaryLight,
-      ),
-    );
-  }
-
-  // ── Decoración de input ──
-  InputDecoration _buildInputDecoration({
+  InputDecoration _fieldDecoration(
+    BuildContext context, {
     required String hint,
     required IconData icon,
   }) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final border = dark ? Colors.white24 : Colors.black12;
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.inter(
-        color: widget.isDark ? Colors.white38 : Colors.black38,
-        fontSize: 14,
-      ),
+      prefixIcon: Icon(icon),
       filled: true,
-      fillColor: widget.isDark
-          ? Colors.white.withOpacity(0.05)
-          : Colors.black.withOpacity(0.03),
+      fillColor: dark ? Colors.white.withOpacity(0.06) : Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: widget.isDark ? Colors.white12 : Colors.black12,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: widget.isDark ? Colors.white12 : Colors.black12,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide(color: border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(
-          color: widget.isDark ? Colors.white : AppColors.primary,
-          width: 1.5,
+          color: dark ? Colors.white : Colors.black,
+          width: 1.4,
         ),
       ),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 20,
-        vertical: 18,
-      ),
-      prefixIcon: Icon(icon,
-          color: widget.isDark ? Colors.white70 : AppColors.primary, size: 22),
     );
   }
 
-  // ── Chip de acción secundaria ──
-  Widget _buildActionChip({
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-    required Color color,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: color.withOpacity(0.2),
-              ),
+  TextStyle _fieldLabel(ColorScheme colors) => GoogleFonts.inter(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: colors.onSurfaceVariant,
+      );
+
+  String _offlineStatusLabel() {
+    final parsed = DateTime.tryParse(lastUpdate ?? '');
+    if (parsed == null) return 'Datos offline disponibles';
+    final day = parsed.day.toString().padLeft(2, '0');
+    final month = parsed.month.toString().padLeft(2, '0');
+    return 'Datos actualizados $day/$month';
+  }
+
+  String _initials(String value) {
+    return value
+        .trim()
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .where((word) => word.isNotEmpty)
+        .map((word) => word[0])
+        .join()
+        .toUpperCase();
+  }
+}
+
+class _AccessOverviewCard extends StatelessWidget {
+  final bool enrollment;
+  final String status;
+
+  const _AccessOverviewCard({required this.enrollment, required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 178,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1C),
+        borderRadius: BorderRadius.circular(26),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -34,
+            child: SizedBox(
+              width: 150,
+              height: 150,
+              child: CustomPaint(painter: _DialPainter()),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 8),
-                Text(
-                  label,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white12,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  status,
                   style: GoogleFonts.inter(
-                    fontSize: 12,
+                    color: Colors.white70,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: color,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              Text(
+                enrollment ? 'Acceso verificado' : 'Trabajo de campo',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                enrollment
+                    ? 'Una sola configuración'
+                    : 'Disponible incluso sin conexión',
+                style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UserTile extends StatelessWidget {
+  final String name;
+  final String username;
+  final String initials;
+  final bool loading;
+  final VoidCallback onTap;
+
+  const _UserTile({
+    required this.name,
+    required this.username,
+    required this.initials,
+    required this.loading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Material(
+      color: dark ? Colors.white.withOpacity(0.06) : Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: loading ? null : onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: dark ? Colors.white24 : Colors.black12),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accentYellow.withOpacity(dark ? 0.05 : 0.1),
+                blurRadius: 18,
+                offset: const Offset(0, 7),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: dark ? Colors.white : Colors.black,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  initials,
+                  style: GoogleFonts.inter(
+                    color: dark ? Colors.black : Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '@$username',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.expand_more_rounded),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+class _DialPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * 0.38;
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.2)
+      ..strokeWidth = 1.2;
+    for (var index = 0; index < 40; index++) {
+      final angle = index * 6.28318530718 / 40;
+      final inner = radius - (index % 5 == 0 ? 13 : 7);
+      canvas.drawLine(
+        center + Offset.fromDirection(angle, inner),
+        center + Offset.fromDirection(angle, radius),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

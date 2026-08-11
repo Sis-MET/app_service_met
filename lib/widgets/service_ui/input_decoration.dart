@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+
 /// Decoración estándar de inputs estilo Calibración:
 /// OutlineInputBorder radius 12, bordes sutiles, label Inter.
 InputDecoration serviceInputDeco(String label, bool isDark,
@@ -8,18 +11,28 @@ InputDecoration serviceInputDeco(String label, bool isDark,
     InputDecoration(
       labelText: label,
       hintText: hintText,
-      labelStyle:
-          GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+      filled: true,
+      fillColor: isDark ? AppColors.cardDark : const Color(0xFFF5F3EC),
+      labelStyle: GoogleFonts.inter(
+        color: isDark ? Colors.white70 : AppDesign.muted,
+      ),
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppDesign.mediumRadius,
           borderSide:
               BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
+          borderRadius: AppDesign.mediumRadius,
+          borderSide: BorderSide(
+              color: isDark ? Colors.white12 : AppColors.borderLight)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: AppDesign.mediumRadius,
+        borderSide: const BorderSide(
+          color: AppColors.actionPositive,
+          width: 1.4,
+        ),
+      ),
     );
 
 /// Header estándar de paso estilo Calibración:
@@ -36,25 +49,19 @@ class ServiceStepHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: GoogleFonts.poppins(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
+          style: AppDesign.displayStyle(context).copyWith(fontSize: 26),
         ),
         const SizedBox(height: 6),
         Text(
           subtitle,
           style: GoogleFonts.inter(
             fontSize: 13,
-            color: isDark ? Colors.white54 : Colors.black45,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],
@@ -70,16 +77,11 @@ class ServiceSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title,
-        style: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-        ),
+        style: AppDesign.titleStyle(context).copyWith(fontSize: 16),
       ),
     );
   }

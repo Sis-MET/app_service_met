@@ -34,10 +34,10 @@ class ConnectionProfileService extends ChangeNotifier {
       id: 'local_default',
       nombre: 'Local',
       ip: '192.168.1.5',
-      puerto: '1433',
-      baseDatos: 'DataMET',
-      usuarioBD: 'ServiceMET',
-      contrasenaBD: 'Met25',
+      puerto: '3100',
+      baseDatos: '',
+      usuarioBD: '',
+      contrasenaBD: '',
       apiUrl: 'https://192.168.1.5:3100',
       esPredeterminado: true,
     ),
@@ -45,10 +45,10 @@ class ConnectionProfileService extends ChangeNotifier {
       id: 'vpn_default',
       nombre: 'VPN',
       ip: '10.50.8.1',
-      puerto: '1433',
-      baseDatos: 'DataMET',
-      usuarioBD: 'ServiceMET',
-      contrasenaBD: 'Met25',
+      puerto: '3100',
+      baseDatos: '',
+      usuarioBD: '',
+      contrasenaBD: '',
       apiUrl: 'https://10.50.8.1:3100',
       esPredeterminado: true,
     ),
@@ -68,9 +68,18 @@ class ConnectionProfileService extends ChangeNotifier {
       var migrated = false;
       _perfiles = _perfiles.map((profile) {
         final secureApiUrl = _migrateInternalApiUrl(profile.apiUrl);
-        if (secureApiUrl == profile.apiUrl) return profile;
+        final hasLegacySecrets = profile.baseDatos.isNotEmpty ||
+            profile.usuarioBD.isNotEmpty ||
+            profile.contrasenaBD.isNotEmpty;
+        if (secureApiUrl == profile.apiUrl && !hasLegacySecrets) return profile;
         migrated = true;
-        return profile.copyWith(apiUrl: secureApiUrl);
+        return profile.copyWith(
+          apiUrl: secureApiUrl,
+          puerto: '3100',
+          baseDatos: '',
+          usuarioBD: '',
+          contrasenaBD: '',
+        );
       }).toList();
       if (migrated) await _guardar();
     } else {
@@ -138,7 +147,7 @@ class ConnectionProfileService extends ChangeNotifier {
     if (perfil == null) {
       return {
         'ip': '',
-        'port': '1433',
+        'port': '3100',
         'database': '',
         'username': '',
         'password': '',

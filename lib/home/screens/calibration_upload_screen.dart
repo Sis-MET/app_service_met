@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../login/services/connection_profile_service.dart';
 import '../../repositories/calibration_repository.dart';
-import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
 import '../services/calibration_upload_api_service.dart';
 
@@ -273,9 +274,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     final colors = Theme.of(context).colorScheme;
     final isDark = colors.brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Subir calibración',
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
+      appBar: ServiceAppBar(
+        title: 'Subir calibración',
         actions: [
           IconButton(
             onPressed: _working ? null : _load,
@@ -332,13 +332,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   Widget _summaryCard(ColorScheme colors, bool isDark) {
     final profile =
         context.watch<ConnectionProfileService>().perfilSeleccionado;
-    return Container(
+    return AppPanel(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.outlineVariant),
-      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('SECA ${widget.seca}',
             style:
