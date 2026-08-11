@@ -4,6 +4,7 @@ import 'package:service_met/screens/soporte_new/database/database_helper_soporte
 
 class ServicioInfo {
   final String nombre;
+  final String codigo;
   final String descripcion;
   final IconData icon;
   final Color color;
@@ -11,6 +12,7 @@ class ServicioInfo {
 
   const ServicioInfo({
     required this.nombre,
+    required this.codigo,
     required this.descripcion,
     required this.icon,
     required this.color,
@@ -42,6 +44,7 @@ class PrecargaController extends ChangeNotifier {
   static const List<ServicioInfo> serviciosDisponibles = [
     ServicioInfo(
       nombre: 'MNT PREVENTIVO REGULAR',
+      codigo: 'MPR.BL',
       descripcion:
           'Mantenimiento preventivo periódico básico y limpieza general del equipo.',
       icon: Icons.build_circle_outlined,
@@ -50,6 +53,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'MNT PREVENTIVO AVANZADO',
+      codigo: 'MPA.STAC',
       descripcion:
           'Mantenimiento preventivo profundo con inspección detallada de componentes.',
       icon: Icons.handyman_outlined,
@@ -58,6 +62,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'MANTENIMIENTO CORRECTIVO',
+      codigo: 'MCR.BL',
       descripcion:
           'Reparación de fallas, reemplazo de repuestos o ajustes por avería.',
       icon: Icons.healing_outlined,
@@ -66,6 +71,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'DIAGNÓSTICO',
+      codigo: 'DIG.BL',
       descripcion:
           'Evaluación técnica inicial para determinar el estado y fallas del equipo.',
       icon: Icons.search_rounded,
@@ -74,6 +80,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'VERIFICACIONES INTERNAS',
+      codigo: 'VIN.SP',
       descripcion:
           'Comprobación interna de tolerancias y rendimiento del instrumento.',
       icon: Icons.fact_check_outlined,
@@ -82,6 +89,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'RELEVAMIENTO DE DATOS',
+      codigo: 'REL.BL',
       descripcion:
           'Toma de datos técnicos y levantamiento de inventario en planta.',
       icon: Icons.assignment_outlined,
@@ -90,6 +98,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'INSTALACIÓN',
+      codigo: 'INS.BL',
       descripcion:
           'Puesta en marcha, montaje y configuración inicial en ubicación final.',
       icon: Icons.precision_manufacturing_outlined,
@@ -98,6 +107,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'AJUSTE DE VERIFICACIONES',
+      codigo: 'IBM.BL',
       descripcion:
           'Calibración interna, ajuste de cero, span o linealidad según norma.',
       icon: Icons.tune_rounded,
@@ -108,6 +118,24 @@ class PrecargaController extends ChangeNotifier {
 
   static List<String> get servicioOptions =>
       serviciosDisponibles.map((s) => s.nombre).toList();
+
+  String? get selectedServiceCode {
+    final selected = selectedServicio;
+    if (selected == null) return null;
+    for (final servicio in serviciosDisponibles) {
+      if (servicio.nombre == selected) return servicio.codigo;
+    }
+    return null;
+  }
+
+  String? get suggestedCodigoRegistro {
+    final otst = selectedSeca ?? suggestedSeca;
+    final serviceCode = selectedServiceCode;
+    final metrica = codMetrica;
+    if (otst == null || serviceCode == null || metrica == null) return null;
+    if (otst.isEmpty || metrica.isEmpty) return null;
+    return '$otst-$serviceCode-$metrica';
+  }
 
   String? selectedServicio;
   String? selectedSeca;
@@ -201,13 +229,15 @@ class PrecargaController extends ChangeNotifier {
   }
 
   void setCotizacionSuffix(String suffix) {
-    cotizacionSuffix = suffix.isEmpty ? 'S01' : suffix;
+    final digits = suffix.replaceAll(RegExp(r'\D'), '');
+    cotizacionSuffix =
+        digits.isEmpty ? 'S01' : 'S${digits.padLeft(2, '0').substring(0, 2)}';
     generateSuggestedSeca();
   }
 
   void setNoOtst(bool value) {
     noOtst = value;
-    cotizacionSuffix = value ? 'C00' : 'S01';
+    cotizacionSuffix = value ? 'S00' : 'S01';
     generateSuggestedSeca();
   }
 

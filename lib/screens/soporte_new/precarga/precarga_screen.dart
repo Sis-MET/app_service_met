@@ -487,6 +487,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
                 _resumenItem('Planta',
                     _controller.selectedPlanta?['nombre']?.toString(), isDark),
                 _resumenItem('Código OTST', _controller.selectedSeca, isDark),
+                _resumenItem('Código de registro',
+                    _controller.suggestedCodigoRegistro, isDark),
                 const Divider(height: 16),
                 _resumenItem(
                     'Instrumento', _controller.selectedInstrumento, isDark),

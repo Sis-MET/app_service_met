@@ -72,7 +72,8 @@ class _SecaStepState extends State<SecaStep> {
     );
   }
 
-  Widget _buildNoOtstToggle(PrecargaController c, bool isDark, bool isConfirmed) {
+  Widget _buildNoOtstToggle(
+      PrecargaController c, bool isDark, bool isConfirmed) {
     if (isConfirmed) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -86,9 +87,7 @@ class _SecaStepState extends State<SecaStep> {
       child: Row(
         children: [
           Icon(
-            c.noOtst
-                ? Icons.note_alt_outlined
-                : Icons.assignment_outlined,
+            c.noOtst ? Icons.note_alt_outlined : Icons.assignment_outlined,
             size: 20,
             color: isDark ? Colors.white54 : Colors.black54,
           ),
@@ -254,12 +253,16 @@ class _SecaStepState extends State<SecaStep> {
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.white,
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                        color:
+                            isDark ? Colors.white12 : const Color(0xFFE2E8F0),
                       ),
                     ),
                     child: Text(
@@ -277,7 +280,9 @@ class _SecaStepState extends State<SecaStep> {
                 const SizedBox(width: 8),
                 Container(
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF5F5F5),
+                    color: isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
@@ -330,8 +335,12 @@ class _SecaStepState extends State<SecaStep> {
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: isDark
-                            ? (c.noOtst ? Colors.white38 : Colors.lightGreenAccent)
-                            : (c.noOtst ? Colors.black38 : const Color(0xFF2E7D32)),
+                            ? (c.noOtst
+                                ? Colors.white38
+                                : Colors.lightGreenAccent)
+                            : (c.noOtst
+                                ? Colors.black38
+                                : const Color(0xFF2E7D32)),
                         letterSpacing: 1,
                       ),
                       decoration: InputDecoration(
@@ -442,7 +451,7 @@ class _SecaStepState extends State<SecaStep> {
                   '• Año actual (ej. ${DateTime.now().year.toString().substring(2)})\n'
                   '• Código de planta seleccionada\n'
                   '• Correlativo editable (S01, S02...). '
-                  'Use C00 si no hay OTST asignada.',
+                  'Use S00 si no hay OTST asignada.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: isDark ? Colors.white70 : Colors.black87,

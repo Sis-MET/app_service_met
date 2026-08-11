@@ -1,19 +1,10 @@
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:service_met/home/screens/home_screen.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
-import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/theme/app_colors.dart';
@@ -21,14 +12,12 @@ import 'package:service_met/theme/app_design.dart';
 
 class FinServicioConfig {
   final String tableNameDefault;
-  final String csvSuffix;
   final String additionalWhere;
   final String tipoServicio;
   final Color primaryColor;
 
   const FinServicioConfig({
     this.tableNameDefault = 'soporte_servicio',
-    this.csvSuffix = 'servicio',
     this.additionalWhere = '',
     this.tipoServicio = 'Servicio',
     this.primaryColor = AppColors.actionPositive,
@@ -80,10 +69,8 @@ class FinServicioScreen extends StatefulWidget {
 }
 
 class _FinServicioScreenState extends State<FinServicioScreen> {
-  bool _isExporting = false;
   bool _isFinalizando = false;
   int _balanzasCount = 0;
-  int _balanzasCountHoy = 0;
   bool _isLoadingSummary = true;
 
   @override
@@ -124,15 +111,9 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         widget.config.tableNameDefault,
         seca,
       );
-      final registrosHoy = await widget.controller.getRegistrosPorSeca(
-        widget.config.tableNameDefault,
-        seca,
-        soloHoy: true,
-      );
       if (mounted) {
         setState(() {
           _balanzasCount = registros.length;
-          _balanzasCountHoy = registrosHoy.length;
           _isLoadingSummary = false;
         });
       }
@@ -185,13 +166,13 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
     }
   }
 
-  Future<void> _finalizarYExportar() async {
+  Future<void> _finalizar() async {
     final confirm = await _showConfirmDialog(
       title: 'Finalizar Servicio',
       message:
           '¿Está seguro que desea finalizar el servicio "${widget.config.tipoServicio}"?\n\n'
-          'Se guardarán todos los datos y se procederá a la exportación.',
-      confirmLabel: 'Sí, finalizar y exportar',
+          'Se guardarán todos los datos y volverá al inicio.',
+      confirmLabel: 'Sí, finalizar',
       isDestructive: false,
     );
     if (confirm != true || !mounted) return;
@@ -200,14 +181,16 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
     try {
       await _finalizarServicioActual();
-      await _loadBalanzasCount();
-
       if (!mounted) return;
-
-      final opcion = await _showExportDialog();
-      if (opcion == null || !mounted) return;
-
-      await _exportRegistros(soloHoy: opcion == 'hoy');
+      TopAlert.show(
+        context,
+        'Servicio finalizado correctamente',
+        isError: false,
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        (route) => false,
+      );
     } catch (e) {
       if (mounted) {
         TopAlert.show(context, 'Error al finalizar servicio: $e',
@@ -215,212 +198,6 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
       }
     } finally {
       if (mounted) setState(() => _isFinalizando = false);
-    }
-  }
-
-  Future<String?> _showExportDialog() async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.file_download_rounded,
-                color: isDark ? Colors.green[300] : Colors.green[700],
-                size: 22),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text('Exportar datos',
-                    style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            isDark ? Colors.white : const Color(0xFF1A1A1A)))),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '¿Qué registros desea exportar?',
-              style: TextStyle(
-                  fontSize: 14,
-                  color: isDark ? Colors.white70 : Colors.black87),
-            ),
-            const SizedBox(height: 16),
-            _opcionExportacion(
-              ctx,
-              icon: Icons.today_rounded,
-              titulo: 'Solo las de hoy',
-              subtitulo: '$_balanzasCountHoy balanza(s)',
-              isDark: isDark,
-              onTap: () => Navigator.pop(ctx, 'hoy'),
-            ),
-            const SizedBox(height: 12),
-            _opcionExportacion(
-              ctx,
-              icon: Icons.calendar_month_rounded,
-              titulo: 'Todas las de la OTST',
-              subtitulo: '$_balanzasCount balanza(s)',
-              isDark: isDark,
-              onTap: () => Navigator.pop(ctx, 'todas'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
-                style:
-                    TextStyle(color: isDark ? Colors.white60 : Colors.black54)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exportRegistros({required bool soloHoy}) async {
-    if (_isExporting) return;
-    setState(() => _isExporting = true);
-
-    try {
-      final seca = widget.secaValue;
-      if (seca.isEmpty) {
-        TopAlert.show(context, 'OTST no disponible', isError: true);
-        return;
-      }
-
-      final registros = await widget.controller.getRegistrosPorSeca(
-        widget.config.tableNameDefault,
-        seca,
-        soloHoy: soloHoy,
-      );
-
-      if (!mounted) return;
-
-      if (registros.isEmpty) {
-        TopAlert.show(context, 'No hay registros para exportar', isError: true);
-        return;
-      }
-
-      final rows = <List<String>>[];
-      List<String>? headers;
-
-      for (final r in registros) {
-        Map<String, dynamic> data;
-        try {
-          data = Map<String, dynamic>.from(
-              jsonDecode(r['data']?.toString() ?? '{}'));
-        } catch (_) {
-          continue;
-        }
-
-        final rowCod = r['cod_metrica']?.toString() ?? '';
-        data['cod_metrica'] = rowCod.isNotEmpty
-            ? rowCod
-            : (data['cod_metrica']?.toString() ?? widget.codMetrica);
-        data['seca_value'] = widget.secaValue;
-        if ((data['cliente']?.toString() ?? '').isEmpty) {
-          data['cliente'] = widget.clienteNombre;
-        }
-        if ((data['planta']?.toString() ?? '').isEmpty) {
-          data['planta'] = widget.plantaNombre;
-        }
-
-        if (headers == null) {
-          headers = data.keys.toList();
-          rows.add(headers);
-        }
-        final values = headers.map((k) {
-          final v = data[k];
-          if (v is String) return v;
-          if (v is List || v is Map) return jsonEncode(v);
-          return v?.toString() ?? '';
-        }).toList();
-        rows.add(values);
-      }
-
-      if (!mounted) return;
-
-      if (rows.isEmpty) {
-        TopAlert.show(context, 'No se pudieron leer los registros',
-            isError: true);
-        return;
-      }
-
-      final csv = Csv(
-        fieldDelimiter: ';',
-        quoteCharacter: '"',
-        autoDetect: false,
-      ).encode(rows);
-
-      final csvBytes = utf8.encode(csv);
-      final timestamp =
-          DateFormat('yyyy-MM-dd_HH-mm-ss').format(DateTime.now());
-      final fileName =
-          '${widget.secaValue}_${timestamp}_${widget.config.csvSuffix}.csv';
-
-      final externalDir = await getExternalStorageDirectory();
-      String? autoSavedPath;
-      if (externalDir != null) {
-        final exportDir =
-            Directory('${externalDir.path}/RespaldoSM/CSV_Automaticos');
-        if (!await exportDir.exists()) {
-          await exportDir.create(recursive: true);
-        }
-        final internalFile = File('${exportDir.path}/$fileName');
-        await internalFile.writeAsBytes(csvBytes);
-        autoSavedPath = internalFile.path;
-      }
-
-      // Guardar también en el directorio de fotos (como calibración)
-      try {
-        final baseFotos =
-            await FotoHelper.getBaseDir(subDirName: 'soporte_fotos');
-        final csvDir = Directory(p.join(baseFotos.path, widget.secaValue));
-        if (!await csvDir.exists()) {
-          await csvDir.create(recursive: true);
-        }
-        final csvFile = File(p.join(csvDir.path, fileName));
-        await csvFile.writeAsBytes(csvBytes);
-      } catch (_) {
-        // Si no hay directorio configurado, solo usamos el respaldo automático
-      }
-
-      final params = SaveFileDialogParams(
-        data: Uint8List.fromList(csvBytes),
-        fileName: fileName,
-      );
-      final savedPath = await FlutterFileDialog.saveFile(params: params);
-
-      if (!mounted) return;
-
-      if (savedPath != null) {
-        TopAlert.show(
-          context,
-          'Exportación exitosa: ${registros.length} balanza(s) exportada(s)',
-          isError: false,
-        );
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (r) => false,
-        );
-      } else {
-        TopAlert.show(
-          context,
-          autoSavedPath != null
-              ? 'Exportación al destino cancelada. Respaldo guardado automáticamente.'
-              : 'Exportación cancelada.',
-          isError: autoSavedPath == null,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        TopAlert.show(context, 'Error al exportar CSV: $e', isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
     }
   }
 
@@ -455,57 +232,6 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
             child: Text(confirmLabel),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _opcionExportacion(
-    BuildContext ctx, {
-    required IconData icon,
-    required String titulo,
-    required String subtitulo,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-              color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon,
-                color: isDark ? Colors.white54 : Colors.black54, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(titulo,
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                  const SizedBox(height: 2),
-                  Text(subtitulo,
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: isDark ? Colors.white60 : Colors.black54)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                color: isDark ? Colors.white24 : Colors.black26),
-          ],
-        ),
       ),
     );
   }
@@ -562,10 +288,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                   width: double.infinity,
                   height: 50,
                   child: FilledButton.icon(
-                    onPressed: (_isFinalizando || _isExporting)
-                        ? null
-                        : _finalizarYExportar,
-                    icon: (_isFinalizando || _isExporting)
+                    onPressed: _isFinalizando ? null : _finalizar,
+                    icon: _isFinalizando
                         ? const SizedBox(
                             width: 20,
                             height: 20,
@@ -573,8 +297,8 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                                 strokeWidth: 2.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                     AppColors.actionPositiveInk)))
-                        : const Icon(Icons.file_download),
-                    label: const Text('FINALIZAR Y EXPORTAR',
+                        : const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text('FINALIZAR SERVICIO',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
@@ -592,7 +316,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Exportación',
+          'Finalización',
           style: GoogleFonts.poppins(
             fontSize: 26,
             fontWeight: FontWeight.w700,
@@ -602,7 +326,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2),
         const SizedBox(height: 4),
         Text(
-          'Finalización del servicio y descarga de datos',
+          'Revisa el resumen antes de cerrar el servicio',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: isDark ? Colors.white54 : Colors.black45,

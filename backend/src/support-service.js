@@ -53,6 +53,12 @@ function logicalCsvName(module, record) {
   return `${otst}_${module}${session ? `_${session}` : ''}.csv`;
 }
 
+function supportRegistrationCode(module, otst, codMetrica) {
+  const serviceCode = SUPPORT_MODULES[module]?.serviceCode;
+  if (!serviceCode || !otst || !codMetrica) return null;
+  return `${otst}-${serviceCode}-${codMetrica}`;
+}
+
 function validateSupportRecords(records, schemas) {
   if (!Array.isArray(records) || records.length === 0) {
     return {
@@ -66,13 +72,15 @@ function validateSupportRecords(records, schemas) {
     data: envelope?.data,
   }));
   const counts = new Map();
-  for (const { data } of prepared) {
+  for (const { module, data } of prepared) {
     if (!data || typeof data !== 'object' || Array.isArray(data)) continue;
     const otst = String(data.otst ?? '').trim();
     const codMetrica = String(data.cod_metrica ?? '').trim();
     if (!otst || !codMetrica) continue;
-    const code = canonicalCode(`${otst}-${codMetrica}`);
-    counts.set(code, (counts.get(code) ?? 0) + 1);
+    const code = supportRegistrationCode(module, otst, codMetrica);
+    if (!code) continue;
+    const canonical = canonicalCode(code);
+    counts.set(canonical, (counts.get(canonical) ?? 0) + 1);
   }
 
   const results = prepared.map(({ module, data }, index) => {
@@ -97,7 +105,7 @@ function validateSupportRecords(records, schemas) {
 
     const otst = String(data.otst ?? '').trim();
     const codMetrica = String(data.cod_metrica ?? '').trim();
-    const codigoRegistro = otst && codMetrica ? `${otst}-${codMetrica}` : null;
+    const codigoRegistro = supportRegistrationCode(module, otst, codMetrica);
     const nombreCsv = logicalCsvName(module, data);
     if (!otst) errors.push(issue('otst', data.otst, 'REQUIRED', 'Falta el OTST.', 'texto no vacío'));
     if (!codMetrica) errors.push(issue('cod_metrica', data.cod_metrica, 'REQUIRED', 'Falta el código métrica.', 'texto no vacío'));
@@ -113,7 +121,7 @@ function validateSupportRecords(records, schemas) {
       errors.push(issue('nombre_csv', nombreCsv, 'MAX_LENGTH', 'El nombre lógico del CSV supera la longitud permitida.', 'máximo 100 caracteres'));
     }
     if (codigoRegistro && (counts.get(canonicalCode(codigoRegistro)) ?? 0) > 1) {
-      errors.push(issue('codigo_registro', codigoRegistro, 'DUPLICATE_IN_BATCH', 'El mismo equipo aparece más de una vez en el lote.', 'OTST-COD_METRICA único'));
+      errors.push(issue('codigo_registro', codigoRegistro, 'DUPLICATE_IN_BATCH', 'El mismo equipo aparece más de una vez en el lote.', 'OTST-CODIGO_MODULO-COD_METRICA único'));
     }
 
     if (schema) {
@@ -215,7 +223,7 @@ async function findExistingCodes(executor, validation) {
 function addDatabaseDuplicates(validation, existingCodes) {
   for (const record of validation.records) {
     if (!record.codigoRegistro || !existingCodes.has(canonicalCode(record.codigoRegistro))) continue;
-    record.errors.push(issue('codigo_registro', record.codigoRegistro, 'ALREADY_EXISTS', 'El servicio ya existe en DataMET.', 'OTST-COD_METRICA no registrado previamente'));
+    record.errors.push(issue('codigo_registro', record.codigoRegistro, 'ALREADY_EXISTS', 'El servicio ya existe en DataMET.', 'OTST-CODIGO_MODULO-COD_METRICA no registrado previamente'));
     record.valid = false;
   }
   return validation;
@@ -372,6 +380,7 @@ module.exports = {
   addDatabaseDuplicates,
   insertSupportRecord,
   logicalCsvName,
+  supportRegistrationCode,
   validateSupportRecords,
   validateAgainstDatabase,
   uploadSupportRecords,

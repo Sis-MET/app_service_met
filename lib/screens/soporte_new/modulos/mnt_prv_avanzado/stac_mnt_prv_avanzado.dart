@@ -130,16 +130,23 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
     final inst = widget.instrumentoData;
     if (inst == null) return;
 
-    _controller.categoriaBalanza =
-        inst['categoria']?.toString() ?? inst['categoria_balanza']?.toString() ?? '';
-    _controller.codInt = inst['cod_interno']?.toString() ?? inst['cod_int']?.toString() ?? '';
-    _controller.tipoEquipo =
-        inst['tipo_instrumento']?.toString() ?? inst['tipo']?.toString() ?? inst['instrumento']?.toString() ?? '';
+    _controller.categoriaBalanza = inst['categoria']?.toString() ??
+        inst['categoria_balanza']?.toString() ??
+        '';
+    _controller.codInt =
+        inst['cod_interno']?.toString() ?? inst['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = inst['tipo_instrumento']?.toString() ??
+        inst['tipo']?.toString() ??
+        inst['instrumento']?.toString() ??
+        '';
     _controller.marca = inst['marca']?.toString() ?? '';
     _controller.modelo = inst['modelo']?.toString() ?? '';
-    _controller.serie = inst['inf_serie']?.toString() ?? inst['serie']?.toString() ?? '';
-    _controller.unidades = inst['unidad']?.toString() ?? inst['unidades']?.toString() ?? '';
-    _controller.numCeldas = inst['n_celdas']?.toString() ?? inst['num_celdas']?.toString() ?? '';
+    _controller.serie =
+        inst['inf_serie']?.toString() ?? inst['serie']?.toString() ?? '';
+    _controller.unidades =
+        inst['unidad']?.toString() ?? inst['unidades']?.toString() ?? '';
+    _controller.numCeldas =
+        inst['n_celdas']?.toString() ?? inst['num_celdas']?.toString() ?? '';
     _controller.ubicacion = inst['ubicacion']?.toString() ?? '';
     _controller.capMax1 = inst['cap_max1']?.toString() ?? '';
     _controller.d1 = inst['d1']?.toString() ?? '';
@@ -193,8 +200,7 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
           return false;
         }
         if (_controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Estabilidad en Pruebas Iniciales',
+          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Iniciales',
               isError: true);
           return false;
         }
@@ -217,8 +223,7 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
         return true;
       case 3:
         if (!_camposCompletos(_controller.camposChequeo)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Chequeo General',
+          TopAlert.show(context, 'Complete todos los campos de Chequeo General',
               isError: true);
           return false;
         }
@@ -234,8 +239,7 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
       case 5:
         if (!_camposCompletos(_controller.camposProteccionCeldas)) {
           TopAlert.show(
-              context,
-              'Complete todos los campos de Protección / Células',
+              context, 'Complete todos los campos de Protección / Células',
               isError: true);
           return false;
         }
@@ -243,22 +247,19 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
       case 6:
         if (!_camposCompletos(_controller.camposTerminalCalibracion)) {
           TopAlert.show(
-              context,
-              'Complete todos los campos de Terminal / Calibración',
+              context, 'Complete todos los campos de Terminal / Calibración',
               isError: true);
           return false;
         }
         return true;
       case 7:
         if (_controller.retornoCeroFinal.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Retorno a Cero en Pruebas Finales',
+          TopAlert.show(context, 'Seleccione Retorno a Cero en Pruebas Finales',
               isError: true);
           return false;
         }
         if (_controller.estabilidadFinal.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Estabilidad en Pruebas Finales',
+          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Finales',
               isError: true);
           return false;
         }
@@ -270,13 +271,11 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
           return false;
         }
         if (_controller.recomendacion.isEmpty) {
-          TopAlert.show(context, 'Seleccione una Recomendación',
-              isError: true);
+          TopAlert.show(context, 'Seleccione una Recomendación', isError: true);
           return false;
         }
         if (_controller.fechaProxServicio.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione la Fecha del Próximo Servicio',
+          TopAlert.show(context, 'Seleccione la Fecha del Próximo Servicio',
               isError: true);
           return false;
         }
@@ -288,8 +287,7 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
           return false;
         }
         if (_controller.horaFin.isEmpty) {
-          TopAlert.show(
-              context, 'Registre la Hora Final del servicio',
+          TopAlert.show(context, 'Registre la Hora Final del servicio',
               isError: true);
           return false;
         }
@@ -335,7 +333,6 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
           plantaNombre: widget.plantaNombre,
           config: const FinServicioConfig(
             tableNameDefault: 'mnt_prv_avanzado',
-            csvSuffix: 'MntPrvAvanzado',
             tipoServicio: 'MNT PREVENTIVO AVANZADO',
           ),
         ),
@@ -412,8 +409,7 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
       child: ListenableBuilder(
         listenable: _controller,
         builder: (context, _) {
-          final isLast =
-              _controller.currentStep == _controller.totalSteps - 1;
+          final isLast = _controller.currentStep == _controller.totalSteps - 1;
           return ServiceWorkspaceLayout(
             title: 'Mnt Preventivo Avanzado',
             steps: _steps,
@@ -540,16 +536,14 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                   codMetrica: widget.codMetrica,
                   seccion1: const SeccionData(
                     title: 'PROTECCIÓN CONTRA RAYOS',
-                    subtitle:
-                        'Sistema de protección y conexión a tierra',
+                    subtitle: 'Sistema de protección y conexión a tierra',
                     icon: Icons.flash_on_outlined,
                     color: Colors.orange,
                     count: 4,
                   ),
                   seccion2: const SeccionData(
                     title: 'VERIFICACIONES DE CÉLULAS',
-                    subtitle:
-                        'Células de carga, lubricación y protectores',
+                    subtitle: 'Células de carga, lubricación y protectores',
                     icon: Icons.grain_outlined,
                     color: Colors.indigo,
                     count: 7,
@@ -570,16 +564,14 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                   codMetrica: widget.codMetrica,
                   seccion1: const SeccionData(
                     title: 'TERMINAL',
-                    subtitle:
-                        'Carcasa, display, teclado, pila, etc.',
+                    subtitle: 'Carcasa, display, teclado, pila, etc.',
                     icon: Icons.computer_outlined,
                     color: Colors.purple,
                     count: 8,
                   ),
                   seccion2: const SeccionData(
                     title: 'CALIBRACIÓN',
-                    subtitle:
-                        'Balanza apta para verificación NB23001',
+                    subtitle: 'Balanza apta para verificación NB23001',
                     icon: Icons.tune_outlined,
                     color: Colors.green,
                     count: 1,
@@ -696,8 +688,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
             onNext: isLast ? _onFinalizar : _onSiguiente,
             onBack: _controller.currentStep > 0 ? _onAnterior : null,
             saveStatus: _saveStatus,
-            balanzaInfo:
-                buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
+            balanzaInfo: buildServiceBalanzaInfo(
+                widget.instrumentoData, widget.codMetrica),
           );
         },
       ),

@@ -30,6 +30,35 @@ function canonicalCode(value) {
   return value.normalize('NFKC').toUpperCase();
 }
 
+function normalizeDate(raw) {
+  const value = String(raw).trim();
+  let year;
+  let month;
+  let day;
+
+  let match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match) {
+    [, year, month, day] = match;
+  } else {
+    match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+    if (!match) return null;
+    [, day, month, year] = match;
+  }
+
+  const numericYear = Number(year);
+  const numericMonth = Number(month);
+  const numericDay = Number(day);
+  const parsed = new Date(Date.UTC(numericYear, numericMonth - 1, numericDay));
+  if (
+    parsed.getUTCFullYear() !== numericYear ||
+    parsed.getUTCMonth() !== numericMonth - 1 ||
+    parsed.getUTCDate() !== numericDay
+  ) {
+    return null;
+  }
+  return `${year}-${month}-${day}`;
+}
+
 function validateDecimal(column, raw, definition) {
   const value = normalizeDecimal(raw);
   if (!/^-?(?:\d+\.?\d*|\.\d+)$/.test(value)) {
@@ -76,9 +105,9 @@ function normalizeValue(column, raw, definition) {
     case 'numeric':
       return validateDecimal(column, raw, definition);
     case 'date': {
-      const value = String(raw).trim();
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
-        return { issue: error(column, raw, 'INVALID_DATE', 'La fecha no tiene un formato válido.', 'AAAA-MM-DD') };
+      const value = normalizeDate(raw);
+      if (value === null) {
+        return { issue: error(column, raw, 'INVALID_DATE', 'La fecha no tiene un formato válido.', 'AAAA-MM-DD o DD/MM/AAAA') };
       }
       return { value };
     }
@@ -167,4 +196,10 @@ function validateRecords(records, schema) {
   return { records: results, batchErrors: [] };
 }
 
-module.exports = { EXCLUDED_FIELDS, canonicalCode, normalizeValue, validateRecords };
+module.exports = {
+  EXCLUDED_FIELDS,
+  canonicalCode,
+  normalizeDate,
+  normalizeValue,
+  validateRecords,
+};

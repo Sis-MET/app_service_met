@@ -263,7 +263,6 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
           tableName: 'mnt_correctivo',
           config: const FinServicioConfig(
             tableNameDefault: 'mnt_correctivo',
-            csvSuffix: 'MntCorrectivo',
             additionalWhere: '',
             tipoServicio: 'MANTENIMIENTO CORRECTIVO',
             primaryColor: Color(0xFF46824B),

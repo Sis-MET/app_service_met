@@ -105,18 +105,36 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
     _controller.personal = widget.userName;
     if (data == null) return;
     _controller.infBal = data['_modifiedFields']?.toString() ?? '';
-    _controller.categoriaBalanza = data['categoria']?.toString() ?? data['categoria_balanza']?.toString() ?? '';
-    _controller.codInt = data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
-    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ?? data['tipo']?.toString() ?? data['instrumento']?.toString() ?? '';
+    _controller.categoriaBalanza = data['categoria']?.toString() ??
+        data['categoria_balanza']?.toString() ??
+        '';
+    _controller.codInt =
+        data['cod_interno']?.toString() ?? data['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = data['tipo_instrumento']?.toString() ??
+        data['tipo']?.toString() ??
+        data['instrumento']?.toString() ??
+        '';
     _controller.marca = data['marca']?.toString() ?? '';
     _controller.modelo = data['modelo']?.toString() ?? '';
-    _controller.serie = data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
-    _controller.unidades = data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
-    _controller.numCeldas = data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
+    _controller.serie =
+        data['inf_serie']?.toString() ?? data['serie']?.toString() ?? '';
+    _controller.unidades =
+        data['unidad']?.toString() ?? data['unidades']?.toString() ?? '';
+    _controller.numCeldas =
+        data['n_celdas']?.toString() ?? data['num_celdas']?.toString() ?? '';
     _controller.ubicacion = data['ubicacion']?.toString() ?? '';
-    _controller.capMax1 = data['cap_max1']?.toString() ?? ''; _controller.d1 = data['d1']?.toString() ?? ''; _controller.e1 = data['e1']?.toString() ?? ''; _controller.dec1 = data['dec1']?.toString() ?? '';
-    _controller.capMax2 = data['cap_max2']?.toString() ?? ''; _controller.d2 = data['d2']?.toString() ?? ''; _controller.e2 = data['e2']?.toString() ?? ''; _controller.dec2 = data['dec2']?.toString() ?? '';
-    _controller.capMax3 = data['cap_max3']?.toString() ?? ''; _controller.d3 = data['d3']?.toString() ?? ''; _controller.e3 = data['e3']?.toString() ?? ''; _controller.dec3 = data['dec3']?.toString() ?? '';
+    _controller.capMax1 = data['cap_max1']?.toString() ?? '';
+    _controller.d1 = data['d1']?.toString() ?? '';
+    _controller.e1 = data['e1']?.toString() ?? '';
+    _controller.dec1 = data['dec1']?.toString() ?? '';
+    _controller.capMax2 = data['cap_max2']?.toString() ?? '';
+    _controller.d2 = data['d2']?.toString() ?? '';
+    _controller.e2 = data['e2']?.toString() ?? '';
+    _controller.dec2 = data['dec2']?.toString() ?? '';
+    _controller.capMax3 = data['cap_max3']?.toString() ?? '';
+    _controller.d3 = data['d3']?.toString() ?? '';
+    _controller.e3 = data['e3']?.toString() ?? '';
+    _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
   @override
@@ -157,12 +175,12 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
     switch (_currentStep) {
       case 0:
         if (_controller.reporteFalla.isEmpty) {
-          TopAlert.show(context, 'Complete el reporte de falla',
-              isError: true);
+          TopAlert.show(context, 'Complete el reporte de falla', isError: true);
           return false;
         }
         if (_controller.evaluacion.isEmpty) {
-          TopAlert.show(context, 'Complete la evaluacion tecnica', isError: true);
+          TopAlert.show(context, 'Complete la evaluacion tecnica',
+              isError: true);
           return false;
         }
         return true;
@@ -208,7 +226,6 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
           tableName: 'diagnostico',
           config: const FinServicioConfig(
             tableNameDefault: 'diagnostico',
-            csvSuffix: 'Diagnostico',
             additionalWhere: '',
             tipoServicio: 'DIAGNÓSTICO',
             primaryColor: Color(0xFF46824B),
@@ -246,17 +263,12 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
           currentStep: _currentStep,
           onStepTapped: (step) => _goToStep(step),
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-          nextColor: isLast
-              ? const Color(0xFF3e7732)
-              : const Color(0xFF498054),
-          onNext:
-              isLast ? _finalizar : () => _goToStep(_currentStep + 1),
-          onBack: _currentStep > 0
-              ? () => _goToStep(_currentStep - 1)
-              : null,
+          nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
+          onNext: isLast ? _finalizar : () => _goToStep(_currentStep + 1),
+          onBack: _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
           saveStatus: _saveStatus,
-          balanzaInfo:
-              buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
+          balanzaInfo: buildServiceBalanzaInfo(
+              widget.instrumentoData, widget.codMetrica),
         );
       },
     );

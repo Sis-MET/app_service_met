@@ -193,7 +193,6 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
           plantaNombre: widget.plantaNombre,
           config: const FinServicioConfig(
             tableNameDefault: 'relevamiento_de_datos',
-            csvSuffix: 'RelevDatos',
             tipoServicio: 'RELEVAMIENTO DE DATOS',
           ),
           tableName: 'relevamiento_de_datos',

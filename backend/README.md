@@ -12,9 +12,14 @@ API interna para validar y subir servicios de calibración y soporte desde Flutt
 3. Ejecutar `pnpm install --frozen-lockfile` dentro de `backend/`.
 4. Ejecutar `pnpm test` y luego `pnpm start`.
 
-La API no requiere crear índices, restricciones ni otros objetos en
-`DataMET_prueba`. El archivo `sql/001_calibration_data_audit.sql` es únicamente
-de consulta y permite conocer los duplicados históricos sin modificar datos.
+La API no requiere crear índices ni restricciones en `DataMET_prueba`. Antes de
+habilitar la subida de soporte, un administrador debe ejecutar una sola vez
+`sql/003_expand_support_session_id.sql` para ampliar `session_id` a
+`nvarchar(30)` en las ocho tablas. El script valida la estructura y aplica todos
+los cambios dentro de una transacción.
+
+El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
+permite conocer los duplicados históricos sin modificar datos.
 
 El usuario SQL de la API necesita permisos mínimos sobre las dos tablas de la
 subida:
@@ -58,7 +63,10 @@ registros efectivamente elegidos se insertan o se revierten juntos.
 
 Dentro de una transacción serializable, SQL Server asigna el correlativo `n`
 mediante su columna `IDENTITY`, y la API recupera el valor real con
-`SCOPE_IDENTITY()`. La API genera `codigo_registro` como `SECA-COD_METRICA`.
+`SCOPE_IDENTITY()`. En calibración, la API genera `codigo_registro` como
+`SECA-COD_METRICA`. En soporte usa
+`OTST-CODIGO_MODULO-COD_METRICA` (por ejemplo,
+`26-0090-11-S02-MPR.BL-0090-11-014`).
 Los duplicados históricos permanecen intactos. Antes de insertar, la API impide
 repetir códigos dentro del lote o agregar un código que ya exista en DataMET,
 sin exigir cambios en el esquema de la base.

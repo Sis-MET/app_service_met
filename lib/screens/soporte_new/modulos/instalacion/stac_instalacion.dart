@@ -240,7 +240,6 @@ class _StacInstalacionState extends State<StacInstalacion> {
           plantaNombre: widget.plantaNombre,
           config: const FinServicioConfig(
             tableNameDefault: 'instalacion',
-            csvSuffix: 'Instalacion',
             tipoServicio: 'INSTALACIÓN',
           ),
           tableName: 'instalacion',

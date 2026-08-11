@@ -122,16 +122,23 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
     final inst = widget.instrumentoData;
     if (inst == null) return;
 
-    _controller.categoriaBalanza =
-        inst['categoria']?.toString() ?? inst['categoria_balanza']?.toString() ?? '';
-    _controller.codInt = inst['cod_interno']?.toString() ?? inst['cod_int']?.toString() ?? '';
-    _controller.tipoEquipo =
-        inst['tipo_instrumento']?.toString() ?? inst['tipo']?.toString() ?? inst['instrumento']?.toString() ?? '';
+    _controller.categoriaBalanza = inst['categoria']?.toString() ??
+        inst['categoria_balanza']?.toString() ??
+        '';
+    _controller.codInt =
+        inst['cod_interno']?.toString() ?? inst['cod_int']?.toString() ?? '';
+    _controller.tipoEquipo = inst['tipo_instrumento']?.toString() ??
+        inst['tipo']?.toString() ??
+        inst['instrumento']?.toString() ??
+        '';
     _controller.marca = inst['marca']?.toString() ?? '';
     _controller.modelo = inst['modelo']?.toString() ?? '';
-    _controller.serie = inst['inf_serie']?.toString() ?? inst['serie']?.toString() ?? '';
-    _controller.unidades = inst['unidad']?.toString() ?? inst['unidades']?.toString() ?? '';
-    _controller.numCeldas = inst['n_celdas']?.toString() ?? inst['num_celdas']?.toString() ?? '';
+    _controller.serie =
+        inst['inf_serie']?.toString() ?? inst['serie']?.toString() ?? '';
+    _controller.unidades =
+        inst['unidad']?.toString() ?? inst['unidades']?.toString() ?? '';
+    _controller.numCeldas =
+        inst['n_celdas']?.toString() ?? inst['num_celdas']?.toString() ?? '';
     _controller.ubicacion = inst['ubicacion']?.toString() ?? '';
     _controller.capMax1 = inst['cap_max1']?.toString() ?? '';
     _controller.d1 = inst['d1']?.toString() ?? '';
@@ -162,8 +169,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
         widget.sessionId,
       );
       if (registro != null && mounted) {
-        await _controller.loadExistingSession(
-            widget.sessionId, registro);
+        await _controller.loadExistingSession(widget.sessionId, registro);
       }
     } catch (e) {
       debugPrint('Error cargando datos existentes MNT PRV REGULAR: $e');
@@ -186,8 +192,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           return false;
         }
         if (_controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Estabilidad en Pruebas Iniciales',
+          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Iniciales',
               isError: true);
           return false;
         }
@@ -202,38 +207,33 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
         return true;
       case 2:
         if (!_camposCompletos(_controller.camposTerminal)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Terminal',
+          TopAlert.show(context, 'Complete todos los campos de Terminal',
               isError: true);
           return false;
         }
         return true;
       case 3:
         if (!_camposCompletos(_controller.camposBalanza)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Balanza',
+          TopAlert.show(context, 'Complete todos los campos de Balanza',
               isError: true);
           return false;
         }
         return true;
       case 4:
         if (!_camposCompletos(_controller.camposCajaSumadora)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Caja Sumadora',
+          TopAlert.show(context, 'Complete todos los campos de Caja Sumadora',
               isError: true);
           return false;
         }
         return true;
       case 5:
         if (_controller.retornoCeroFinal.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Retorno a Cero en Pruebas Finales',
+          TopAlert.show(context, 'Seleccione Retorno a Cero en Pruebas Finales',
               isError: true);
           return false;
         }
         if (_controller.estabilidadFinal.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Estabilidad en Pruebas Finales',
+          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Finales',
               isError: true);
           return false;
         }
@@ -245,13 +245,11 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           return false;
         }
         if (_controller.recomendacion.isEmpty) {
-          TopAlert.show(context, 'Seleccione una Recomendación',
-              isError: true);
+          TopAlert.show(context, 'Seleccione una Recomendación', isError: true);
           return false;
         }
         if (_controller.fechaProxServicio.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione la Fecha del Próximo Servicio',
+          TopAlert.show(context, 'Seleccione la Fecha del Próximo Servicio',
               isError: true);
           return false;
         }
@@ -263,8 +261,7 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           return false;
         }
         if (_controller.horaFin.isEmpty) {
-          TopAlert.show(
-              context, 'Registre la Hora Final del servicio',
+          TopAlert.show(context, 'Registre la Hora Final del servicio',
               isError: true);
           return false;
         }
@@ -310,7 +307,6 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
           plantaNombre: widget.plantaNombre,
           config: const FinServicioConfig(
             tableNameDefault: 'mnt_prv_regular',
-            csvSuffix: 'MntPrvRegular',
             tipoServicio: 'MNT PREVENTIVO REGULAR',
           ),
         ),
@@ -387,236 +383,235 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
       child: ListenableBuilder(
         listenable: _controller,
         builder: (context, _) {
-          final isLast =
-              _controller.currentStep == _controller.totalSteps - 1;
+          final isLast = _controller.currentStep == _controller.totalSteps - 1;
           return ServiceWorkspaceLayout(
-          title: 'Mnt Preventivo Regular',
-          steps: _steps,
-          stepWidgets: [
-            // ── Paso 0: Pruebas Metrológicas Iniciales ──────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Pruebas Metrológicas Iniciales',
-                subtitle: 'Antes del mantenimiento',
-              ),
-              PasoPruebasMetrologicas(
-                balanza: _balanzaInfo,
-                esInicial: true,
-                horaInicio: _controller.horaInicio,
-                retornoCero: _controller.retornoCeroInicial,
-                estabilidad: _controller.estabilidadInicial,
-                onRetornoCeroChanged: (v) {
-                  _controller.retornoCeroInicial = v;
-                  _controller.markChanged();
-                },
-                onEstabilidadChanged: (v) {
-                  _controller.estabilidadInicial = v;
-                  _controller.markChanged();
-                },
-                excentricidadActiva: _controller.excentricidadRealizada,
-                repetibilidadActiva: _controller.repetibilidadRealizada,
-                linealidadActiva: _controller.linealidadRealizada,
-                onExcentricidadActivaChanged: (v) {
-                  _controller.excentricidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onRepetibilidadActivaChanged: (v) {
-                  _controller.repetibilidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onLinealidadActivaChanged: (v) {
-                  _controller.linealidadRealizada = v;
-                  _controller.markChanged();
-                },
-                excentricidad: _controller.excentricidadInicial,
-                repetibilidad: _controller.repetibilidadInicial,
-                linealidad: _controller.linealidadInicial,
-                onExcentricidadChanged: (d) {
-                  _controller.excentricidadInicial = d;
-                  _controller.markChanged();
-                },
-                onRepetibilidadChanged: (d) {
-                  _controller.repetibilidadInicial = d;
-                  _controller.markChanged();
-                },
-                onLinealidadChanged: (d) {
-                  _controller.linealidadInicial = d;
-                  _controller.markChanged();
-                },
-              ),
-            ),
-            // ── Paso 1: Entorno de Instalación ──────────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Entorno de Instalación',
-                subtitle: 'Condiciones del entorno del equipo',
-              ),
-              PasoEntorno(
-                campos: _controller.camposEntorno,
-                onChanged: (i, v, s) =>
-                    _onCampoChanged(_controller.camposEntorno, i, v, s),
-                seca: widget.secaValue,
-                codMetrica: widget.codMetrica,
-              ),
-            ),
-            // ── Paso 2: Terminal ────────────────────────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Terminal',
-                subtitle: 'Complete el estado de cada campo',
-              ),
-              PasoTerminal(
-                campos: _controller.camposTerminal,
-                onChanged: (i, v, s) =>
-                    _onCampoChanged(_controller.camposTerminal, i, v, s),
-                seca: widget.secaValue,
-                codMetrica: widget.codMetrica,
-              ),
-            ),
-            // ── Paso 3: Balanza ─────────────────────────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Balanza',
-                subtitle: 'Complete el estado de cada campo',
-              ),
-              PasoBalanza(
-                campos: _controller.camposBalanza,
-                onChanged: (i, v, s) =>
-                    _onCampoChanged(_controller.camposBalanza, i, v, s),
-                seca: widget.secaValue,
-                codMetrica: widget.codMetrica,
-              ),
-            ),
-            // ── Paso 4: Caja Sumadora ───────────────────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Caja Sumadora',
-                subtitle: 'Complete el estado de cada campo',
-              ),
-              PasoCajaSumadora(
-                campos: _controller.camposCajaSumadora,
-                onChanged: (i, v, s) =>
-                    _onCampoChanged(_controller.camposCajaSumadora, i, v, s),
-                seca: widget.secaValue,
-                codMetrica: widget.codMetrica,
-              ),
-            ),
-            // ── Paso 5: Pruebas Metrológicas Finales ────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Pruebas Metrológicas Finales',
-                subtitle: 'Después del mantenimiento',
-              ),
-              PasoPruebasMetrologicas(
-                balanza: _balanzaInfo,
-                esInicial: false,
-                retornoCero: _controller.retornoCeroFinal,
-                estabilidad: _controller.estabilidadFinal,
-                onRetornoCeroChanged: (v) {
-                  _controller.retornoCeroFinal = v;
-                  _controller.markChanged();
-                },
-                onEstabilidadChanged: (v) {
-                  _controller.estabilidadFinal = v;
-                  _controller.markChanged();
-                },
-                excentricidadActiva: _controller.excentricidadRealizada,
-                repetibilidadActiva: _controller.repetibilidadRealizada,
-                linealidadActiva: _controller.linealidadRealizada,
-                onExcentricidadActivaChanged: (v) {
-                  _controller.excentricidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onRepetibilidadActivaChanged: (v) {
-                  _controller.repetibilidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onLinealidadActivaChanged: (v) {
-                  _controller.linealidadRealizada = v;
-                  _controller.markChanged();
-                },
-                excentricidad: _controller.excentricidadFinal,
-                repetibilidad: _controller.repetibilidadFinal,
-                linealidad: _controller.linealidadFinal,
-                onExcentricidadChanged: (d) {
-                  _controller.excentricidadFinal = d;
-                  _controller.markChanged();
-                },
-                onRepetibilidadChanged: (d) {
-                  _controller.repetibilidadFinal = d;
-                  _controller.markChanged();
-                },
-                onLinealidadChanged: (d) {
-                  _controller.linealidadFinal = d;
-                  _controller.markChanged();
-                },
-                copyTick: _copyTickFinales,
-                onCopiarDeIniciales: _onCopiarFinales,
-              ),
-            ),
-            // ── Paso 6: Estado Final ────────────────────────────────
-            _buildPaso(
-              const ServiceStepHeader(
-                title: 'Estado Final',
-                subtitle: 'Conclusión del servicio',
-              ),
-              PasoEstadoFinalWidget(
-                comentarioGeneral: _controller.comentarioGeneral,
-                recomendacion: _controller.recomendacion,
-                estadoFisico: _controller.estadoFisico,
-                estadoOperacional: _controller.estadoOperacional,
-                estadoMetrologico: _controller.estadoMetrologico,
-                onComentarioGeneralChanged: (v) {
-                  _controller.comentarioGeneral = v;
-                  _controller.markChanged();
-                },
-                onRecomendacionChanged: (v) {
-                  _controller.recomendacion = v;
-                  _controller.markChanged();
-                },
-                onEstadoFisicoChanged: (v) {
-                  _controller.estadoFisico = v;
-                  _controller.markChanged();
-                },
-                onEstadoOperacionalChanged: (v) {
-                  _controller.estadoOperacional = v;
-                  _controller.markChanged();
-                },
-                onEstadoMetrologicoChanged: (v) {
-                  _controller.estadoMetrologico = v;
-                  _controller.markChanged();
-                },
-                camposEstado: const [],
-                onCampoChanged: (i, v, s) {},
-                horaInicio: _controller.horaInicio,
-                horaFin: _controller.horaFin,
-                onRegistrarHoraFin: _onRegistrarHoraFin,
-                fechaProxServicio: _controller.fechaProxServicio,
-                onFechaProxServicioChanged: (v) {
-                  setState(() {
-                    _controller.fechaProxServicio = v;
+            title: 'Mnt Preventivo Regular',
+            steps: _steps,
+            stepWidgets: [
+              // ── Paso 0: Pruebas Metrológicas Iniciales ──────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Pruebas Metrológicas Iniciales',
+                  subtitle: 'Antes del mantenimiento',
+                ),
+                PasoPruebasMetrologicas(
+                  balanza: _balanzaInfo,
+                  esInicial: true,
+                  horaInicio: _controller.horaInicio,
+                  retornoCero: _controller.retornoCeroInicial,
+                  estabilidad: _controller.estabilidadInicial,
+                  onRetornoCeroChanged: (v) {
+                    _controller.retornoCeroInicial = v;
                     _controller.markChanged();
-                  });
-                },
-                recomendacionesOptions: _recomendacionesOptions,
-                useLegacyEstados: true,
+                  },
+                  onEstabilidadChanged: (v) {
+                    _controller.estabilidadInicial = v;
+                    _controller.markChanged();
+                  },
+                  excentricidadActiva: _controller.excentricidadRealizada,
+                  repetibilidadActiva: _controller.repetibilidadRealizada,
+                  linealidadActiva: _controller.linealidadRealizada,
+                  onExcentricidadActivaChanged: (v) {
+                    _controller.excentricidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  onRepetibilidadActivaChanged: (v) {
+                    _controller.repetibilidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  onLinealidadActivaChanged: (v) {
+                    _controller.linealidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  excentricidad: _controller.excentricidadInicial,
+                  repetibilidad: _controller.repetibilidadInicial,
+                  linealidad: _controller.linealidadInicial,
+                  onExcentricidadChanged: (d) {
+                    _controller.excentricidadInicial = d;
+                    _controller.markChanged();
+                  },
+                  onRepetibilidadChanged: (d) {
+                    _controller.repetibilidadInicial = d;
+                    _controller.markChanged();
+                  },
+                  onLinealidadChanged: (d) {
+                    _controller.linealidadInicial = d;
+                    _controller.markChanged();
+                  },
+                ),
               ),
-            ),
-          ],
-          currentStep: _controller.currentStep,
-          onStepTapped: _onStepTapped,
-          nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-          nextColor:
-              isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
-          onNext: isLast ? _onFinalizar : _onSiguiente,
-          onBack: _controller.currentStep > 0 ? _onAnterior : null,
-          saveStatus: _saveStatus,
-          balanzaInfo:
-              buildServiceBalanzaInfo(widget.instrumentoData, widget.codMetrica),
-        );
-      },
-    ),
-  );
+              // ── Paso 1: Entorno de Instalación ──────────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Entorno de Instalación',
+                  subtitle: 'Condiciones del entorno del equipo',
+                ),
+                PasoEntorno(
+                  campos: _controller.camposEntorno,
+                  onChanged: (i, v, s) =>
+                      _onCampoChanged(_controller.camposEntorno, i, v, s),
+                  seca: widget.secaValue,
+                  codMetrica: widget.codMetrica,
+                ),
+              ),
+              // ── Paso 2: Terminal ────────────────────────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Terminal',
+                  subtitle: 'Complete el estado de cada campo',
+                ),
+                PasoTerminal(
+                  campos: _controller.camposTerminal,
+                  onChanged: (i, v, s) =>
+                      _onCampoChanged(_controller.camposTerminal, i, v, s),
+                  seca: widget.secaValue,
+                  codMetrica: widget.codMetrica,
+                ),
+              ),
+              // ── Paso 3: Balanza ─────────────────────────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Balanza',
+                  subtitle: 'Complete el estado de cada campo',
+                ),
+                PasoBalanza(
+                  campos: _controller.camposBalanza,
+                  onChanged: (i, v, s) =>
+                      _onCampoChanged(_controller.camposBalanza, i, v, s),
+                  seca: widget.secaValue,
+                  codMetrica: widget.codMetrica,
+                ),
+              ),
+              // ── Paso 4: Caja Sumadora ───────────────────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Caja Sumadora',
+                  subtitle: 'Complete el estado de cada campo',
+                ),
+                PasoCajaSumadora(
+                  campos: _controller.camposCajaSumadora,
+                  onChanged: (i, v, s) =>
+                      _onCampoChanged(_controller.camposCajaSumadora, i, v, s),
+                  seca: widget.secaValue,
+                  codMetrica: widget.codMetrica,
+                ),
+              ),
+              // ── Paso 5: Pruebas Metrológicas Finales ────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Pruebas Metrológicas Finales',
+                  subtitle: 'Después del mantenimiento',
+                ),
+                PasoPruebasMetrologicas(
+                  balanza: _balanzaInfo,
+                  esInicial: false,
+                  retornoCero: _controller.retornoCeroFinal,
+                  estabilidad: _controller.estabilidadFinal,
+                  onRetornoCeroChanged: (v) {
+                    _controller.retornoCeroFinal = v;
+                    _controller.markChanged();
+                  },
+                  onEstabilidadChanged: (v) {
+                    _controller.estabilidadFinal = v;
+                    _controller.markChanged();
+                  },
+                  excentricidadActiva: _controller.excentricidadRealizada,
+                  repetibilidadActiva: _controller.repetibilidadRealizada,
+                  linealidadActiva: _controller.linealidadRealizada,
+                  onExcentricidadActivaChanged: (v) {
+                    _controller.excentricidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  onRepetibilidadActivaChanged: (v) {
+                    _controller.repetibilidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  onLinealidadActivaChanged: (v) {
+                    _controller.linealidadRealizada = v;
+                    _controller.markChanged();
+                  },
+                  excentricidad: _controller.excentricidadFinal,
+                  repetibilidad: _controller.repetibilidadFinal,
+                  linealidad: _controller.linealidadFinal,
+                  onExcentricidadChanged: (d) {
+                    _controller.excentricidadFinal = d;
+                    _controller.markChanged();
+                  },
+                  onRepetibilidadChanged: (d) {
+                    _controller.repetibilidadFinal = d;
+                    _controller.markChanged();
+                  },
+                  onLinealidadChanged: (d) {
+                    _controller.linealidadFinal = d;
+                    _controller.markChanged();
+                  },
+                  copyTick: _copyTickFinales,
+                  onCopiarDeIniciales: _onCopiarFinales,
+                ),
+              ),
+              // ── Paso 6: Estado Final ────────────────────────────────
+              _buildPaso(
+                const ServiceStepHeader(
+                  title: 'Estado Final',
+                  subtitle: 'Conclusión del servicio',
+                ),
+                PasoEstadoFinalWidget(
+                  comentarioGeneral: _controller.comentarioGeneral,
+                  recomendacion: _controller.recomendacion,
+                  estadoFisico: _controller.estadoFisico,
+                  estadoOperacional: _controller.estadoOperacional,
+                  estadoMetrologico: _controller.estadoMetrologico,
+                  onComentarioGeneralChanged: (v) {
+                    _controller.comentarioGeneral = v;
+                    _controller.markChanged();
+                  },
+                  onRecomendacionChanged: (v) {
+                    _controller.recomendacion = v;
+                    _controller.markChanged();
+                  },
+                  onEstadoFisicoChanged: (v) {
+                    _controller.estadoFisico = v;
+                    _controller.markChanged();
+                  },
+                  onEstadoOperacionalChanged: (v) {
+                    _controller.estadoOperacional = v;
+                    _controller.markChanged();
+                  },
+                  onEstadoMetrologicoChanged: (v) {
+                    _controller.estadoMetrologico = v;
+                    _controller.markChanged();
+                  },
+                  camposEstado: const [],
+                  onCampoChanged: (i, v, s) {},
+                  horaInicio: _controller.horaInicio,
+                  horaFin: _controller.horaFin,
+                  onRegistrarHoraFin: _onRegistrarHoraFin,
+                  fechaProxServicio: _controller.fechaProxServicio,
+                  onFechaProxServicioChanged: (v) {
+                    setState(() {
+                      _controller.fechaProxServicio = v;
+                      _controller.markChanged();
+                    });
+                  },
+                  recomendacionesOptions: _recomendacionesOptions,
+                  useLegacyEstados: true,
+                ),
+              ),
+            ],
+            currentStep: _controller.currentStep,
+            onStepTapped: _onStepTapped,
+            nextLabel: isLast ? 'Finalizar' : 'Siguiente',
+            nextColor:
+                isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
+            onNext: isLast ? _onFinalizar : _onSiguiente,
+            onBack: _controller.currentStep > 0 ? _onAnterior : null,
+            saveStatus: _saveStatus,
+            balanzaInfo: buildServiceBalanzaInfo(
+                widget.instrumentoData, widget.codMetrica),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildPaso(Widget header, Widget content) {

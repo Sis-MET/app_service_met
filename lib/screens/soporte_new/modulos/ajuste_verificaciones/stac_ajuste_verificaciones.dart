@@ -250,7 +250,6 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
           tableName: 'ajustes_metrologicos',
           config: const FinServicioConfig(
             tableNameDefault: 'ajustes_metrologicos',
-            csvSuffix: 'AjusteVerif',
             tipoServicio: 'AJUSTE DE VERIFICACIONES',
           ),
         ),

@@ -257,7 +257,6 @@ class _StacVerificacionesInternasState
           tableName: 'verificaciones_internas',
           config: const FinServicioConfig(
             tableNameDefault: 'verificaciones_internas',
-            csvSuffix: 'Vinternas',
             additionalWhere: '',
             tipoServicio: 'VERIFICACIONES INTERNAS',
             primaryColor: Color(0xFF46824B),

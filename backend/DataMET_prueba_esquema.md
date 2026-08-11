@@ -512,7 +512,7 @@ Total de columnas: **47**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 38 | `foto_balanza` | nvarchar | 200 | Sí | - |
 | 39 | `hora_inicio` | time | - | Sí | - |
@@ -568,7 +568,7 @@ Total de columnas: **268**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `fecha_prox_servicio` | date | - | Sí | - |
 | 38 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
@@ -822,7 +822,7 @@ Total de columnas: **168**
 | 10 | `cod_planta` | nvarchar | 10 | Sí | - |
 | 11 | `personal` | nvarchar | 50 | Sí | - |
 | 12 | `otst` | nvarchar | 50 | Sí | - |
-| 13 | `session_id` | nvarchar | 5 | Sí | - |
+| 13 | `session_id` | nvarchar | 30 | Sí | - |
 | 14 | `inf_bal` | nvarchar | 100 | Sí | - |
 | 15 | `foto_balanza` | nvarchar | 200 | Sí | - |
 | 16 | `categoria_balanza` | nvarchar | 50 | Sí | - |
@@ -1022,7 +1022,7 @@ Total de columnas: **135**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `fecha_prox_servicio` | date | - | Sí | - |
 | 38 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
@@ -1166,7 +1166,7 @@ Total de columnas: **381**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `fecha_prox_servicio` | date | - | Sí | - |
 | 38 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
@@ -1556,7 +1556,7 @@ Total de columnas: **315**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `fecha_prox_servicio` | date | - | Sí | - |
 | 38 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
@@ -2029,7 +2029,7 @@ Total de columnas: **188**
 | 182 | `p_max_bruto` | decimal | 15,6 | Sí | - |
 | 183 | `p_min_neto` | decimal | 15,6 | Sí | - |
 | 184 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 185 | `session_id` | nvarchar | 5 | Sí | - |
+| 185 | `session_id` | nvarchar | 30 | Sí | - |
 | 186 | `fecha_prox_servicio` | date | - | Sí | - |
 | 187 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 188 | `inf_bal` | nvarchar | 100 | Sí | - |
@@ -2077,7 +2077,7 @@ Total de columnas: **170**
 | 33 | `e3` | decimal | 15,6 | Sí | - |
 | 34 | `dec3` | decimal | 15,6 | Sí | - |
 | 35 | `cod_planta` | nvarchar | 10 | Sí | - |
-| 36 | `session_id` | nvarchar | 5 | Sí | - |
+| 36 | `session_id` | nvarchar | 30 | Sí | - |
 | 37 | `fecha_prox_servicio` | date | - | Sí | - |
 | 38 | `estado_servicio` | nvarchar | 20 | Sí | - |
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
