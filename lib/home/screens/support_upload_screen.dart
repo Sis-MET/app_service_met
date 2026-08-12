@@ -13,6 +13,7 @@ import '../models/servicio_model.dart';
 import '../services/calibration_upload_api_service.dart';
 import '../services/support_upload_api_service.dart';
 import '../services/support_upload_status_service.dart';
+import '../widgets/upload_auth_dialog.dart';
 
 class SupportUploadScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -108,49 +109,15 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
         'No hay un usuario activo. Cierre sesión e ingrese nuevamente.',
       );
     }
-    final controller = TextEditingController();
     final password = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Autenticar subida'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Usuario: $usuario'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Contraseña',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
-              onSubmitted: (value) {
-                if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                Navigator.pop(dialogContext, controller.text);
-              }
-            },
-            child: const Text('Autenticar'),
-          ),
-        ],
+      builder: (_) => UploadAuthDialog(
+        usuario: usuario,
+        message:
+            'Ingrese su contraseña para autorizar temporalmente la subida de soporte.',
       ),
     );
-    controller.dispose();
     if (password == null || password.isEmpty) return false;
     await api.authenticate(usuario: usuario, password: password);
     return true;

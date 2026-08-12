@@ -11,6 +11,7 @@ import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
 import '../services/calibration_upload_api_service.dart';
+import '../widgets/upload_auth_dialog.dart';
 
 class CalibrationUploadScreen extends StatefulWidget {
   final String seca;
@@ -130,52 +131,15 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
       );
     }
 
-    final passwordController = TextEditingController();
     final password = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Autenticar subida'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Usuario: $usuario'),
-            const SizedBox(height: 8),
-            const Text(
-              'Ingrese su contraseña para obtener una autorización temporal del servidor.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Contraseña',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
-              onSubmitted: (value) {
-                if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value = passwordController.text;
-              if (value.isNotEmpty) Navigator.pop(dialogContext, value);
-            },
-            child: const Text('Autenticar'),
-          ),
-        ],
+      builder: (_) => UploadAuthDialog(
+        usuario: usuario,
+        message:
+            'Ingrese su contraseña para obtener una autorización temporal del servidor.',
       ),
     );
-    passwordController.dispose();
     if (password == null || password.isEmpty) return false;
 
     await api.authenticate(usuario: usuario, password: password);
