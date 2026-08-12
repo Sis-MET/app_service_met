@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -9,6 +11,9 @@ import 'package:service_met/screens/soporte_new/modulos/mnt_prv_avanzado/stac_mn
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/stil_mnt_prv_regular.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/stac_relevamiento_de_datos.dart';
 import 'package:service_met/screens/soporte_new/modulos/verificaciones_internas/stac_verificaciones_internas.dart';
+import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
+import 'package:service_met/screens/soporte_new/services/support_legacy_recovery_service.dart';
+import 'package:service_met/screens/soporte_new/utils/support_module_catalog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
@@ -60,6 +65,14 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
   }
 
   Future<void> _initData() async {
+    try {
+      await SupportLegacyRecoveryService().migrateOnce();
+    } catch (error) {
+      debugPrint('No se pudo indexar sesiones antiguas de soporte: $error');
+    }
+    final shouldContinue = await _handlePendingSession();
+    if (!shouldContinue || !mounted) return;
+
     await _controller.generateSessionId();
 
     if (widget.skipToBalanza &&
@@ -87,6 +100,274 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     if (hasPlanta) {
       _controller.plantaCodigo = widget.plantaCodigo;
       _controller.generateSuggestedSeca();
+    }
+  }
+
+  Future<bool> _handlePendingSession() async {
+    final recoveryDb = DatabaseHelperSoporte();
+    final pending = await recoveryDb.getPendingSessions(widget.userName);
+    if (!mounted || pending.isEmpty) return true;
+
+    final session = pending.first;
+    final moduleKey = session['module_key']?.toString() ?? '';
+    final module = SupportModuleCatalog.byKey(moduleKey);
+    if (module == null) return true;
+    final currentStep =
+        int.tryParse(session['current_step']?.toString() ?? '') ?? 0;
+    final action = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(Icons.pending_actions_rounded, color: Colors.orange),
+        title: const Text('Servicio de soporte pendiente'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Encontramos un servicio que todavía no fue finalizado.',
+            ),
+            const SizedBox(height: 16),
+            _recoveryDetail('Servicio', module.serviceName),
+            _recoveryDetail('Cliente', session['cliente_nombre']),
+            _recoveryDetail('Planta', session['planta_nombre']),
+            _recoveryDetail('OTST', session['otst']),
+            _recoveryDetail('Instrumento', session['cod_metrica']),
+            _recoveryDetail(
+              'Último paso',
+              '${currentStep + 1} de ${module.totalSteps}',
+            ),
+          ],
+        ),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(dialogContext, 'discard'),
+            child: const Text('Descartar y crear otro'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, 'continue'),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (action == null) return false;
+    if (action == 'discard') {
+      try {
+        await recoveryDb.markSessionAbandoned(
+          moduleKey,
+          session['session_id']?.toString() ?? '',
+        );
+        return true;
+      } catch (error) {
+        if (mounted) {
+          TopAlert.show(
+            context,
+            'No se pudo descartar el servicio pendiente: $error',
+            isError: true,
+          );
+        }
+        return false;
+      }
+    }
+
+    final destination = _getRecoveryDestination(session);
+    if (destination == null || !mounted) return false;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+    return false;
+  }
+
+  Widget _recoveryDetail(String label, Object? value) {
+    final text = value?.toString().trim() ?? '';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 92, child: Text(label)),
+          Expanded(
+            child: Text(
+              text.isEmpty ? '—' : text,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget? _getRecoveryDestination(Map<String, dynamic> row) {
+    final moduleKey = row['module_key']?.toString() ?? '';
+    final sessionId = row['session_id']?.toString() ?? '';
+    final otst = row['otst']?.toString() ?? '';
+    final codMetrica = row['cod_metrica']?.toString() ?? '';
+    final nReca = row['n_reca']?.toString() ?? '';
+    final clienteId = row['cliente_id']?.toString() ?? '';
+    final clienteNombre = row['cliente_nombre']?.toString() ?? '';
+    final clienteRazon = row['cliente_razon_social']?.toString() ?? '';
+    final plantaCodigo = row['planta_codigo']?.toString() ?? '';
+    final plantaNombre = row['planta_nombre']?.toString() ?? '';
+    final plantaDireccion = row['planta_direccion']?.toString() ?? '';
+    final plantaDepartamento = row['planta_departamento']?.toString() ?? '';
+    Map<String, dynamic>? instrumentoData;
+    try {
+      final decoded = jsonDecode(row['instrumento_data']?.toString() ?? '{}');
+      if (decoded is Map) {
+        instrumentoData = Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+
+    final args = (
+      sessionId: sessionId,
+      secaValue: otst,
+      nReca: nReca,
+      codMetrica: codMetrica,
+      userName: widget.userName,
+      clienteId: clienteId,
+      plantaCodigo: plantaCodigo,
+      clienteNombre: clienteNombre,
+      clienteRazonSocial: clienteRazon,
+      plantaNombre: plantaNombre,
+      plantaDireccion: plantaDireccion,
+      plantaDepartamento: plantaDepartamento,
+      instrumentoData: instrumentoData,
+    );
+
+    switch (moduleKey) {
+      case 'verificaciones_internas':
+        return StacVerificacionesInternas(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'relevamiento_de_datos':
+        return StacRelevamientoDeDatos(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'mnt_prv_avanzado_stac':
+        return StacMntPrvAvanzado(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'mnt_prv_regular':
+        return StilMntPrvRegular(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'mnt_correctivo':
+        return StacMntCorrectivo(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'instalacion':
+        return StacInstalacion(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'diagnostico':
+        return StacDiagnostico(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      case 'ajustes_metrologicos':
+        return StacAjusteVerificaciones(
+          sessionId: args.sessionId,
+          secaValue: args.secaValue,
+          nReca: args.nReca,
+          codMetrica: args.codMetrica,
+          userName: args.userName,
+          clienteId: args.clienteId,
+          plantaCodigo: args.plantaCodigo,
+          clienteNombre: args.clienteNombre,
+          clienteRazonSocial: args.clienteRazonSocial,
+          plantaNombre: args.plantaNombre,
+          plantaDireccion: args.plantaDireccion,
+          plantaDepartamento: args.plantaDepartamento,
+          instrumentoData: args.instrumentoData,
+        );
+      default:
+        return null;
     }
   }
 

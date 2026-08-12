@@ -99,10 +99,22 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
     _controller.clienteNombre = widget.clienteNombre;
     _controller.plantaNombre = widget.plantaNombre;
     _setContextData();
+    _configureRecovery();
     _balanzaInfo =
         buildCalBalanzaInfo(widget.instrumentoData, widget.codMetrica);
     _loadExistingData();
   }
+
+  void _configureRecovery() => _controller.configureRecovery(
+        personal: widget.userName,
+        clienteId: widget.clienteId,
+        clienteRazonSocial: widget.clienteRazonSocial,
+        plantaCodigo: widget.plantaCodigo,
+        plantaDireccion: widget.plantaDireccion,
+        plantaDepartamento: widget.plantaDepartamento,
+        nReca: widget.nReca,
+        instrumentoData: widget.instrumentoData,
+      );
 
   void _setContextData() {
     final data = widget.instrumentoData;
@@ -215,19 +227,19 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
 
   void _onStepTapped(int step) {
     if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    setState(() => _controller.currentStep = step);
+    _controller.setCurrentStep(step);
   }
 
   void _onAnterior() {
     if (_controller.currentStep > 0) {
-      setState(() => _controller.currentStep--);
+      _controller.setCurrentStep(_controller.currentStep - 1);
     }
   }
 
   void _onSiguiente() {
     if (!_validateCurrentStep()) return;
     if (_controller.currentStep < _controller.totalSteps - 1) {
-      setState(() => _controller.currentStep++);
+      _controller.setCurrentStep(_controller.currentStep + 1);
     }
   }
 

@@ -10,7 +10,8 @@ import 'package:service_met/screens/soporte_new/models/base_soporte_model.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
 
-abstract class BaseSoporteController extends ChangeNotifier {
+abstract class BaseSoporteController extends ChangeNotifier
+    with WidgetsBindingObserver {
   bool _isDisposed = false;
   bool _postFrameNotificationScheduled = false;
 
@@ -43,6 +44,10 @@ abstract class BaseSoporteController extends ChangeNotifier {
   String secaValue = '';
   String clienteNombre = '';
   String plantaNombre = '';
+
+  String _recoveryPersonal = '';
+  Map<String, dynamic> _recoveryRouteData = const {};
+  bool _recoveryConfigured = false;
 
   Timer? _autoSaveTimer;
   final ValueNotifier<bool> hasUnsavedChanges = ValueNotifier<bool>(false);
@@ -87,6 +92,112 @@ abstract class BaseSoporteController extends ChangeNotifier {
   }
 
   BaseSoporteController();
+
+  void configureRecovery({
+    required String personal,
+    required String clienteId,
+    required String clienteRazonSocial,
+    required String plantaCodigo,
+    required String plantaDireccion,
+    required String plantaDepartamento,
+    required String nReca,
+    Map<String, dynamic>? instrumentoData,
+  }) {
+    _recoveryPersonal = personal;
+    _recoveryRouteData = {
+      'cliente_id': clienteId,
+      'cliente_nombre': clienteNombre,
+      'cliente_razon_social': clienteRazonSocial,
+      'planta_codigo': plantaCodigo,
+      'planta_nombre': plantaNombre,
+      'planta_direccion': plantaDireccion,
+      'planta_departamento': plantaDepartamento,
+      'cod_metrica': model.codMetrica,
+      'n_reca': nReca,
+      'instrumento_data': instrumentoData ?? const <String, dynamic>{},
+    };
+    if (!_recoveryConfigured) {
+      _recoveryConfigured = true;
+      WidgetsBinding.instance.addObserver(this);
+    }
+    unawaited(_initializeRecoverySafely());
+  }
+
+  Future<void> _initializeRecoverySafely() async {
+    try {
+      await initializeRecovery();
+    } catch (error) {
+      debugPrint('Error inicializando recuperación de $tableName: $error');
+    }
+  }
+
+  Future<void> initializeRecovery() async {
+    if (!_recoveryConfigured) return;
+    final saved = await dbHelper.getSessionProgress(tableName, model.sessionId);
+    if (saved != null && saved['status']?.toString() == 'in_progress') {
+      final restoredStep =
+          int.tryParse(saved['current_step']?.toString() ?? '');
+      if (restoredStep != null) {
+        currentStep = restoredStep.clamp(0, totalSteps - 1);
+        notifyListenersSafely();
+      }
+    }
+    await persistRecoveryProgress();
+  }
+
+  Future<void> persistRecoveryProgress() async {
+    if (!_recoveryConfigured) return;
+    await dbHelper.saveSessionProgress(
+      moduleKey: tableName,
+      sessionId: model.sessionId,
+      otst: secaValue,
+      personal: _recoveryPersonal,
+      currentStep: currentStep,
+      totalSteps: totalSteps,
+      routeData: _recoveryRouteData,
+    );
+  }
+
+  void setCurrentStep(int step) {
+    if (step < 0 || step >= totalSteps) return;
+    currentStep = step;
+    notifyListenersSafely();
+    unawaited(_persistRecoverySafely());
+  }
+
+  Future<void> _persistRecoverySafely() async {
+    try {
+      await persistRecoveryProgress();
+    } catch (error) {
+      debugPrint('Error guardando progreso de $tableName: $error');
+    }
+  }
+
+  Future<void> markRecoveryCompleted() async {
+    await dbHelper.markSessionCompleted(tableName, model.sessionId);
+  }
+
+  Future<void> markRecoveryAbandoned() async {
+    await dbHelper.markSessionAbandoned(tableName, model.sessionId);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(_flushForLifecycle().catchError((Object error) {
+        debugPrint('Error guardando $tableName al cerrar: $error');
+      }));
+    }
+  }
+
+  Future<void> _flushForLifecycle() async {
+    if (hasUnsavedChanges.value) {
+      await autoSave();
+    }
+    await persistRecoveryProgress();
+  }
 
   void markChanged() {
     hasUnsavedChanges.value = true;
@@ -244,6 +355,7 @@ abstract class BaseSoporteController extends ChangeNotifier {
     this.fechaProxServicio = fechaProxServicio;
     await guardarSesion();
     await dbHelper.marcarServicioCompleto(tableName, model.sessionId);
+    await markRecoveryCompleted();
   }
 
   /// Permite que FinServicioScreen consulte registros sin depender
@@ -372,6 +484,9 @@ abstract class BaseSoporteController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    if (_recoveryConfigured) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     _autoSaveTimer?.cancel();
     hasUnsavedChanges.dispose();
     super.dispose();

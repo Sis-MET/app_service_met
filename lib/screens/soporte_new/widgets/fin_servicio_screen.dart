@@ -90,13 +90,9 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
   }
 
   Future<void> _prepareServiceSummary() async {
-    try {
-      // La pantalla se abre después de validar el último paso. Se completa
-      // primero la balanza actual para que el resumen no quede una unidad atrás.
-      await _finalizarServicioActual();
-    } catch (error) {
-      debugPrint('Error preparando resumen del servicio: $error');
-    }
+    // Entrar al resumen no equivale a finalizar. La sesión debe continuar
+    // recuperable hasta que el usuario confirme una de las acciones finales.
+    await widget.controller.persistRecoveryProgress();
     await _loadBalanzasCount();
   }
 
@@ -141,6 +137,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
     try {
       await _finalizarServicioActual();
+      await widget.controller.markRecoveryCompleted();
 
       if (!mounted) return;
 
@@ -181,6 +178,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
     try {
       await _finalizarServicioActual();
+      await widget.controller.markRecoveryCompleted();
       if (!mounted) return;
       TopAlert.show(
         context,

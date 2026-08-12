@@ -9,6 +9,30 @@ import 'package:sqflite/sqflite.dart';
 
 import 'calibration_data_normalizer.dart';
 
+/// Consulta compartida con las pruebas para determinar qué calibraciones
+/// realmente pueden recuperarse.
+const String pendingServiciosQuery = '''
+  SELECT r.*, s.current_step, s.seca_confirmed, s.balanza_confirmed,
+         s.status AS servicio_status, s.updated_at AS status_updated_at
+  FROM registros_calibracion r
+  LEFT JOIN servicio_status s
+    ON r.seca = s.seca AND r.session_id = s.session_id
+  WHERE COALESCE(NULLIF(s.personal, ''), r.personal) = ?
+    AND TRIM(COALESCE(r.seca, '')) <> ''
+    AND TRIM(COALESCE(r.session_id, '')) <> ''
+    AND (
+      (s.status = 'in_progress'
+       AND (s.finalized_at IS NULL OR TRIM(s.finalized_at) = '')
+       AND (r.estado_servicio_bal IS NULL
+            OR TRIM(r.estado_servicio_bal) = ''))
+      OR
+      (s.seca IS NULL
+       AND (r.estado_servicio_bal IS NULL
+            OR TRIM(r.estado_servicio_bal) = ''))
+    )
+  ORDER BY COALESCE(s.updated_at, r.fecha_servicio) DESC, r.id DESC
+''';
+
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
   factory AppDatabase() => _instance;
@@ -1001,21 +1025,56 @@ class AppDatabase {
       String personal) async {
     try {
       final db = await database;
-      return await db.rawQuery('''
-        SELECT r.*, s.current_step, s.seca_confirmed, s.balanza_confirmed,
-               s.status AS servicio_status, s.updated_at AS status_updated_at
-        FROM registros_calibracion r
-        LEFT JOIN servicio_status s
-          ON r.seca = s.seca AND r.session_id = s.session_id
-        WHERE s.status = 'in_progress'
-           OR (s.seca IS NULL
-               AND r.personal = ?
-               AND (r.estado_servicio_bal IS NULL OR r.estado_servicio_bal = ''))
-        ORDER BY COALESCE(s.updated_at, r.fecha_servicio) DESC, r.id DESC
-      ''', [personal]);
+      return await db.rawQuery(pendingServiciosQuery, [personal]);
     } catch (e) {
       debugPrint('Error en getPendingServiciosPorUsuario: $e');
       return [];
+    }
+  }
+
+  Future<void> markServicioAbandonado(
+    String seca,
+    String sessionId,
+    String personal,
+  ) async {
+    try {
+      final db = await database;
+      final now = DateTime.now().toIso8601String();
+      final affected = await db.update(
+        'servicio_status',
+        {
+          'status': 'abandoned',
+          'updated_at': now,
+        },
+        where: '''seca = ? AND session_id = ?
+          AND (status = 'in_progress' OR status IS NULL)''',
+        whereArgs: [seca, sessionId],
+      );
+
+      // Los registros creados antes de servicio_status también deben poder
+      // descartarse para que no reaparezcan indefinidamente.
+      if (affected == 0) {
+        final existing = await db.query(
+          'servicio_status',
+          columns: ['status'],
+          where: 'seca = ? AND session_id = ?',
+          whereArgs: [seca, sessionId],
+          limit: 1,
+        );
+        if (existing.isEmpty) {
+          await db.insert('servicio_status', {
+            'seca': seca,
+            'session_id': sessionId,
+            'personal': personal,
+            'status': 'abandoned',
+            'created_at': now,
+            'updated_at': now,
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error en markServicioAbandonado: $e');
+      rethrow;
     }
   }
 

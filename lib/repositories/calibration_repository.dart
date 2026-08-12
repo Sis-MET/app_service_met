@@ -217,6 +217,14 @@ class CalibrationRepository {
     await _db.markServicioCompletado(seca, sessionId);
   }
 
+  Future<void> markServicioAbandonado(
+    String seca,
+    String sessionId,
+    String personal,
+  ) async {
+    await _db.markServicioAbandonado(seca, sessionId, personal);
+  }
+
   Future<List<Map<String, dynamic>>> getRegistrosPorSeca(String seca) async {
     return await _db.getRegistrosPorSeca(seca);
   }

@@ -112,11 +112,23 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
     _controller.plantaNombre = widget.plantaNombre;
     _controller.initCamposEstado();
     _setBalanzaData();
+    _configureRecovery();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _controller.restoreSession();
     });
   }
+
+  void _configureRecovery() => _controller.configureRecovery(
+        personal: widget.userName,
+        clienteId: widget.clienteId,
+        clienteRazonSocial: widget.clienteRazonSocial,
+        plantaCodigo: widget.plantaCodigo,
+        plantaDireccion: widget.plantaDireccion,
+        plantaDepartamento: widget.plantaDepartamento,
+        nReca: widget.nReca,
+        instrumentoData: widget.instrumentoData,
+      );
 
   void _setBalanzaData() {
     final data = widget.instrumentoData;
@@ -161,18 +173,18 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
   }
 
   void _onStepTapped(int step) {
-    setState(() => _controller.currentStep = step);
+    _controller.setCurrentStep(step);
   }
 
   void _onAnterior() {
     if (_controller.currentStep > 0) {
-      setState(() => _controller.currentStep--);
+      _controller.setCurrentStep(_controller.currentStep - 1);
     }
   }
 
   void _onSiguiente() {
     if (_controller.currentStep < _controller.totalSteps - 1) {
-      setState(() => _controller.currentStep++);
+      _controller.setCurrentStep(_controller.currentStep + 1);
     }
   }
 

@@ -65,7 +65,9 @@ class DiagnosticoController extends BaseSoporteController {
     this.fechaProxServicio = fechaProxServicio;
     setSaveInProgress();
     try {
-      await _dbLegacy.upsertRegistroDiagnostico(_prepareLegacyData());
+      await _dbLegacy.upsertRegistroDiagnostico(
+        _prepareLegacyData(completo: true),
+      );
       setSaveSuccess(true);
     } catch (error) {
       setSaveSuccess(false);
@@ -99,8 +101,9 @@ class DiagnosticoController extends BaseSoporteController {
     }).toList();
   }
 
-  Map<String, dynamic> _prepareLegacyData() => {
+  Map<String, dynamic> _prepareLegacyData({bool completo = false}) => {
         'tipo_servicio': 'DIG.BL',
+        'estado_servicio': completo ? 'Completo' : 'Pendiente',
         'session_id': model.sessionId,
         'otst': secaValue,
         'cod_metrica': model.codMetrica,
@@ -119,10 +122,6 @@ class DiagnosticoController extends BaseSoporteController {
         'reporte': reporteFalla, 'evaluacion': evaluacion,
         'comentario_general': comentarioGeneral,
       };
-
-  bool _isServiceComplete() =>
-      reporteFalla.isNotEmpty && evaluacion.isNotEmpty &&
-      comentarioGeneral.isNotEmpty && horaFin.isNotEmpty;
 
   void initCamposEstado() {
     camposEstado.addAll([

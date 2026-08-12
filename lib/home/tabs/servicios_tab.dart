@@ -125,8 +125,9 @@ class ServiciosTab extends StatelessWidget {
     if (pending.isNotEmpty) {
       final last = pending.first;
       final step = _inferStep(last);
-      final continueService = await showDialog<bool>(
+      final action = await showDialog<String>(
         context: context,
+        barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
           icon: const Icon(
             Icons.pending_actions_rounded,
@@ -155,18 +156,22 @@ class ServiciosTab extends StatelessWidget {
           ),
           actions: [
             OutlinedButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Crear otro'),
+              onPressed: () => Navigator.pop(dialogContext, 'new'),
+              child: const Text('Descartar y crear otro'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () => Navigator.pop(dialogContext, 'continue'),
               child: const Text('Continuar'),
             ),
           ],
         ),
       );
 
-      if (continueService == true && context.mounted) {
+      // Si el sistema cierra el diálogo sin una elección explícita, no se
+      // debe crear otra sesión ni alterar la pendiente.
+      if (action == null) return;
+
+      if (action == 'continue' && context.mounted) {
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -178,6 +183,32 @@ class ServiciosTab extends StatelessWidget {
           ),
         );
         return;
+      }
+
+      if (action == 'new') {
+        final seca = last['seca']?.toString() ?? '';
+        final sessionId = last['session_id']?.toString() ?? '';
+        if (seca.isNotEmpty && sessionId.isNotEmpty) {
+          try {
+            await CalibrationRepository().markServicioAbandonado(
+              seca,
+              sessionId,
+              userName,
+            );
+          } catch (_) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'No se pudo descartar la calibración pendiente.',
+                  ),
+                ),
+              );
+            }
+            return;
+          }
+        }
+        if (!context.mounted) return;
       }
     }
 

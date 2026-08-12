@@ -55,7 +55,6 @@ class StacMntCorrectivo extends StatefulWidget {
 class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   late MntCorrectivoController _controller;
   late final BalanzaInfo _balanzaInfo;
-  int _currentStep = 0;
   final int _copyTickFinales = 0;
   int _formRefreshTick = 0;
   bool _isSaving = false;
@@ -94,10 +93,22 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     _balanzaInfo =
         buildCalBalanzaInfo(widget.instrumentoData, widget.codMetrica);
     _setBalanzaData();
+    _configureRecovery();
     _controller.initCamposEstado();
     _controller.camposEstado.clear();
     _loadExistingData();
   }
+
+  void _configureRecovery() => _controller.configureRecovery(
+        personal: widget.userName,
+        clienteId: widget.clienteId,
+        clienteRazonSocial: widget.clienteRazonSocial,
+        plantaCodigo: widget.plantaCodigo,
+        plantaDireccion: widget.plantaDireccion,
+        plantaDepartamento: widget.plantaDepartamento,
+        nReca: widget.nReca,
+        instrumentoData: widget.instrumentoData,
+      );
 
   Future<void> _loadExistingData() async {
     try {
@@ -190,7 +201,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   }
 
   bool _validateCurrentStep() {
-    switch (_currentStep) {
+    switch (_controller.currentStep) {
       case 0:
         if (_controller.reporteFalla.isEmpty) {
           TopAlert.show(context, 'Complete el reporte de falla', isError: true);
@@ -239,9 +250,9 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   }
 
   Future<void> _goToStep(int step) async {
-    if (step > _currentStep && !_validateCurrentStep()) return;
+    if (step > _controller.currentStep && !_validateCurrentStep()) return;
     await _saveCurrentStep();
-    if (mounted) setState(() => _currentStep = step);
+    if (mounted) _controller.setCurrentStep(step);
   }
 
   Future<void> _finalizar() async {
@@ -289,7 +300,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
-        final isLast = _currentStep == _steps.length - 1;
+        final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Mantenimiento Correctivo',
           steps: _steps,
@@ -298,12 +309,16 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
             _buildPasoPruebas(),
             _buildPasoEstadoFinal(),
           ],
-          currentStep: _currentStep,
+          currentStep: _controller.currentStep,
           onStepTapped: (step) => _goToStep(step),
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
-          onNext: isLast ? _finalizar : () => _goToStep(_currentStep + 1),
-          onBack: _currentStep > 0 ? () => _goToStep(_currentStep - 1) : null,
+          onNext: isLast
+              ? _finalizar
+              : () => _goToStep(_controller.currentStep + 1),
+          onBack: _controller.currentStep > 0
+              ? () => _goToStep(_controller.currentStep - 1)
+              : null,
           saveStatus: _saveStatus,
           balanzaInfo: buildServiceBalanzaInfo(
               widget.instrumentoData, widget.codMetrica),
