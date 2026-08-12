@@ -73,6 +73,38 @@ class AppDesign {
       );
 }
 
+/// Botón de regreso compartido para las pantallas secundarias de la app.
+///
+/// Mantiene el tratamiento delineado usado en Configuración y usa
+/// [Navigator.maybePop] por defecto para no forzar el cierre de una ruta raíz.
+class AppBackButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final Color? foregroundColor;
+
+  const AppBackButton({
+    super.key,
+    this.onPressed,
+    this.tooltip = 'Volver',
+    this.foregroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return IconButton.outlined(
+      tooltip: tooltip,
+      onPressed: onPressed ?? () => Navigator.maybePop(context),
+      icon: const Icon(Icons.arrow_back_rounded),
+      style: IconButton.styleFrom(
+        foregroundColor:
+            foregroundColor ?? (isDark ? Colors.white : AppDesign.ink),
+      ),
+    );
+  }
+}
+
 class AppPanel extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;

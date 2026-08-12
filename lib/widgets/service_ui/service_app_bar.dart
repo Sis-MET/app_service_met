@@ -71,19 +71,27 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canGoBack = ModalRoute.of(context)?.canPop ?? false;
+    final effectiveLeading = leading ??
+        (automaticallyImplyLeading && canGoBack
+            ? const Center(child: AppBackButton())
+            : null);
 
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      leading: leading,
-      automaticallyImplyLeading: automaticallyImplyLeading,
+      leading: effectiveLeading,
+      // El leading se resuelve arriba para usar siempre el botón compartido.
+      automaticallyImplyLeading: false,
       iconTheme: IconThemeData(
         color: isDark ? Colors.white : AppDesign.ink,
       ),
       systemOverlayStyle: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemStatusBarContrastEnforced: false,
       ),
       title: Text(
         title,

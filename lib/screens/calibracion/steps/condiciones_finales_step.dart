@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
@@ -1058,6 +1059,9 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
           appBar: AppBar(
             backgroundColor: Colors.black,
             iconTheme: const IconThemeData(color: Colors.white),
+            leading: const Center(
+              child: AppBackButton(foregroundColor: Colors.white),
+            ),
           ),
           body: Container(
             color: Colors.black,

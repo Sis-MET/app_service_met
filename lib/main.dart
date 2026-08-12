@@ -26,6 +26,8 @@ import 'services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
   // Bloquear orientación si se desea (opcional, buena práctica)
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -105,20 +107,30 @@ class MyApp extends StatelessWidget {
           themeMode: settings.themeMode,
           builder: (context, child) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
+            final systemBarColor = Theme.of(context).scaffoldBackgroundColor;
             return AnnotatedRegion<SystemUiOverlayStyle>(
               value: SystemUiOverlayStyle(
+                // Android 16 fuerza edge-to-edge. El fondo de las barras se
+                // pinta con el ColoredBox que envuelve toda la interfaz.
                 statusBarColor: Colors.transparent,
                 statusBarIconBrightness:
                     isDark ? Brightness.light : Brightness.dark,
+                statusBarBrightness:
+                    isDark ? Brightness.dark : Brightness.light,
                 systemNavigationBarColor: Colors.transparent,
                 systemNavigationBarIconBrightness:
                     isDark ? Brightness.light : Brightness.dark,
+                systemStatusBarContrastEnforced: false,
+                systemNavigationBarContrastEnforced: false,
               ),
-              child: MediaQuery(
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.linear(settings.textScaleFactor),
+              child: ColoredBox(
+                color: systemBarColor,
+                child: MediaQuery(
+                  data: MediaQuery.of(context).copyWith(
+                    textScaler: TextScaler.linear(settings.textScaleFactor),
+                  ),
+                  child: child!,
                 ),
-                child: child!,
               ),
             );
           },

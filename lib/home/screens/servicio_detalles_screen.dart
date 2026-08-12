@@ -12,6 +12,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_design.dart';
+import '../../widgets/service_ui/service_app_bar.dart';
 import 'calibration_upload_screen.dart';
 import 'support_upload_screen.dart';
 
@@ -218,7 +220,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       BuildContext context, bool isPdf) async {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
-    const Color primaryColor = Color(0xFF4CAF50);
+    const Color primaryColor = AppColors.actionPositive;
 
     final result = await showDialog<String>(
       context: context,
@@ -286,10 +288,10 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
     final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final borderColor = Theme.of(context).colorScheme.outlineVariant;
 
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    const Color primaryColor = Color(0xFF4CAF50);
+    const Color primaryColor = AppColors.actionPositive;
     final icon = isCalibracion
         ? FontAwesomeIcons.scaleBalanced
         : FontAwesomeIcons.screwdriverWrench;
@@ -306,7 +308,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppDesign.mediumRadius,
           border: Border.all(color: borderColor),
         ),
         child: Row(
@@ -392,14 +394,13 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final isDark = cs.brightness == Brightness.dark;
 
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
-    const Color primaryColor = Color(0xFF4CAF50);
+    const Color primaryColor = AppColors.actionPositive;
     final icon = isCalibracion
         ? FontAwesomeIcons.scaleBalanced
         : FontAwesomeIcons.screwdriverWrench;
 
-    final bgColor =
-        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final borderColor = cs.outlineVariant;
 
     final camposConDatos = _obtenerCamposConDatos(item);
     final titulo = camposConDatos['cod_metrica']?.toString() ??
@@ -558,12 +559,11 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   Future<void> _mostrarMenuAcciones() async {
     final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       useSafeArea: true,
-      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
@@ -602,7 +602,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             _buildActionTile(
               context: sheetContext,
               icon: FontAwesomeIcons.fileArrowDown,
-              iconColor: const Color(0xFF4CAF50),
+              iconColor: AppColors.actionPositive,
               title: 'Respaldo CSV',
               subtitle: 'Guardar una copia editable de los datos',
               value: 'csv',
@@ -707,38 +707,21 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDarkMode = cs.brightness == Brightness.dark;
 
-    const Color primaryColor = Color(0xFF4CAF50);
+    const Color primaryColor = AppColors.actionPositive;
 
-    final bgColor =
-        isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(
-          color: isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
-        ),
-        title: Text(
-          'Registros',
-          style: GoogleFonts.poppins(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: isDarkMode ? Colors.white : const Color(0xFF1A1A1A),
-            height: 1.1,
-          ),
-        ),
-      ),
+      appBar: const ServiceAppBar(title: 'Registros'),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'acciones_registros',
         onPressed: _mostrarMenuAcciones,
         backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.actionPositiveInk,
         icon: const Icon(Icons.tune_rounded),
         label: Text(
-          'ACCIONES',
+          'Acciones',
           style: GoogleFonts.inter(fontWeight: FontWeight.w700),
         ),
       ),
@@ -809,7 +792,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = cs.brightness == Brightness.dark;
 
-    const Color primaryColor = Color(0xFF4CAF50);
+    const Color primaryColor = AppColors.actionPositive;
 
     final camposConDatos = _obtenerCamposConDatos(item);
     final Map<String, TextEditingController> controllers = {};

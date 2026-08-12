@@ -17,7 +17,7 @@ class ConfiguracionScreen extends StatefulWidget {
 }
 
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
-  String appVersion = '5.1.3';
+  String appVersion = '6.1.0';
   String appName = 'ServiceMET';
   bool syncBackground = true;
   bool notifications = true;
@@ -83,15 +83,11 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
-                          _switchTile(
+                          _themeModeSelector(
                             context,
-                            icon: Icons.dark_mode_outlined,
-                            title: 'Modo oscuro',
-                            subtitle: 'Reduce el brillo de la interfaz',
-                            value: settings.themeMode == ThemeMode.dark ||
-                                (settings.themeMode == ThemeMode.system &&
-                                    dark),
-                            onChanged: settings.toggleTheme,
+                            selectedMode: settings.themeMode,
+                            isDark: dark,
+                            onChanged: settings.setThemeMode,
                           ),
                           _divider(context),
                           Padding(
@@ -229,17 +225,9 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
   }
 
   Widget _buildTopBar(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
-        IconButton.outlined(
-          tooltip: 'Volver',
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_rounded),
-          style: IconButton.styleFrom(
-            foregroundColor: dark ? Colors.white : AppDesign.ink,
-          ),
-        ),
+        const AppBackButton(),
         const Spacer(),
         SizedBox(
           width: 122,
@@ -276,6 +264,69 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         borderRadius: AppDesign.smallRadius,
       ),
       child: Icon(icon, size: 20, color: AppColors.shimmerGold),
+    );
+  }
+
+  Widget _themeModeSelector(
+    BuildContext context, {
+    required ThemeMode selectedMode,
+    required bool isDark,
+    required ValueChanged<ThemeMode> onChanged,
+  }) {
+    final followsSystem = selectedMode == ThemeMode.system;
+    final description = followsSystem
+        ? 'Sigue el modo ${isDark ? 'oscuro' : 'claro'} configurado en el dispositivo.'
+        : selectedMode == ThemeMode.dark
+            ? 'La app permanecerá en modo oscuro.'
+            : 'La app permanecerá en modo claro.';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _settingIcon(Icons.brightness_6_outlined),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Tema de la aplicación',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(
+                value: ThemeMode.system,
+                icon: Icon(Icons.brightness_auto_outlined),
+                label: Text('Sistema'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.light,
+                icon: Icon(Icons.light_mode_outlined),
+                label: Text('Claro'),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                icon: Icon(Icons.dark_mode_outlined),
+                label: Text('Oscuro'),
+              ),
+            ],
+            selected: {selectedMode},
+            showSelectedIcon: false,
+            onSelectionChanged: (selection) => onChanged(selection.first),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
     );
   }
 

@@ -56,11 +56,14 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: AppDesign.canvas,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle(
+        systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.dark,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: false,
         ),
         titleTextStyle: GoogleFonts.poppins(
           color: Color(0xFF292929),
@@ -263,11 +266,14 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: AppDesign.canvasDark,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle(
+        systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
+          systemStatusBarContrastEnforced: false,
+          systemNavigationBarContrastEnforced: false,
         ),
         titleTextStyle: GoogleFonts.poppins(
           color: Colors.white,
