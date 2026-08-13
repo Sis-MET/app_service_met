@@ -2,7 +2,13 @@
 
 const { sql, getPool } = require('./database');
 const { SERVICE_SUMMARY_TABLE, SUPPORT_MODULES } = require('./schema');
-const { canonicalCode, normalizeValue } = require('./validation');
+const {
+  ACTIVE_CSV_STATUS,
+  canonicalCode,
+  isNewScaleCode,
+  normalizeValue,
+  summaryServiceStatus,
+} = require('./validation');
 const { resolveRegisteredBy, addRegisteredByErrors } = require('./calibration-service');
 
 const qualifiedSummaryTable = `[dbo].[${SERVICE_SUMMARY_TABLE}]`;
@@ -145,6 +151,14 @@ function validateSupportRecords(records, schemas) {
         if (codeResult.issue) errors.push(codeResult.issue);
         else normalized.codigo_registro = codeResult.value;
       }
+      const serviceCodeResult = normalizeValue(
+        'tipo_servicio',
+        SUPPORT_MODULES[module].serviceCode,
+        schema.get('tipo_servicio'),
+      );
+      if (serviceCodeResult.issue) errors.push(serviceCodeResult.issue);
+      else normalized.tipo_servicio = serviceCodeResult.value;
+      normalized.estado_servicio_csv = ACTIVE_CSV_STATUS;
     }
     return {
       index,
@@ -268,6 +282,7 @@ async function insertSupportRecord(transaction, schema, record, identityN) {
   const data = { ...record.normalized };
   delete data.n;
   delete data.id;
+  data.estado_servicio_csv = ACTIVE_CSV_STATUS;
   if (!identityN) data.n = await nextCorrelative(transaction, table);
   const entries = Object.entries(data).filter(([column]) => schema.has(column));
   const request = new sql.Request(transaction);
@@ -290,18 +305,31 @@ async function insertSupportRecord(transaction, schema, record, identityN) {
   return assigned;
 }
 
+function buildSummaryInsertQuery() {
+  return `
+    INSERT INTO ${qualifiedSummaryTable}
+      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio], [tipo_servicio])
+    OUTPUT INSERTED.[n] AS [n]
+    VALUES (@codigo, CONVERT(date, GETDATE()), @usuario, @csv, @estado, @tipoServicio);
+  `;
+}
+
 async function insertSummary(transaction, record, registeredBy) {
   const request = new sql.Request(transaction);
   request.input('codigo', sql.NVarChar(100), record.codigoRegistro);
   request.input('usuario', sql.NVarChar(50), registeredBy);
   request.input('csv', sql.NVarChar(100), record.nombreCsv);
-  request.input('estado', sql.NVarChar(50), 'EN OBSERVACION');
-  const result = await request.query(`
-    INSERT INTO ${qualifiedSummaryTable}
-      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio])
-    OUTPUT INSERTED.[n] AS [n]
-    VALUES (@codigo, CONVERT(date, GETDATE()), @usuario, @csv, @estado);
-  `);
+  request.input(
+    'estado',
+    sql.NVarChar(50),
+    summaryServiceStatus(record.codMetrica),
+  );
+  request.input(
+    'tipoServicio',
+    sql.NVarChar(10),
+    SUPPORT_MODULES[record.module].serviceCode,
+  );
+  const result = await request.query(buildSummaryInsertQuery());
   const assigned = Number(result.recordset[0]?.n);
   if (!Number.isSafeInteger(assigned)) throw new Error('SQL Server no devolvió el identificador del resumen.');
   return assigned;
@@ -366,6 +394,7 @@ async function uploadSupportRecords(config, schemas, records, mode, username) {
         n: assignedN,
         summaryN,
         sessionId: record.normalized.session_id ?? null,
+        isNewScale: isNewScaleCode(record.codMetrica),
       });
     }
     await transaction.commit();
@@ -378,6 +407,7 @@ async function uploadSupportRecords(config, schemas, records, mode, username) {
 
 module.exports = {
   addDatabaseDuplicates,
+  buildSummaryInsertQuery,
   insertSupportRecord,
   logicalCsvName,
   supportRegistrationCode,

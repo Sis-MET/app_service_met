@@ -18,11 +18,16 @@ habilitar la subida de soporte, un administrador debe ejecutar una sola vez
 `nvarchar(30)` en las ocho tablas. El script valida la estructura y aplica todos
 los cambios dentro de una transacción.
 
+También debe ejecutar una sola vez `sql/005_add_service_type_to_summary.sql`
+para agregar `tipo_servicio` al resumen general `DATA_SERVICIOS_DATOS`.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 
-El usuario SQL de la API necesita permisos mínimos sobre las dos tablas de la
-subida:
+El usuario SQL de la API necesita permisos mínimos sobre las tablas de destino
+y de precarga. El script `sql/006_servicemet_api_permissions.sql` valida los
+objetos, concede esos permisos y muestra una comprobación final. No concede
+`UPDATE`, `DELETE` ni permisos de estructura:
 
 ```sql
 GRANT SELECT, INSERT ON OBJECT::dbo.DATA_SERVICIOS_DATOS_CALIBRACION TO ServiceMET;
@@ -59,6 +64,10 @@ Los endpoints de calibración y soporte requieren `Authorization: Bearer <token>
 subida acepta `mode: "all"` o `mode: "valid_only"`. En ambos casos, todos los
 registros efectivamente elegidos se insertan o se revierten juntos.
 
+En cada tabla detallada, la API impone `estado_servicio_csv = ACTIVO` al
+insertar. El valor es administrado por el servidor y reemplaza cualquier valor
+que pudiera enviar la app.
+
 ## Asignación de identificadores
 
 Dentro de una transacción serializable, SQL Server asigna el correlativo `n`
@@ -73,9 +82,20 @@ sin exigir cambios en el esquema de la base.
 
 Cada fila de calibración genera además una fila en `DATA_SERVICIOS_DATOS`
 dentro de la misma transacción. El resumen usa la fecha del servidor, el nombre
-del usuario autenticado, el nombre lógico del CSV conservado por la app y el
-estado fijo `EN OBSERVACION`. Si cualquiera de los dos `INSERT` falla, se
+del usuario autenticado y el nombre lógico del CSV conservado por la app. El
+estado es `EN OBSERVACION`, salvo para una balanza nueva, cuyo resumen usa
+`BALANZA NUEVA`. También guarda `tipo_servicio`: `CAL.BL` para
+calibración o la sigla oficial del módulo de soporte (`MPR.BL`, `MPA.SP`,
+`MCR.BL`, `DIG.BL`, `VIN.SP`, `REL.BL`, `INS.BL` o `IBM.BL`). Si cualquiera de
+los dos `INSERT` falla, se
 revierte el lote completo.
+
+Las balanzas nuevas usan el código métrica
+`COD_CLIENTE-COD_PLANTA-DDMMAAHHMMSS`. Se insertan normalmente en su tabla de
+detalle y conservan la misma estructura de `codigo_registro`; únicamente el
+resumen general se guarda con `estado_servicio = BALANZA NUEVA`.
+La respuesta de subida marca cada registro nuevo para que la app muestre al
+técnico cuántas balanzas debe completar posteriormente en DataMET.
 
 Las subidas adquieren además un bloqueo transaccional con `sp_getapplock`. De
 esta forma, dos dispositivos o instancias de la API no pueden validar e insertar

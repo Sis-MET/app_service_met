@@ -25,5 +25,7 @@ test('el resumen omite su identity y recupera la asignada', () => {
   assert.match(query, /INSERT INTO \[dbo\]\.\[DATA_SERVICIOS_DATOS\]/);
   assert.doesNotMatch(query, /INSERT[^;]*\[n\]/s);
   assert.match(query, /\[estado_servicio\]/);
+  assert.match(query, /\[tipo_servicio\]/);
+  assert.match(query, /@tipoServicio/);
   assert.match(query, /SCOPE_IDENTITY\(\)/);
 });

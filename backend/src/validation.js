@@ -12,6 +12,9 @@ const EXCLUDED_FIELDS = new Set([
   'estado_servicio_csv',
 ]);
 
+const CALIBRATION_SERVICE_CODE = 'CAL.BL';
+const ACTIVE_CSV_STATUS = 'ACTIVO';
+
 function isPhotoField(name) {
   return name.endsWith('_foto');
 }
@@ -28,6 +31,33 @@ function normalizeDecimal(raw) {
 
 function canonicalCode(value) {
   return value.normalize('NFKC').toUpperCase();
+}
+
+function isNewScaleCode(value) {
+  const match = /^([^-]+)-([^-]+)-(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/
+    .exec(String(value ?? '').trim());
+  if (!match) return false;
+  const [, , , day, month, year, hour, minute, second] = match;
+  const parts = [day, month, year, hour, minute, second].map(Number);
+  const [numericDay, numericMonth, numericYear, numericHour, numericMinute, numericSecond] = parts;
+  const parsed = new Date(Date.UTC(
+    2000 + numericYear,
+    numericMonth - 1,
+    numericDay,
+    numericHour,
+    numericMinute,
+    numericSecond,
+  ));
+  return parsed.getUTCFullYear() === 2000 + numericYear
+    && parsed.getUTCMonth() === numericMonth - 1
+    && parsed.getUTCDate() === numericDay
+    && parsed.getUTCHours() === numericHour
+    && parsed.getUTCMinutes() === numericMinute
+    && parsed.getUTCSeconds() === numericSecond;
+}
+
+function summaryServiceStatus(codMetrica) {
+  return isNewScaleCode(codMetrica) ? 'BALANZA NUEVA' : 'EN OBSERVACION';
 }
 
 function normalizeDate(raw) {
@@ -181,6 +211,13 @@ function validateRecords(records, schema) {
       else normalized[column] = result.value;
     }
 
+    if (schema.has('tipo_servicio')) {
+      normalized.tipo_servicio = CALIBRATION_SERVICE_CODE;
+    }
+    if (schema.has('estado_servicio_csv')) {
+      normalized.estado_servicio_csv = ACTIVE_CSV_STATUS;
+    }
+
     normalized.codigo_registro = codigoRegistro;
     return {
       index,
@@ -197,9 +234,12 @@ function validateRecords(records, schema) {
 }
 
 module.exports = {
+  ACTIVE_CSV_STATUS,
   EXCLUDED_FIELDS,
   canonicalCode,
+  isNewScaleCode,
   normalizeDate,
   normalizeValue,
+  summaryServiceStatus,
   validateRecords,
 };

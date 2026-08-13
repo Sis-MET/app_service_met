@@ -219,7 +219,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
   Map<String, dynamic> _prepareDataForSave() {
     final data = <String, dynamic>{
       'estado_servicio': _isServiceComplete() ? 'Completo' : 'Pendiente',
-      'tipo_servicio': 'MPA.STAC',
+      'tipo_servicio': 'MPA.SP',
       'cod_metrica': model.codMetrica,
       'cliente': clienteNombre,
       'razon_social': razonSocial,
@@ -238,9 +238,18 @@ class MntPrvAvanzadoController extends BaseSoporteController {
       'unidades': unidades,
       'num_celdas': numCeldas,
       'ubicacion': ubicacion,
-      'cap_max1': capMax1, 'd1': d1, 'e1': e1, 'dec1': dec1,
-      'cap_max2': capMax2, 'd2': d2, 'e2': e2, 'dec2': dec2,
-      'cap_max3': capMax3, 'd3': d3, 'e3': e3, 'dec3': dec3,
+      'cap_max1': capMax1,
+      'd1': d1,
+      'e1': e1,
+      'dec1': dec1,
+      'cap_max2': capMax2,
+      'd2': d2,
+      'e2': e2,
+      'dec2': dec2,
+      'cap_max3': capMax3,
+      'd3': d3,
+      'e3': e3,
+      'dec3': dec3,
       'hora_inicio': horaInicio,
       'hora_fin': horaFin,
       'comentario_general': comentarioGeneral,
@@ -265,8 +274,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
       final campo = campos[idx];
       data['${dbKey}_estado'] = campo.value;
       data['${dbKey}_solucion'] = campo.solutionValue;
-      data['${dbKey}_foto'] =
-          campo.fotos.where((f) => f.isNotEmpty).join(',');
+      data['${dbKey}_foto'] = campo.fotos.where((f) => f.isNotEmpty).join(',');
     }
 
     // Lozas y Fundaciones (2)
@@ -279,38 +287,29 @@ class MntPrvAvanzadoController extends BaseSoporteController {
         'Limpieza de perímetro de balanza');
     addCampo('fosa_humedad', camposLimpieza, 'Fosa libre de humedad');
     addCampo('drenaje_libre', camposLimpieza, 'Drenaje libre');
-    addCampo(
-        'bomba_sumidero', camposLimpieza, 'Bomba de sumidero funcional');
+    addCampo('bomba_sumidero', camposLimpieza, 'Bomba de sumidero funcional');
 
     // Chequeo General (8)
     addCampo('corrosion', camposChequeo, 'Corrosión');
-    addCampo(
-        'puente_grietas', camposChequeo, 'Puente de pesaje (grietas)');
-    addCampo(
-        'tapas_pernos', camposChequeo, 'Tapas superiores y pernos');
+    addCampo('puente_grietas', camposChequeo, 'Puente de pesaje (grietas)');
+    addCampo('tapas_pernos', camposChequeo, 'Tapas superiores y pernos');
     addCampo('desgaste_estres', camposChequeo, 'Desgaste y estrés');
-    addCampo('limpieza_puente', camposChequeo,
-        'Limpieza por debajo del puente');
     addCampo(
-        'estado_rieles', camposChequeo, 'Estado rieles laterales');
-    addCampo('limitadores_long', camposChequeo,
-        'Limitadores Longitudinales');
-    addCampo('limitadores_trans', camposChequeo,
-        'Limitadores Transversales');
+        'limpieza_puente', camposChequeo, 'Limpieza por debajo del puente');
+    addCampo('estado_rieles', camposChequeo, 'Estado rieles laterales');
+    addCampo('limitadores_long', camposChequeo, 'Limitadores Longitudinales');
+    addCampo('limitadores_trans', camposChequeo, 'Limitadores Transversales');
 
     // Verificaciones Eléctricas (6)
-    addCampo(
-        'cable_homerun', camposElectricas, 'Cable home run');
-    addCampo('cables_celdas', camposElectricas,
-        'Cables de celdas de carga');
+    addCampo('cable_homerun', camposElectricas, 'Cable home run');
+    addCampo('cables_celdas', camposElectricas, 'Cables de celdas de carga');
     addCampo('conexion_celda_cable', camposElectricas,
         'Conexión entre celda de carga y cable');
-    addCampo('conectores_celdas', camposElectricas,
-        'Conectores de celdas de carga');
-    addCampo('conector_terminacion', camposElectricas,
-        'Conector de terminación');
-    addCampo('caja_union', camposElectricas,
-        'Caja de unión o Sumadora');
+    addCampo(
+        'conectores_celdas', camposElectricas, 'Conectores de celdas de carga');
+    addCampo(
+        'conector_terminacion', camposElectricas, 'Conector de terminación');
+    addCampo('caja_union', camposElectricas, 'Caja de unión o Sumadora');
 
     // Protección contra Rayos (4 primeros de camposProteccionCeldas)
     addCampo('sistema_proteccion_rayos', camposProteccionCeldas,
@@ -319,8 +318,8 @@ class MntPrvAvanzadoController extends BaseSoporteController {
         'Conexión de Malla de Tierra');
     addCampo('tension_neutro_tierra', camposProteccionCeldas,
         'Tensión entre neutro y tierra adecuada');
-    addCampo('estado_strike_shield', camposProteccionCeldas,
-        'Estado strike shield');
+    addCampo(
+        'estado_strike_shield', camposProteccionCeldas, 'Estado strike shield');
 
     // Verificaciones de Células (7 siguientes de camposProteccionCeldas)
     addCampo('limpieza_conectores', camposProteccionCeldas,
@@ -340,20 +339,18 @@ class MntPrvAvanzadoController extends BaseSoporteController {
 
     // Terminal (8 primeros de camposTerminalCalibracion)
     addCampo('carcasa', camposTerminalCalibracion, 'Carcasa');
-    addCampo('voltaje_pila', camposTerminalCalibracion,
-        'Voltaje pila de Boton');
-    addCampo('estado_teclado', camposTerminalCalibracion,
-        'Estado del teclado');
-    addCampo('estado_display', camposTerminalCalibracion,
-        'Estado del display');
+    addCampo(
+        'voltaje_pila', camposTerminalCalibracion, 'Voltaje pila de Boton');
+    addCampo('estado_teclado', camposTerminalCalibracion, 'Estado del teclado');
+    addCampo('estado_display', camposTerminalCalibracion, 'Estado del display');
     addCampo('registros_predictivo', camposTerminalCalibracion,
         'Registros Predictivo solo PDX');
     addCampo('alertas_servicio', camposTerminalCalibracion,
         'Alertas de servicio MT');
     addCampo('estado_prensacables', camposTerminalCalibracion,
         'Estado prensacables:');
-    addCampo('comunicacion_pc', camposTerminalCalibracion,
-        'Comunicación con PC');
+    addCampo(
+        'comunicacion_pc', camposTerminalCalibracion, 'Comunicación con PC');
 
     // Calibración (último de camposTerminalCalibracion)
     addCampo('balanza_apta', camposTerminalCalibracion,
@@ -463,8 +460,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     retornoCeroInicial =
         data['retorno_cero_inicial_valoracion']?.toString() ?? '';
     estabilidadInicial = data['estabilizacion_inicial']?.toString() ?? '';
-    retornoCeroFinal =
-        data['retorno_cero_final_valoracion']?.toString() ?? '';
+    retornoCeroFinal = data['retorno_cero_final_valoracion']?.toString() ?? '';
     estabilidadFinal = data['estabilizacion_final']?.toString() ?? '';
 
     _loadCamposEstadoFromDb(data);
@@ -504,8 +500,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
         'Limpieza de perímetro de balanza');
     loadCampo('fosa_humedad', camposLimpieza, 'Fosa libre de humedad');
     loadCampo('drenaje_libre', camposLimpieza, 'Drenaje libre');
-    loadCampo(
-        'bomba_sumidero', camposLimpieza, 'Bomba de sumidero funcional');
+    loadCampo('bomba_sumidero', camposLimpieza, 'Bomba de sumidero funcional');
 
     // Chequeo
     loadCampo('corrosion', camposChequeo, 'Corrosión');
@@ -515,23 +510,19 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     loadCampo(
         'limpieza_puente', camposChequeo, 'Limpieza por debajo del puente');
     loadCampo('estado_rieles', camposChequeo, 'Estado rieles laterales');
-    loadCampo(
-        'limitadores_long', camposChequeo, 'Limitadores Longitudinales');
-    loadCampo(
-        'limitadores_trans', camposChequeo, 'Limitadores Transversales');
+    loadCampo('limitadores_long', camposChequeo, 'Limitadores Longitudinales');
+    loadCampo('limitadores_trans', camposChequeo, 'Limitadores Transversales');
 
     // Eléctricas
     loadCampo('cable_homerun', camposElectricas, 'Cable home run');
-    loadCampo(
-        'cables_celdas', camposElectricas, 'Cables de celdas de carga');
+    loadCampo('cables_celdas', camposElectricas, 'Cables de celdas de carga');
     loadCampo('conexion_celda_cable', camposElectricas,
         'Conexión entre celda de carga y cable');
-    loadCampo('conectores_celdas', camposElectricas,
-        'Conectores de celdas de carga');
-    loadCampo('conector_terminacion', camposElectricas,
-        'Conector de terminación');
     loadCampo(
-        'caja_union', camposElectricas, 'Caja de unión o Sumadora');
+        'conectores_celdas', camposElectricas, 'Conectores de celdas de carga');
+    loadCampo(
+        'conector_terminacion', camposElectricas, 'Conector de terminación');
+    loadCampo('caja_union', camposElectricas, 'Caja de unión o Sumadora');
 
     // Protección Rayos
     loadCampo('sistema_proteccion_rayos', camposProteccionCeldas,
@@ -540,8 +531,8 @@ class MntPrvAvanzadoController extends BaseSoporteController {
         'Conexión de Malla de Tierra');
     loadCampo('tension_neutro_tierra', camposProteccionCeldas,
         'Tensión entre neutro y tierra adecuada');
-    loadCampo('estado_strike_shield', camposProteccionCeldas,
-        'Estado strike shield');
+    loadCampo(
+        'estado_strike_shield', camposProteccionCeldas, 'Estado strike shield');
 
     // Células
     loadCampo('limpieza_conectores', camposProteccionCeldas,
@@ -563,29 +554,27 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     loadCampo('carcasa', camposTerminalCalibracion, 'Carcasa');
     loadCampo(
         'voltaje_pila', camposTerminalCalibracion, 'Voltaje pila de Boton');
-    loadCampo('estado_teclado', camposTerminalCalibracion,
-        'Estado del teclado');
-    loadCampo('estado_display', camposTerminalCalibracion,
-        'Estado del display');
+    loadCampo(
+        'estado_teclado', camposTerminalCalibracion, 'Estado del teclado');
+    loadCampo(
+        'estado_display', camposTerminalCalibracion, 'Estado del display');
     loadCampo('registros_predictivo', camposTerminalCalibracion,
         'Registros Predictivo solo PDX');
     loadCampo('alertas_servicio', camposTerminalCalibracion,
         'Alertas de servicio MT');
     loadCampo('estado_prensacables', camposTerminalCalibracion,
         'Estado prensacables:');
-    loadCampo('comunicacion_pc', camposTerminalCalibracion,
-        'Comunicación con PC');
+    loadCampo(
+        'comunicacion_pc', camposTerminalCalibracion, 'Comunicación con PC');
 
     // Calibración
     loadCampo('balanza_apta', camposTerminalCalibracion,
         'Balanza apta para Verificación Dentro tolerancias NB23001');
   }
 
-  void _loadExcentricidadFromDb(
-      Map<String, dynamic> data, bool esInicial) {
+  void _loadExcentricidadFromDb(Map<String, dynamic> data, bool esInicial) {
     final tipo = esInicial ? 'inicial' : 'final';
-    final tipoPlataforma =
-        data['tipo_plataforma_$tipo']?.toString() ?? '';
+    final tipoPlataforma = data['tipo_plataforma_$tipo']?.toString() ?? '';
     if (tipoPlataforma.isEmpty) return;
 
     final posiciones = <PosicionData>[];
@@ -615,8 +604,7 @@ class MntPrvAvanzadoController extends BaseSoporteController {
     }
   }
 
-  void _loadRepetibilidadFromDb(
-      Map<String, dynamic> data, bool esInicial) {
+  void _loadRepetibilidadFromDb(Map<String, dynamic> data, bool esInicial) {
     final tipo = esInicial ? 'inicial' : 'final';
     final cargaVal = data['repetibilidad1_$tipo']?.toString() ?? '';
     if (cargaVal.isEmpty) return;
@@ -696,8 +684,9 @@ class MntPrvAvanzadoController extends BaseSoporteController {
         final fechaServ = r['fecha_servicio']?.toString() ?? '';
         if (!fechaServ.startsWith(hoy)) continue;
       }
-      final data =
-          Map<String, dynamic>.from(r)..remove('id')..remove('session_id');
+      final data = Map<String, dynamic>.from(r)
+        ..remove('id')
+        ..remove('session_id');
       result.add({...r, 'data': jsonEncode(data)});
     }
     return result;

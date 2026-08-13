@@ -3,7 +3,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadTableSchema } = require('../src/schema');
-const { validateRecords } = require('../src/validation');
+const {
+  isNewScaleCode,
+  summaryServiceStatus,
+  validateRecords,
+} = require('../src/validation');
 const { signJwt, verifyJwt } = require('../src/security');
 
 const schema = loadTableSchema();
@@ -20,11 +24,14 @@ test('genera codigo_registro y excluye fotografías', () => {
     seca: '1234',
     cod_metrica: 'ABC-01',
     estado_servicio_bal: 'Balanza Calibrada',
+    estado_servicio_csv: 'INACTIVO',
     modelo: 'IND-560',
     vibracion_foto: '/ruta/local/no-transferible.jpg',
   }], schema);
   assert.equal(result.records[0].valid, true);
   assert.equal(result.records[0].codigoRegistro, '1234-ABC-01');
+  assert.equal(result.records[0].normalized.tipo_servicio, 'CAL.BL');
+  assert.equal(result.records[0].normalized.estado_servicio_csv, 'ACTIVO');
   assert.equal(result.records[0].normalized.vibracion_foto, undefined);
 });
 
@@ -110,4 +117,33 @@ test('firma y verifica JWT con expiración', () => {
   const token = signJwt({ sub: 'tecnico' }, secret, 60);
   assert.equal(verifyJwt(token, secret).sub, 'tecnico');
   assert.throws(() => verifyJwt(token, `${secret}x`));
+});
+
+test('identifica el formato unificado de una balanza nueva', () => {
+  assert.equal(isNewScaleCode('0004-08-130826113108'), true);
+  assert.equal(summaryServiceStatus('0004-08-130826113108'), 'BALANZA NUEVA');
+  assert.equal(summaryServiceStatus('0004-08-014'), 'EN OBSERVACION');
+});
+
+test('no clasifica como nueva una fecha u hora imposible', () => {
+  assert.equal(isNewScaleCode('0004-08-320826113108'), false);
+  assert.equal(isNewScaleCode('0004-08-130826256108'), false);
+});
+
+test('una balanza nueva conserva el estado normal en la tabla detallada', () => {
+  const result = validateRecords([{
+    seca: '26-0004-08-C01',
+    cod_metrica: '0004-08-130826113108',
+    estado_servicio_bal: 'Balanza Calibrada',
+  }], schema);
+
+  assert.equal(result.records[0].valid, true);
+  assert.equal(
+    result.records[0].normalized.estado_servicio_bal,
+    'Balanza Calibrada',
+  );
+  assert.equal(
+    summaryServiceStatus(result.records[0].codMetrica),
+    'BALANZA NUEVA',
+  );
 });

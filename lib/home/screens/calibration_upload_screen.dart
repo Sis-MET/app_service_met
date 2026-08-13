@@ -12,6 +12,7 @@ import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
 import '../services/calibration_upload_api_service.dart';
 import '../widgets/upload_auth_dialog.dart';
+import '../widgets/new_scales_upload_notice.dart';
 
 class CalibrationUploadScreen extends StatefulWidget {
   final String seca;
@@ -204,6 +205,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ));
+      await showNewScalesUploadNotice(context, result.newScaleCount);
+      if (!mounted) return;
       await _load();
     } on TimeoutException {
       _showError(

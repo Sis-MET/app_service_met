@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/utils/new_scale_code.dart';
+import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 
 class BalanzaStep extends StatefulWidget {
   final PrecargaController controller;
@@ -581,9 +583,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _field(_codIntCtrl, 'Código Interno', Icons.tag_rounded,
               onChanged: (_) => _saveToController(), isDark: isDark),
           const SizedBox(height: 12),
-          _dropdownField('Tipo de Equipo', Icons.scale_rounded, _tiposEquipo,
-              _tipoEquipoCtrl,
-              isDark: isDark),
+          EditableSuggestionField(
+            controller: _tipoEquipoCtrl,
+            label: 'Tipo de Equipo',
+            icon: Icons.scale_rounded,
+            options: _tiposEquipo,
+            onChanged: (_) => _saveToController(),
+            isDark: isDark,
+          ),
           const SizedBox(height: 12),
           _field(_marcaCtrl, 'Marca', Icons.business_rounded,
               onChanged: (_) => _saveToController(), isDark: isDark),
@@ -804,13 +811,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   String _suggestNewCodMetrica(PrecargaController provider) {
-    final codPlanta = provider.plantaCodigo ?? 'PLANTA';
-    final now = DateTime.now();
-    final stamp = '${now.hour.toString().padLeft(2, '0')}'
-        '${now.minute.toString().padLeft(2, '0')}'
-        '${now.day.toString().padLeft(2, '0')}'
-        '${now.month.toString().padLeft(2, '0')}';
-    return '$codPlanta-$stamp';
+    return NewScaleCode.generate(
+      clientCode: provider.selectedCliente?['codigo_cliente']?.toString() ??
+          provider.selectedCliente?['codigo']?.toString(),
+      plantCode: provider.plantaCodigo,
+    );
   }
 
   List<Map<String, dynamic>> _sortInstrumentos(

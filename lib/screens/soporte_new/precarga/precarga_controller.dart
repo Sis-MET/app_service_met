@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:service_met/database/precarga_bd.dart';
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
+import 'package:service_met/utils/scale_range_validator.dart';
 
 class ServicioInfo {
   final String nombre;
@@ -53,7 +54,7 @@ class PrecargaController extends ChangeNotifier {
     ),
     ServicioInfo(
       nombre: 'MNT PREVENTIVO AVANZADO',
-      codigo: 'MPA.STAC',
+      codigo: 'MPA.SP',
       descripcion:
           'Mantenimiento preventivo profundo con inspección detallada de componentes.',
       icon: Icons.handyman_outlined,
@@ -395,6 +396,30 @@ class PrecargaController extends ChangeNotifier {
         if (selectedServicio == 'INSTALACIÓN' &&
             selectedInstrumentoData?['isNew'] != true) {
           return 'Instalación solo admite una balanza nueva';
+        }
+        if (selectedInstrumentoData?['isNew'] == true) {
+          final data = selectedInstrumentoData!;
+          final rangeError = ScaleRangeValidator.validate([
+            ScaleRangeValues(
+              capacity: data['cap_max1'],
+              division: data['d1'],
+              verificationDivision: data['e1'],
+              decimals: data['dec1'],
+            ),
+            ScaleRangeValues(
+              capacity: data['cap_max2'],
+              division: data['d2'],
+              verificationDivision: data['e2'],
+              decimals: data['dec2'],
+            ),
+            ScaleRangeValues(
+              capacity: data['cap_max3'],
+              division: data['d3'],
+              verificationDivision: data['e3'],
+              decimals: data['dec3'],
+            ),
+          ]);
+          if (rangeError != null) return rangeError;
         }
         return null;
       case 5:

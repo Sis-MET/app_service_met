@@ -6,7 +6,7 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 
 ## Índice de tablas
 
-- [DATA_SERVICIOS_DATOS](#data-servicios-datos) (8 columnas)
+- [DATA_SERVICIOS_DATOS](#data-servicios-datos) (9 columnas)
 - [DATA_SERVICIOS_DATOS_CALIBRACION](#data-servicios-datos-calibracion) (426 columnas)
 - [DATA_SERVICIOS_DATOS_DIG](#data-servicios-datos-dig) (47 columnas)
 - [DATA_SERVICIOS_DATOS_IBM](#data-servicios-datos-ibm) (268 columnas)
@@ -21,7 +21,7 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 
 ## DATA_SERVICIOS_DATOS
 
-Total de columnas: **8**
+Total de columnas: **9**
 
 | # | Columna | Tipo | Long./Precisión | Nulo | Default |
 |---|---------|------|------------------|------|---------|
@@ -33,6 +33,7 @@ Total de columnas: **8**
 | 6 | `estado_servicio` | nvarchar | 50 | Sí | - |
 | 7 | `obs_servicio` | nvarchar | max | Sí | - |
 | 8 | `campos_observados` | nvarchar | max | Sí | - |
+| 9 | `tipo_servicio` | nvarchar | 10 | Sí | - |
 
 ---
 

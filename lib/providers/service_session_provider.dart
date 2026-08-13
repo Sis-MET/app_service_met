@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/utils/scale_range_validator.dart';
 
 class ServiceSessionProvider extends ChangeNotifier {
   final CalibrationRepository _repository;
@@ -561,15 +562,27 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (b.serie == null || b.serie!.trim().isEmpty) {
       return "Falta la Serie.";
     }
-    if (b.capMax1 == null || b.capMax1!.trim().isEmpty) {
-      return "Falta la Capacidad Maxima (Rango 1).";
-    }
-    if (b.d1 == null) {
-      return "Falta la division d (Rango 1).";
-    }
-    if (b.e1 == null) {
-      return "Falta la division e (Rango 1).";
-    }
+    final rangeError = ScaleRangeValidator.validate([
+      ScaleRangeValues(
+        capacity: b.capMax1,
+        division: b.d1,
+        verificationDivision: b.e1,
+        decimals: b.dec1,
+      ),
+      ScaleRangeValues(
+        capacity: b.capMax2,
+        division: b.d2,
+        verificationDivision: b.e2,
+        decimals: b.dec2,
+      ),
+      ScaleRangeValues(
+        capacity: b.capMax3,
+        division: b.d3,
+        verificationDivision: b.e3,
+        decimals: b.dec3,
+      ),
+    ]);
+    if (rangeError != null) return rangeError;
 
     return null;
   }

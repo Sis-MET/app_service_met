@@ -2,7 +2,12 @@
 
 const { sql, getPool } = require('./database');
 const { CALIBRATION_TABLE, SERVICE_SUMMARY_TABLE } = require('./schema');
-const { validateRecords } = require('./validation');
+const {
+  ACTIVE_CSV_STATUS,
+  isNewScaleCode,
+  summaryServiceStatus,
+  validateRecords,
+} = require('./validation');
 
 const qualifiedTable = `[dbo].[${CALIBRATION_TABLE}]`;
 const qualifiedSummaryTable = `[dbo].[${SERVICE_SUMMARY_TABLE}]`;
@@ -151,6 +156,7 @@ async function insertRecord(transaction, schema, record) {
   const data = { ...record.normalized };
   delete data.n;
   delete data.id;
+  data.estado_servicio_csv = ACTIVE_CSV_STATUS;
   const entries = Object.entries(data).filter(([column]) => schema.has(column));
   const request = new sql.Request(transaction);
   const columns = [];
@@ -176,9 +182,9 @@ async function insertRecord(transaction, schema, record) {
 function buildSummaryInsertQuery() {
   return `
     INSERT INTO ${qualifiedSummaryTable}
-      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio])
+      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio], [tipo_servicio])
     VALUES
-      (@codigoRegistro, CONVERT(date, GETDATE()), @registeredBy, @nombreCsv, @estadoServicio);
+      (@codigoRegistro, CONVERT(date, GETDATE()), @registeredBy, @nombreCsv, @estadoServicio, @tipoServicio);
     SELECT CONVERT(int, SCOPE_IDENTITY()) AS [n];
   `;
 }
@@ -188,7 +194,12 @@ async function insertSummaryRecord(transaction, record, registeredBy) {
   request.input('codigoRegistro', sql.NVarChar(100), record.codigoRegistro);
   request.input('registeredBy', sql.NVarChar(50), registeredBy);
   request.input('nombreCsv', sql.NVarChar(100), record.nombreCsv);
-  request.input('estadoServicio', sql.NVarChar(50), 'EN OBSERVACION');
+  request.input(
+    'estadoServicio',
+    sql.NVarChar(50),
+    summaryServiceStatus(record.codMetrica),
+  );
+  request.input('tipoServicio', sql.NVarChar(10), 'CAL.BL');
   const result = await request.query(buildSummaryInsertQuery());
   const assignedN = Number(result.recordset[0]?.n);
   if (!Number.isSafeInteger(assignedN)) {
@@ -241,6 +252,7 @@ async function uploadRecords(config, schema, records, mode, username) {
         n: assignedN,
         summaryN,
         sessionId: record.normalized.session_id ?? null,
+        isNewScale: isNewScaleCode(record.codMetrica),
       });
     }
     await transaction.commit();

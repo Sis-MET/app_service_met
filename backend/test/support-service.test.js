@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadSupportSchemas, SUPPORT_MODULES } = require('../src/schema');
 const {
+  buildSummaryInsertQuery,
   logicalCsvName,
   supportRegistrationCode,
   validateSupportRecords,
@@ -42,7 +43,31 @@ test('valida un registro completo de cada módulo', () => {
   const result = validateSupportRecords(records, schemas);
   assert.equal(result.records.length, 8);
   assert.equal(result.records.every((record) => record.valid), true);
+  assert.equal(
+    result.records.every(
+      (record) => record.normalized.estado_servicio_csv === 'ACTIVO',
+    ),
+    true,
+  );
   assert.equal(result.records[0].codigoRegistro, 'OTST-1-IBM.BL-MET-1');
+});
+
+test('ignora el estado CSV recibido y siempre lo reemplaza por ACTIVO', () => {
+  const result = validateSupportRecords(
+    [{
+      module: 'mnt_prv_regular',
+      data: {
+        otst: 'OTST-ACTIVO',
+        cod_metrica: 'MET-ACTIVO',
+        estado_servicio: 'Completo',
+        estado_servicio_csv: 'INACTIVO',
+      },
+    }],
+    schemas,
+  );
+
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].normalized.estado_servicio_csv, 'ACTIVO');
 });
 
 test('genera codigo_registro con el código específico de cada módulo', () => {
@@ -51,7 +76,7 @@ test('genera codigo_registro con el código específico de cada módulo', () => 
     diagnostico: 'DIG.BL',
     instalacion: 'INS.BL',
     mnt_correctivo: 'MCR.BL',
-    mnt_prv_avanzado: 'MPA.STAC',
+    mnt_prv_avanzado: 'MPA.SP',
     mnt_prv_regular: 'MPR.BL',
     relevamiento_de_datos: 'REL.BL',
     verificaciones_internas: 'VIN.SP',
@@ -63,6 +88,36 @@ test('genera codigo_registro con el código específico de cada módulo', () => 
       `26-0090-11-S02-${serviceCode}-0090-11-014`,
     );
   }
+});
+
+test('el resumen de soporte incluye el tipo de servicio abreviado', () => {
+  const query = buildSummaryInsertQuery();
+  assert.match(query, /INSERT INTO \[dbo\]\.\[DATA_SERVICIOS_DATOS\]/);
+  assert.match(query, /\[tipo_servicio\]/);
+  assert.match(query, /@tipoServicio/);
+});
+
+test('la API reemplaza una sigla antigua por la oficial del módulo', () => {
+  const result = validateSupportRecords(
+    [{
+      module: 'mnt_prv_avanzado',
+      data: {
+        otst: '26-0090-11-S02',
+        cod_metrica: '0090-11-014',
+        estado_servicio: 'Completo',
+        tipo_servicio: 'MPA.STAC',
+      },
+    }],
+    schemas,
+  );
+
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].normalized.tipo_servicio, 'MPA.SP');
+  assert.equal(result.records[0].normalized.estado_servicio, 'Completo');
+  assert.equal(
+    result.records[0].codigoRegistro,
+    '26-0090-11-S02-MPA.SP-0090-11-014',
+  );
 });
 
 test('rechaza un servicio incompleto y una columna demasiado larga', () => {

@@ -10,7 +10,7 @@ const SUPPORT_MODULES = Object.freeze({
   diagnostico: { table: 'DATA_SERVICIOS_DATOS_DIG', columns: 47, serviceCode: 'DIG.BL' },
   instalacion: { table: 'DATA_SERVICIOS_DATOS_INT', columns: 168, serviceCode: 'INS.BL' },
   mnt_correctivo: { table: 'DATA_SERVICIOS_DATOS_MCR', columns: 135, serviceCode: 'MCR.BL' },
-  mnt_prv_avanzado: { table: 'DATA_SERVICIOS_DATOS_MPA_STAC', columns: 381, serviceCode: 'MPA.STAC' },
+  mnt_prv_avanzado: { table: 'DATA_SERVICIOS_DATOS_MPA_STAC', columns: 381, serviceCode: 'MPA.SP' },
   mnt_prv_regular: { table: 'DATA_SERVICIOS_DATOS_MPR_STIL', columns: 315, serviceCode: 'MPR.BL' },
   relevamiento_de_datos: { table: 'DATA_SERVICIOS_DATOS_RVD', columns: 188, serviceCode: 'REL.BL' },
   verificaciones_internas: { table: 'DATA_SERVICIOS_DATOS_VFI', columns: 170, serviceCode: 'VIN.SP' },

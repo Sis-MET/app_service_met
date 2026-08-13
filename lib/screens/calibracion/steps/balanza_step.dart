@@ -15,6 +15,8 @@ import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/utils/new_scale_code.dart';
+import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 
 class BalanzaStep extends StatefulWidget {
   const BalanzaStep({super.key});
@@ -435,7 +437,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               if (_selectedBalanza != null || _isNewBalanza) ...[
                 _buildBalanzaForm(provider, isDark),
                 const SizedBox(height: 24),
-                _buildRangosSection(isDark),
+                _buildRangosSection(provider, isDark),
                 const SizedBox(height: 24),
                 _buildFotosSection(isDark),
               ],
@@ -507,24 +509,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
         Expanded(
           flex: 3,
           child: FilledButton.icon(
-            onPressed: () {
-              setState(() {
-                _isNewBalanza = true;
-                _selectedBalanza = null;
-                _didQrAutoFill = false;
-              });
-              _codMetricaCtrl.text = _suggestNewCodMetrica();
-              _capMax2Ctrl.text = '0';
-              _d2Ctrl.text = '0';
-              _e2Ctrl.text = '0';
-              _dec2Ctrl.text = '0';
-              _capMax3Ctrl.text = '0';
-              _d3Ctrl.text = '0';
-              _e3Ctrl.text = '0';
-              _dec3Ctrl.text = '0';
-              _saveToProvider(provider);
-              provider.clearPreviousServiceData();
-            },
+            onPressed: () => _startNewBalanza(provider),
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nuevo'),
           ),
@@ -541,6 +526,44 @@ class _BalanzaStepState extends State<BalanzaStep> {
         ),
       ],
     ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.2);
+  }
+
+  void _startNewBalanza(ServiceSessionProvider provider) {
+    setState(() {
+      _isNewBalanza = true;
+      _selectedBalanza = null;
+      _didQrAutoFill = false;
+      _fotosPaths = [];
+    });
+
+    _codMetricaCtrl.text = _suggestNewCodMetrica();
+    _categoriaCtrl.clear();
+    _tecnologiaCtrl.clear();
+    _claseCtrl.clear();
+    _codIntCtrl.clear();
+    _tipoEquipoCtrl.clear();
+    _marcaCtrl.clear();
+    _modeloCtrl.clear();
+    _serieCtrl.clear();
+    _unidadesCtrl.clear();
+    _ubicacionCtrl.clear();
+    _rangoCtrl.clear();
+    _nCeldasCtrl.clear();
+    _capMax1Ctrl.clear();
+    _d1Ctrl.clear();
+    _e1Ctrl.clear();
+    _dec1Ctrl.clear();
+    _capMax2Ctrl.text = '0';
+    _d2Ctrl.text = '0';
+    _e2Ctrl.text = '0';
+    _dec2Ctrl.text = '0';
+    _capMax3Ctrl.text = '0';
+    _d3Ctrl.text = '0';
+    _e3Ctrl.text = '0';
+    _dec3Ctrl.text = '0';
+
+    _saveToProvider(provider);
+    provider.clearPreviousServiceData();
   }
 
   Widget _buildBalanzaForm(ServiceSessionProvider provider, bool isDark) {
@@ -613,9 +636,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _field(_codIntCtrl, 'Código Interno', Icons.tag,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _dropdownField('Tipo de Equipo', Icons.scale, _tiposEquipo,
-              _tipoEquipoCtrl, provider,
-              isDark: isDark),
+          EditableSuggestionField(
+            controller: _tipoEquipoCtrl,
+            label: 'Tipo de Equipo',
+            icon: Icons.scale,
+            options: _tiposEquipo,
+            onChanged: (_) => _saveToProvider(provider),
+            isDark: isDark,
+          ),
           const SizedBox(height: 12),
           _field(_marcaCtrl, 'Marca', Icons.business,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
@@ -643,7 +671,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
   }
 
-  Widget _buildRangosSection(bool isDark) {
+  Widget _buildRangosSection(ServiceSessionProvider provider, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -660,14 +688,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ],
         ),
         const SizedBox(height: 16),
-        _rangoCard(
-            'Rango 1', _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark),
+        _rangoCard('Rango 1', _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark,
+            () => _saveToProvider(provider)),
         const SizedBox(height: 12),
-        _rangoCard(
-            'Rango 2', _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark),
+        _rangoCard('Rango 2', _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark,
+            () => _saveToProvider(provider)),
         const SizedBox(height: 12),
-        _rangoCard(
-            'Rango 3', _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark),
+        _rangoCard('Rango 3', _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark,
+            () => _saveToProvider(provider)),
       ],
     ).animate(delay: 500.ms).fadeIn();
   }
@@ -678,7 +706,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
       TextEditingController dCtrl,
       TextEditingController eCtrl,
       TextEditingController decCtrl,
-      bool isDark) {
+      bool isDark,
+      VoidCallback onChanged) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -705,15 +734,23 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _numField(capCtrl, 'Cap. Max', isDark: isDark)),
+            Expanded(
+                child: _numField(capCtrl, 'Cap. Max',
+                    onChanged: onChanged, isDark: isDark)),
             const SizedBox(width: 12),
-            Expanded(child: _numField(dCtrl, 'd', isDark: isDark)),
+            Expanded(
+                child: _numField(dCtrl, 'd',
+                    onChanged: onChanged, isDark: isDark)),
           ]),
           const SizedBox(height: 12),
           Row(children: [
-            Expanded(child: _numField(eCtrl, 'e', isDark: isDark)),
+            Expanded(
+                child: _numField(eCtrl, 'e',
+                    onChanged: onChanged, isDark: isDark)),
             const SizedBox(width: 12),
-            Expanded(child: _numField(decCtrl, 'Dec.', isDark: isDark)),
+            Expanded(
+                child: _numField(decCtrl, 'Dec.',
+                    onChanged: onChanged, isDark: isDark)),
           ]),
         ],
       ),
@@ -993,9 +1030,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Widget _numField(TextEditingController ctrl, String label,
-      {required bool isDark}) {
+      {required VoidCallback onChanged, required bool isDark}) {
     return TextField(
       controller: ctrl,
+      onChanged: (_) => onChanged(),
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -1068,19 +1106,10 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   String _suggestNewCodMetrica() {
     final provider = context.read<ServiceSessionProvider>();
-    final cliente = provider.session?.cliente?.codigoCliente?.trim() ?? '';
-    final plantaRaw = provider.session?.planta?.codigo?.trim() ?? '';
-    final planta =
-        plantaRaw.contains('-') ? plantaRaw.split('-').last : plantaRaw;
-    final now = DateTime.now();
-    final stamp = '${now.hour.toString().padLeft(2, '0')}'
-        '${now.minute.toString().padLeft(2, '0')}'
-        '${now.day.toString().padLeft(2, '0')}'
-        '${now.month.toString().padLeft(2, '0')}'
-        '${(now.year % 100).toString().padLeft(2, '0')}';
-    if (cliente.isEmpty && planta.isEmpty) return 'NUEVO-$stamp';
-    if (plantaRaw.contains('-')) return '$plantaRaw-($stamp)';
-    return '$cliente-$planta-($stamp)';
+    return NewScaleCode.generate(
+      clientCode: provider.session?.cliente?.codigoCliente,
+      plantCode: provider.session?.planta?.codigo,
+    );
   }
 
   Future<void> _scanQrForBalanza(ServiceSessionProvider provider) async {

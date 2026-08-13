@@ -54,18 +54,22 @@ class UploadedCalibrationRecord {
   final String codigoRegistro;
   final int serverN;
   final String? sessionId;
+  final bool isNewScale;
 
   UploadedCalibrationRecord.fromJson(Map<String, dynamic> json)
       : index = json['index'] as int? ?? 0,
         codigoRegistro = json['codigoRegistro']?.toString() ?? '',
         serverN = json['n'] as int? ?? 0,
-        sessionId = json['sessionId']?.toString();
+        sessionId = json['sessionId']?.toString(),
+        isNewScale = json['isNewScale'] == true;
 }
 
 class CalibrationUploadResult {
   final String message;
   final List<UploadedCalibrationRecord> uploaded;
   final List<UploadRecordValidation> invalidRecords;
+
+  int get newScaleCount => uploaded.where((record) => record.isNewScale).length;
 
   CalibrationUploadResult.fromJson(Map<String, dynamic> json)
       : message = json['message']?.toString() ?? '',

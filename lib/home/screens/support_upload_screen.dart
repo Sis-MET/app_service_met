@@ -14,6 +14,7 @@ import '../services/calibration_upload_api_service.dart';
 import '../services/support_upload_api_service.dart';
 import '../services/support_upload_status_service.dart';
 import '../widgets/upload_auth_dialog.dart';
+import '../widgets/new_scales_upload_notice.dart';
 
 class SupportUploadScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -209,6 +210,8 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message), backgroundColor: Colors.green),
       );
+      await showNewScalesUploadNotice(context, result.newScaleCount);
+      if (!mounted) return;
       await _load();
     } on TimeoutException {
       _showError(
