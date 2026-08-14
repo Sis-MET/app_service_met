@@ -283,6 +283,7 @@ class _SecaStepState extends State<SecaStep> {
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: TextField(
                       controller: _cotizacionController,
+                      selectAllOnFocus: true,
                       style: GoogleFonts.robotoMono(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

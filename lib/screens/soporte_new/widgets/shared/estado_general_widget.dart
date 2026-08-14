@@ -27,7 +27,8 @@ class EstadoGeneralWidget extends StatelessWidget {
 
   /// Si es true, usa los valores legacy del módulo antiguo:
   /// Bueno / Aceptable / Malo / No aplica.
-  /// Si es false (default), usa [estadoColorMap]: Bueno / Regular / Malo.
+  /// Si es false (default), usa [estadoColorMap]:
+  /// Bueno / Regular / Malo / No aplica.
   final bool useLegacyEstados;
 
   const EstadoGeneralWidget({

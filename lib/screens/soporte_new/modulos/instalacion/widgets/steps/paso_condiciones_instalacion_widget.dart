@@ -28,7 +28,7 @@ class _PasoCondicionesInstalacionWidgetState
 
   static const options = <List<String>>[
     ['Seco', 'Polvoso', 'Muy polvoso', 'Húmedo parcial', 'Húmedo constante'],
-    ['Bueno', 'Malo', 'Aceptable'],
+    ['Bueno', 'Malo', 'Aceptable', 'No aplica'],
     ['Estable', 'Inestable', 'Con picos', 'Fuera de rango'],
     ['Correcto', 'Deficiente', 'Inexistente', 'No verificado'],
     ['Correcta', 'Intermitente', 'Sin conexión', 'No aplica'],

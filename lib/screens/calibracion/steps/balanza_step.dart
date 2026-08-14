@@ -16,6 +16,7 @@ import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
+import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 
 class BalanzaStep extends StatefulWidget {
@@ -645,8 +646,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
             isDark: isDark,
           ),
           const SizedBox(height: 12),
-          _field(_marcaCtrl, 'Marca', Icons.business,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+          EditableSuggestionField(
+            controller: _marcaCtrl,
+            label: 'Marca',
+            icon: Icons.business,
+            options: scaleBrandSuggestions,
+            onChanged: (_) => _saveToProvider(provider),
+            isDark: isDark,
+          ),
           const SizedBox(height: 12),
           _field(_modeloCtrl, 'Modelo', Icons.precision_manufacturing,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),

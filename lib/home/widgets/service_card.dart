@@ -56,20 +56,17 @@ class ServiceCard extends StatelessWidget {
                           color: colors.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _description(),
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: colors.onSurfaceVariant,
-                        ),
+                      const SizedBox(height: 7),
+                      _detailLine(context, 'Cliente', _itemValue('cliente')),
+                      _detailLine(context, 'Planta', _itemValue('planta')),
+                      _detailLine(context, 'Fecha', date),
+                      _detailLine(
+                        context,
+                        calibration
+                            ? 'Cantidad de balanzas'
+                            : 'Cantidad de servicios',
+                        servicio.cantidad.toString(),
                       ),
-                      if (date.isNotEmpty) ...[
-                        const SizedBox(height: 3),
-                        Text(date,
-                            style: Theme.of(context).textTheme.bodySmall),
-                      ],
                     ],
                   ),
                 ),
@@ -91,12 +88,35 @@ class ServiceCard extends StatelessWidget {
     );
   }
 
-  String _description() {
-    final plural = servicio.cantidad == 1 ? '' : 's';
-    final item = servicio.tipo == TipoServicio.calibracion
-        ? 'balanza calibrada'
-        : 'registro técnico';
-    return '${servicio.cantidad} $item$plural';
+  Widget _detailLine(BuildContext context, String label, String value) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            TextSpan(text: value.isEmpty ? '—' : value),
+          ],
+        ),
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: colors.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  String _itemValue(String key) {
+    for (final item in servicio.items) {
+      final value = item[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
   }
 
   void _open(BuildContext context) {

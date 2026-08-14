@@ -30,6 +30,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
   final HomeDashboardService _service = HomeDashboardService();
   late Future<HomeDashboardData> _dashboard;
   int _selectedServiceType = 0;
+  bool _showAllServices = false;
 
   @override
   void initState() {
@@ -126,19 +127,27 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       const SizedBox(height: 14),
       TipoServicioSelector(
         selectedIndex: _selectedServiceType,
-        onSelected: (index) => setState(() => _selectedServiceType = index),
+        onSelected: (index) => setState(() {
+          _selectedServiceType = index;
+          _showAllServices = false;
+        }),
       ),
       const SizedBox(height: 16),
       if (services.isEmpty)
         _buildEmptyState()
       else
-        ...services.take(8).map((service) => ServiceCard(servicio: service)),
+        ...(_showAllServices ? services : services.take(8))
+            .map((service) => ServiceCard(servicio: service)),
       if (services.length > 8)
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: OutlinedButton(
-            onPressed: widget.goToServicios,
-            child: Text('Ver los ${services.length} servicios'),
+            onPressed: () => setState(() {
+              _showAllServices = !_showAllServices;
+            }),
+            child: Text(_showAllServices
+                ? 'Ver menos servicios'
+                : 'Ver los ${services.length} servicios'),
           ),
         ),
     ];

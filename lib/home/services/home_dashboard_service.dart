@@ -86,9 +86,8 @@ class HomeDashboardService {
     }
 
     final services = bySeca.entries.map((entry) {
-      final date = entry.value
-          .map((row) => row['fecha_servicio']?.toString() ?? '')
-          .firstWhere((value) => value.isNotEmpty, orElse: () => '');
+      entry.value.sort(_compareRowsNewestFirst);
+      final date = _latestServiceDate(entry.value);
       return ServicioResumen(
         tipo: TipoServicio.calibracion,
         codigo: entry.key,
@@ -96,7 +95,8 @@ class HomeDashboardService {
         items: entry.value,
         fecha: date.isEmpty ? null : date,
       );
-    }).toList();
+    }).toList()
+      ..sort(_compareServicesNewestFirst);
 
     final pending = pendingBySeca.entries
         .map((entry) => PendingUploadGroup(
@@ -153,10 +153,9 @@ class HomeDashboardService {
       }
     }
 
-    return grouped.entries.map((entry) {
-      final date = entry.value
-          .map((row) => row['fecha_servicio']?.toString() ?? '')
-          .firstWhere((value) => value.isNotEmpty, orElse: () => '');
+    final services = grouped.entries.map((entry) {
+      entry.value.sort(_compareRowsNewestFirst);
+      final date = _latestServiceDate(entry.value);
       return ServicioResumen(
         tipo: TipoServicio.soporte,
         codigo: entry.key,
@@ -164,7 +163,73 @@ class HomeDashboardService {
         items: entry.value,
         fecha: date.isEmpty ? null : date,
       );
-    }).toList();
+    }).toList()
+      ..sort(_compareServicesNewestFirst);
+
+    return services;
+  }
+
+  static int _compareRowsNewestFirst(
+    Map<String, dynamic> a,
+    Map<String, dynamic> b,
+  ) {
+    final byDate = _compareDatesNewestFirst(
+      a['fecha_servicio']?.toString(),
+      b['fecha_servicio']?.toString(),
+    );
+    if (byDate != 0) return byDate;
+
+    final aId = int.tryParse(a['id']?.toString() ?? '') ?? -1;
+    final bId = int.tryParse(b['id']?.toString() ?? '') ?? -1;
+    return bId.compareTo(aId);
+  }
+
+  static int _compareServicesNewestFirst(
+    ServicioResumen a,
+    ServicioResumen b,
+  ) {
+    final byDate = _compareDatesNewestFirst(a.fecha, b.fecha);
+    if (byDate != 0) return byDate;
+    return b.codigo.compareTo(a.codigo);
+  }
+
+  static int _compareDatesNewestFirst(String? a, String? b) {
+    final aDate = _parseServiceDate(a);
+    final bDate = _parseServiceDate(b);
+    if (aDate == null && bDate == null) return 0;
+    if (aDate == null) return 1;
+    if (bDate == null) return -1;
+    return bDate.compareTo(aDate);
+  }
+
+  static String _latestServiceDate(List<Map<String, dynamic>> rows) {
+    for (final row in rows) {
+      final value = row['fecha_servicio']?.toString().trim() ?? '';
+      if (value.isNotEmpty) return value;
+    }
+    return '';
+  }
+
+  static DateTime? _parseServiceDate(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+
+    final iso = DateTime.tryParse(text.replaceFirst(' ', 'T'));
+    if (iso != null) return iso;
+
+    final parts = text.split('/');
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]);
+      final month = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (day != null && month != null && year != null) {
+        final parsed = DateTime(year, month, day);
+        if (parsed.year == year && parsed.month == month && parsed.day == day) {
+          return parsed;
+        }
+      }
+    }
+    return null;
   }
 
   Future<String> _lastPreload() async {

@@ -17,6 +17,7 @@ class SecaStep extends StatefulWidget {
 
 class _SecaStepState extends State<SecaStep> {
   late final TextEditingController _cotizacionController;
+  late final FocusNode _cotizacionFocusNode;
 
   @override
   void initState() {
@@ -24,21 +25,36 @@ class _SecaStepState extends State<SecaStep> {
     _cotizacionController = TextEditingController(
       text: widget.controller.cotizacionSuffix,
     );
+    _cotizacionFocusNode = FocusNode()
+      ..addListener(_syncCotizacionAfterEditing);
   }
 
   @override
   void didUpdateWidget(SecaStep oldWidget) {
     super.didUpdateWidget(oldWidget);
     final c = widget.controller;
-    if (c.cotizacionSuffix != _cotizacionController.text) {
+    if (!_cotizacionFocusNode.hasFocus &&
+        c.cotizacionSuffix != _cotizacionController.text) {
       _cotizacionController.text = c.cotizacionSuffix;
     }
   }
 
   @override
   void dispose() {
+    _cotizacionFocusNode.removeListener(_syncCotizacionAfterEditing);
     _cotizacionController.dispose();
+    _cotizacionFocusNode.dispose();
     super.dispose();
+  }
+
+  void _syncCotizacionAfterEditing() {
+    if (_cotizacionFocusNode.hasFocus) return;
+    final normalized = widget.controller.cotizacionSuffix;
+    if (_cotizacionController.text == normalized) return;
+    _cotizacionController.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
   }
 
   @override
@@ -330,6 +346,8 @@ class _SecaStepState extends State<SecaStep> {
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: TextField(
                       controller: _cotizacionController,
+                      focusNode: _cotizacionFocusNode,
+                      selectAllOnFocus: true,
                       enabled: !c.noOtst,
                       style: GoogleFonts.robotoMono(
                         fontSize: 18,
@@ -382,6 +400,7 @@ class _SecaStepState extends State<SecaStep> {
                       onChanged: (value) {
                         c.setCotizacionSuffix(value);
                       },
+                      onTapOutside: (_) => _cotizacionFocusNode.unfocus(),
                     ),
                   ),
                 ],

@@ -7,6 +7,7 @@ import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
+import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 
 class BalanzaStep extends StatefulWidget {
@@ -592,8 +593,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
             isDark: isDark,
           ),
           const SizedBox(height: 12),
-          _field(_marcaCtrl, 'Marca', Icons.business_rounded,
-              onChanged: (_) => _saveToController(), isDark: isDark),
+          EditableSuggestionField(
+            controller: _marcaCtrl,
+            label: 'Marca',
+            icon: Icons.business_rounded,
+            options: scaleBrandSuggestions,
+            onChanged: (_) => _saveToController(),
+            isDark: isDark,
+          ),
           const SizedBox(height: 12),
           _field(_modeloCtrl, 'Modelo', Icons.precision_manufacturing_rounded,
               onChanged: (_) => _saveToController(), isDark: isDark),
