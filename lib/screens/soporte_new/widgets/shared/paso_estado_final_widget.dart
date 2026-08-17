@@ -191,6 +191,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
           style: textStyle,
           decoration: serviceInputDeco('Comentario General *', isDark),
           maxLines: 3,
+          maxLength: 1000,
           onChanged: onComentarioGeneralChanged,
         ),
         const SizedBox(height: 12),

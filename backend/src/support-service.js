@@ -25,6 +25,12 @@ const excludedFields = new Set([
   '_source_database',
   '_source_table',
 ]);
+const ignoredLegacyFieldsByModule = new Map([
+  ['mnt_prv_avanzado', new Set([
+    'retorno_cero_inicial_unidad',
+    'retorno_cero_final_unidad',
+  ])],
+]);
 
 function issue(column, value, code, message, expected) {
   return {
@@ -38,6 +44,14 @@ function issue(column, value, code, message, expected) {
 
 function isPhotoField(column) {
   return column === 'foto_balanza' || column.endsWith('_foto');
+}
+
+function normalizeLegacyPosition(column, raw, definition) {
+  if (definition.type !== 'int' || raw === null || raw === undefined) return raw;
+  const isPositionColumn = /^(?:posicion_(?:inicial|final)_\d+|posicion\d+|excentricidad_(?:inicial|final)_pos\d+_numero)$/.test(column);
+  if (!isPositionColumn) return raw;
+  const match = /^(?:posici[oó]n|ida|vuelta)\s+(\d+)$/i.exec(String(raw).trim());
+  return match ? match[1] : raw;
 }
 
 function isCompleted(module, record) {
@@ -133,12 +147,17 @@ function validateSupportRecords(records, schemas) {
     if (schema) {
       for (const [column, raw] of Object.entries(data)) {
         if (excludedFields.has(column) || isPhotoField(column)) continue;
+        if (ignoredLegacyFieldsByModule.get(module)?.has(column)) continue;
         const definition = schema.get(column);
         if (!definition) {
           errors.push(issue(column, raw, 'UNKNOWN_COLUMN', 'La columna no existe en la tabla destino.', SUPPORT_MODULES[module].table));
           continue;
         }
-        const result = normalizeValue(column, raw, definition);
+        const result = normalizeValue(
+          column,
+          normalizeLegacyPosition(column, raw, definition),
+          definition,
+        );
         if (result.issue) errors.push(result.issue);
         else normalized[column] = result.value;
       }

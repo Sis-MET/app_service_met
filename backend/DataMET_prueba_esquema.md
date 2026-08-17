@@ -787,7 +787,7 @@ Total de columnas: **268**
 | 251 | `linealidad_final_punto12_indicacion` | decimal | 16,6 | Sí | - |
 | 252 | `linealidad_final_punto12_retorno` | decimal | 16,6 | Sí | - |
 | 253 | `linealidad_final_punto12_error` | decimal | 16,6 | Sí | - |
-| 254 | `comentario_general` | nvarchar | 500 | Sí | - |
+| 254 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 255 | `recomendacion` | nvarchar | 50 | Sí | - |
 | 256 | `tipo_servicio` | nvarchar | 50 | Sí | - |
 | 257 | `fisico` | nvarchar | 50 | Sí | - |
@@ -869,7 +869,7 @@ Total de columnas: **168**
 | 56 | `comunicacion_pc_comentario` | nvarchar | 50 | Sí | - |
 | 57 | `vibracion_externa_valor` | nvarchar | 50 | Sí | - |
 | 58 | `vibracion_externa_comentario` | nvarchar | 50 | Sí | - |
-| 59 | `comentario_general` | nvarchar | 500 | Sí | - |
+| 59 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 60 | `recomendacion` | nvarchar | 500 | Sí | - |
 | 61 | `fecha_prox_servicio` | date | - | Sí | - |
 | 62 | `estado_fisico` | nvarchar | 20 | Sí | - |
@@ -1173,7 +1173,7 @@ Total de columnas: **381**
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
 | 40 | `hora_inicio` | time | - | Sí | - |
 | 41 | `hora_fin` | time | - | Sí | - |
-| 42 | `comentario_general` | nvarchar | 500 | Sí | - |
+| 42 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 43 | `recomendacion` | nvarchar | 50 | Sí | - |
 | 44 | `fisico` | nvarchar | 50 | Sí | - |
 | 45 | `operacional` | nvarchar | 50 | Sí | - |
@@ -1183,7 +1183,7 @@ Total de columnas: **381**
 | 49 | `estabilizacion_inicial` | nvarchar | 15 | Sí | - |
 | 50 | `estabilizacion_final` | nvarchar | 15 | Sí | - |
 | 51 | `tipo_plataforma_inicial` | nvarchar | 50 | Sí | - |
-| 52 | `puntos_ind_inicial` | int | 10,0 | Sí | - |
+| 52 | `puntos_ind_inicial` | nvarchar | 50 | Sí | - |
 | 53 | `carga_exc_inicial` | decimal | 16,6 | Sí | - |
 | 54 | `posicion_inicial_1` | nvarchar | 15 | Sí | - |
 | 55 | `indicacion_inicial_1` | decimal | 16,6 | Sí | - |
@@ -1282,7 +1282,7 @@ Total de columnas: **381**
 | 148 | `ind_inicial_12` | decimal | 16,6 | Sí | - |
 | 149 | `retorno_lin_inicial_12` | decimal | 16,6 | Sí | - |
 | 150 | `tipo_plataforma_final` | nvarchar | 50 | Sí | - |
-| 151 | `puntos_ind_final` | int | 10,0 | Sí | - |
+| 151 | `puntos_ind_final` | nvarchar | 50 | Sí | - |
 | 152 | `carga_exc_final` | decimal | 16,6 | Sí | - |
 | 153 | `posicion_final_1` | nvarchar | 15 | Sí | - |
 | 154 | `indicacion_final_1` | decimal | 16,6 | Sí | - |
@@ -1563,7 +1563,7 @@ Total de columnas: **315**
 | 39 | `foto_balanza` | nvarchar | 200 | Sí | - |
 | 40 | `hora_inicio` | time | - | Sí | - |
 | 41 | `hora_fin` | time | - | Sí | - |
-| 42 | `comentario_general` | nvarchar | 500 | Sí | - |
+| 42 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 43 | `estado_fisico` | nvarchar | 50 | Sí | - |
 | 44 | `estado_operacional` | nvarchar | 50 | Sí | - |
 | 45 | `estado_metrologico` | nvarchar | 50 | Sí | - |
@@ -1883,7 +1883,7 @@ Total de columnas: **188**
 | 35 | `foto_balanza` | nvarchar | 200 | Sí | - |
 | 36 | `hora_inicio` | time | - | Sí | - |
 | 37 | `hora_fin` | time | - | Sí | - |
-| 38 | `comentario_general` | nvarchar | 500 | Sí | - |
+| 38 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 39 | `recomendaciones` | nvarchar | 500 | Sí | - |
 | 40 | `carcasa` | nvarchar | 50 | Sí | - |
 | 41 | `carcasa_comentario` | nvarchar | 500 | Sí | - |
@@ -2098,7 +2098,7 @@ Total de columnas: **170**
 | 53 | `estabilizacion_final` | nvarchar | 50 | Sí | - |
 | 54 | `tipo_plataforma_inicial` | nvarchar | 50 | Sí | - |
 | 55 | `carga_exc_inicial` | decimal | 16,6 | Sí | - |
-| 56 | `puntos_ind_inicial` | int | 10,0 | Sí | - |
+| 56 | `puntos_ind_inicial` | nvarchar | 50 | Sí | - |
 | 57 | `posicion_inicial_1` | int | 10,0 | Sí | - |
 | 58 | `indicacion_inicial_1` | decimal | 16,6 | Sí | - |
 | 59 | `retorno_inicial_1` | decimal | 16,6 | Sí | - |
@@ -2211,7 +2211,7 @@ Total de columnas: **170**
 | 166 | `estado_servicio_csv` | nvarchar | 50 | Sí | - |
 | 167 | `nombre_zip` | nvarchar | 500 | Sí | - |
 | 168 | `inf_bal` | nvarchar | 100 | Sí | - |
-| 169 | `comentario_general` | nvarchar | 250 | Sí | - |
+| 169 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 170 | `recomendacion` | nvarchar | 50 | Sí | - |
 
 ---

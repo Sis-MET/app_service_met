@@ -403,6 +403,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
               helperText: 'Resumen final del diagnóstico realizado',
             ),
             maxLines: 5,
+            maxLength: 1000,
             onChanged: (value) {
               _controller.comentarioGeneral = value;
               _onFieldChanged();

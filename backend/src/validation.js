@@ -70,7 +70,7 @@ function normalizeDate(raw) {
   if (match) {
     [, year, month, day] = match;
   } else {
-    match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+    match = /^(\d{2})[\/-](\d{2})[\/-](\d{4})$/.exec(value);
     if (!match) return null;
     [, day, month, year] = match;
   }
@@ -137,7 +137,7 @@ function normalizeValue(column, raw, definition) {
     case 'date': {
       const value = normalizeDate(raw);
       if (value === null) {
-        return { issue: error(column, raw, 'INVALID_DATE', 'La fecha no tiene un formato válido.', 'AAAA-MM-DD o DD/MM/AAAA') };
+        return { issue: error(column, raw, 'INVALID_DATE', 'La fecha no tiene un formato válido.', 'AAAA-MM-DD, DD/MM/AAAA o DD-MM-AAAA') };
       }
       return { value };
     }

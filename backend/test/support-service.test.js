@@ -17,6 +17,13 @@ test('carga los esquemas de los ocho módulos de soporte', () => {
   for (const [module, definition] of Object.entries(SUPPORT_MODULES)) {
     assert.equal(schemas.get(module).size, definition.columns);
     assert.equal(schemas.get(module).get('session_id').maxLength, 30);
+    assert.equal(schemas.get(module).get('comentario_general').maxLength, 1000);
+    for (const column of ['puntos_ind', 'puntos_ind_inicial', 'puntos_ind_final']) {
+      const field = schemas.get(module).get(column);
+      if (!field) continue;
+      assert.equal(field.type, 'nvarchar');
+      assert.equal(field.maxLength, 50);
+    }
   }
 });
 
@@ -192,6 +199,43 @@ test('acepta session_id de hasta 30 caracteres y normaliza fecha DD/MM/AAAA', ()
   assert.equal(result.records[0].normalized.fecha_prox_servicio, '2027-08-11');
 });
 
+test('normaliza DD-MM-AAAA en cada fecha real de los ocho módulos', () => {
+  const dateColumnsByModule = {
+    ajuste_verificaciones: ['fecha_servicio', 'fecha_prox_servicio'],
+    diagnostico: ['fecha_servicio'],
+    instalacion: ['fecha_servicio', 'fecha_prox_servicio'],
+    mnt_correctivo: ['fecha_servicio', 'fecha_prox_servicio'],
+    mnt_prv_avanzado: ['fecha_servicio', 'fecha_prox_servicio'],
+    mnt_prv_regular: ['fecha_servicio', 'fecha_prox_servicio'],
+    relevamiento_de_datos: ['fecha_servicio', 'fecha_prox_servicio'],
+    verificaciones_internas: ['fecha_servicio', 'fecha_prox_servicio'],
+  };
+
+  for (const [index, [module, dateColumns]] of Object.entries(dateColumnsByModule).entries()) {
+    const data = {
+      otst: `OTST-FECHA-${index}`,
+      cod_metrica: `MET-FECHA-${index}`,
+      estado_servicio:
+        module === 'relevamiento_de_datos' ? 'Balanza Realizada' : 'Completo',
+      ...(module === 'diagnostico'
+        ? {
+            reporte: 'Falla',
+            evaluacion: 'Evaluada',
+            comentario_general: 'Resultado',
+            hora_fin: '10:30',
+          }
+        : {}),
+    };
+    for (const column of dateColumns) data[column] = '12-08-2026';
+
+    const record = validateSupportRecords([{ module, data }], schemas).records[0];
+    assert.equal(record.valid, true, module);
+    for (const column of dateColumns) {
+      assert.equal(record.normalized[column], '2026-08-12', `${module}.${column}`);
+    }
+  }
+});
+
 test('rechaza una fecha inexistente aunque tenga un formato admitido', () => {
   const result = validateSupportRecords(
     [{
@@ -232,4 +276,110 @@ test('rechaza session_id cuando supera los 30 caracteres', () => {
     ),
     true,
   );
+});
+
+test('acepta etiquetas alfanuméricas en puntos_ind y omite columnas legacy de MPA', () => {
+  const result = validateSupportRecords(
+    [{
+      module: 'mnt_prv_avanzado',
+      data: {
+        otst: 'OTST-MPA',
+        cod_metrica: 'MET-MPA',
+        estado_servicio: 'Completo',
+        puntos_ind_inicial: '8F',
+        puntos_ind_final: '8F',
+        retorno_cero_inicial_unidad: 'kg',
+        retorno_cero_final_unidad: 'kg',
+      },
+    }],
+    schemas,
+  );
+
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].normalized.puntos_ind_inicial, '8F');
+  assert.equal(result.records[0].normalized.puntos_ind_final, '8F');
+  assert.equal('retorno_cero_inicial_unidad' in result.records[0].normalized, false);
+  assert.equal('retorno_cero_final_unidad' in result.records[0].normalized, false);
+});
+
+test('valida el nombre de puntos de indicador propio de cada módulo', () => {
+  const indicatorColumnsByModule = {
+    ajuste_verificaciones: [],
+    diagnostico: [],
+    instalacion: ['puntos_ind_inicial'],
+    mnt_correctivo: ['puntos_ind_final'],
+    mnt_prv_avanzado: ['puntos_ind_inicial', 'puntos_ind_final'],
+    mnt_prv_regular: ['puntos_ind_inicial', 'puntos_ind_final'],
+    relevamiento_de_datos: ['puntos_ind'],
+    verificaciones_internas: ['puntos_ind_inicial'],
+  };
+
+  for (const [module, columns] of Object.entries(indicatorColumnsByModule)) {
+    for (const column of columns) {
+      const definition = schemas.get(module).get(column);
+      assert.ok(definition, `${module}.${column}`);
+      assert.equal(definition.type, 'nvarchar', `${module}.${column}`);
+      assert.equal(definition.maxLength, 50, `${module}.${column}`);
+    }
+  }
+});
+
+test('normaliza etiquetas legacy de posición cuando SQL Server espera enteros', () => {
+  const cases = [
+    ['instalacion', 'posicion_inicial_1', 'Posición 1', 1],
+    ['mnt_correctivo', 'posicion_final_1', 'Posicion 2', 2],
+    ['mnt_prv_regular', 'posicion_inicial_1', '3', 3],
+    ['relevamiento_de_datos', 'posicion1', 'Ida 4', 4],
+    ['verificaciones_internas', 'posicion_inicial_1', 'Vuelta 5', 5],
+    ['ajuste_verificaciones', 'excentricidad_inicial_pos1_numero', 'Posición 6', 6],
+  ];
+
+  for (const [index, [module, column, value, expected]] of cases.entries()) {
+    const data = {
+      otst: `OTST-POS-${index}`,
+      cod_metrica: `MET-POS-${index}`,
+      estado_servicio:
+        module === 'relevamiento_de_datos' ? 'Balanza Realizada' : 'Completo',
+      [column]: value,
+    };
+    const record = validateSupportRecords([{ module, data }], schemas).records[0];
+    assert.equal(record.valid, true, `${module}.${column}`);
+    assert.equal(record.normalized[column], expected, `${module}.${column}`);
+  }
+});
+
+test('comentario_general admite 1000 caracteres en los ocho módulos', () => {
+  for (const [index, module] of Object.keys(SUPPORT_MODULES).entries()) {
+    const completeData = {
+      otst: `OTST-${index}`,
+      cod_metrica: `MET-${index}`,
+      estado_servicio:
+        module === 'relevamiento_de_datos' ? 'Balanza Realizada' : 'Completo',
+      comentario_general: 'C'.repeat(1000),
+      ...(module === 'diagnostico'
+        ? { reporte: 'Falla', evaluacion: 'Evaluada', hora_fin: '10:30' }
+        : {}),
+    };
+    const accepted = validateSupportRecords(
+      [{ module, data: completeData }],
+      schemas,
+    );
+    assert.equal(accepted.records[0].valid, true, module);
+
+    const rejected = validateSupportRecords(
+      [{
+        module,
+        data: { ...completeData, comentario_general: 'C'.repeat(1001) },
+      }],
+      schemas,
+    );
+    assert.equal(
+      rejected.records[0].errors.some(
+        (error) => error.column === 'comentario_general'
+          && error.code === 'MAX_LENGTH',
+      ),
+      true,
+      module,
+    );
+  }
 });

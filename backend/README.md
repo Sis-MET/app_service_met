@@ -21,6 +21,19 @@ los cambios dentro de una transacción.
 También debe ejecutar una sola vez `sql/005_add_service_type_to_summary.sql`
 para agregar `tipo_servicio` al resumen general `DATA_SERVICIOS_DATOS`.
 
+Para admitir las etiquetas de plataforma como `8F` y comentarios técnicos
+extensos, deben ejecutarse una sola vez, y en este orden:
+
+1. `sql/008_normalize_support_points_ind.sql`, que audita las ocho tablas y
+   convierte cada columna real de puntos/posición del indicador
+   (`puntos_ind`, `puntos_ind_inicial` o `puntos_ind_final`, según el módulo)
+   a `nvarchar(50)`.
+2. `sql/009_expand_support_comentario_general.sql`, que amplía
+   `comentario_general` a `nvarchar(1000)` en las ocho tablas.
+
+Ambos scripts validan la estructura y aplican todos los cambios dentro de una
+transacción antes de mostrar el esquema resultante.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 

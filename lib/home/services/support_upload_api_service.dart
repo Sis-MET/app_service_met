@@ -7,6 +7,60 @@ import '../../core/network/service_met_http_client.dart';
 import '../models/calibration_upload_models.dart';
 import 'calibration_upload_api_service.dart';
 
+const Map<String, Set<String>> _legacyFieldsExcludedByModule = {
+  'mnt_prv_avanzado': {
+    'retorno_cero_inicial_unidad',
+    'retorno_cero_final_unidad',
+  },
+};
+
+String _normalizeSupportDate(Object value) {
+  final text = value.toString().trim();
+  final iso = RegExp(r'^(\d{4})-(\d{2})-(\d{2})').firstMatch(text);
+  if (iso != null) {
+    return '${iso.group(1)}-${iso.group(2)}-${iso.group(3)}';
+  }
+  final local = RegExp(r'^(\d{2})[/-](\d{2})[/-](\d{4})$').firstMatch(text);
+  if (local != null) {
+    return '${local.group(3)}-${local.group(2)}-${local.group(1)}';
+  }
+  return text;
+}
+
+List<Map<String, dynamic>> buildSupportUploadEnvelopes(
+  List<Map<String, dynamic>> records,
+) {
+  return records.map((record) {
+    final module = record['_support_module']?.toString() ?? '';
+    final legacyFields = _legacyFieldsExcludedByModule[module] ?? const {};
+    final data = <String, dynamic>{};
+    for (final entry in record.entries) {
+      if (entry.key.startsWith('_') ||
+          entry.key == 'id' ||
+          entry.key == 'n' ||
+          entry.key == 'foto_balanza' ||
+          entry.key.endsWith('_foto') ||
+          entry.key == 'estado_servicio_csv' ||
+          entry.key == 'nombre_zip' ||
+          legacyFields.contains(entry.key)) {
+        continue;
+      }
+      var value = entry.value;
+      if ((entry.key == 'fecha_servicio' ||
+              entry.key == 'fecha_prox_servicio') &&
+          value != null) {
+        value = _normalizeSupportDate(value);
+      }
+      data[entry.key] = value;
+    }
+    final otst = record['otst']?.toString().trim() ?? '';
+    final session = record['session_id']?.toString().trim() ?? '';
+    data['nombre_csv'] =
+        '${otst}_$module${session.isEmpty ? '' : '_$session'}.csv';
+    return {'module': module, 'data': data};
+  }).toList(growable: false);
+}
+
 class SupportUploadApiService {
   final String baseUrl;
   final http.Client _client;
@@ -72,36 +126,8 @@ class SupportUploadApiService {
 
   List<Map<String, dynamic>> _envelopes(
     List<Map<String, dynamic>> records,
-  ) {
-    return records.map((record) {
-      final module = record['_support_module']?.toString() ?? '';
-      final data = <String, dynamic>{};
-      for (final entry in record.entries) {
-        if (entry.key.startsWith('_') ||
-            entry.key == 'id' ||
-            entry.key == 'n' ||
-            entry.key == 'foto_balanza' ||
-            entry.key.endsWith('_foto') ||
-            entry.key == 'estado_servicio_csv' ||
-            entry.key == 'nombre_zip') {
-          continue;
-        }
-        var value = entry.value;
-        if ((entry.key == 'fecha_servicio' ||
-                entry.key == 'fecha_prox_servicio') &&
-            value != null &&
-            value.toString().length >= 10) {
-          value = value.toString().substring(0, 10);
-        }
-        data[entry.key] = value;
-      }
-      final otst = record['otst']?.toString().trim() ?? '';
-      final session = record['session_id']?.toString().trim() ?? '';
-      data['nombre_csv'] =
-          '${otst}_$module${session.isEmpty ? '' : '_$session'}.csv';
-      return {'module': module, 'data': data};
-    }).toList(growable: false);
-  }
+  ) =>
+      buildSupportUploadEnvelopes(records);
 
   Future<http.Response> _post(String path, Object body) async {
     final token = await _token();
