@@ -229,6 +229,18 @@ class CalibrationRepository {
     return await _db.getRegistrosPorSeca(seca);
   }
 
+  Future<Map<String, dynamic>?> findDuplicateService({
+    required String seca,
+    required String codMetrica,
+    required String excludingSessionId,
+  }) {
+    return _db.findDuplicateCalibrationService(
+      seca: seca,
+      codMetrica: codMetrica,
+      excludingSessionId: excludingSessionId,
+    );
+  }
+
   Future<Map<String, Map<String, dynamic>>> getUploadStatus(String seca) {
     return _db.getCalibrationUploadStatus(seca);
   }

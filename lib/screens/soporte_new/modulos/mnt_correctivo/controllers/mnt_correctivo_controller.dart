@@ -534,8 +534,9 @@ class MntCorrectivoController extends BaseSoporteController {
         retorno: data['retorno_lin_final_$i']?.toString() ?? '0',
       ));
     }
-    if (filas.isNotEmpty)
+    if (filas.isNotEmpty) {
       linealidadFinal = session.LinealidadData(filas: filas);
+    }
   }
 
   static Map<String, dynamic> _excToMap(session.ExcentricidadData data) => {

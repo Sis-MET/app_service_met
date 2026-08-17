@@ -1150,6 +1150,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
       return;
     }
 
+    if (_completedCodMetricas.contains(codMetrica)) {
+      TopAlert.show(
+        context,
+        'La balanza $codMetrica ya fue calibrada dentro de este SECA.',
+        isError: true,
+      );
+      return;
+    }
+
     if (!mounted) return;
     setState(() {
       _selectedBalanza = match;
@@ -1296,6 +1305,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
                           return GestureDetector(
                             onTap: () {
+                              if (_completedCodMetricas.contains(codMetrica)) {
+                                TopAlert.show(
+                                  ctx,
+                                  'La balanza $codMetrica ya fue calibrada '
+                                  'dentro de este SECA.',
+                                  isError: true,
+                                );
+                                return;
+                              }
                               setState(() {
                                 _selectedBalanza = b;
                                 _isNewBalanza = false;

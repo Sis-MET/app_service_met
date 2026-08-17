@@ -13,6 +13,7 @@ import '../models/servicio_model.dart';
 import '../services/calibration_upload_api_service.dart';
 import '../services/support_upload_api_service.dart';
 import '../services/support_upload_status_service.dart';
+import '../services/upload_record_deduplicator.dart';
 import '../widgets/upload_auth_dialog.dart';
 import '../widgets/new_scales_upload_notice.dart';
 
@@ -29,6 +30,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
   final SupportUploadStatusService _status = SupportUploadStatusService();
   List<Map<String, dynamic>> _pending = [];
   int _uploadedCount = 0;
+  int _duplicateCount = 0;
   bool _loading = true;
   bool _working = false;
   String? _error;
@@ -67,14 +69,21 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
           .where(_isComplete)
           .map(Map<String, dynamic>.from)
           .toList(growable: false);
-      final uploaded = await _status.uploadedKeys(widget.servicio.codigo);
-      final pending = completed
-          .where((record) => !uploaded.contains(_status.recordKey(record)))
+      final uploaded =
+          await _status.uploadedLogicalKeys(widget.servicio.codigo);
+      final unresolved = completed
+          .where(
+              (record) => !uploaded.contains(supportUploadLogicalKey(record)))
           .toList(growable: false);
+      final deduplicated = deduplicateUploadRecords(
+        unresolved,
+        supportUploadLogicalKey,
+      );
       if (!mounted) return;
       setState(() {
-        _pending = pending;
-        _uploadedCount = completed.length - pending.length;
+        _pending = deduplicated.records;
+        _duplicateCount = deduplicated.duplicateCount;
+        _uploadedCount = completed.length - unresolved.length;
         _loading = false;
       });
     } catch (error) {
@@ -276,6 +285,16 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   _message(Icons.error_outline_rounded, Colors.red, _error!),
+                ],
+                if (_duplicateCount > 0) ...[
+                  const SizedBox(height: 12),
+                  _message(
+                    Icons.content_copy_rounded,
+                    Colors.orange,
+                    'Se encontraron $_duplicateCount registro(s) local(es) '
+                    'duplicado(s). Se subirá solamente el registro más reciente '
+                    'de cada equipo.',
+                  ),
                 ],
                 const SizedBox(height: 20),
                 if (_pending.isEmpty)

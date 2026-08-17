@@ -32,7 +32,10 @@ void main() {
     );
 
     final uploaded = await service.uploadedKeys('OTST-1');
+    final logical = await service.uploadedLogicalKeys('OTST-1');
     expect(uploaded, contains(service.recordKey(first)));
     expect(uploaded, isNot(contains(service.recordKey(second))));
+    expect(logical, contains('DIAGNOSTICO|OTST-1|MET-1'));
+    expect(logical, isNot(contains('MNT_CORRECTIVO|OTST-1|MET-1')));
   });
 }

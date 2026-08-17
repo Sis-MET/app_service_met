@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
+import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/screens/soporte_new/utils/support_module_catalog.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -84,5 +85,46 @@ void main() {
 
     expect(SupportModuleCatalog.all, hasLength(8));
     expect(keys, hasLength(8));
+  });
+
+  test('bloquea el mismo equipo solo dentro del mismo módulo y OTST', () async {
+    await save(module: 'mnt_correctivo', session: 'SOP_1');
+    await helper.markSessionCompleted('mnt_correctivo', 'SOP_1');
+
+    final duplicate = await helper.findDuplicateService(
+      moduleKey: 'mnt_correctivo',
+      otst: '0001-01-S01-26',
+      codMetrica: '0001-01-001',
+      excludingSessionId: 'SOP_2',
+    );
+    final anotherModule = await helper.findDuplicateService(
+      moduleKey: 'diagnostico',
+      otst: '0001-01-S01-26',
+      codMetrica: '0001-01-001',
+      excludingSessionId: 'SOP_2',
+    );
+
+    expect(duplicate?['session_id'], 'SOP_1');
+    expect(anotherModule, isNull);
+  });
+
+  test('cada servicio de precarga apunta a la clave real de su controlador',
+      () {
+    final controller = PrecargaController();
+    const expected = {
+      'MNT PREVENTIVO REGULAR': 'mnt_prv_regular',
+      'MNT PREVENTIVO AVANZADO': 'mnt_prv_avanzado_stac',
+      'MANTENIMIENTO CORRECTIVO': 'mnt_correctivo',
+      'DIAGNÓSTICO': 'diagnostico',
+      'VERIFICACIONES INTERNAS': 'verificaciones_internas',
+      'RELEVAMIENTO DE DATOS': 'relevamiento_de_datos',
+      'INSTALACIÓN': 'instalacion',
+      'AJUSTE DE VERIFICACIONES': 'ajustes_metrologicos',
+    };
+
+    for (final entry in expected.entries) {
+      controller.selectedServicio = entry.key;
+      expect(controller.selectedModuleKey, entry.value);
+    }
   });
 }

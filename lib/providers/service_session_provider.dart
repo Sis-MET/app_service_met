@@ -587,6 +587,26 @@ class ServiceSessionProvider extends ChangeNotifier {
     return null;
   }
 
+  Future<String?> validateDuplicateBalanza() async {
+    final info = _session?.sessionInfo;
+    final seca = info?.seca?.trim() ?? '';
+    final sessionId = info?.sessionId?.trim() ?? '';
+    final codMetrica = _session?.balanza?.codMetrica?.trim() ?? '';
+    if (seca.isEmpty || sessionId.isEmpty || codMetrica.isEmpty) return null;
+    final duplicate = await _repository.findDuplicateService(
+      seca: seca,
+      codMetrica: codMetrica,
+      excludingSessionId: sessionId,
+    );
+    if (duplicate == null) return null;
+    final status =
+        duplicate['estado_servicio_bal']?.toString() == 'Balanza Calibrada'
+            ? 'ya fue calibrada'
+            : 'ya tiene una calibración en curso';
+    return 'La balanza $codMetrica $status dentro del SECA $seca. '
+        'Continúe o revise el registro existente en lugar de crear otro.';
+  }
+
   String? validateCondicionesFinales() {
     if (_session == null) return "Sesión no inicializada.";
 

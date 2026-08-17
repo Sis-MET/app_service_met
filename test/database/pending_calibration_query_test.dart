@@ -15,6 +15,7 @@ void main() {
         personal TEXT,
         seca TEXT,
         session_id TEXT,
+        cod_metrica TEXT,
         fecha_servicio TEXT,
         estado_servicio_bal TEXT
       )
@@ -118,6 +119,48 @@ void main() {
     await insertRecord('', 'Ana');
 
     final result = await db.rawQuery(pendingServiciosQuery, ['Ana']);
+
+    expect(result, isEmpty);
+  });
+
+  test('detecta otra sesión de la misma balanza dentro del SECA', () async {
+    await db.insert('registros_calibracion', {
+      'personal': 'Ana',
+      'seca': '26-0100-01',
+      'session_id': '0001',
+      'cod_metrica': '0100-01-001',
+      'fecha_servicio': '2026-08-17',
+      'estado_servicio_bal': 'Balanza Calibrada',
+    });
+
+    final duplicate = await db.rawQuery(
+      duplicateCalibrationServiceQuery,
+      ['26-0100-01', '0100-01-001', '0002'],
+    );
+    final sameSession = await db.rawQuery(
+      duplicateCalibrationServiceQuery,
+      ['26-0100-01', '0100-01-001', '0001'],
+    );
+
+    expect(duplicate.single['session_id'], '0001');
+    expect(sameSession, isEmpty);
+  });
+
+  test('permite reiniciar una sesión que fue abandonada', () async {
+    await db.insert('registros_calibracion', {
+      'personal': 'Ana',
+      'seca': '26-0100-01',
+      'session_id': '0001',
+      'cod_metrica': '0100-01-001',
+      'fecha_servicio': '2026-08-17',
+      'estado_servicio_bal': '',
+    });
+    await insertStatus('26-0100-01', 'Ana', 'abandoned');
+
+    final result = await db.rawQuery(
+      duplicateCalibrationServiceQuery,
+      ['26-0100-01', '0100-01-001', '0002'],
+    );
 
     expect(result, isEmpty);
   });

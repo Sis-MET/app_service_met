@@ -33,6 +33,26 @@ const String pendingServiciosQuery = '''
   ORDER BY COALESCE(s.updated_at, r.fecha_servicio) DESC, r.id DESC
 ''';
 
+const String duplicateCalibrationServiceQuery = '''
+  SELECT r.session_id, r.cod_metrica, r.estado_servicio_bal,
+         s.status AS servicio_status
+  FROM registros_calibracion r
+  LEFT JOIN servicio_status s
+    ON r.seca = s.seca AND r.session_id = s.session_id
+  WHERE TRIM(r.seca) = TRIM(?) COLLATE NOCASE
+    AND TRIM(r.cod_metrica) = TRIM(?) COLLATE NOCASE
+    AND TRIM(COALESCE(r.session_id, '')) <> TRIM(?)
+    AND (
+      r.estado_servicio_bal = 'Balanza Calibrada'
+      OR s.status IN ('in_progress', 'completed')
+      OR s.session_id IS NULL
+    )
+  ORDER BY CASE WHEN r.estado_servicio_bal = 'Balanza Calibrada' THEN 0 ELSE 1 END,
+           COALESCE(s.updated_at, r.fecha_servicio) DESC,
+           r.id DESC
+  LIMIT 1
+''';
+
 class AppDatabase {
   static final AppDatabase _instance = AppDatabase._internal();
   factory AppDatabase() => _instance;
@@ -285,6 +305,19 @@ class AppDatabase {
       debugPrint('Error al obtener registros por SECA: $e');
       return [];
     }
+  }
+
+  Future<Map<String, dynamic>?> findDuplicateCalibrationService({
+    required String seca,
+    required String codMetrica,
+    required String excludingSessionId,
+  }) async {
+    final db = await database;
+    final rows = await db.rawQuery(
+      duplicateCalibrationServiceQuery,
+      [seca, codMetrica, excludingSessionId],
+    );
+    return rows.isEmpty ? null : rows.first;
   }
 
   Future<void> upsertRegistroCalibracion(Map<String, dynamic> registro) async {

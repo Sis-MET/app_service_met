@@ -60,6 +60,24 @@ class SupportUploadStatusService {
         .toSet();
   }
 
+  Future<Set<String>> uploadedLogicalKeys(String otst) async {
+    final db = await _db;
+    final rows = await db.query(
+      'support_upload_status',
+      where: 'otst = ?',
+      whereArgs: [otst],
+    );
+    return rows
+        .map((row) => [
+              row['module'],
+              row['otst'],
+              row['cod_metrica'],
+            ]
+                .map((value) => value?.toString().trim().toUpperCase() ?? '')
+                .join('|'))
+        .toSet();
+  }
+
   Future<void> markUploaded({
     required Map<String, dynamic> record,
     required String codigoRegistro,

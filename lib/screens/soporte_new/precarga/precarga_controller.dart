@@ -129,6 +129,20 @@ class PrecargaController extends ChangeNotifier {
     return null;
   }
 
+  String? get selectedModuleKey {
+    const modules = {
+      'MNT PREVENTIVO REGULAR': 'mnt_prv_regular',
+      'MNT PREVENTIVO AVANZADO': 'mnt_prv_avanzado_stac',
+      'MANTENIMIENTO CORRECTIVO': 'mnt_correctivo',
+      'DIAGNÓSTICO': 'diagnostico',
+      'VERIFICACIONES INTERNAS': 'verificaciones_internas',
+      'RELEVAMIENTO DE DATOS': 'relevamiento_de_datos',
+      'INSTALACIÓN': 'instalacion',
+      'AJUSTE DE VERIFICACIONES': 'ajustes_metrologicos',
+    };
+    return modules[selectedServicio];
+  }
+
   String? get suggestedCodigoRegistro {
     final otst = selectedSeca ?? suggestedSeca;
     final serviceCode = selectedServiceCode;
@@ -519,17 +533,41 @@ class PrecargaController extends ChangeNotifier {
   }
 
   Future<Set<String>> getCompletedCodMetricas() async {
-    if (selectedSeca == null || selectedSeca!.isEmpty) return {};
+    final moduleKey = selectedModuleKey;
+    final otst = selectedSeca;
+    if (moduleKey == null || otst == null || otst.isEmpty) return {};
     try {
-      final registros =
-          await _soporteDb.getRegistrosPorSeca('precarga', selectedSeca!);
-      return registros
-          .map((r) => r['cod_metrica']?.toString() ?? '')
-          .where((c) => c.isNotEmpty)
-          .toSet();
+      return _soporteDb.getRegisteredCodMetricas(
+        moduleKey: moduleKey,
+        otst: otst,
+      );
     } catch (_) {
       return {};
     }
+  }
+
+  Future<String?> validateDuplicateService() async {
+    final moduleKey = selectedModuleKey;
+    final otst = selectedSeca?.trim() ?? '';
+    final metrica = codMetrica?.trim() ?? '';
+    final currentSession = sessionId?.trim() ?? '';
+    if (moduleKey == null ||
+        otst.isEmpty ||
+        metrica.isEmpty ||
+        currentSession.isEmpty) {
+      return null;
+    }
+    final duplicate = await _soporteDb.findDuplicateService(
+      moduleKey: moduleKey,
+      otst: otst,
+      codMetrica: metrica,
+      excludingSessionId: currentSession,
+    );
+    if (duplicate == null) return null;
+    final completed = duplicate['status']?.toString() == 'completed';
+    return completed
+        ? 'El equipo $metrica ya fue registrado en este módulo para la OTST $otst.'
+        : 'El equipo $metrica ya tiene un servicio en curso en este módulo y OTST.';
   }
 
   void _setLoading(bool value) {

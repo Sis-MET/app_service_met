@@ -11,6 +11,7 @@ import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
 import '../services/calibration_upload_api_service.dart';
+import '../services/upload_record_deduplicator.dart';
 import '../widgets/upload_auth_dialog.dart';
 import '../widgets/new_scales_upload_notice.dart';
 
@@ -28,6 +29,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   final CalibrationRepository _repository = CalibrationRepository();
   List<Map<String, dynamic>> _pendingRecords = [];
   int _uploadedCount = 0;
+  int _duplicateCount = 0;
   bool _loading = true;
   bool _working = false;
   String? _error;
@@ -48,19 +50,35 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     try {
       final records = await _repository.getRegistrosPorSeca(widget.seca);
       final statuses = await _repository.getUploadStatus(widget.seca);
-      final completed = records.where((record) =>
-          record['estado_servicio_bal']?.toString() == 'Balanza Calibrada');
-      final pending = completed
+      final uploadedCodes = statuses.values
+          .map((status) =>
+              status['codigo_registro']?.toString().trim().toUpperCase() ?? '')
+          .where((code) => code.isNotEmpty)
+          .toSet();
+      final completed = records
+          .where((record) =>
+              record['estado_servicio_bal']?.toString() == 'Balanza Calibrada')
+          .toList();
+      final unresolved = completed
           .where((record) {
             final sessionId = record['session_id']?.toString() ?? '';
-            return !statuses.containsKey(sessionId);
+            final code = '${record['seca']}-${record['cod_metrica']}'
+                .trim()
+                .toUpperCase();
+            return !statuses.containsKey(sessionId) &&
+                !uploadedCodes.contains(code);
           })
           .map(Map<String, dynamic>.from)
           .toList();
+      final deduplicated = deduplicateUploadRecords(
+        unresolved,
+        calibrationUploadLogicalKey,
+      );
       if (!mounted) return;
       setState(() {
-        _pendingRecords = pending;
-        _uploadedCount = statuses.length;
+        _pendingRecords = deduplicated.records;
+        _duplicateCount = deduplicated.duplicateCount;
+        _uploadedCount = completed.length - unresolved.length;
         _loading = false;
       });
     } catch (error) {
@@ -263,6 +281,16 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                     icon: Icons.error_outline_rounded,
                     color: Colors.red,
                     text: _error!,
+                  ),
+                ],
+                if (_duplicateCount > 0) ...[
+                  const SizedBox(height: 12),
+                  _messageCard(
+                    icon: Icons.content_copy_rounded,
+                    color: Colors.orange,
+                    text: 'Se encontraron $_duplicateCount registro(s) '
+                        'local(es) duplicado(s). Se subirá solamente la '
+                        'calibración más reciente de cada balanza.',
                   ),
                 ],
                 const SizedBox(height: 20),

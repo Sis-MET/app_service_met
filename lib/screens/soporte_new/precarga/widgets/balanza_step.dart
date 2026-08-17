@@ -873,6 +873,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
         );
 
     if (match != null) {
+      if (_completedCodMetricas.contains(codMetrica)) {
+        TopAlert.show(
+          context,
+          'El equipo $codMetrica ya está registrado en este módulo y OTST.',
+          isError: true,
+        );
+        return;
+      }
       setState(() {
         _selectedBalanza = match;
         _isNewBalanza = false;
@@ -1037,6 +1045,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
                           return GestureDetector(
                             onTap: () {
+                              if (_completedCodMetricas.contains(cod)) {
+                                TopAlert.show(
+                                  ctx,
+                                  'El equipo $cod ya está registrado en este '
+                                  'módulo y OTST.',
+                                  isError: true,
+                                );
+                                return;
+                              }
                               Navigator.pop(ctx);
                               setState(() {
                                 _selectedBalanza = item;

@@ -170,6 +170,46 @@ class DatabaseHelperSoporte {
     );
   }
 
+  Future<Set<String>> getRegisteredCodMetricas({
+    required String moduleKey,
+    required String otst,
+  }) async {
+    final db = await database;
+    await _createSessionStatusTable(db);
+    final rows = await db.query(
+      supportSessionStatusTable,
+      columns: ['cod_metrica'],
+      where: '''module_key = ? AND otst = ?
+        AND status IN ('in_progress', 'completed')''',
+      whereArgs: [moduleKey, otst],
+    );
+    return rows
+        .map((row) => row['cod_metrica']?.toString().trim() ?? '')
+        .where((code) => code.isNotEmpty)
+        .toSet();
+  }
+
+  Future<Map<String, dynamic>?> findDuplicateService({
+    required String moduleKey,
+    required String otst,
+    required String codMetrica,
+    required String excludingSessionId,
+  }) async {
+    final db = await database;
+    await _createSessionStatusTable(db);
+    final rows = await db.query(
+      supportSessionStatusTable,
+      where: '''module_key = ? AND otst = ?
+        AND cod_metrica = ? COLLATE NOCASE AND session_id <> ?
+        AND status IN ('in_progress', 'completed')''',
+      whereArgs: [moduleKey, otst, codMetrica, excludingSessionId],
+      orderBy:
+          "CASE WHEN status = 'completed' THEN 0 ELSE 1 END, updated_at DESC",
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
   Future<void> markSessionCompleted(
     String moduleKey,
     String sessionId,

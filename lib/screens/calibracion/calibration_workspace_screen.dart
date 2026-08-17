@@ -284,6 +284,14 @@ class _CalibrationWorkspaceScreenState
                             }
                             return;
                           }
+                          final duplicateError =
+                              await provider.validateDuplicateBalanza();
+                          if (duplicateError != null) {
+                            if (ctx.mounted) {
+                              TopAlert.show(ctx, duplicateError, isError: true);
+                            }
+                            return;
+                          }
                           if (!ctx.mounted) return;
                           final session = provider.session;
                           final b = session?.balanza;

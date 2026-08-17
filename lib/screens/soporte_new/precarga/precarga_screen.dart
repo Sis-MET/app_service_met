@@ -476,7 +476,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     );
   }
 
-  void _iniciarServicio() {
+  Future<void> _iniciarServicio() async {
     if (!_validateCurrentStep()) return;
     _controller.updateStepErrors();
 
@@ -485,6 +485,13 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       TopAlert.show(
           context, 'Complete todos los pasos antes de iniciar el servicio',
           isError: true);
+      return;
+    }
+
+    final duplicateError = await _controller.validateDuplicateService();
+    if (!mounted) return;
+    if (duplicateError != null) {
+      TopAlert.show(context, duplicateError, isError: true);
       return;
     }
 
