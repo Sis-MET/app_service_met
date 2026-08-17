@@ -4,26 +4,38 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Permisos de almacenamiento -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        android:minSdkVersion="30"
-        tools:ignore="ScopedStorage" />
-
-    <!-- Permiso para acceder a directorios públicos en Android 11+ -->
-    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
-
-    <!-- Para navegar por directorios -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Captura de evidencia fotográfica del servicio. ServiceMET solo abre la
+         cámara; nunca lee la galería del usuario. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Notificaciones y Alarmas -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
+    <!--
+        Permisos de almacenamiento eliminados a propósito.
+
+        Las fotografías, CSV y PDF se escriben en el almacenamiento específico
+        de la aplicación (Android/data/bo.metrica.smet/files/ServiceMET) y se
+        exportan mediante Storage Access Framework con un permiso URI
+        persistente, por lo que no se requiere ningún permiso de almacenamiento.
+
+        Las siguientes declaraciones eliminan los permisos que las dependencias
+        (principalmente open_filex) inyectan en el manifest final. Sin ellas
+        Google Play sigue detectando acceso a fotos y videos aunque el manifest
+        fuente esté limpio.
+    -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" tools:node="remove" />
+
     <application
-        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"
         android:label="ServiceMET"
         android:name="${applicationName}"
@@ -61,6 +73,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Abrir el CSV/PDF exportado con el visor que elija el técnico -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="*/*"/>
         </intent>
     </queries>
 

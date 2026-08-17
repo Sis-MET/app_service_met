@@ -4,6 +4,12 @@ plugins {
     id "com.google.gms.google-services" // Plugin de Google Services
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "bo.metrica.smet"
     compileSdk = 37
@@ -22,14 +28,23 @@ android {
     defaultConfig {
         applicationId = "bo.metrica.smet"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 9
-        versionName = "6.1.1"
+        versionName = "6.2.0"
+    }
+
+    signingConfigs {
+        release {
+            keyAlias = keystoreProperties["keyAlias"]
+            keyPassword = keystoreProperties["keyPassword"]
+            storeFile = keystoreProperties["storeFile"] ? file(keystoreProperties["storeFile"]) : null
+            storePassword = keystoreProperties["storePassword"]
+        }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release
             minifyEnabled = true
             shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -42,6 +57,7 @@ flutter {
 }
 
 dependencies {
+    implementation 'androidx.documentfile:documentfile:1.0.1' // SAF: árbol de carpetas del servicio
     implementation platform('com.google.firebase:firebase-bom:34.5.0') // BOM de Firebase
     implementation 'com.google.firebase:firebase-auth' // Firebase Authentication
     implementation 'com.google.firebase:firebase-analytics' // Firebase Analytics

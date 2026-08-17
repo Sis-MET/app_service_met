@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:service_met/utils/foto_helper.dart';
+import 'package:service_met/utils/saf_storage.dart';
 
+/// Pide al técnico la carpeta principal de ServiceMET donde exportar la
+/// documentación de los servicios.
+///
+/// Usa Storage Access Framework: el técnico elige la carpeta una sola vez y
+/// Android conserva el acceso mediante un permiso URI persistente, sin que la
+/// aplicación necesite acceso a todos los archivos del dispositivo.
+///
+/// Las fotografías se guardan siempre en el almacenamiento propio de la app
+/// (no requiere permisos ni conexión); esta carpeta es el destino de la
+/// exportación.
 class FotoStorageDialog {
   static Future<bool> show(BuildContext context,
       {String subDirName = 'calibracion_fotos'}) async {
@@ -22,7 +32,7 @@ class FotoStorageDialog {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Almacenamiento de Fotografías',
+                    'Carpeta de ServiceMET',
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -34,8 +44,9 @@ class FotoStorageDialog {
             ),
             const SizedBox(height: 16),
             Text(
-              'Las fotografías de las calibraciones se guardarán '
-              'automáticamente en la siguiente estructura de carpetas:',
+              'Seleccione la carpeta donde ServiceMET exportará la '
+              'documentación. Cada servicio se guarda en su propia carpeta '
+              'identificada por código:',
               textAlign: TextAlign.start,
               style: GoogleFonts.inter(
                 fontSize: 13,
@@ -47,8 +58,8 @@ class FotoStorageDialog {
             _folderPreview(isDark, subDirName: subDirName),
             const SizedBox(height: 16),
             Text(
-              'Seleccione o cree una carpeta (ej. "ServiceMET") '
-              'dentro de Documentos para comenzar.',
+              'Sólo se pedirá una vez. Android conserva el acceso a esta '
+              'carpeta; la aplicación no accede al resto de sus archivos.',
               textAlign: TextAlign.start,
               style: GoogleFonts.inter(
                 fontSize: 12,
@@ -61,25 +72,39 @@ class FotoStorageDialog {
         actions: [
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final path = await FotoHelper.configure(subDirName: subDirName);
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx, path != null);
-                  }
-                },
-                icon: const Icon(Icons.folder_open, size: 18),
-                label: const Text('Seleccionar Carpeta'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3e7732),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final tree = await SafStorage.chooseTree();
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx, tree != null);
+                      }
+                    },
+                    icon: const Icon(Icons.folder_open, size: 18),
+                    label: const Text('Seleccionar Carpeta'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3e7732),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
                 ),
-              ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text(
+                    'Cancelar',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: isDark ? Colors.white54 : Colors.black54,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -94,9 +119,8 @@ class FotoStorageDialog {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withOpacity(0.05)
-            : const Color(0xFFF0F4F8),
+        color:
+            isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF0F4F8),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
@@ -105,26 +129,27 @@ class FotoStorageDialog {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _folderRow(Icons.folder, 'ServiceMET/', isDark, bold: true),
+          _folderRow(Icons.folder, '${SafStorage.rootFolder}/', isDark,
+              bold: true),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 24),
-            child:
-                _folderRow(Icons.folder, '$subDirName/', isDark, bold: true),
+            child: _folderRow(
+                Icons.folder, '{código de servicio}/', isDark, bold: true),
           ),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 48),
-            child: _folderRow(Icons.folder, '{SECA}/', isDark, bold: true),
+            child: _folderRow(Icons.description, 'resumen.pdf, datos.csv',
+                isDark),
           ),
           const SizedBox(height: 4),
           Padding(
-            padding: const EdgeInsets.only(left: 72),
-            child: _folderRow(
-                Icons.folder, '{código métrica}/', isDark, bold: true),
+            padding: const EdgeInsets.only(left: 48),
+            child: _folderRow(Icons.folder, '$subDirName/', isDark, bold: true),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 96),
+            padding: const EdgeInsets.only(left: 72),
             child: _folderRow(Icons.image, '001.jpg, 002.jpg...', isDark),
           ),
         ],
@@ -137,9 +162,7 @@ class FotoStorageDialog {
     return Row(
       mainAxisSize: MainAxisSize.max,
       children: [
-        Icon(icon,
-            size: 14,
-            color: isDark ? Colors.white60 : Colors.black45),
+        Icon(icon, size: 14, color: isDark ? Colors.white60 : Colors.black45),
         const SizedBox(width: 6),
         Flexible(
           child: Text(

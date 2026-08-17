@@ -1,16 +1,17 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:csv/csv.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../utils/pdf_generator.dart';
+import '../../utils/foto_storage_dialog.dart';
+import '../../utils/saf_storage.dart';
+import '../../utils/service_exporter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
@@ -81,6 +82,48 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     }).toList();
   }
 
+  /// Ofrece configurar la carpeta principal la primera vez. Si el técnico la
+  /// omite, la exportación continúa con el selector estándar de Android.
+  Future<bool> _asegurarCarpeta() async {
+    if (!SafStorage.isSupported) return true;
+    if (await SafStorage.isConfigured()) return true;
+    if (!mounted) return false;
+    await FotoStorageDialog.show(context);
+    return mounted;
+  }
+
+  void _mostrarExito(ExportResult result) {
+    if (!mounted) return;
+    final fotos = result.photoCount > 0
+        ? ' · ${result.photoCount} foto(s) incluidas'
+        : '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const FaIcon(FontAwesomeIcons.circleCheck,
+                color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text('Guardado en: ${result.destination}$fotos')),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: result.canOpen
+            ? SnackBarAction(
+                label: 'Abrir',
+                textColor: Colors.white,
+                onPressed: () => SafStorage.openDocument(
+                  result.uri!,
+                  mimeType: result.mimeType ?? '*/*',
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
   Future<void> _exportarCSV({bool soloCompletos = false}) async {
     try {
       final items = _getFilteredItems(soloCompletos: soloCompletos);
@@ -95,38 +138,21 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       }
 
       final csv = Csv(fieldDelimiter: ';', autoDetect: false).encode(csvData);
-      final List<int> csvBytes = utf8.encode(csv);
+      final csvBytes = Uint8List.fromList(utf8.encode(csv));
 
       final fileName =
           '${widget.servicio.prefijo}_${widget.servicio.codigo}_${DateTime.now().millisecondsSinceEpoch}.csv';
 
-      final String? directoryPath = await FilePicker.getDirectoryPath(
-        dialogTitle: 'Seleccione carpeta para guardar el respaldo',
+      if (!await _asegurarCarpeta()) return;
+
+      final result = await ServiceExporter.exportServicio(
+        codigoServicio: widget.servicio.codigo,
+        fileName: fileName,
+        mimeType: ServiceExporter.csvMime,
+        bytes: csvBytes,
       );
-      if (directoryPath == null) return;
-
-      final File file = File('$directoryPath/$fileName');
-      await file.writeAsBytes(csvBytes);
-      OpenFilex.open(file.path);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const FaIcon(FontAwesomeIcons.circleCheck,
-                    color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Archivo guardado en: ${file.path}')),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      if (!result.saved) return;
+      _mostrarExito(result);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -167,33 +193,16 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       final fileName =
           'Resumen_${servicioFiltrado.nombreTipo.replaceAll(" ", "_")}_${servicioFiltrado.prefijo}_${servicioFiltrado.codigo}_${DateTime.now().millisecondsSinceEpoch}.pdf';
 
-      final String? directoryPath = await FilePicker.getDirectoryPath(
-        dialogTitle: 'Seleccione carpeta para guardar el PDF',
+      if (!await _asegurarCarpeta()) return;
+
+      final result = await ServiceExporter.exportServicio(
+        codigoServicio: servicioFiltrado.codigo,
+        fileName: fileName,
+        mimeType: ServiceExporter.pdfMime,
+        bytes: Uint8List.fromList(pdfBytes),
       );
-      if (directoryPath == null) return;
-
-      final File file = File('$directoryPath/$fileName');
-      await file.writeAsBytes(pdfBytes);
-      OpenFilex.open(file.path);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const FaIcon(FontAwesomeIcons.circleCheck,
-                    color: Colors.white, size: 20),
-                const SizedBox(width: 12),
-                Expanded(child: Text('PDF guardado en: ${file.path}')),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      if (!result.saved) return;
+      _mostrarExito(result);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

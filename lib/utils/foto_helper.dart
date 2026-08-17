@@ -1,88 +1,91 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'saf_storage.dart';
+
+/// Almacenamiento local de las fotografías de cada servicio.
+///
+/// Las fotos se guardan en el almacenamiento específico de la aplicación
+/// (`Android/data/bo.metrica.smet/files/ServiceMET`). Ese directorio no exige
+/// ningún permiso en ninguna versión de Android, cumple con Scoped Storage y
+/// funciona completamente sin conexión, que es como trabajan los técnicos en
+/// campo.
+///
+/// La estructura es `ServiceMET/{codigo_servicio}/{modulo}/{cod_metrica}/`, de
+/// modo que exportar un servicio a la carpeta SAF del técnico es copiar una
+/// sola carpeta. Ver [SafStorage] y `ServiceExporter`.
 class FotoHelper {
-  static const _prefsKey = 'calibracion_fotos_base_path';
+  /// Clave usada por versiones anteriores (≤ 6.2.0), cuando las fotos se
+  /// escribían en una carpeta pública con MANAGE_EXTERNAL_STORAGE.
+  static const _legacyPrefsKey = 'calibracion_fotos_base_path';
 
-  static Future<bool> isConfigured(
-      {String subDirName = 'calibracion_fotos'}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final path = prefs.getString(_prefsKey);
-    if (path == null || path.isEmpty) return false;
+  static Directory? _cachedRoot;
 
-    final directory = Directory(path);
-    if (!await directory.exists()) return false;
+  /// Raíz de las fotografías dentro del almacenamiento propio de la app.
+  static Future<Directory> _root() async {
+    final cached = _cachedRoot;
+    if (cached != null && await cached.exists()) return cached;
 
-    // En Android una carpeta puede seguir existiendo aunque el permiso para
-    // escribir en ella haya sido revocado. La prueba evita abrir la cámara y
-    // descubrir el problema recién después de tomar la fotografía.
-    final probe = File(p.join(
-      directory.path,
-      '.servicemet_write_${DateTime.now().microsecondsSinceEpoch}.tmp',
-    ));
-    try {
-      await probe.writeAsString('ok', flush: true);
-      await probe.delete();
-      return true;
-    } on FileSystemException {
-      return false;
+    Directory? base;
+    if (Platform.isAndroid) {
+      base = await getExternalStorageDirectory();
     }
+    base ??= await getApplicationDocumentsDirectory();
+
+    final root = Directory(p.join(base.path, SafStorage.rootFolder));
+    if (!await root.exists()) {
+      await root.create(recursive: true);
+    }
+    _cachedRoot = root;
+    return root;
   }
 
+  /// Siempre `true`: el directorio propio de la app no depende de permisos ni
+  /// de que el técnico elija una carpeta, así que no queda nada que configurar
+  /// antes de abrir la cámara.
+  ///
+  /// Se conserva porque las cuatro pantallas de captura la consultan. Si el
+  /// directorio no se pudiera crear, [saveFoto] lanza [FileSystemException] y
+  /// cada pantalla ya muestra su propio mensaje de error.
+  static Future<bool> isConfigured(
+          {String subDirName = 'calibracion_fotos'}) async =>
+      true;
+
+  /// Conservado por compatibilidad. Ya no abre ningún selector: devuelve la
+  /// ruta de almacenamiento propio, que no requiere configuración.
   static Future<String?> configure(
       {String subDirName = 'calibracion_fotos'}) async {
-    if (Platform.isAndroid && !await _requestAndroidStorageAccess()) {
+    try {
+      return (await _root()).path;
+    } on FileSystemException {
       return null;
     }
-
-    final path = await FilePicker.getDirectoryPath(
-      dialogTitle: 'Seleccione o cree la carpeta ServiceMET',
-    );
-    if (path == null) return null;
-
-    final dir = Directory(path);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-
-    final fotosDir = Directory(p.join(path, subDirName));
-    if (!await fotosDir.exists()) {
-      await fotosDir.create(recursive: true);
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, path);
-    return path;
-  }
-
-  static Future<bool> _requestAndroidStorageAccess() async {
-    if (await Permission.manageExternalStorage.isGranted) return true;
-
-    final manageStatus = await Permission.manageExternalStorage.request();
-    if (manageStatus.isGranted) return true;
-
-    // Compatibilidad con versiones de Android anteriores al almacenamiento
-    // con alcance (scoped storage).
-    final storageStatus = await Permission.storage.request();
-    return storageStatus.isGranted;
   }
 
   static Future<String> getBasePath() async {
-    final prefs = await SharedPreferences.getInstance();
-    final basePath = prefs.getString(_prefsKey);
-    if (basePath == null || basePath.isEmpty) {
+    try {
+      return (await _root()).path;
+    } on FileSystemException {
       throw FotoStorageNotConfiguredError();
     }
-    return basePath;
+  }
+
+  /// Carpeta del servicio completo: `ServiceMET/{seca}/`.
+  static Future<Directory> getServicioDir(String seca) async {
+    final root = await _root();
+    final dir = Directory(p.join(root.path, SafStorage.sanitizeSegment(seca)));
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+    return dir;
   }
 
   static Future<Directory> getBaseDir(
       {String subDirName = 'calibracion_fotos'}) async {
-    final basePath = await getBasePath();
-    final dir = Directory(p.join(basePath, subDirName));
+    final root = await _root();
+    final dir = Directory(p.join(root.path, subDirName));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -91,8 +94,12 @@ class FotoHelper {
 
   static Future<Directory> getInstrumentoDir(String seca, String codMetrica,
       {String subDirName = 'calibracion_fotos'}) async {
-    final base = await getBaseDir(subDirName: subDirName);
-    final dir = Directory(p.join(base.path, seca, codMetrica));
+    final servicio = await getServicioDir(seca);
+    final dir = Directory(p.join(
+      servicio.path,
+      subDirName,
+      SafStorage.sanitizeSegment(codMetrica),
+    ));
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
@@ -138,9 +145,17 @@ class FotoHelper {
     }
   }
 
+  /// Olvida la ruta pública configurada por versiones ≤ 6.1.1.
+  ///
+  /// Las fotos de servicios que quedaron en curso durante la actualización
+  /// siguen físicamente en el dispositivo, pero al retirar
+  /// MANAGE_EXTERNAL_STORAGE el sistema revoca su lectura. Las pantallas de
+  /// captura ya comprueban `File.existsSync()` y muestran un marcador de foto
+  /// no disponible en lugar de fallar.
   static Future<void> reset() async {
+    _cachedRoot = null;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_prefsKey);
+    await prefs.remove(_legacyPrefsKey);
   }
 }
 
