@@ -13,10 +13,12 @@ import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:provider/provider.dart';
 
+import '../../database/precarga_bd.dart';
 import '../../login/services/setup_service.dart';
 import '../../login/services/connection_profile_service.dart';
 import '../../login/widgets/setup/setup_loading.dart';
 import '../../login/screens/initial_setup_screen.dart';
+import 'widgets/autorizar_actualizacion_dialog.dart';
 
 class DescargaDeDatosScreen extends StatefulWidget {
   final String userName;
@@ -67,17 +69,13 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
       final dbPath = await getDatabasesPath();
       final precargaDbPath = path.join(dbPath, 'precarga_database.db');
       if (await databaseExists(precargaDbPath)) {
-        final db = await openDatabase(precargaDbPath);
-        final c = Sqflite.firstIntValue(
-                await db.rawQuery('SELECT COUNT(*) FROM clientes')) ??
-            0;
-        final p = Sqflite.firstIntValue(
-                await db.rawQuery('SELECT COUNT(*) FROM plantas')) ??
-            0;
-        final e = Sqflite.firstIntValue(
-                await db.rawQuery('SELECT COUNT(*) FROM balanzas')) ??
-            0;
-        await db.close();
+        // Se abre a través del helper: garantiza el esquema en `onOpen`, en
+        // vez de crear un archivo vacío y sin tablas como hacía el
+        // `openDatabase` directo.
+        final db = await DatabaseHelperPrecarga().database;
+        final c = await _contarFilas(db, 'clientes');
+        final p = await _contarFilas(db, 'plantas');
+        final e = await _contarFilas(db, 'balanzas');
         if (mounted) {
           setState(() {
             _clientesCount = c;
@@ -87,6 +85,18 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
         }
       }
     } catch (_) {}
+  }
+
+  /// Devuelve 0 si la tabla todavía no existe, en vez de propagar el error.
+  Future<int> _contarFilas(Database db, String tabla) async {
+    try {
+      return Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $tabla'),
+          ) ??
+          0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> _showUpdateDialog() async {
@@ -212,35 +222,12 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
       _showError('No hay un usuario o servidor configurado.');
       return;
     }
-    final passwordController = TextEditingController();
+    // El controller vive dentro del diálogo, no aquí: ver la nota en
+    // [AutorizarActualizacionDialog].
     final password = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Autorizar actualización'),
-        content: TextField(
-          controller: passwordController,
-          obscureText: true,
-          autofocus: true,
-          decoration: const InputDecoration(
-            labelText: 'Contraseña',
-            prefixIcon: Icon(Icons.lock_outline_rounded),
-          ),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, passwordController.text),
-            child: const Text('Actualizar'),
-          ),
-        ],
-      ),
+      builder: (_) => const AutorizarActualizacionDialog(),
     );
-    passwordController.dispose();
     if (password == null || password.isEmpty || !mounted) return;
     setState(() {
       _loading = true;

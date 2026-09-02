@@ -56,6 +56,10 @@ class _ClienteStepState extends State<ClienteStep> {
   }
 
   Future<void> _filterClientes(String query, int request) async {
+    // Llega desde un Timer de 250 ms: para entonces el paso puede haberse
+    // desmontado, así que ningún setState va sin guard.
+    if (!mounted || request != _searchRequest) return;
+
     final search = query.trim();
     if (search.isEmpty) {
       setState(() {
