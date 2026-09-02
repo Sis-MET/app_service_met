@@ -2,96 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
+import 'package:service_met/screens/soporte_new/widgets/shared/bulk_estado_toggle.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
-
-// ── All Good toggle card ──────────────────────────────────────────────
-class _AllGoodCard extends StatelessWidget {
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _AllGoodCard({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const activeColor = Color(0xFF46824B);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: value
-              ? activeColor.withOpacity(0.45)
-              : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: value
-                  ? activeColor.withOpacity(isDark ? 0.2 : 0.12)
-                  : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              value ? Icons.check_circle_outline_rounded : Icons.checklist_rounded,
-              size: 20,
-              color: value
-                  ? activeColor
-                  : (isDark ? Colors.white38 : Colors.black38),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Todo en buen estado',
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value
-                      ? 'Todos los campos marcados como "1 Bueno"'
-                      : 'Active para aplicar "Buen Estado" a todos los campos',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: isDark ? Colors.white54 : Colors.black45,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: Colors.white,
-            activeTrackColor: activeColor,
-            inactiveThumbColor: isDark ? Colors.white54 : Colors.black45,
-            inactiveTrackColor:
-                isDark ? Colors.white24 : const Color(0xFFE2E8F0),
-          ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 300.ms);
-  }
-}
 
 // ── Section header ────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
@@ -151,26 +63,29 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-// ── Mixin para AllGood toggle ─────────────────────────────────────────
+// ── Mixin para acciones masivas de estado ────────────────────────────
 mixin _AllGoodMixin<T extends StatefulWidget> on State<T> {
-  bool _isAllGood = false;
+  BulkEstadoMode _bulkMode = BulkEstadoMode.none;
 
-  void toggleAllGood(bool value, List<CampoEstado> campos) {
+  void setBulkMode(BulkEstadoMode mode, List<CampoEstado> campos) {
     setState(() {
-      _isAllGood = value;
-      if (value) {
-        for (final c in campos) {
-          c.value = 'Bueno';
-          c.solutionLabel = 'En buen estado';
-          c.solutionValue = 'No aplica';
-        }
+      _bulkMode = mode;
+      switch (mode) {
+        case BulkEstadoMode.buenEstado:
+          applyBulkEstado(campos,
+              estado: 'Bueno', solutionLabel: 'En buen estado');
+        case BulkEstadoMode.noAplica:
+          applyBulkEstado(campos,
+              estado: 'No aplica', solutionLabel: 'No aplica');
+        case BulkEstadoMode.none:
+          break;
       }
     });
   }
 
   void onFieldChangedExternally() {
-    if (_isAllGood) {
-      setState(() => _isAllGood = false);
+    if (_bulkMode != BulkEstadoMode.none) {
+      setState(() => _bulkMode = BulkEstadoMode.none);
     }
   }
 }
@@ -202,10 +117,10 @@ class _PasoTerminalState extends State<PasoTerminal> with _AllGoodMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AllGoodCard(
-          value: _isAllGood,
-          onChanged: (v) {
-            toggleAllGood(v, widget.campos);
+        BulkEstadoToggles(
+          mode: _bulkMode,
+          onModeChanged: (m) {
+            setBulkMode(m, widget.campos);
             _notifyAll();
           },
         ),
@@ -259,10 +174,10 @@ class _PasoBalanzaState extends State<PasoBalanza> with _AllGoodMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AllGoodCard(
-          value: _isAllGood,
-          onChanged: (v) {
-            toggleAllGood(v, widget.campos);
+        BulkEstadoToggles(
+          mode: _bulkMode,
+          onModeChanged: (m) {
+            setBulkMode(m, widget.campos);
             _notifyAll();
           },
         ),
@@ -320,10 +235,10 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AllGoodCard(
-          value: _isAllGood,
-          onChanged: (v) {
-            toggleAllGood(v, widget.campos);
+        BulkEstadoToggles(
+          mode: _bulkMode,
+          onModeChanged: (m) {
+            setBulkMode(m, widget.campos);
             _notifyAll();
           },
         ),
@@ -404,10 +319,10 @@ class _PasoEntornoState extends State<PasoEntorno> with _AllGoodMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _AllGoodCard(
-          value: _isAllGood,
-          onChanged: (v) {
-            toggleAllGood(v, widget.campos);
+        BulkEstadoToggles(
+          mode: _bulkMode,
+          onModeChanged: (m) {
+            setBulkMode(m, widget.campos);
             _notifyAll();
           },
         ),

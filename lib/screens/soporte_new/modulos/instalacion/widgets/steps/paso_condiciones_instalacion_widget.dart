@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
+import 'package:service_met/screens/soporte_new/widgets/shared/bulk_estado_toggle.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 
 class PasoCondicionesInstalacionWidget extends StatefulWidget {
@@ -24,7 +24,7 @@ class PasoCondicionesInstalacionWidget extends StatefulWidget {
 
 class _PasoCondicionesInstalacionWidgetState
     extends State<PasoCondicionesInstalacionWidget> {
-  bool _allGood = false;
+  BulkEstadoMode _bulkMode = BulkEstadoMode.none;
 
   static const options = <List<String>>[
     ['Seco', 'Polvoso', 'Muy polvoso', 'Húmedo parcial', 'Húmedo constante'],
@@ -56,7 +56,7 @@ class _PasoCondicionesInstalacionWidgetState
   @override
   void initState() {
     super.initState();
-    _allGood = _hasAllOptimalValues();
+    if (_hasAllOptimalValues()) _bulkMode = BulkEstadoMode.buenEstado;
   }
 
   bool _hasAllOptimalValues() {
@@ -67,12 +67,24 @@ class _PasoCondicionesInstalacionWidgetState
     return true;
   }
 
-  void _toggleAllGood(bool value) {
-    setState(() => _allGood = value);
-    if (!value) return;
+  /// Opciones del campo [index] garantizando que "No aplica" sea seleccionable.
+  List<String> _optionsFor(int index) {
+    final base = options[index];
+    if (base.contains('No aplica')) return base;
+    return [...base, 'No aplica'];
+  }
+
+  void _onBulkModeChanged(BulkEstadoMode mode) {
+    setState(() => _bulkMode = mode);
+    if (mode == BulkEstadoMode.none) return;
     for (var i = 0; i < widget.campos.length; i++) {
-      widget.campos[i].value = optimalValues[i];
-      widget.campos[i].solutionValue = 'En buenas condiciones';
+      if (mode == BulkEstadoMode.buenEstado) {
+        widget.campos[i].value = optimalValues[i];
+        widget.campos[i].solutionValue = 'En buenas condiciones';
+      } else {
+        widget.campos[i].value = 'No aplica';
+        widget.campos[i].solutionValue = 'No aplica';
+      }
       widget.onChanged(
         i,
         widget.campos[i].value,
@@ -83,74 +95,25 @@ class _PasoCondicionesInstalacionWidgetState
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const activeColor = Color(0xFF46824B);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _allGood
-                  ? activeColor.withOpacity(0.45)
-                  : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                _allGood
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.checklist_rounded,
-                color: _allGood
-                    ? activeColor
-                    : (isDark ? Colors.white38 : Colors.black38),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Todas las condiciones son adecuadas',
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      _allGood
-                          ? 'Se aplicaron los valores recomendados'
-                          : 'Active para completar las ocho condiciones',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: isDark ? Colors.white54 : Colors.black45,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch(
-                value: _allGood,
-                onChanged: _toggleAllGood,
-                activeColor: Colors.white,
-                activeTrackColor: activeColor,
-              ),
-            ],
-          ),
+        BulkEstadoToggles(
+          mode: _bulkMode,
+          onModeChanged: _onBulkModeChanged,
+          buenEstadoTitle: 'Todas las condiciones son adecuadas',
         ),
         const SizedBox(height: 20),
         ...List.generate(widget.campos.length, (index) {
           return CampoInspeccionWidget(
-            key: ValueKey('${widget.campos[index].nombre}-$_allGood'),
+            key: ValueKey('${widget.campos[index].nombre}-${_bulkMode.name}'),
             campoEstado: widget.campos[index],
-            customOptions: options[index],
+            customOptions: _optionsFor(index),
             solutionAsComment: true,
             onChanged: (value, comentario) {
-              if (_allGood) setState(() => _allGood = false);
+              if (_bulkMode != BulkEstadoMode.none) {
+                setState(() => _bulkMode = BulkEstadoMode.none);
+              }
               widget.onChanged(index, value, comentario);
             },
             seca: widget.seca,

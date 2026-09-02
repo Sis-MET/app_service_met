@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
+import 'package:service_met/screens/soporte_new/widgets/shared/bulk_estado_toggle.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_avanzado/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
@@ -58,7 +59,7 @@ class _StacVerificacionesInternasState
   late VerificacionesInternasController _controller;
   bool _isSaving = false;
   bool _isLoading = true;
-  bool _allInspectionGood = false;
+  BulkEstadoMode _bulkEstadoMode = BulkEstadoMode.none;
 
   static const _recomendacionesOptions = [
     'Diagnostico',
@@ -188,6 +189,9 @@ class _StacVerificacionesInternasState
       _controller.camposEstado[index].value = value;
       _controller.camposEstado[index].solutionValue = solutionValue;
       _controller.markChanged();
+      if (_bulkEstadoMode != BulkEstadoMode.none) {
+        _bulkEstadoMode = BulkEstadoMode.none;
+      }
       setState(() {});
     }
   }
@@ -456,91 +460,25 @@ class _StacVerificacionesInternasState
   }
 
   Widget _buildAllGoodCard() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    const activeColor = Color(0xFF46824B);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _allInspectionGood
-              ? activeColor.withOpacity(0.45)
-              : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _allInspectionGood
-                  ? activeColor.withOpacity(isDark ? 0.2 : 0.12)
-                  : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              _allInspectionGood
-                  ? Icons.check_circle_outline_rounded
-                  : Icons.checklist_rounded,
-              size: 20,
-              color: _allInspectionGood
-                  ? activeColor
-                  : (isDark ? Colors.white38 : Colors.black38),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Todo en buen estado',
-                    style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            isDark ? Colors.white : const Color(0xFF1A1A1A))),
-                const SizedBox(height: 2),
-                Text(
-                  _allInspectionGood
-                      ? 'Los 4 campos fueron marcados como Bueno'
-                      : 'Active para aplicar Buen Estado a todos los campos',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.white54 : Colors.black45),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _allInspectionGood,
-            activeColor: Colors.white,
-            activeTrackColor: activeColor,
-            inactiveThumbColor: isDark ? Colors.white54 : Colors.black45,
-            inactiveTrackColor:
-                isDark ? Colors.white24 : const Color(0xFFE2E8F0),
-            onChanged: (value) {
-              setState(() {
-                _allInspectionGood = value;
-                if (value) {
-                  for (final campo in _controller.camposEstado) {
-                    campo.value = 'Bueno';
-                    campo.solutionValue = 'No aplica';
-                  }
-                  _controller.markChanged();
-                }
-              });
-            },
-          ),
-        ],
-      ),
+    return BulkEstadoToggles(
+      mode: _bulkEstadoMode,
+      onModeChanged: (mode) {
+        setState(() {
+          _bulkEstadoMode = mode;
+          switch (mode) {
+            case BulkEstadoMode.buenEstado:
+              applyBulkEstado(_controller.camposEstado,
+                  estado: 'Bueno', solutionLabel: 'En buen estado');
+              _controller.markChanged();
+            case BulkEstadoMode.noAplica:
+              applyBulkEstado(_controller.camposEstado,
+                  estado: 'No aplica', solutionLabel: 'No aplica');
+              _controller.markChanged();
+            case BulkEstadoMode.none:
+              break;
+          }
+        });
+      },
     );
   }
 
