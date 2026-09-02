@@ -5,29 +5,11 @@ import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 import '../../database/app_database.dart';
+import '../../database/local_database_catalog.dart';
 import '../models/home_dashboard_data.dart';
 import '../models/servicio_model.dart';
 
 class HomeDashboardService {
-  static const List<_SupportSource> _supportDatabases = [
-    _SupportSource('ajustes_metrologicos.db', 'ajustes_metrologicos',
-        'ajuste_verificaciones', 'Ajuste y verificaciones'),
-    _SupportSource('diagnostico_correctivo.db', 'diagnostico', 'diagnostico',
-        'Diagnóstico'),
-    _SupportSource(
-        'instalacion.db', 'instalacion', 'instalacion', 'Instalación'),
-    _SupportSource('diagnostico_correctivo.db', 'diagnostico_correctivo',
-        'mnt_correctivo', 'Mantenimiento correctivo'),
-    _SupportSource('mnt_prv_avanzado_stac.db', 'mnt_prv_avanzado_stac',
-        'mnt_prv_avanzado', 'Mantenimiento preventivo avanzado'),
-    _SupportSource('mnt_prv_regular_stil.db', 'mnt_prv_regular_stil',
-        'mnt_prv_regular', 'Mantenimiento preventivo regular'),
-    _SupportSource('relevamiento_de_datos.db', 'relevamiento_de_datos',
-        'relevamiento_de_datos', 'Relevamiento de datos'),
-    _SupportSource('verificaciones_internas.db', 'verificaciones_internas',
-        'verificaciones_internas', 'Verificaciones internas'),
-  ];
-
   Future<HomeDashboardData> load() async {
     final results = await Future.wait<dynamic>([
       _loadCalibrationData(),
@@ -119,7 +101,7 @@ class HomeDashboardService {
     final grouped = <String, List<Map<String, dynamic>>>{};
 
     final databaseRows = await Future.wait(
-      _supportDatabases.map((source) async {
+      LocalDatabaseCatalog.soporte.map((source) async {
         final path = p.join(root, source.database);
         if (!await databaseExists(path)) return <Map<String, dynamic>>[];
         Database? db;
@@ -245,15 +227,6 @@ class HomeDashboardService {
       return 'No disponible';
     }
   }
-}
-
-class _SupportSource {
-  final String database;
-  final String table;
-  final String module;
-  final String label;
-
-  const _SupportSource(this.database, this.table, this.module, this.label);
 }
 
 class _CalibrationDashboardData {

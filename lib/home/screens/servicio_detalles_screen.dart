@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
+import '../services/local_service_record_repository.dart';
 import '../utils/pdf_generator.dart';
 import '../../utils/foto_storage_dialog.dart';
 import '../../utils/saf_storage.dart';
@@ -16,6 +17,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import 'calibration_upload_screen.dart';
+import 'registro_editor_screen.dart';
 import 'support_upload_screen.dart';
 
 class ServicioDetallesScreen extends StatefulWidget {
@@ -64,10 +66,201 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         .join(' ');
   }
 
-  void _editarItem(int index, Map<String, dynamic> nuevosDatos) {
+  Future<void> _abrirEditorRegistro(int index, Map<String, dynamic> item) async {
+    final actualizado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegistroEditorScreen(
+          servicio: widget.servicio,
+          index: index,
+          item: item,
+        ),
+      ),
+    );
+    if (actualizado != true || !mounted) return;
+
+    final fresco = await LocalServiceRecordRepository.reload(
+      widget.servicio.tipo,
+      item,
+    );
+    if (!mounted) return;
     setState(() {
-      itemsEditados[index] = {...itemsEditados[index], ...nuevosDatos};
+      itemsEditados[index] = fresco ?? itemsEditados[index];
     });
+  }
+
+  Future<void> _confirmarEliminarRegistro(
+      int index, Map<String, dynamic> item) async {
+    final cs = Theme.of(context).colorScheme;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.delete_outline_rounded,
+            color: AppColors.actionNegative),
+        title: const Text('Eliminar registro'),
+        content: Text(
+          'Esta acción borra el registro de forma permanente en este '
+          'dispositivo y no se puede deshacer.',
+          style: GoogleFonts.inter(fontSize: 14, color: cs.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.actionNegative,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    try {
+      final affected =
+          await LocalServiceRecordRepository.delete(widget.servicio.tipo, item);
+      if (!mounted) return;
+      if (affected <= 0) {
+        _mostrarError('No se encontró el registro para eliminar');
+        return;
+      }
+      setState(() => itemsEditados.removeAt(index));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registro eliminado'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (mounted) _mostrarError('Error al eliminar: $e');
+    }
+  }
+
+  void _mostrarError(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const FaIcon(FontAwesomeIcons.circleXmark,
+                color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(mensaje)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Future<void> _mostrarAccionesRegistro(
+      BuildContext context, int index, Map<String, dynamic> item) async {
+    final cs = Theme.of(context).colorScheme;
+    final accion = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: cs.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Registro',
+              style: GoogleFonts.poppins(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Elige qué hacer con este registro individual.',
+              style: GoogleFonts.inter(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.penToSquare,
+              iconColor: AppColors.actionPositive,
+              title: 'Editar',
+              subtitle: 'Modificar los datos de este registro',
+              value: 'editar',
+            ),
+            const SizedBox(height: 10),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.fileArrowDown,
+              iconColor: AppColors.calibracion,
+              title: 'Exportar CSV',
+              subtitle: 'Guardar una copia de este registro',
+              value: 'csv',
+            ),
+            const SizedBox(height: 10),
+            _buildActionTile(
+              context: sheetContext,
+              icon: FontAwesomeIcons.trashCan,
+              iconColor: Colors.red,
+              title: 'Eliminar',
+              subtitle: 'Borrar este registro de forma permanente',
+              value: 'eliminar',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!mounted || accion == null) return;
+    switch (accion) {
+      case 'editar':
+        await _abrirEditorRegistro(index, item);
+      case 'csv':
+        await _exportarRegistroCSV(item);
+      case 'eliminar':
+        await _confirmarEliminarRegistro(index, item);
+    }
+  }
+
+  Future<void> _exportarRegistroCSV(Map<String, dynamic> item) async {
+    try {
+      final csvData = <List<dynamic>>[
+        item.keys.toList(),
+        item.values.toList(),
+      ];
+      final csv = Csv(fieldDelimiter: ';', autoDetect: false).encode(csvData);
+      final csvBytes = Uint8List.fromList(utf8.encode(csv));
+
+      final ref = item['cod_metrica']?.toString().trim();
+      final sufijo = (ref == null || ref.isEmpty)
+          ? DateTime.now().millisecondsSinceEpoch.toString()
+          : ref.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
+      final fileName =
+          '${widget.servicio.prefijo}_${widget.servicio.codigo}_${sufijo}_${DateTime.now().millisecondsSinceEpoch}.csv';
+
+      if (!await _asegurarCarpeta()) return;
+
+      final result = await ServiceExporter.exportServicio(
+        codigoServicio: widget.servicio.codigo,
+        fileName: fileName,
+        mimeType: ServiceExporter.csvMime,
+        bytes: csvBytes,
+      );
+      if (!result.saved) return;
+      _mostrarExito(result);
+    } catch (e) {
+      if (mounted) _mostrarError('Error al exportar: $e');
+    }
   }
 
   List<Map<String, dynamic>> _getFilteredItems({bool soloCompletos = false}) {
@@ -312,6 +505,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     return GestureDetector(
       onTap: () => _mostrarDetalleItem(context, index, item),
+      onLongPress: () => _mostrarAccionesRegistro(context, index, item),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -486,7 +680,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                     TextButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _mostrarDialogoEdicion(context, index, item);
+                        _abrirEditorRegistro(index, item);
                       },
                       icon: Icon(Icons.edit_outlined,
                           size: 16, color: primaryColor),
@@ -796,153 +990,4 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     );
   }
 
-  void _mostrarDialogoEdicion(
-      BuildContext context, int index, Map<String, dynamic> item) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = cs.brightness == Brightness.dark;
-
-    const Color primaryColor = AppColors.actionPositive;
-
-    final camposConDatos = _obtenerCamposConDatos(item);
-    final Map<String, TextEditingController> controllers = {};
-
-    camposConDatos.forEach((key, value) {
-      controllers[key] = TextEditingController(text: value?.toString() ?? '');
-    });
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppColors.cardDark : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: FaIcon(
-                FontAwesomeIcons.penToSquare,
-                color: primaryColor,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Editar ${widget.servicio.nombreItem}',
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: cs.onSurface,
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: controllers.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: TextField(
-                    controller: entry.value,
-                    style: GoogleFonts.inter(
-                      color: cs.onSurface,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: _formatearNombreCampo(entry.key),
-                      labelStyle: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: cs.onSurface.withOpacity(0.7),
-                      ),
-                      filled: true,
-                      fillColor: isDark
-                          ? cs.onSurface.withOpacity(0.05)
-                          : const Color(0xFFF5F7FA),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: isDark
-                              ? cs.onSurface.withOpacity(0.1)
-                              : cs.onSurface.withOpacity(0.05),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: primaryColor,
-                          width: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.inter(
-                color: cs.onSurface.withOpacity(0.6),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final Map<String, dynamic> nuevosDatos = {};
-              controllers.forEach((key, controller) {
-                nuevosDatos[key] = controller.text;
-              });
-
-              _editarItem(index, nuevosDatos);
-              Navigator.pop(context);
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const FaIcon(FontAwesomeIcons.circleCheck,
-                          color: Colors.white, size: 20),
-                      const SizedBox(width: 12),
-                      const Text('Cambios guardados correctamente'),
-                    ],
-                  ),
-                  backgroundColor: primaryColor,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'Guardar',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

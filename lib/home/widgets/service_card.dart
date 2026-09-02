@@ -10,7 +10,11 @@ import '../screens/servicio_detalles_screen.dart';
 class ServiceCard extends StatelessWidget {
   final ServicioResumen servicio;
 
-  const ServiceCard({super.key, required this.servicio});
+  /// Se invoca al volver de la pantalla de detalle, para que el dashboard
+  /// recargue si hubo ediciones o eliminaciones de registros.
+  final VoidCallback? onChanged;
+
+  const ServiceCard({super.key, required this.servicio, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -119,13 +123,14 @@ class ServiceCard extends StatelessWidget {
     return '';
   }
 
-  void _open(BuildContext context) {
-    Navigator.push(
+  Future<void> _open(BuildContext context) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ServicioDetallesScreen(servicio: servicio),
       ),
     );
+    onChanged?.call();
   }
 
   String _formatDate(String? value) {

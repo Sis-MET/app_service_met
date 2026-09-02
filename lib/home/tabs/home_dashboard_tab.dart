@@ -137,7 +137,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
         _buildEmptyState()
       else
         ...(_showAllServices ? services : services.take(8))
-            .map((service) => ServiceCard(servicio: service)),
+            .map((service) => ServiceCard(
+                  servicio: service,
+                  onChanged: _refresh,
+                )),
       if (services.length > 8)
         Padding(
           padding: const EdgeInsets.only(top: 4),
