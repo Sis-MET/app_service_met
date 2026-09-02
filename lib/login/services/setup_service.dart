@@ -4,6 +4,7 @@ import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../database/precarga_bd.dart';
 import 'auth_api_service.dart';
 import 'auth_service.dart';
 import 'database_service.dart';
@@ -164,6 +165,13 @@ class SetupService {
       database = null;
 
       onProgress('Activando los datos offline...', 0.96);
+      // Imprescindible antes de renombrar: `DatabaseHelperPrecarga` cachea la
+      // conexión en un campo estático. Si queda abierta, sigue apuntando al
+      // archivo viejo (ya renombrado o borrado) durante el resto de la sesión,
+      // y la app no ve los datos recién descargados —o falla con
+      // "no such table: clientes" si ese archivo se quedó sin tablas.
+      await DatabaseHelperPrecarga().close();
+
       final activeFile = File(activePath);
       final temporaryFile = File(temporaryPath);
       final backupFile = File(backupPath);

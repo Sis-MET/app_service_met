@@ -23,6 +23,9 @@ class DatabaseHelperPrecarga {
     final path = join(dbPath, _databaseName);
 
     try {
+      // Cerrar antes de borrar: si no, la conexión cacheada sobrevive al
+      // borrado apuntando a un archivo que ya no existe.
+      await close();
       await databaseFactory.deleteDatabase(path);
       _database = null; // Resetear la instancia de la base de datos
       print('Precarga eliminada correctamente en: $path');
@@ -37,6 +40,14 @@ class DatabaseHelperPrecarga {
     if (_database != null && _database!.isOpen) return _database!;
     _database = await _initDatabase();
     return _database!;
+  }
+
+  /// Cierra la conexión; la siguiente lectura vuelve a abrirla.
+  Future<void> close() async {
+    if (_database != null && _database!.isOpen) {
+      await _database!.close();
+    }
+    _database = null;
   }
 
   // Inicializar la base de datos
@@ -55,7 +66,17 @@ class DatabaseHelperPrecarga {
     );
   }
 
+  /// Se ejecuta en cada apertura, no solo al crear el archivo.
+  ///
+  /// El esquema se asegura aquí a propósito: si el archivo
+  /// `precarga_database.db` existe pero quedó sin tablas (descarga
+  /// interrumpida, archivo borrado y recreado vacío por otra ruta que lo abre
+  /// sin `onCreate`, etc.), los `CREATE INDEX` de abajo fallaban con
+  /// "no such table: clientes" y reventaban toda la pantalla de precarga.
+  /// Recreando el esquema vacío la app degrada a "0 registros, descarga la
+  /// precarga" en lugar de romperse.
   Future<void> _onOpen(Database db) async {
+    await _createSchema(db);
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_clientes_nombre '
       'ON clientes(cliente COLLATE NOCASE)',
@@ -67,7 +88,9 @@ class DatabaseHelperPrecarga {
   }
 
   // Crear las tablas
-  Future<void> _onCreate(Database db, int version) async {
+  Future<void> _onCreate(Database db, int version) async => _createSchema(db);
+
+  Future<void> _createSchema(Database db) async {
     await db.execute('''
     CREATE TABLE IF NOT EXISTS clientes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
