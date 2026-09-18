@@ -376,7 +376,10 @@ const calibrationServerSchema = <String, CalibrationColumnDefinition>{
   'puntos_ind': CalibrationColumnDefinition(
       type: CalibrationSqlType.nvarchar, nullable: true, maxLength: 50),
   'carga': CalibrationColumnDefinition(
-      type: CalibrationSqlType.integer, nullable: true),
+      type: CalibrationSqlType.decimal,
+      nullable: true,
+      precision: 15,
+      scale: 6),
   'posicion1': CalibrationColumnDefinition(
       type: CalibrationSqlType.decimal,
       nullable: true,

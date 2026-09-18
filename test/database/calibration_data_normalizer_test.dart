@@ -5,24 +5,38 @@ import 'package:service_met/database/calibration_server_schema.dart';
 void main() {
   test('el esquema generado contiene las 426 columnas del servidor', () {
     expect(calibrationServerSchema, hasLength(426));
-    expect(calibrationServerSchema['carga']?.type, CalibrationSqlType.integer);
+    expect(
+        calibrationServerSchema['cantidad1']?.type, CalibrationSqlType.integer);
     expect(calibrationServerSchema['modelo']?.maxLength, 70);
     expect(calibrationServerSchema['cap_max1']?.precision, 15);
     expect(calibrationServerSchema['cap_max1']?.scale, 6);
   });
 
-  test('convierte 2100.0 al entero 2100', () {
-    final result = CalibrationDataNormalizer.normalizeRecord({
-      'carga': '2100.0',
-    });
+  test('la carga de excentricidad es decimal, como la capacidad', () {
+    // sql/011_expand_excentricidad_carga.sql la cambió de int a decimal(15,6).
+    final carga = calibrationServerSchema['carga'];
+    expect(carga?.type, CalibrationSqlType.decimal);
+    expect(carga?.precision, 15);
+    expect(carga?.scale, 6);
 
-    expect(result['carga'], 2100);
-    expect(result['carga'], isA<int>());
+    final result = CalibrationDataNormalizer.normalizeRecord({
+      'carga': '66.650',
+    });
+    expect(result['carga'], '66.65');
   });
 
-  test('rechaza una carga con fracción distinta de cero', () {
+  test('convierte 2.0 al entero 2', () {
+    final result = CalibrationDataNormalizer.normalizeRecord({
+      'cantidad1': '2.0',
+    });
+
+    expect(result['cantidad1'], 2);
+    expect(result['cantidad1'], isA<int>());
+  });
+
+  test('rechaza un entero con fracción distinta de cero', () {
     expect(
-      () => CalibrationDataNormalizer.normalizeRecord({'carga': '2100.5'}),
+      () => CalibrationDataNormalizer.normalizeRecord({'cantidad1': '2.5'}),
       throwsA(
         isA<CalibrationDataException>().having(
           (error) => error.code,
@@ -54,18 +68,18 @@ void main() {
 
     final local = CalibrationDataNormalizer.normalizeRecord({
       'vibracion_foto': longPath,
-      'carga': '2100.0',
+      'cantidad1': '2.0',
     });
     final upload = CalibrationDataNormalizer.normalizeForUpload({
       'vibracion_foto': longPath,
       'foto_balanza': longPath,
-      'carga': '2100.0',
+      'cantidad1': '2.0',
     });
 
     expect(local['vibracion_foto'], longPath);
     expect(upload.containsKey('vibracion_foto'), isFalse);
     expect(upload.containsKey('foto_balanza'), isFalse);
-    expect(upload['carga'], 2100);
+    expect(upload['cantidad1'], 2);
   });
 
   test('normaliza decimales sin perder precisión en punto flotante', () {
@@ -79,12 +93,12 @@ void main() {
 
   test('conserva el nombre lógico del CSV solo para el resumen', () {
     final result = CalibrationDataNormalizer.normalizeForUpload({
-      'carga': '2100.0',
+      'cantidad1': '2.0',
       'nombre_csv': 'SECA-01_20260810_143433.csv',
       'finalized_at': '2026-08-10T14:34:33',
     });
 
-    expect(result['carga'], 2100);
+    expect(result['cantidad1'], 2);
     expect(result['nombre_csv'], 'SECA-01_20260810_143433.csv');
     expect(result.containsKey('finalized_at'), isFalse);
   });

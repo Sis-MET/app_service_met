@@ -38,6 +38,15 @@ extensos, deben ejecutarse una sola vez, y en este orden:
 Los scripts validan la estructura y aplican todos los cambios dentro de una
 transacción antes de mostrar el esquema resultante.
 
+Para registrar cargas de excentricidad con decimales (por ejemplo 0.5 kg en una
+balanza de 1.5 kg), debe ejecutarse una sola vez
+`sql/011_expand_excentricidad_carga.sql` **antes** de desplegar el backend con
+este esquema y la versión de ServiceMET que los admite. Cambia `carga` de `int`
+a `decimal(15,6)`, la misma precisión que `cap_max1` a `cap_max3`; conserva los
+valores existentes y puede volver a ejecutarse sin efecto. Al terminar lista
+los procedimientos, vistas y funciones que mencionan `carga`, para revisar que
+ninguno la convierta a entero.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 

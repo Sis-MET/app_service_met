@@ -63,10 +63,25 @@ test('normaliza una representación decimal exacta de un entero', () => {
     seca: '1234',
     cod_metrica: 'ABC-01',
     estado_servicio_bal: 'Balanza Calibrada',
-    carga: '2100.0',
+    cantidad1: '2.0',
   }], schema);
   assert.equal(result.records[0].valid, true);
-  assert.equal(result.records[0].normalized.carga, 2100);
+  assert.equal(result.records[0].normalized.cantidad1, 2);
+});
+
+test('acepta una carga de excentricidad con decimales', () => {
+  assert.equal(schema.get('carga').type, 'decimal');
+  assert.equal(schema.get('carga').precision, 15);
+  assert.equal(schema.get('carga').scale, 6);
+
+  const result = validateRecords([{
+    seca: '1234',
+    cod_metrica: 'ABC-01',
+    estado_servicio_bal: 'Balanza Calibrada',
+    carga: '66.65',
+  }], schema);
+  assert.equal(result.records[0].valid, true);
+  assert.equal(result.records[0].normalized.carga, '66.65');
 });
 
 test('valida y conserva el nombre lógico del CSV para el resumen', () => {

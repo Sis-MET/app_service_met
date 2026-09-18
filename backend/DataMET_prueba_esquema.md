@@ -180,7 +180,7 @@ Total de columnas: **426**
 | 135 | `excentricidad_comentario` | nvarchar | 500 | Sí | - |
 | 136 | `tipo_plataforma` | nvarchar | 50 | Sí | - |
 | 137 | `puntos_ind` | nvarchar | 50 | Sí | - |
-| 138 | `carga` | int | 10,0 | Sí | - |
+| 138 | `carga` | decimal | 15,6 | Sí | - |
 | 139 | `posicion1` | decimal | 12,6 | Sí | - |
 | 140 | `indicacion1` | decimal | 12,6 | Sí | - |
 | 141 | `retorno1` | decimal | 12,6 | Sí | - |
