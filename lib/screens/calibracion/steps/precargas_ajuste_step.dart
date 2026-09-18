@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:service_met/theme/app_colors.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 
 class PrecargasAjusteStep extends StatefulWidget {
   const PrecargasAjusteStep({super.key});
@@ -258,32 +258,31 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 Expanded(child: _buildHoraField(isDark)),
               ]),
               const SizedBox(height: 10),
-              Row(children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(
-                    child: TextField(
-                        style: GoogleFonts.inter(
-                            color: cs.onSurface),
+                    child: CalibrationNumberField(
+                        style: GoogleFonts.inter(color: cs.onSurface),
                         controller: _tiCtrl,
+                        column: 'ti',
+                        // Hay cámaras frías bajo cero.
+                        allowNegative: true,
                         onChanged: (_) => _saveToProvider(),
-                        keyboardType: TextInputType.number,
                         decoration: _deco('Ti (°C)', isDark))),
                 const SizedBox(width: 10),
                 Expanded(
-                    child: TextField(
-                        style: GoogleFonts.inter(
-                            color: cs.onSurface),
+                    child: CalibrationNumberField(
+                        style: GoogleFonts.inter(color: cs.onSurface),
                         controller: _hriCtrl,
+                        column: 'hri',
                         onChanged: (_) => _saveToProvider(),
-                        keyboardType: TextInputType.number,
                         decoration: _deco('HRi (%)', isDark))),
               ]),
               const SizedBox(height: 10),
-              TextField(
-                  style: GoogleFonts.inter(
-                      color: cs.onSurface),
+              CalibrationNumberField(
+                  style: GoogleFonts.inter(color: cs.onSurface),
                   controller: _patmiCtrl,
+                  column: 'patmi',
                   onChanged: (_) => _saveToProvider(),
-                  keyboardType: TextInputType.number,
                   decoration: _deco('Patmi (hPa)', isDark)),
               const SizedBox(height: 20),
             ],
@@ -298,61 +297,48 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 28,
-            child: Text('${i + 1}.',
-                style: GoogleFonts.inter(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : Colors.black87)),
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: SizedBox(
+              width: 28,
+              child: Text('${i + 1}.',
+                  style: GoogleFonts.inter(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white70 : Colors.black87)),
+            ),
           ),
           const SizedBox(width: 4),
           Expanded(
-              child: TextField(
-            style: GoogleFonts.inter(
-                color: cs.onSurface),
+              child: CalibrationNumberField(
+            style: GoogleFonts.inter(color: cs.onSurface),
             controller: _rows[i][0],
+            column: 'precarga${i + 1}',
             onChanged: (_) => _onPrecargaChanged(i),
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-            ],
             decoration: _deco('Precarga', isDark),
           )),
           const SizedBox(width: 8),
           Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (_rows[i][0].text.isNotEmpty) {
-                  _showSuggestedValues(i, isDark);
-                }
-              },
-              child: AbsorbPointer(
-                child: TextField(
-                  style: GoogleFonts.inter(
-                      color: cs.onSurface),
-                  controller: _rows[i][1],
-                  decoration: InputDecoration(
-                    labelText: 'Indicación',
-                    labelStyle: GoogleFonts.inter(
-                        color: isDark ? Colors.white70 : Colors.black87),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: isDark ? Colors.white24 : Colors.black26)),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: isDark ? Colors.white12 : Colors.black12)),
-                    suffixIcon: _rows[i][0].text.isNotEmpty
-                        ? Icon(Icons.unfold_more_rounded,
+            // La indicación se escribe con el teclado o se elige entre los
+            // valores cercanos a la precarga, con el ícono.
+            child: CalibrationNumberField(
+              style: GoogleFonts.inter(color: cs.onSurface),
+              controller: _rows[i][1],
+              column: 'p_indicador${i + 1}',
+              onChanged: (_) => _saveToProvider(),
+              decoration: _deco('Indicación', isDark).copyWith(
+                suffixIcon: _rows[i][0].text.isNotEmpty
+                    ? IconButton(
+                        tooltip: 'Valores sugeridos',
+                        onPressed: () => _showSuggestedValues(i, isDark),
+                        icon: Icon(Icons.unfold_more_rounded,
                             color: isDark
                                 ? AppColors.accentYellow
                                 : const Color(0xFF5A4E00),
-                            size: 20)
-                        : null,
-                  ),
-                ),
+                            size: 20),
+                      )
+                    : null,
               ),
             ),
           ),

@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,10 +8,12 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/numeric_keypad.dart';
 
 class CondicionesFinalesStep extends StatefulWidget {
   const CondicionesFinalesStep({super.key});
@@ -166,32 +167,34 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
           _sectionHeader('1. Condiciones Ambientales Finales', isDark),
           _buildHoraField(isDark),
           const SizedBox(height: 12),
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
-                child: TextField(
+                child: CalibrationNumberField(
                     style: GoogleFonts.inter(
                         color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                     controller: _hriCtrl,
+                    column: 'hri_fin',
                     onChanged: (_) => _saveToProvider(),
-                    keyboardType: TextInputType.number,
                     decoration: _deco('HRi Fin (%)', isDark))),
             const SizedBox(width: 10),
             Expanded(
-                child: TextField(
+                child: CalibrationNumberField(
                     style: GoogleFonts.inter(
                         color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                     controller: _tiCtrl,
+                    column: 'ti_fin',
+                    // Hay cámaras frías bajo cero.
+                    allowNegative: true,
                     onChanged: (_) => _saveToProvider(),
-                    keyboardType: TextInputType.number,
                     decoration: _deco('Ti Fin (°C)', isDark))),
           ]),
           const SizedBox(height: 12),
-          TextField(
+          CalibrationNumberField(
               style: GoogleFonts.inter(
                   color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               controller: _patmiCtrl,
+              column: 'patmi_fin',
               onChanged: (_) => _saveToProvider(),
-              keyboardType: TextInputType.number,
               decoration: _deco('Patmi Fin (hPa)', isDark)),
           const SizedBox(height: 24),
           _sectionHeader('2. Recomendaciones', isDark),
@@ -547,25 +550,31 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
         title: Text('Cantidad',
             style: GoogleFonts.inter(
                 color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
-        content: TextField(
-          controller: ctrl,
-          style: GoogleFonts.inter(
-              color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-          keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          decoration: InputDecoration(
-            labelText: 'Cantidad a llevar',
-            labelStyle: GoogleFonts.inter(
-                color: isDark ? Colors.white70 : Colors.black87),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+        // El diálogo queda fuera del teclado de la pantalla: lleva el suyo.
+        content: SizedBox(
+          width: double.maxFinite,
+          child: NumericKeypadHost(
+            child: CalibrationNumberField(
+              controller: ctrl,
+              column: 'cantidad1',
+              autofocus: true,
+              style: GoogleFonts.inter(
+                  color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+              decoration: InputDecoration(
+                labelText: 'Cantidad a llevar',
+                labelStyle: GoogleFonts.inter(
+                    color: isDark ? Colors.white70 : Colors.black87),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white12 : Colors.black12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                      color: isDark ? Colors.white24 : Colors.black26),
+                ),
+              ),
             ),
           ),
         ),

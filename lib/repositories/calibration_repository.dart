@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:path/path.dart';
 import 'package:service_met/database/app_database.dart';
+import 'package:service_met/database/calibration_data_normalizer.dart';
 import 'package:service_met/database/precarga_bd.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:sqflite/sqflite.dart';
@@ -24,10 +25,43 @@ class CalibrationRepository {
 
   Future<void> saveSession(
       String seca, String sessionId, ServiceSession session) async {
+    await _db.upsertRegistroCalibracion(_recordOf(seca, sessionId, session));
+  }
+
+  Map<String, dynamic> _recordOf(
+      String seca, String sessionId, ServiceSession session) {
     final Map<String, dynamic> data = session.toMap();
     data['seca'] = seca;
     data['session_id'] = sessionId;
-    await _db.upsertRegistroCalibracion(data);
+    return data;
+  }
+
+  /// Relee la fila de la sesión y devuelve las columnas cuyo valor guardado
+  /// no es el de [session]. Vacía si todo quedó en la base.
+  Future<List<String>> findUnsavedColumns(
+      String seca, String sessionId, ServiceSession session) async {
+    final expected = CalibrationDataNormalizer.normalizeRecord(
+      _recordOf(seca, sessionId, session),
+    );
+    final saved = await _db.getRegistroBySeca(seca, sessionId);
+    if (saved == null) return expected.keys.toList();
+    return [
+      for (final entry in expected.entries)
+        if (!CalibrationDataNormalizer.isLocalFileField(entry.key) &&
+            !_sameStoredValue(entry.value, saved[entry.key]))
+          entry.key,
+    ];
+  }
+
+  /// SQLite devuelve 2100 como 2100.0 en las columnas REAL: los números se
+  /// comparan por valor.
+  static bool _sameStoredValue(Object? expected, Object? stored) {
+    final a = expected?.toString().trim() ?? '';
+    final b = stored?.toString().trim() ?? '';
+    if (a == b) return true;
+    final x = double.tryParse(a);
+    final y = double.tryParse(b);
+    return x != null && y != null && x == y;
   }
 
   Future<String> generateSessionId(String seca) async {

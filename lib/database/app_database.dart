@@ -287,6 +287,9 @@ class AppDatabase {
       );
     } catch (e) {
       debugPrint('Error al marcar balanza completa: $e');
+      // Quien cierra la balanza tiene que enterarse: si no quedó marcada, no
+      // aparece para exportar ni subir.
+      rethrow;
     }
   }
 

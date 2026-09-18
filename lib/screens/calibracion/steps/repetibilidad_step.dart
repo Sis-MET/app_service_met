@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class RepetibilidadStep extends StatefulWidget {
@@ -44,11 +44,17 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     _notaCtrl.text = rep.nota ?? '';
     if (rep.cargas.isNotEmpty) {
       final nCargas = rep.cargas.length.clamp(1, 3);
-      final nMediciones = rep.cargas
-          .map((c) => (c.indicaciones.length).clamp(3, 10))
-          .fold(3, (a, b) => a > b ? a : b);
+      final registradas = rep.cargas
+          .map((c) => c.indicaciones.length)
+          .fold(0, (a, b) => a > b ? a : b);
+      // La lista solo ofrece 3, 5 o 10: se toma la menor que alcanza para lo
+      // registrado.
+      _medicionesCount = _medicionesOptions.firstWhere(
+        (option) => int.parse(option) >= registradas,
+        orElse: () => _medicionesOptions.last,
+      );
+      final nMediciones = int.parse(_medicionesCount!);
       _cargasCount = nCargas.toString();
-      _medicionesCount = nMediciones.toString();
       _buildControllers(nCargas, nMediciones);
       for (int i = 0; i < nCargas; i++) {
         _cargasCtrls[i].text = rep.cargas[i].carga ?? '';
@@ -62,6 +68,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         }
       }
     }
+    if (mounted) setState(() {});
   }
 
   /// Verifica si hay datos del servicio anterior para precargar cargas.
@@ -211,7 +218,10 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
   }
 
   void _saveToProvider() {
-    final n = int.tryParse(_cargasCount ?? '1') ?? 1;
+    // Sin N° de cargas elegido todavía no hay filas (solo la nota), y sin N°
+    // de mediciones las cargas aún no muestran lecturas.
+    final n = _cargasCount == null ? 0 : _cargasCtrls.length;
+    final conMediciones = _medicionesCount != null;
     final provider = context.read<ServiceSessionProvider>();
     provider.updateRepetibilidad(RepetibilidadData(
       nota: _notaCtrl.text,
@@ -219,12 +229,16 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           n,
           (i) => CargaRepetibilidad(
                 carga: _cargasCtrls[i].text,
-                indicaciones: _indCtrls[i]
-                    .map((c) => c.text.isEmpty ? null : c.text)
-                    .toList(),
-                retornos: _retCtrls[i]
-                    .map((c) => c.text.isEmpty ? null : c.text)
-                    .toList(),
+                indicaciones: conMediciones
+                    ? _indCtrls[i]
+                        .map((c) => c.text.isEmpty ? null : c.text)
+                        .toList()
+                    : const [],
+                retornos: conMediciones
+                    ? _retCtrls[i]
+                        .map((c) => c.text.isEmpty ? null : c.text)
+                        .toList()
+                    : const [],
               )),
     ));
   }
@@ -389,10 +403,11 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
+            child: CalibrationNumberField(
               style: GoogleFonts.inter(
                   color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               controller: _cargasCtrls[i],
+              column: 'repetibilidad${i + 1}',
               onChanged: (val) {
                 final formatted = _formatValueWithPrecision(val);
                 for (int j = 0; j < nMediciones; j++) {
@@ -400,11 +415,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                 }
                 _saveToProvider();
               },
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-              ],
               decoration: _deco('Valor de carga', isDark),
             ),
           ),
@@ -436,22 +446,29 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               (j) => Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Row(children: [
-                      SizedBox(
-                          width: 30,
-                          child: Text('${j + 1}',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark
-                                      ? Colors.white70
-                                      : Colors.black87))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _indicationField(i, j, isDark)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _numField(_retCtrls[i][j], isDark)),
-                    ]),
+                    child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: SizedBox(
+                                width: 30,
+                                child: Text('${j + 1}',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black87))),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(child: _indicationField(i, j, isDark)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                              child: _numField(_retCtrls[i][j],
+                                  'retorno${i + 1}_${j + 1}', isDark)),
+                        ]),
                   )),
           const SizedBox(height: 12),
         ],
@@ -477,15 +494,13 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
 
   Widget _indicationField(int cargaIdx, int medIdx, bool isDark) {
     final hasBase = _cargasCtrls[cargaIdx].text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[cargaIdx][medIdx],
+      column: 'indicacion${cargaIdx + 1}_${medIdx + 1}',
+      allowNegative: true,
       onChanged: (_) => _saveToProvider(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: _fieldDecoration(
         isDark,
         suffixIcon: hasBase
@@ -522,15 +537,14 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
     });
   }
 
-  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+  Widget _numField(TextEditingController ctrl, String column, bool isDark) =>
+      CalibrationNumberField(
         style: GoogleFonts.inter(
             color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
+        column: column,
+        allowNegative: true,
         onChanged: (_) => _saveToProvider(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-        ],
         decoration: _fieldDecoration(isDark),
       );
 

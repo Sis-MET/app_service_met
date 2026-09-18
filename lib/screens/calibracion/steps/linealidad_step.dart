@@ -9,10 +9,12 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/numeric_keypad.dart';
 
 class LinealidadStep extends StatefulWidget {
   const LinealidadStep({super.key});
@@ -715,6 +717,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
           ),
           const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: _cargaField(i, isDark)),
               const SizedBox(width: 10),
@@ -723,6 +726,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
           ),
           const SizedBox(height: 10),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: _retornoField(i, isDark)),
               const SizedBox(width: 10),
@@ -761,30 +765,25 @@ class _LinealidadStepState extends State<LinealidadStep> {
   }
 
   Widget _cargaField(int i, bool isDark) {
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _cargaCtrls[i],
+      column: 'lin${i + 1}',
       onChanged: (val) => _onCargaChanged(i, val),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-      ],
       decoration: _fieldDecoration(isDark, labelText: 'Carga real'),
     );
   }
 
   Widget _indicationField(int i, bool isDark) {
     final hasBase = _cargaCtrls[i].text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[i],
+      column: 'ind${i + 1}',
+      allowNegative: true,
       onChanged: (val) => _onIndicacionChanged(i, val),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: _fieldDecoration(
         isDark,
         labelText: 'Indicacion',
@@ -800,15 +799,13 @@ class _LinealidadStepState extends State<LinealidadStep> {
   }
 
   Widget _retornoField(int i, bool isDark) {
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _retCtrls[i],
+      column: 'retorno_lin${i + 1}',
+      allowNegative: true,
       onChanged: (_) => _onRetornoChanged(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: _fieldDecoration(isDark, labelText: 'Retorno a cero'),
     );
   }
@@ -905,7 +902,9 @@ class _LinealidadStepState extends State<LinealidadStep> {
             return Padding(
               padding: EdgeInsets.fromLTRB(
                   20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-              child: Column(
+              // La hoja queda fuera del teclado de la pantalla: lleva el suyo.
+              child: NumericKeypadHost(
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1053,7 +1052,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                     ),
                   ),
                 ],
-              ),
+              )),
             );
           },
         );
@@ -1173,15 +1172,12 @@ class _LinealidadStepState extends State<LinealidadStep> {
     required bool isDark,
     required ValueChanged<String> onChanged,
   }) {
-    return TextField(
+    // Valor intermedio: la carga acumulada que resulta se valida en la fila.
+    return CalibrationNumberField(
       controller: controller,
       onChanged: onChanged,
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: _deco(label, isDark),
     );
   }

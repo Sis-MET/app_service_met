@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../database/calibration_record_validator.dart';
 import '../../login/services/connection_profile_service.dart';
 import '../../repositories/calibration_repository.dart';
 import '../../theme/app_design.dart';
@@ -34,6 +35,15 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   bool _working = false;
   String? _error;
   CalibrationValidationResult? _validation;
+
+  /// Balanzas pendientes sin alguna prueba guardada: "0032-11-020: Linealidad".
+  /// El servidor solo revisa tipos y formatos; una prueba vacía la aceptaría.
+  List<String> get _incompleteRecords => [
+        for (final record in _pendingRecords)
+          if (CalibrationRecordValidator.missingTests(record) case final faltan
+              when faltan.isNotEmpty)
+            '${record['cod_metrica'] ?? 'Sin código'}: ${faltan.join(', ')}',
+      ];
 
   @override
   void initState() {
@@ -168,14 +178,16 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   Future<void> _upload({required bool validOnly}) async {
     final validation = _validation;
     if (validation == null) return;
+    final incompletas = _incompleteRecords.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title:
             Text(validOnly ? 'Subir registros válidos' : 'Subir lote completo'),
-        content: Text(validOnly
-            ? 'Se subirán ${validation.validCount} balanzas. Las ${validation.invalidCount} balanzas con errores permanecerán pendientes. ¿Desea continuar?'
-            : 'Se subirán ${validation.validCount} balanzas en una sola transacción. ¿Desea continuar?'),
+        content: Text(
+            '${validOnly ? 'Se subirán ${validation.validCount} balanzas. Las ${validation.invalidCount} balanzas con errores permanecerán pendientes.' : 'Se subirán ${validation.validCount} balanzas en una sola transacción.'}'
+            '${incompletas > 0 ? '\n\nAtención: $incompletas balanza(s) no tienen todas sus pruebas guardadas y se subirán así.' : ''}'
+            '\n\n¿Desea continuar?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -291,6 +303,16 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                     text: 'Se encontraron $_duplicateCount registro(s) '
                         'local(es) duplicado(s). Se subirá solamente la '
                         'calibración más reciente de cada balanza.',
+                  ),
+                ],
+                if (_incompleteRecords.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _messageCard(
+                    icon: Icons.rule_rounded,
+                    color: Colors.red,
+                    text: 'Estas balanzas no tienen todas sus pruebas '
+                        'guardadas en el teléfono. Revíselas antes de '
+                        'subir:\n${_incompleteRecords.map((linea) => '• $linea').join('\n')}',
                   ),
                 ],
                 const SizedBox(height: 20),

@@ -37,7 +37,7 @@ class CalibrationDataNormalizer {
 
   const CalibrationDataNormalizer._();
 
-  static bool _isLocalFileField(String column) =>
+  static bool isLocalFileField(String column) =>
       column == 'foto_balanza' || column.endsWith('_foto');
 
   static Map<String, dynamic> normalizeRecord(
@@ -46,7 +46,7 @@ class CalibrationDataNormalizer {
   }) {
     final normalized = <String, dynamic>{};
     for (final entry in record.entries) {
-      if (_isLocalFileField(entry.key)) {
+      if (isLocalFileField(entry.key)) {
         normalized[entry.key] = entry.value;
         continue;
       }
@@ -80,7 +80,7 @@ class CalibrationDataNormalizer {
       record.entries.where(
         (entry) =>
             !_uploadExcludedFields.contains(entry.key) &&
-            !_isLocalFileField(entry.key),
+            !isLocalFileField(entry.key),
       ),
     );
     final normalized = normalizeRecord(filtered);

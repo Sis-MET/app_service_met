@@ -1,0 +1,210 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
+import 'package:service_met/database/app_database.dart';
+import 'package:service_met/models/service_session.dart';
+import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+void main() {
+  setUpAll(() {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  });
+
+  Future<void> borrarBase() async {
+    await AppDatabase().close();
+    await deleteDatabase(p.join(await getDatabasesPath(), 'calibracion.db'));
+  }
+
+  setUp(borrarBase);
+  tearDown(borrarBase);
+
+  Future<ServiceSessionProvider> nuevaSesion({bool conSeca = true}) async {
+    final provider = ServiceSessionProvider(CalibrationRepository());
+    addTearDown(provider.dispose);
+    await provider.createNewSession('tecnico');
+    if (conSeca) {
+      provider.updateCliente(ClienteInfo(id: '1', nombreComercial: 'Cliente'));
+      provider.updatePlanta(PlantaInfo(codigo: '0032-11', nombre: 'Planta'));
+      expect(await provider.confirmSeca(), isTrue);
+    }
+    return provider;
+  }
+
+  ExcentricidadData excentricidad(
+    String carga, {
+    String puntos = 'Rectangular 3F',
+    int filasVacias = 0,
+    String? nota,
+  }) =>
+      ExcentricidadData(
+        tipoPlataforma: 'Rectangular',
+        puntosIndicacion: puntos,
+        carga: carga,
+        nota: nota,
+        posiciones: [
+          for (var i = 1; i <= 3; i++)
+            PosicionData(posicion: '$i', indicacion: '67.0', retorno: '0'),
+          for (var i = 0; i < filasVacias; i++) PosicionData(),
+        ],
+      );
+
+  group('cierre de la balanza', () {
+    test(
+        'un dato fuera de esquema ya no deja la balanza "calibrada" sin sus '
+        'pruebas', () async {
+      // El caso reportado fue una carga con decimales cuando la columna era
+      // int. Cualquier valor fuera de esquema tenía el mismo efecto: el
+      // guardado rechazaba el registro completo, el error se tragaba y la
+      // balanza se marcaba calibrada con lo último que sí se había guardado.
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      const notaLarga = 'Observación larga. ';
+
+      // Más de 500 caracteres: el campo Nota no tiene límite en pantalla.
+      provider
+          .updateExcentricidad(excentricidad('66.65', nota: notaLarga * 27));
+      provider.updateRepetibilidad(RepetibilidadData(cargas: [
+        CargaRepetibilidad(
+          carga: '100',
+          indicaciones: ['100.0'],
+          retornos: ['0'],
+        ),
+      ]));
+
+      expect(await provider.flushAutoSave(), isFalse);
+      expect(
+        provider.saveError,
+        contains('Excentricidad › Nota: admite hasta 500 caracteres'),
+      );
+      expect(
+        provider.validateStep(6),
+        'Excentricidad › Nota: admite hasta 500 caracteres (tiene 512)',
+      );
+
+      expect(await provider.marcarBalanzaCompleta(), isNotNull);
+      final abierta = await AppDatabase().getRegistroBySeca(seca, sessionId);
+      expect(abierta!['estado_servicio_bal'], isEmpty);
+      expect(abierta['indicacion1_1'], isEmpty);
+
+      provider.updateExcentricidad(
+          excentricidad('66.65', nota: 'Sin observaciones'));
+      expect(await provider.marcarBalanzaCompleta(), isNull);
+      expect(provider.saveError, isNull);
+
+      final cerrada = await AppDatabase().getRegistroBySeca(seca, sessionId);
+      expect(cerrada!['estado_servicio_bal'], 'Balanza Calibrada');
+      // La carga ya admite decimales (migración 011).
+      expect(cerrada['carga'], '66.65');
+      expect(cerrada['indicacion3'], '67');
+      expect(cerrada['indicacion1_1'], '100');
+    });
+
+    test('la relectura detecta un valor que no quedó en la base', () async {
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      provider.updateExcentricidad(excentricidad('67'));
+      expect(await provider.flushAutoSave(), isTrue);
+
+      final db = await AppDatabase().database;
+      await db.update(
+        'registros_calibracion',
+        {'indicacion2': ''},
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
+      );
+
+      final faltan = await CalibrationRepository()
+          .findUnsavedColumns(seca, sessionId, provider.session!);
+      expect(faltan, ['indicacion2']);
+    });
+
+    test('reducir los puntos borra de la base las posiciones que sobran',
+        () async {
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+
+      provider.updateExcentricidad(ExcentricidadData(
+        tipoPlataforma: 'Rectangular',
+        puntosIndicacion: 'Rectangular 5F',
+        carga: '67',
+        posiciones: [
+          for (var i = 1; i <= 5; i++)
+            PosicionData(posicion: '$i', indicacion: '67.0', retorno: '0'),
+        ],
+      ));
+      expect(await provider.flushAutoSave(), isTrue);
+      provider.updateExcentricidad(excentricidad('67'));
+      expect(await provider.flushAutoSave(), isTrue);
+
+      final fila = await AppDatabase().getRegistroBySeca(seca, sessionId);
+      expect(fila!['indicacion3'], '67');
+      expect(fila['indicacion4'], isEmpty);
+      expect(fila['posicion5'], isEmpty);
+    });
+  });
+
+  group('validaciones por paso', () {
+    test('Repetibilidad pide cada indicación de las cargas elegidas', () async {
+      final provider = await nuevaSesion(conSeca: false);
+
+      expect(provider.validateStep(7),
+          'Debe seleccionar el N° de Cargas de repetibilidad.');
+
+      provider.updateRepetibilidad(RepetibilidadData(cargas: [
+        CargaRepetibilidad(
+          carga: '100',
+          indicaciones: ['100.0', null, '100.0'],
+          retornos: ['0', '0', '0'],
+        ),
+      ]));
+      expect(provider.validateStep(7), 'Falta la Indicación 2 de la Carga 1.');
+    });
+
+    test('Excentricidad solo pide las posiciones de la prueba', () async {
+      final provider = await nuevaSesion(conSeca: false);
+
+      // Una sesión recuperada puede traer más filas vacías que puntos.
+      provider.updateExcentricidad(excentricidad('67', filasVacias: 3));
+      expect(provider.validateStep(6), isNull);
+
+      provider
+          .updateExcentricidad(excentricidad('67', puntos: 'Rectangular 3'));
+      expect(provider.validateStep(6),
+          'Debe seleccionar la Posición del Indicador.');
+    });
+
+    test('Condiciones finales pide las lecturas ambientales', () async {
+      final provider = await nuevaSesion(conSeca: false);
+
+      provider.updateCondicionesFinales(CondicionesFinales(
+        horaFin: '10:30',
+        hriFin: '45',
+        tiFin: '',
+        patmiFin: '1012',
+      ));
+      expect(provider.validateStep(9),
+          'Debe ingresar la Temperatura final (Ti Fin).');
+    });
+
+    test('Linealidad pide la indicación de cada carga registrada', () async {
+      final provider = await nuevaSesion(conSeca: false);
+
+      provider.updateLinealidad(LinealidadData(
+        metodo: 'Ascenso Continuo por pasos',
+        metodoCarga: 'Sin método',
+        fotosPaths: ['/foto.jpg'],
+        filas: [
+          FilaLinealidad(carga: '50', indicacion: '50.0', retorno: '0'),
+          FilaLinealidad(carga: '100', indicacion: '', retorno: '0'),
+          FilaLinealidad(carga: '', indicacion: '', retorno: '0'),
+        ],
+      ));
+      expect(provider.validateStep(8), 'Falta la Indicación de la Carga 2.');
+    });
+  });
+}

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
+import 'package:service_met/database/calibration_data_normalizer.dart';
+import 'package:service_met/database/calibration_record_validator.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/utils/scale_range_validator.dart';
@@ -13,6 +15,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSaving = false;
   bool _lastSaveSuccessful = true;
+  String? _saveError;
   Timer? _autoSaveTimer;
 
   // D-values cache
@@ -39,6 +42,10 @@ class ServiceSessionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
+
+  /// Por qué la base rechazó el último guardado. Mientras no sea null, lo que
+  /// se escribe queda solo en memoria y se pierde al cerrar la aplicación.
+  String? get saveError => _saveError;
   String get cotizacionSuffix => _cotizacionSuffix;
   bool get isQrMode => _isQrMode;
   String? get qrCodMetrica => _qrCodMetrica;
@@ -143,6 +150,8 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   Future<void> createNewSession(String userName, {String? secaValue}) async {
     clearQrMode();
+    _saveError = null;
+    _lastSaveSuccessful = true;
     _session = ServiceSession(
       sessionInfo: SessionInfo(
         userName: userName,
@@ -155,6 +164,8 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   Future<void> loadExistingSession(String seca, String sessionId) async {
+    _saveError = null;
+    _lastSaveSuccessful = true;
     _session = await _repository.loadSession(seca, sessionId);
     if (_session != null) {
       _currentStep = _session!.metadata.currentStep;
@@ -320,35 +331,62 @@ class ServiceSessionProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> flushAutoSave() async {
+  /// Guarda ya lo pendiente. Devuelve false si la base rechazó los datos; el
+  /// motivo queda en [saveError]. Quien avance de paso o cierre la balanza
+  /// debe detenerse si es false: lo escrito sigue solo en memoria.
+  Future<bool> flushAutoSave() async {
     _autoSaveTimer?.cancel();
-    await _autoSave();
+    return _autoSave();
   }
 
-  Future<void> _autoSave() async {
-    if (_session == null ||
-        _session!.sessionInfo.seca == null ||
-        _session!.sessionInfo.sessionId == null) {
-      return;
-    }
+  /// Escribe ya el autoguardado que está esperando, si lo hay.
+  Future<void> flushPendingSave() async {
+    if (_autoSaveTimer?.isActive ?? false) await flushAutoSave();
+  }
+
+  Future<bool> _autoSave() async {
+    final session = _session;
+    final seca = session?.sessionInfo.seca;
+    final sessionId = session?.sessionInfo.sessionId;
+    // Antes de confirmar la SECA no hay registro donde guardar.
+    if (session == null || seca == null || sessionId == null) return true;
 
     _isSaving = true;
     notifyListeners();
 
     try {
-      await _repository.saveSession(_session!.sessionInfo.seca!,
-          _session!.sessionInfo.sessionId!, _session!);
+      await _repository.saveSession(seca, sessionId, session);
       _lastSaveSuccessful = true;
+      _saveError = null;
       // Actualizar dValues
-      _dValues = await _repository.getDValues(
-          _session!.sessionInfo.seca!, _session!.sessionInfo.sessionId!);
+      _dValues = await _repository.getDValues(seca, sessionId);
+      return true;
     } catch (e) {
       _lastSaveSuccessful = false;
+      _saveError = _describeSaveError(session, e);
       debugPrint('Error en auto-save: $e');
+      return false;
     } finally {
       _isSaving = false;
       notifyListeners();
     }
+  }
+
+  /// Un valor fuera de esquema rechaza el registro entero: se listan todos los
+  /// que lo impiden, con su nombre en pantalla, para que se corrijan.
+  String _describeSaveError(ServiceSession session, Object error) {
+    if (error is! CalibrationDataException) {
+      return 'No se pudo guardar en el teléfono: $error';
+    }
+    final issues = CalibrationRecordValidator.schemaIssues(session.toMap());
+    if (issues.isEmpty) {
+      return 'No se pudo guardar: '
+          '${CalibrationRecordValidator.issueFor(error)}';
+    }
+    final shown = issues.take(3).join('\n');
+    final more =
+        issues.length > 3 ? '\n(y ${issues.length - 3} dato(s) más)' : '';
+    return 'No se pudo guardar. Corrija:\n$shown$more';
   }
 
   // --- Helpers ---
@@ -389,9 +427,9 @@ class ServiceSessionProvider extends ChangeNotifier {
       metadata: _session!.metadata.copyWith(secaConfirmed: true),
     );
 
-    await flushAutoSave();
+    final saved = await flushAutoSave();
     await _saveCurrentProgress();
-    return true;
+    return saved;
   }
 
   // ==================== MÉTODOS QR ====================
@@ -607,8 +645,49 @@ class ServiceSessionProvider extends ChangeNotifier {
         'Continúe o revise el registro existente en lugar de crear otro.';
   }
 
+  static bool _isBlank(String? value) => value == null || value.trim().isEmpty;
+
+  /// Lo que impide dejar el paso [step]: primero un dato que la base
+  /// rechazaría, después un dato obligatorio vacío. Null si se puede avanzar.
+  ///
+  /// El chequeo de esquema es el mismo que aplica el guardado: si pasa aquí,
+  /// el paso se guarda.
+  String? validateStep(int step) {
+    final session = _session;
+    if (session == null) return "Sesión no inicializada.";
+
+    final issues = CalibrationRecordValidator.schemaIssues(session.toMap())
+        .where((issue) => issue.step == step);
+    if (issues.isNotEmpty) return '${issues.first}';
+
+    return switch (step) {
+      3 => validateBalanza(),
+      4 => validateInspeccionVisual(),
+      5 => validatePrecargasAjuste(),
+      6 => validateExcentricidad(),
+      7 => validateRepetibilidad(),
+      8 => validateLinealidad(),
+      9 => validateCondicionesFinales(),
+      _ => null,
+    };
+  }
+
   String? validateCondicionesFinales() {
     if (_session == null) return "Sesión no inicializada.";
+
+    final cf = _session!.condicionesFinales;
+    if (_isBlank(cf?.horaFin)) {
+      return "Registre la Hora Fin con el botón del reloj.";
+    }
+    if (_isBlank(cf?.hriFin)) {
+      return "Debe ingresar la Humedad Relativa final (HRi Fin).";
+    }
+    if (_isBlank(cf?.tiFin)) {
+      return "Debe ingresar la Temperatura final (Ti Fin).";
+    }
+    if (_isBlank(cf?.patmiFin)) {
+      return "Debe ingresar la Presión Atmosférica final (Patmi Fin).";
+    }
 
     final pesas = _session!.equipos.where((e) {
       final tipo = e.tipo?.toLowerCase() ?? '';
@@ -737,6 +816,15 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (!tienePrecargas) {
       return "Debe ingresar al menos una precarga.";
     }
+    for (var i = 0; i < pa.precargas.length; i++) {
+      final fila = pa.precargas[i];
+      if (!_isBlank(fila.precarga) && _isBlank(fila.pIndicador)) {
+        return "Falta la Indicación de la Precarga ${i + 1}.";
+      }
+      if (_isBlank(fila.precarga) && !_isBlank(fila.pIndicador)) {
+        return "Falta el valor de la Precarga ${i + 1}.";
+      }
+    }
 
     // Condiciones ambientales obligatorias
     if (pa.ti == null || pa.ti!.trim().isEmpty) {
@@ -766,22 +854,55 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (exc.tipoPlataforma == null || exc.tipoPlataforma!.trim().isEmpty) {
       return "Debe seleccionar el Tipo de Plataforma.";
     }
-    if (exc.puntosIndicacion == null || exc.puntosIndicacion!.trim().isEmpty) {
+    final puntos = exc.puntosCount;
+    if (puntos == null) {
       return "Debe seleccionar el N° de Puntos de Indicación.";
     }
+    if (!RegExp(r'\d[FAID]$').hasMatch(exc.puntosIndicacion!.trim())) {
+      return "Debe seleccionar la Posición del Indicador.";
+    }
     if (exc.carga == null || exc.carga!.trim().isEmpty) {
-      return "Debe ingresar la Carga (kg).";
+      return "Debe ingresar la Carga.";
     }
-    if (exc.posiciones.isEmpty) {
-      return "Debe agregar posiciones de medición.";
+    if (exc.posiciones.length < puntos) {
+      return "Faltan posiciones: la prueba es de $puntos puntos.";
     }
-    for (var i = 0; i < exc.posiciones.length; i++) {
+    // Solo las posiciones de la prueba: una sesión recuperada puede traer
+    // más filas vacías que puntos.
+    for (var i = 0; i < puntos; i++) {
       final p = exc.posiciones[i];
-      if (p.indicacion == null || p.indicacion!.trim().isEmpty) {
+      if (_isBlank(p.indicacion)) {
         return "Falta la Indicación en Posición ${i + 1}.";
       }
-      if (p.retorno == null || p.retorno!.trim().isEmpty) {
+      if (_isBlank(p.retorno)) {
         return "Falta el Retorno en Posición ${i + 1}.";
+      }
+    }
+    return null;
+  }
+
+  String? validateRepetibilidad() {
+    if (_session == null) return "Sesión no inicializada.";
+
+    final rep = _session!.repetibilidad;
+    if (rep == null || rep.cargas.isEmpty) {
+      return "Debe seleccionar el N° de Cargas de repetibilidad.";
+    }
+    for (var i = 0; i < rep.cargas.length; i++) {
+      final carga = rep.cargas[i];
+      if (carga.indicaciones.isEmpty) {
+        return "Debe seleccionar el N° de Mediciones por Carga.";
+      }
+      if (_isBlank(carga.carga)) {
+        return "Falta el valor de la Carga ${i + 1}.";
+      }
+      for (var j = 0; j < carga.indicaciones.length; j++) {
+        if (_isBlank(carga.indicaciones[j])) {
+          return "Falta la Indicación ${j + 1} de la Carga ${i + 1}.";
+        }
+        if (j >= carga.retornos.length || _isBlank(carga.retornos[j])) {
+          return "Falta el Retorno ${j + 1} de la Carga ${i + 1}.";
+        }
       }
     }
     return null;
@@ -792,29 +913,84 @@ class ServiceSessionProvider extends ChangeNotifier {
 
     final lin = _session!.linealidad;
     if (lin == null) return "Debe completar las pruebas de linealidad.";
+    if (_isBlank(lin.metodo)) {
+      return "Debe seleccionar el Método de Carga.";
+    }
+    if (_isBlank(lin.metodoCarga)) {
+      return "Debe seleccionar el Método de Cargas Sustitutivas.";
+    }
+    var puntos = 0;
+    for (var i = 0; i < lin.filas.length; i++) {
+      final fila = lin.filas[i];
+      final tieneCarga = !_isBlank(fila.carga);
+      final tieneIndicacion = !_isBlank(fila.indicacion);
+      if (tieneCarga && !tieneIndicacion) {
+        return "Falta la Indicación de la Carga ${i + 1}.";
+      }
+      if (!tieneCarga && tieneIndicacion) {
+        return "Falta la Carga real de la Carga ${i + 1}.";
+      }
+      if (tieneCarga) puntos++;
+    }
+    if (puntos == 0) {
+      return "Debe registrar al menos una carga con su indicación.";
+    }
     if (lin.fotosPaths.isEmpty) {
       return "Debe tomar al menos una fotografía de la última carga.";
     }
     return null;
   }
 
+  /// Confirma la balanza solo si quedó guardada. Si la base la rechaza,
+  /// vuelve a quedar sin confirmar y el motivo queda en [saveError].
   Future<bool> confirmBalanza() async {
     if (_session == null) return false;
     setBalanzaConfirmed(true);
-    await flushAutoSave();
+    if (!await flushAutoSave()) {
+      setBalanzaConfirmed(false);
+      return false;
+    }
     await _saveCurrentProgress();
     return true;
   }
 
   // --- Marcar balanza completa ---
 
-  Future<void> marcarBalanzaCompleta() async {
-    final seca = _session?.sessionInfo.seca;
-    final sessionId = _session?.sessionInfo.sessionId;
-    if (seca == null || sessionId == null) return;
-    await flushAutoSave();
-    await _repository.marcarBalanzaCompleta(seca, sessionId);
+  /// Marca la balanza como calibrada solo si lo que está en pantalla quedó en
+  /// la base: guarda, relee la fila y la compara con la sesión. Si algo no
+  /// cuadra no la marca y devuelve el motivo.
+  ///
+  /// Antes se marcaba aunque el guardado hubiera fallado: la balanza quedaba
+  /// "calibrada" sin las pruebas que el técnico había escrito, y así se
+  /// exportaba y se subía.
+  Future<String?> marcarBalanzaCompleta() async {
+    final session = _session;
+    final seca = session?.sessionInfo.seca;
+    final sessionId = session?.sessionInfo.sessionId;
+    if (session == null || seca == null || sessionId == null) {
+      return 'La sesión no tiene SECA; no se puede cerrar la balanza.';
+    }
+    if (!await flushAutoSave()) return _saveError;
+    try {
+      final unsaved =
+          await _repository.findUnsavedColumns(seca, sessionId, session);
+      if (unsaved.isNotEmpty) {
+        final campos = unsaved
+            .take(3)
+            .map((column) => CalibrationRecordValidator.labelFor(column).label)
+            .join(', ');
+        return 'Los datos no quedaron guardados en el teléfono ($campos'
+            '${unsaved.length > 3 ? ' y ${unsaved.length - 3} más' : ''}). '
+            'Vuelva a intentarlo; si persiste, no cierre la aplicación y '
+            'avise a soporte.';
+      }
+      await _repository.marcarBalanzaCompleta(seca, sessionId);
+    } catch (e) {
+      debugPrint('Error al cerrar la balanza: $e');
+      return 'No se pudo cerrar la balanza: $e';
+    }
     await _saveCurrentProgress(status: 'completed');
+    return null;
   }
 
   // --- Resetear sesión para nueva balanza (conserva cliente, planta, seca) ---
@@ -823,6 +999,11 @@ class ServiceSessionProvider extends ChangeNotifier {
     clearPreviousServiceData();
     final old = _session;
     if (old == null) return;
+    // Un guardado pendiente es de la balanza que se deja: que no se pierda ni
+    // se escriba sobre la nueva.
+    await flushPendingSave();
+    _saveError = null;
+    _lastSaveSuccessful = true;
     final seca = old.sessionInfo.seca;
     final nuevoSessionId = seca != null
         ? await _repository.generateSessionId(seca)

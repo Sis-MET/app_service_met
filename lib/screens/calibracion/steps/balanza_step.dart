@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -10,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
@@ -671,8 +671,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
           _field(_rangoCtrl, 'Rango', Icons.linear_scale,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _field(_nCeldasCtrl, 'N° Celdas', Icons.grid_view,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
+          CalibrationNumberField(
+            controller: _nCeldasCtrl,
+            column: 'n_celdas',
+            onChanged: (_) => _saveToProvider(provider),
+            style: GoogleFonts.inter(
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+            decoration:
+                _fieldDecoration('N° Celdas', Icons.grid_view, isDark: isDark),
+          ),
         ],
       ),
     ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
@@ -695,26 +702,27 @@ class _BalanzaStepState extends State<BalanzaStep> {
           ],
         ),
         const SizedBox(height: 16),
-        _rangoCard('Rango 1', _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark,
+        _rangoCard(1, _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark,
             () => _saveToProvider(provider)),
         const SizedBox(height: 12),
-        _rangoCard('Rango 2', _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark,
+        _rangoCard(2, _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark,
             () => _saveToProvider(provider)),
         const SizedBox(height: 12),
-        _rangoCard('Rango 3', _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark,
+        _rangoCard(3, _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark,
             () => _saveToProvider(provider)),
       ],
     ).animate(delay: 500.ms).fadeIn();
   }
 
   Widget _rangoCard(
-      String title,
+      int rango,
       TextEditingController capCtrl,
       TextEditingController dCtrl,
       TextEditingController eCtrl,
       TextEditingController decCtrl,
       bool isDark,
       VoidCallback onChanged) {
+    final title = 'Rango $rango';
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -740,23 +748,23 @@ class _BalanzaStepState extends State<BalanzaStep> {
                     color: isDark ? Colors.white70 : Colors.black87)),
           ),
           const SizedBox(height: 16),
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
-                child: _numField(capCtrl, 'Cap. Max',
+                child: _numField(capCtrl, 'Cap. Max', 'cap_max$rango',
                     onChanged: onChanged, isDark: isDark)),
             const SizedBox(width: 12),
             Expanded(
-                child: _numField(dCtrl, 'd',
+                child: _numField(dCtrl, 'd', 'd$rango',
                     onChanged: onChanged, isDark: isDark)),
           ]),
           const SizedBox(height: 12),
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
-                child: _numField(eCtrl, 'e',
+                child: _numField(eCtrl, 'e', 'e$rango',
                     onChanged: onChanged, isDark: isDark)),
             const SizedBox(width: 12),
             Expanded(
-                child: _numField(decCtrl, 'Dec.',
+                child: _numField(decCtrl, 'Dec.', 'dec$rango',
                     onChanged: onChanged, isDark: isDark)),
           ]),
         ],
@@ -1011,42 +1019,43 @@ class _BalanzaStepState extends State<BalanzaStep> {
       onChanged: onChanged,
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle:
-            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
-        prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: isDark ? Colors.white24 : Colors.black26),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-        ),
-        filled: readOnly,
-        fillColor: readOnly
-            ? (isDark
-                ? Colors.white.withOpacity(0.05)
-                : Colors.grey.withOpacity(0.05))
-            : null,
-      ),
+      decoration:
+          _fieldDecoration(label, icon, readOnly: readOnly, isDark: isDark),
     );
   }
 
-  Widget _numField(TextEditingController ctrl, String label,
+  InputDecoration _fieldDecoration(String label, IconData icon,
+      {bool readOnly = false, required bool isDark}) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle:
+          GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+      prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
+      ),
+      filled: readOnly,
+      fillColor: readOnly
+          ? (isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.grey.withOpacity(0.05))
+          : null,
+    );
+  }
+
+  Widget _numField(TextEditingController ctrl, String label, String column,
       {required VoidCallback onChanged, required bool isDark}) {
-    return TextField(
+    return CalibrationNumberField(
       controller: ctrl,
+      column: column,
       onChanged: (_) => onChanged(),
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-      ],
       decoration: InputDecoration(
         labelText: label,
         labelStyle:

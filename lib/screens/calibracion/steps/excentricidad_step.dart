@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class ExcentricidadStep extends StatefulWidget {
@@ -114,10 +114,16 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     final exc = provider.session?.excentricidad;
     if (exc != null) {
       _parsePuntosIndicacion(exc.puntosIndicacion, exc.tipoPlataforma);
+      // Solo las filas de la prueba: registros anteriores podían conservar
+      // posiciones de una configuración con más puntos.
+      final puntos = exc.puntosCount;
+      final posiciones = puntos != null && puntos < exc.posiciones.length
+          ? exc.posiciones.take(puntos)
+          : exc.posiciones;
       setState(() {
         _cargaCtrl.text = exc.carga ?? '';
         _notaCtrl.text = exc.nota ?? '';
-        _rows = exc.posiciones
+        _rows = posiciones
             .map((p) => [
                   TextEditingController(text: p.indicacion ?? ''),
                   TextEditingController(text: p.retorno ?? '0'),
@@ -129,7 +135,8 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     _hasCheckedPrevData = false;
   }
 
-  static final _puntosIndicacionRegex = RegExp(r'^(\w+)\s+(\d+)([FAID])$');
+  // La posición del indicador (F, A, I, D) puede faltar si aún no se eligió.
+  static final _puntosIndicacionRegex = RegExp(r'^(\w+)\s+(\d+)([FAID])?$');
 
   void _parsePuntosIndicacion(
       String? value, String? tipoPlataformaFromSession) {
@@ -140,7 +147,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       setState(() {
         final tipo = match.group(1)!;
         final puntos = match.group(2)!;
-        final abrev = match.group(3)!;
+        final abrev = match.group(3);
         if (_plataformas.contains(tipo)) {
           _tipoPlataforma = tipo;
         }
@@ -405,18 +412,14 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
               ],
               _buildPlatformDiagram(isDark),
               const SizedBox(height: 16),
-              TextField(
+              CalibrationNumberField(
                 style: GoogleFonts.inter(
                     color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
                 controller: _cargaCtrl,
+                column: 'carga',
                 onChanged: (_) {
                   _reflectCargaToIndicaciones();
                 },
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-                ],
                 decoration: _deco('Carga', isDark),
               ).animate(delay: 450.ms).fadeIn(),
               if (_cargaCtrl.text.isEmpty) _buildSuggestedLoadChips(isDark),
@@ -448,30 +451,36 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                     _rows.length,
                     (i) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 5),
-                          child: Row(children: [
-                            SizedBox(
-                                width: 56,
-                                child: Row(children: [
-                                  Text('Pos ${i + 1}',
-                                      style: GoogleFonts.inter(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 12,
-                                          color: isDark
-                                              ? Colors.white70
-                                              : Colors.black87)),
-                                ])),
-                            const SizedBox(width: 10),
-                            Expanded(
-                                child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 3),
-                                    child: _indicationField(i, isDark))),
-                            Expanded(
-                                child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 3),
-                                    child: _numField(_rows[i][1], isDark))),
-                          ]),
+                          child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: SizedBox(
+                                      width: 56,
+                                      child: Row(children: [
+                                        Text('Pos ${i + 1}',
+                                            style: GoogleFonts.inter(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : Colors.black87)),
+                                      ])),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                    child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 3),
+                                        child: _indicationField(i, isDark))),
+                                Expanded(
+                                    child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 3),
+                                        child: _numField(_rows[i][1],
+                                            'retorno${i + 1}', isDark))),
+                              ]),
                         )).animate(delay: 500.ms).fadeIn(),
               ],
               const SizedBox(height: 20),
@@ -725,15 +734,13 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
   Widget _indicationField(int i, bool isDark) {
     final hasBase = _cargaCtrl.text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _rows[i][0],
+      column: 'indicacion${i + 1}',
+      allowNegative: true,
       onChanged: (_) => _saveToProvider(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: InputDecoration(
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -779,15 +786,14 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     });
   }
 
-  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+  Widget _numField(TextEditingController ctrl, String column, bool isDark) =>
+      CalibrationNumberField(
         style: GoogleFonts.inter(
             color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
+        column: column,
+        allowNegative: true,
         onChanged: (_) => _saveToProvider(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-        ],
         decoration: InputDecoration(
           isDense: true,
           contentPadding:

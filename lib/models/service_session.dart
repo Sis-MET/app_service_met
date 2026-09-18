@@ -29,6 +29,16 @@ class ServiceSession {
     required this.metadata,
   });
 
+  /// Casillas de cada prueba en `registros_calibracion`.
+  static const maxPrecargas = 6;
+  static const maxPosiciones = 6;
+  static const maxCargasRepetibilidad = 3;
+  static const maxMedicionesRepetibilidad = 10;
+  static const maxFilasLinealidad = 60;
+
+  static T? _slot<T>(List<T>? list, int index) =>
+      list != null && index < list.length ? list[index] : null;
+
   ServiceSession copyWith({
     SessionInfo? sessionInfo,
     ClienteInfo? cliente,
@@ -148,10 +158,14 @@ class ServiceSession {
       if (precargasAjuste?.hri != null) 'hri': precargasAjuste!.hri,
       if (precargasAjuste?.ti != null) 'ti': precargasAjuste!.ti,
       if (precargasAjuste?.patmi != null) 'patmi': precargasAjuste!.patmi,
-      if (precargasAjuste?.precargas != null)
-        for (int i = 0; i < precargasAjuste!.precargas.length; i++) ...{
-          'precarga${i + 1}': precargasAjuste!.precargas[i].precarga,
-          'p_indicador${i + 1}': precargasAjuste!.precargas[i].pIndicador,
+      // Las pruebas escriben todas sus casillas: las que la prueba ya no usa
+      // (menos puntos, filas quitadas) quedan vacías en vez de conservar el
+      // valor anterior y exportarse como si fueran parte de la prueba.
+      if (precargasAjuste != null)
+        for (int i = 0; i < maxPrecargas; i++) ...{
+          'precarga${i + 1}': _slot(precargasAjuste!.precargas, i)?.precarga,
+          'p_indicador${i + 1}':
+              _slot(precargasAjuste!.precargas, i)?.pIndicador,
         },
       // Excentricidad
       if (excentricidad?.tipoPlataforma != null)
@@ -161,24 +175,23 @@ class ServiceSession {
       if (excentricidad?.carga != null) 'carga': excentricidad!.carga,
       if (excentricidad?.nota != null)
         'excentricidad_comentario': excentricidad!.nota,
-      if (excentricidad?.posiciones != null)
-        for (int i = 0; i < excentricidad!.posiciones.length; i++) ...{
-          'posicion${i + 1}': excentricidad!.posiciones[i].posicion,
-          'indicacion${i + 1}': excentricidad!.posiciones[i].indicacion,
-          'retorno${i + 1}': excentricidad!.posiciones[i].retorno,
+      if (excentricidad != null)
+        for (int i = 0; i < maxPosiciones; i++) ...{
+          'posicion${i + 1}': _slot(excentricidad!.posiciones, i)?.posicion,
+          'indicacion${i + 1}': _slot(excentricidad!.posiciones, i)?.indicacion,
+          'retorno${i + 1}': _slot(excentricidad!.posiciones, i)?.retorno,
         },
       // Repetibilidad
       if (repetibilidad?.nota != null)
         'repetibilidad_comentario': repetibilidad!.nota,
-      if (repetibilidad?.cargas != null)
-        for (int i = 0; i < repetibilidad!.cargas.length; i++) ...{
-          'repetibilidad${i + 1}': repetibilidad!.cargas[i].carga,
-          for (int j = 0;
-              j < repetibilidad!.cargas[i].indicaciones.length;
-              j++) ...{
+      if (repetibilidad != null)
+        for (int i = 0; i < maxCargasRepetibilidad; i++) ...{
+          'repetibilidad${i + 1}': _slot(repetibilidad!.cargas, i)?.carga,
+          for (int j = 0; j < maxMedicionesRepetibilidad; j++) ...{
             'indicacion${i + 1}_${j + 1}':
-                repetibilidad!.cargas[i].indicaciones[j],
-            'retorno${i + 1}_${j + 1}': repetibilidad!.cargas[i].retornos[j],
+                _slot(_slot(repetibilidad!.cargas, i)?.indicaciones, j),
+            'retorno${i + 1}_${j + 1}':
+                _slot(_slot(repetibilidad!.cargas, i)?.retornos, j),
           }
         },
       // Linealidad
@@ -186,11 +199,11 @@ class ServiceSession {
       if (linealidad?.metodoCarga != null)
         'metodo_carga': linealidad!.metodoCarga,
       if (linealidad?.nota != null) 'linealidad_comentario': linealidad!.nota,
-      if (linealidad?.filas != null)
-        for (int i = 0; i < linealidad!.filas.length; i++) ...{
-          'lin${i + 1}': linealidad!.filas[i].carga,
-          'ind${i + 1}': linealidad!.filas[i].indicacion,
-          'retorno_lin${i + 1}': linealidad!.filas[i].retorno,
+      if (linealidad != null)
+        for (int i = 0; i < maxFilasLinealidad; i++) ...{
+          'lin${i + 1}': _slot(linealidad!.filas, i)?.carga,
+          'ind${i + 1}': _slot(linealidad!.filas, i)?.indicacion,
+          'retorno_lin${i + 1}': _slot(linealidad!.filas, i)?.retorno,
         },
       // Condiciones Finales
       if (condicionesFinales?.horaFin != null)
@@ -242,29 +255,52 @@ class ServiceSession {
       ));
     }
 
-    List<PosicionData> excentricidadPos = [];
-    for (int i = 1; i <= 6; i++) {
-      excentricidadPos.add(PosicionData(
-        posicion: map['posicion$i'],
-        indicacion: map['indicacion$i'],
-        retorno: map['retorno$i'],
-      ));
-    }
-
-    List<CargaRepetibilidad> cargasRep = [];
-    for (int i = 1; i <= 3; i++) {
-      List<String?> ind = [];
-      List<String?> ret = [];
-      for (int j = 1; j <= 10; j++) {
-        ind.add(map['indicacion${i}_$j']);
-        ret.add(map['retorno${i}_$j']);
+    // Las pruebas se recuperan con la forma con que se registraron (puntos,
+    // cargas y mediciones), no con todas las casillas de la tabla: así la
+    // pantalla y la validación no piden datos de filas que la prueba no usa.
+    int lastPosicion = 0;
+    for (int i = 1; i <= maxPosiciones; i++) {
+      if (_hasData(map['posicion$i']) ||
+          _hasData(map['indicacion$i']) ||
+          _hasData(map['retorno$i'])) {
+        lastPosicion = i;
       }
-      cargasRep.add(CargaRepetibilidad(
-        carga: map['repetibilidad$i'],
-        indicaciones: ind,
-        retornos: ret,
-      ));
     }
+    List<PosicionData> excentricidadPos = [
+      for (int i = 1; i <= lastPosicion; i++)
+        PosicionData(
+          posicion: map['posicion$i']?.toString(),
+          indicacion: map['indicacion$i']?.toString(),
+          retorno: map['retorno$i']?.toString(),
+        ),
+    ];
+
+    int lastCarga = 0;
+    int lastMedicion = 0;
+    for (int i = 1; i <= maxCargasRepetibilidad; i++) {
+      if (_hasData(map['repetibilidad$i'])) lastCarga = i;
+      for (int j = 1; j <= maxMedicionesRepetibilidad; j++) {
+        if (_hasData(map['indicacion${i}_$j']) ||
+            _hasData(map['retorno${i}_$j'])) {
+          lastCarga = lastCarga > i ? lastCarga : i;
+          lastMedicion = lastMedicion > j ? lastMedicion : j;
+        }
+      }
+    }
+    List<CargaRepetibilidad> cargasRep = [
+      for (int i = 1; i <= lastCarga; i++)
+        CargaRepetibilidad(
+          carga: map['repetibilidad$i']?.toString(),
+          indicaciones: [
+            for (int j = 1; j <= lastMedicion; j++)
+              map['indicacion${i}_$j']?.toString(),
+          ],
+          retornos: [
+            for (int j = 1; j <= lastMedicion; j++)
+              map['retorno${i}_$j']?.toString(),
+          ],
+        ),
+    ];
 
     List<FilaLinealidad> filasLin = [];
     int lastLinealidadIndex = 0;
@@ -795,6 +831,11 @@ class ExcentricidadData {
       this.carga,
       this.nota,
       this.posiciones = const []});
+
+  /// Puntos de la prueba: "Rectangular 5F" → 5. También lee el formato
+  /// anterior, solo el número.
+  int? get puntosCount => int.tryParse(
+      RegExp(r'\d+').firstMatch(puntosIndicacion ?? '')?.group(0) ?? '');
 
   ExcentricidadData copyWith(
       {String? tipoPlataforma,

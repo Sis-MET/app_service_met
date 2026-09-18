@@ -4,10 +4,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:service_met/database/calibration_record_validator.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/home/screens/home_screen.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import 'package:service_met/screens/calibracion/widgets/save_blocked_dialog.dart';
+import 'package:service_met/widgets/numeric_keypad.dart';
 
 class ExportacionStep extends StatefulWidget {
   const ExportacionStep({super.key});
@@ -101,13 +105,24 @@ class _ExportacionStepState extends State<ExportacionStep> {
   }
 
   Future<void> _seleccionarOtraBalanza(ServiceSessionProvider provider) async {
-    await provider.marcarBalanzaCompleta();
+    final error = await provider.marcarBalanzaCompleta();
+    if (error != null) {
+      // La balanza queda abierta: los datos siguen en pantalla para corregir.
+      if (mounted) await showSaveBlockedDialog(context, error);
+      return;
+    }
     await provider.resetearParaNuevaBalanza();
   }
 
   Future<void> _finalizar(ServiceSessionProvider provider) async {
     _saveToProvider();
-    await provider.flushAutoSave();
+    if (!await provider.flushAutoSave()) {
+      if (mounted) {
+        TopAlert.show(context, provider.saveError ?? 'No se pudo guardar.',
+            isError: true);
+      }
+      return;
+    }
 
     final seca = provider.session?.sessionInfo.seca;
     if (seca == null || seca.isEmpty) {
@@ -119,6 +134,14 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final datosCert = await _showCertificadoDialog(isDark);
     if (datosCert == null || !mounted) return;
+
+    // Se aplican a todas las balanzas de la SECA: un valor fuera de esquema
+    // haría fallar el guardado de todas.
+    final certIssues = CalibrationRecordValidator.schemaIssues(datosCert);
+    if (certIssues.isNotEmpty) {
+      TopAlert.show(context, '${certIssues.first}', isError: true);
+      return;
+    }
 
     final instrumentos = await _showInstrumentosDialog(isDark);
     if (instrumentos == null || !mounted) return;
@@ -136,13 +159,17 @@ class _ExportacionStepState extends State<ExportacionStep> {
       provider.updateEquipos([...pesas, ...instrumentos]);
     }
 
-    await provider.persistSharedExportData(seca, {
-      ...datosCert,
-      ..._instrumentosToColumns(instrumentos),
-    });
-
     try {
-      await provider.marcarBalanzaCompleta();
+      await provider.persistSharedExportData(seca, {
+        ...datosCert,
+        ..._instrumentosToColumns(instrumentos),
+      });
+
+      final error = await provider.marcarBalanzaCompleta();
+      if (error != null) {
+        if (mounted) await showSaveBlockedDialog(context, error);
+        return;
+      }
       final registros = (await provider.getRegistrosCompletos(
         seca,
         soloHoy: true,
@@ -155,6 +182,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
       if (registros.isEmpty) {
         throw StateError('No hay balanzas completas para finalizar.');
       }
+      if (!mounted) return;
+      if (!await _confirmarPruebasCompletas(registros, isDark)) return;
 
       final finalizedAt = DateTime.now();
       final nombreCsv =
@@ -185,10 +214,73 @@ class _ExportacionStepState extends State<ExportacionStep> {
       if (!mounted) return;
       TopAlert.show(
         context,
-        'No se pudo finalizar el servicio: $error',
+        'No se pudo finalizar el servicio: '
+        '${error is StateError ? error.message : error}',
         isError: true,
       );
     }
+  }
+
+  /// Última revisión en sitio, sobre lo que realmente quedó en la base de
+  /// cada balanza que se va a finalizar: con el técnico todavía frente a la
+  /// balanza, una prueba que falta aún se puede repetir.
+  Future<bool> _confirmarPruebasCompletas(
+      List<Map<String, dynamic>> registros, bool isDark) async {
+    final incompletas = <String>[];
+    for (final record in registros) {
+      final faltan = CalibrationRecordValidator.missingTests(record);
+      if (faltan.isNotEmpty) {
+        incompletas.add(
+            '${record['cod_metrica'] ?? 'Sin código'}: ${faltan.join(', ')}');
+      }
+    }
+    if (incompletas.isEmpty) return true;
+
+    final continuar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: isDark ? Colors.amber[300] : Colors.amber[800],
+                size: 22),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Pruebas incompletas')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Estas balanzas no tienen guardadas todas sus pruebas:'),
+              const SizedBox(height: 12),
+              for (final linea in incompletas)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('• $linea',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              const SizedBox(height: 8),
+              const Text(
+                  'Si finaliza, se exportarán y subirán sin esas pruebas.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Revisar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Finalizar igual'),
+          ),
+        ],
+      ),
+    );
+    return continuar == true;
   }
 
   bool _isPesaTipo(String? value) {
@@ -473,7 +565,10 @@ class _ExportacionStepState extends State<ExportacionStep> {
             ),
             content: SizedBox(
               width: double.maxFinite,
-              child: Column(
+              // El diálogo queda fuera del teclado de la pantalla: lleva el
+              // suyo.
+              child: NumericKeypadHost(
+                  child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -499,24 +594,24 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  Row(children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Expanded(
-                        child: TextField(
+                        child: CalibrationNumberField(
                       style: GoogleFonts.inter(
                           color:
                               isDark ? Colors.white : const Color(0xFF1A1A1A)),
                       controller: indicarCtrl,
-                      keyboardType: TextInputType.number,
+                      column: 'indicar',
                       decoration: _deco('Indicar (%)', isDark),
                     )),
                     const SizedBox(width: 12),
                     Expanded(
-                        child: TextField(
+                        child: CalibrationNumberField(
                       style: GoogleFonts.inter(
                           color:
                               isDark ? Colors.white : const Color(0xFF1A1A1A)),
                       controller: factorCtrl,
-                      keyboardType: TextInputType.number,
+                      column: 'factor',
                       decoration: _deco('Factor Seguridad', isDark),
                     )),
                   ]),
@@ -537,7 +632,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     },
                   ),
                 ],
-              ),
+              )),
             ),
             actions: [
               TextButton(
