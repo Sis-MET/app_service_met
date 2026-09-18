@@ -3,13 +3,17 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:intl/intl.dart';
+import 'package:service_met/screens/respaldo/services/database_import_service.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_design.dart';
+import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 
 class BackupService {
   static Future<List<FileSystemEntity>> getDatabaseFiles() async {
@@ -131,6 +135,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   bool _isAuthenticated = false;
   bool _isLoading = false;
   bool _isSelectionMode = false;
+  bool _isImporting = false;
 
   List<FileSystemEntity> _databases = [];
   List<FileSystemEntity> _csvFiles = [];
@@ -238,10 +243,287 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
     }
   }
 
+  // ── Importación de bases externas ──────────────────────────────────
+  //
+  // Política: solo fusiona. Nunca reemplaza ni borra la base local; si un
+  // registro ya existe (misma clave natural), gana el del teléfono.
+
+  Future<void> _importarBaseDeDatos() async {
+    if (_isImporting) return;
+
+    final PlatformFile? picked;
+    try {
+      picked = await FilePicker.pickFile(
+        dialogTitle: 'Selecciona un respaldo .db',
+        type: FileType.any,
+      );
+    } catch (e) {
+      _showErrorDialog('No se pudo abrir el selector de archivos', e.toString());
+      return;
+    }
+
+    final path = picked?.path;
+    if (path == null || !mounted) return;
+
+    setState(() => _isImporting = true);
+    ImportPreview preview;
+    try {
+      preview = await DatabaseImportService.analyze(path, picked!.name);
+    } on ImportUnsupportedFile catch (e) {
+      if (!mounted) return;
+      setState(() => _isImporting = false);
+      _showErrorDialog('Archivo no compatible', e.message);
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isImporting = false);
+      _showErrorDialog('No se pudo leer el respaldo', e.toString());
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() => _isImporting = false);
+
+    final confirmar = await _mostrarResumenImportacion(preview);
+    if (confirmar != true || !mounted) return;
+
+    setState(() => _isImporting = true);
+    final result = await DatabaseImportService.apply(preview);
+    if (!mounted) return;
+    setState(() => _isImporting = false);
+
+    await _loadFiles();
+    if (!mounted) return;
+    _mostrarResultadoImportacion(result);
+  }
+
+  Future<bool?> _mostrarResumenImportacion(ImportPreview preview) {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = cs.primary;
+
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: isDark ? AppColors.cardDark : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Revisar importación',
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                preview.fileName,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: cs.onSurface.withOpacity(0.54),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildImportStat(
+                icon: Icons.dataset_outlined,
+                color: accent,
+                label: 'Contenido detectado',
+                value: preview.descripcion,
+              ),
+              const SizedBox(height: 12),
+              _buildImportStat(
+                icon: Icons.add_circle_outline_rounded,
+                color: AppColors.success,
+                label: 'Registros nuevos a importar',
+                value: '${preview.totalNuevas}',
+              ),
+              const SizedBox(height: 12),
+              _buildImportStat(
+                icon: Icons.remove_circle_outline_rounded,
+                color: cs.onSurface.withOpacity(0.45),
+                label: 'Ya existen en el teléfono (se omiten)',
+                value: '${preview.totalExistentes}',
+              ),
+              const SizedBox(height: 12),
+              _buildImportStat(
+                icon: Icons.description_outlined,
+                color: cs.onSurface.withOpacity(0.45),
+                label: 'Registros leídos del archivo',
+                value: '${preview.totalLeidas}',
+              ),
+              if (preview.columnasIgnoradas.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildImportNotice(
+                  icon: Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  text:
+                      'El respaldo trae columnas que esta versión no reconoce y '
+                      'no se copiarán: ${preview.columnasIgnoradas.join(', ')}.',
+                ),
+              ],
+              const SizedBox(height: 16),
+              _buildImportNotice(
+                icon: Icons.shield_outlined,
+                color: AppColors.success,
+                text: 'No se borrará nada de lo que ya está en el teléfono. '
+                    'Solo se agregan los registros que faltan.',
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: preview.hayAlgoQueImportar
+                          ? () => Navigator.pop(ctx, true)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        preview.hayAlgoQueImportar
+                            ? 'Importar ${preview.totalNuevas} registro(s)'
+                            : 'Nada nuevo que importar',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImportStat({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String value,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: cs.onSurface.withOpacity(0.70),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImportNotice({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                height: 1.45,
+                color: cs.onSurface.withOpacity(0.75),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _mostrarResultadoImportacion(ImportResult result) {
+    if (result.errores.isNotEmpty) {
+      _showErrorDialog(
+        'Importación con errores',
+        'Se importaron ${result.insertadas} registro(s).\n\n'
+            'Fallaron:\n${result.errores.join('\n')}',
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${result.insertadas} registro(s) importado(s)'
+          '${result.omitidas > 0 ? ' · ${result.omitidas} ya existían' : ''}',
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _deleteFile(FileSystemEntity file) async {
     try {
       await File(file.path).delete();
-      setState(() => _loadFiles());
+      await _loadFiles();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Archivo eliminado')),
       );
@@ -251,19 +533,23 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Future<void> _deleteSelectedFiles() async {
+    // El total se calcula antes de limpiar la selección: antes se leía después
+    // del clear() y el mensaje siempre decía "0 archivos eliminados".
+    final total = _selectedFiles.length;
     try {
-      for (var file in _selectedFiles) {
+      for (final file in _selectedFiles) {
         await File(file.path).delete();
       }
 
       setState(() {
-        _loadFiles();
         _selectedFiles.clear();
         _isSelectionMode = false;
       });
+      await _loadFiles();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${_selectedFiles.length} archivos eliminados')),
+        SnackBar(content: Text('$total archivo(s) eliminado(s)')),
       );
     } catch (e) {
       _showErrorDialog('Error al eliminar', e.toString());
@@ -285,48 +571,77 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   void _showFileOptions(FileSystemEntity file) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.download),
-            title: const Text('Descargar'),
-            onTap: () {
-              Navigator.pop(context);
-              _downloadFile(file);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete),
-            title: const Text('Eliminar'),
-            onTap: () {
-              Navigator.pop(context);
-              _confirmDelete(file);
-            },
-          ),
-        ],
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.download_outlined),
+              title: const Text('Descargar'),
+              subtitle: const Text('Guardar una copia fuera de la app'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _downloadFile(file);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline,
+                  color: AppColors.actionNegative),
+              title: const Text('Eliminar'),
+              subtitle: Text(
+                _esBaseCritica(file)
+                    ? 'Contiene datos maestros de la app'
+                    : 'Borrar del dispositivo',
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _confirmDelete(file);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
 
   void _confirmDelete(FileSystemEntity file) {
+    final critica = _esBaseCritica(file);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Eliminar archivo'),
-        content:
-            Text('¿Estás seguro de eliminar ${file.uri.pathSegments.last}?'),
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          critica ? Icons.warning_amber_rounded : Icons.delete_outline_rounded,
+          color: critica ? AppColors.warning : AppColors.actionNegative,
+        ),
+        title: Text(critica ? 'Base crítica' : 'Eliminar archivo'),
+        content: Text(
+          critica
+              ? 'Vas a borrar "${file.uri.pathSegments.last}", que contiene '
+                  'datos maestros de la app. Sin este archivo no aparecerán '
+                  'clientes, plantas ni balanzas, y tendrás que volver a '
+                  'descargar la precarga. ¿Continuar?'
+              : '¿Eliminar ${file.uri.pathSegments.last}? '
+                  'Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.actionNegative,
+            ),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               _deleteFile(file);
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: Text(critica ? 'Borrar de todas formas' : 'Eliminar'),
           ),
         ],
       ),
@@ -334,23 +649,41 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   void _confirmDeleteSelected() {
+    final criticas = _selectedFiles.where(_esBaseCritica).toList();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          criticas.isEmpty
+              ? Icons.delete_outline_rounded
+              : Icons.warning_amber_rounded,
+          color:
+              criticas.isEmpty ? AppColors.actionNegative : AppColors.warning,
+        ),
         title: const Text('Eliminar archivos'),
         content: Text(
-            '¿Estás seguro de eliminar ${_selectedFiles.length} archivos seleccionados?'),
+          criticas.isEmpty
+              ? '¿Eliminar ${_selectedFiles.length} archivo(s)? '
+                  'Esta acción no se puede deshacer.'
+              : 'La selección incluye ${criticas.length} base(s) con datos '
+                  'maestros (${criticas.map((f) => f.uri.pathSegments.last).join(', ')}). '
+                  'Si las borras tendrás que volver a descargar la precarga. '
+                  '¿Continuar?',
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
-          TextButton(
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.actionNegative,
+            ),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               _deleteSelectedFiles();
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -381,349 +714,250 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
         .toList();
   }
 
+  /// Bases que contienen datos maestros o de servicio y cuya eliminación deja
+  /// la app inutilizable hasta volver a descargar la precarga. Se avisa antes
+  /// de borrarlas.
+  static const Set<String> _basesCriticas = {
+    'precarga_database.db',
+    'calibracion.db',
+    'service_met.db',
+  };
+
+  bool _esBaseCritica(FileSystemEntity file) =>
+      _basesCriticas.contains(file.uri.pathSegments.last);
+
   Widget _buildFileList(String title, List<FileSystemEntity> files) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    if (files.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: Text(
-          'No hay archivos disponibles',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            color: cs.onSurface.withOpacity(0.38),
-          ),
-        ),
-      );
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: cs.onSurface.withOpacity(0.54),
-              letterSpacing: 0.5,
-            ),
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: Row(
+            children: [
+              Expanded(child: Text(title, style: AppDesign.titleStyle(context))),
+              if (files.isNotEmpty)
+                Text(
+                  '${files.length}',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+            ],
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        if (files.isEmpty)
+          AppPanel(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Row(
+              children: [
+                Icon(Icons.inbox_outlined,
+                    size: 20, color: cs.onSurfaceVariant),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No hay archivos en esta categoría',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          AppPanel(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: files.asMap().entries.map((entry) {
+                final idx = entry.key;
+                return Column(
+                  children: [
+                    _buildFileItem(entry.value),
+                    if (idx < files.length - 1)
+                      Divider(
+                        height: 1,
+                        indent: 64,
+                        endIndent: 12,
+                        color: cs.outlineVariant.withOpacity(0.7),
+                      ),
+                  ],
+                );
+              }).toList(),
             ),
           ),
-          child: Column(
-            children: files.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final file = entry.value;
-              return Column(
-                children: [
-                  _buildFileItem(file),
-                  if (idx < files.length - 1)
-                    Divider(
-                      height: 1,
-                      indent: 56,
-                      color:
-                          isDark ? AppColors.borderDark : AppColors.borderLight,
-                    ),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildFileItem(FileSystemEntity file) {
     final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    final fileInfo = File(file.path);
-    final stat = fileInfo.statSync();
-    final modified = DateTime.fromMillisecondsSinceEpoch(
-        stat.modified.millisecondsSinceEpoch);
+    final stat = File(file.path).statSync();
     final isSelected = _selectedFiles.contains(file);
-    final icon = _getFileIcon(file);
+    final critica = _esBaseCritica(file);
+    final accent = critica ? AppColors.shimmerGold : AppColors.actionPositive;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: _isSelectionMode
           ? Checkbox(
               value: isSelected,
-              activeColor: accent,
+              activeColor: AppColors.actionPositive,
               onChanged: (_) => _toggleFileSelection(file),
             )
           : Container(
-              padding: const EdgeInsets.all(8),
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
-                color: accent.withOpacity(0.1),
-                shape: BoxShape.circle,
+                color: accent.withOpacity(0.12),
+                borderRadius: AppDesign.smallRadius,
               ),
-              child: Icon(icon, color: accent, size: 20),
+              child: Icon(_getFileIcon(file), color: accent, size: 20),
             ),
       title: Text(
         file.uri.pathSegments.last,
         style: GoogleFonts.inter(
           fontSize: 14,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          fontWeight: FontWeight.w600,
           color: cs.onSurface,
         ),
       ),
-      subtitle: Text(
-        '${_formatBytes(stat.size)} · ${DateFormat('dd/MM/yyyy HH:mm').format(modified)}',
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          color: cs.onSurface.withOpacity(0.54),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 3),
+        child: Row(
+          children: [
+            Flexible(
+              child: Text(
+                '${_formatBytes(stat.size)} · '
+                '${DateFormat('dd/MM/yyyy HH:mm').format(stat.modified)}',
+                style: Theme.of(context).textTheme.bodySmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (critica) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.shield_outlined,
+                  size: 13, color: AppColors.shimmerGold),
+            ],
+          ],
         ),
       ),
       trailing: _isSelectionMode
           ? null
-          : IconButton(
-              icon: Icon(Icons.download_outlined, color: accent, size: 22),
+          : IconButton.filledTonal(
+              tooltip: 'Descargar',
               onPressed: () => _downloadFile(file),
+              style: IconButton.styleFrom(
+                backgroundColor: AppColors.accentYellow.withOpacity(0.12),
+                foregroundColor: cs.onSurface,
+              ),
+              icon: const Icon(Icons.download_outlined, size: 19),
             ),
-      onTap: () => _isSelectionMode
-          ? _toggleFileSelection(file)
-          : _showFileOptions(file),
+      onTap: () =>
+          _isSelectionMode ? _toggleFileSelection(file) : _showFileOptions(file),
       onLongPress: () => _toggleFileSelection(file),
     );
   }
 
   IconData _getFileIcon(FileSystemEntity file) {
-    if (file.path.endsWith('.csv')) return Icons.table_chart;
-    if (file.path.endsWith('.db')) return Icons.storage;
-    return Icons.insert_drive_file;
+    if (file.path.endsWith('.csv')) return Icons.table_chart_outlined;
+    if (file.path.endsWith('.db')) return Icons.storage_rounded;
+    return Icons.insert_drive_file_outlined;
   }
 
   String _formatBytes(int bytes, {int decimals = 2}) {
-    if (bytes <= 0) return "0 B";
-    const suffixes = ["B", "KB", "MB", "GB", "TB"];
+    if (bytes <= 0) return '0 B';
+    const suffixes = ['B', 'KB', 'MB', 'GB', 'TB'];
     final i = (log(bytes) / log(1024)).floor();
     return '${(bytes / pow(1024, i)).toStringAsFixed(decimals)} ${suffixes[i]}';
   }
 
   Widget _buildSearchField() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-      child: TextField(
-        controller: _searchController,
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          color: cs.onSurface,
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: 'Buscar archivos…',
+        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+        suffixIcon: _searchController.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close_rounded, size: 18),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {});
+                },
+              ),
+        isDense: true,
+        filled: true,
+        border: OutlineInputBorder(
+          borderRadius: AppDesign.mediumRadius,
+          borderSide: BorderSide.none,
         ),
-        decoration: InputDecoration(
-          hintText: 'Buscar archivos...',
-          hintStyle: GoogleFonts.inter(
-            fontSize: 14,
-            color: cs.onSurface.withOpacity(0.38),
-          ),
-          prefixIcon: Icon(Icons.search_rounded,
-              color: cs.onSurface.withOpacity(isDark ? 0.54 : 0.45), size: 20),
-          filled: true,
-          fillColor: isDark ? AppColors.cardDark : Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(
-                color: isDark ? AppColors.borderDark : AppColors.borderLight),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: accent, width: 1.5),
-          ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        ),
-        onChanged: (value) => setState(() {}),
       ),
+      onChanged: (_) => setState(() {}),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final accent = Theme.of(context).colorScheme.primary;
-
-    return AppBar(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-      iconTheme: IconThemeData(
-        color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-      ),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new_rounded,
-            size: 20, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text(
-        _isSelectionMode
-            ? '${_selectedFiles.length} seleccionados'
-            : 'Respaldo de Datos',
-        style: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-          height: 1.1,
-        ),
-      ),
-      actions: _isSelectionMode
-          ? [
-              IconButton(
-                icon: Icon(Icons.download_outlined, color: accent),
-                onPressed: _downloadSelectedFiles,
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: _confirmDeleteSelected,
-              ),
-              IconButton(
-                icon: Icon(Icons.close,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                onPressed: () => setState(() {
-                  _selectedFiles.clear();
-                  _isSelectionMode = false;
-                }),
-              ),
-            ]
-          : null,
-    );
-  }
-
-  InputDecoration _buildInputDecoration(String labelText) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    return InputDecoration(
-      labelText: labelText,
-      labelStyle: GoogleFonts.inter(color: cs.onSurface.withOpacity(0.54)),
-      filled: true,
-      fillColor: isDark ? AppColors.cardDark : AppColors.backgroundLight,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: accent, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-    );
+  @override
+  Widget build(BuildContext context) {
+    return _isAuthenticated ? _buildBackupScreen() : _buildAuthScreen();
   }
 
   Widget _buildAuthScreen() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final accent = cs.primary;
-    final bgColor =
-        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-    final cardColor = isDark ? AppColors.cardDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-
     return Scaffold(
-      appBar: _buildAppBar(),
+      appBar: const ServiceAppBar(title: 'Respaldo de datos'),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: borderColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: accent.withOpacity(0.1),
-                    shape: BoxShape.circle,
+          padding: const EdgeInsets.all(AppDesign.pagePadding),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: AppPanel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.actionPositive.withOpacity(0.13),
+                      borderRadius: AppDesign.mediumRadius,
+                    ),
+                    child: const Icon(Icons.lock_outline_rounded,
+                        color: AppColors.actionPositive, size: 24),
                   ),
-                  child:
-                      Icon(Icons.lock_outline_rounded, color: accent, size: 28),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Acceso Restringido',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: cs.onSurface,
+                  const SizedBox(height: 20),
+                  Text('Acceso restringido',
+                      style: AppDesign.displayStyle(context)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ingresa la contraseña proporcionada por el área de '
+                    'sistemas para administrar los respaldos.',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Ingresa la contraseña proporcionada por el área de sistemas para acceder a los respaldos.',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: cs.onSurface.withOpacity(isDark ? 0.60 : 0.54),
-                    height: 1.5,
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _passwordController,
+                    keyboardType: TextInputType.number,
+                    onSubmitted: (_) => _authenticate(),
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña de acceso',
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: AppDesign.mediumRadius,
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 28),
-                TextField(
-                  controller: _passwordController,
-                  decoration: _buildInputDecoration('Contraseña de acceso'),
-                  obscureText: false,
-                  keyboardType: TextInputType.number,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    color: cs.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
                     onPressed: _authenticate,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      'Ingresar',
-                      style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    style: AppDesign.positiveButtonStyle(),
+                    icon: const Icon(Icons.login_rounded),
+                    label: const Text('Ingresar'),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -732,57 +966,104 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
   }
 
   Widget _buildBackupScreen() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cs = Theme.of(context).colorScheme;
-    final bgColor =
-        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
-    final accent = cs.primary;
-    final filteredDbs = _filterFiles(_databases, _searchController.text);
-    final filteredCsvs = _filterFiles(_csvFiles, _searchController.text);
-    final filteredBackups =
-        _filterFiles(_precargaBackups, _searchController.text);
-    final filteredSoporteTec =
-        _filterFiles(_soporteTecDbs, _searchController.text);
+    final query = _searchController.text;
+    final filteredBackups = _filterFiles(_precargaBackups, query);
+    final filteredDbs = _filterFiles(_databases, query);
+    final filteredSoporteTec = _filterFiles(_soporteTecDbs, query);
+    final filteredCsvs = _filterFiles(_csvFiles, query);
 
     return Scaffold(
-      appBar: _buildAppBar(),
+      appBar: ServiceAppBar(
+        title: _isSelectionMode
+            ? '${_selectedFiles.length} seleccionados'
+            : 'Respaldo de datos',
+        actions: _isSelectionMode
+            ? [
+                IconButton(
+                  tooltip: 'Descargar selección',
+                  icon: const Icon(Icons.download_outlined),
+                  onPressed: _downloadSelectedFiles,
+                ),
+                IconButton(
+                  tooltip: 'Eliminar selección',
+                  icon: const Icon(Icons.delete_outline,
+                      color: AppColors.actionNegative),
+                  onPressed: _confirmDeleteSelected,
+                ),
+                IconButton(
+                  tooltip: 'Cancelar',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() {
+                    _selectedFiles.clear();
+                    _isSelectionMode = false;
+                  }),
+                ),
+              ]
+            : null,
+      ),
+      floatingActionButton: _isSelectionMode
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: 'importar_respaldo',
+              onPressed: _isImporting ? null : _importarBaseDeDatos,
+              backgroundColor: AppColors.actionPositive,
+              foregroundColor: AppColors.actionPositiveInk,
+              icon: _isImporting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file_rounded),
+              label: Text(
+                _isImporting ? 'Importando…' : 'Importar base',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w800),
+              ),
+            ),
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: accent),
-            )
-          : Column(
-              children: [
-                _buildSearchField(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              color: AppColors.actionPositive,
+              onRefresh: _loadFiles,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(
+                  AppDesign.pagePadding,
+                  14,
+                  AppDesign.pagePadding,
+                  112,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Text('Archivos del dispositivo',
+                            style: AppDesign.displayStyle(context)),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Descarga una copia, elimina lo que ya no uses o '
+                          'importa un respaldo para recuperar registros.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 18),
+                        _buildSearchField(),
+                        const SizedBox(height: 26),
                         _buildFileList(
-                            'RESPALDOS DE CALIBRACIÓN', filteredBackups),
-                        const SizedBox(height: 24),
-                        _buildFileList(
-                            'BASES DE DATOS PRINCIPALES', filteredDbs),
-                        const SizedBox(height: 24),
-                        _buildFileList('SOPORTE TÉCNICO', filteredSoporteTec),
-                        const SizedBox(height: 24),
-                        _buildFileList('ARCHIVOS CSV', filteredCsvs),
+                            'Respaldos de calibración', filteredBackups),
+                        const SizedBox(height: 26),
+                        _buildFileList('Bases principales', filteredDbs),
+                        const SizedBox(height: 26),
+                        _buildFileList('Soporte técnico', filteredSoporteTec),
+                        const SizedBox(height: 26),
+                        _buildFileList('Archivos CSV', filteredCsvs),
                       ],
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
     );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_isAuthenticated) {
-      return _buildAuthScreen();
-    }
-
-    return _buildBackupScreen();
   }
 }
