@@ -11,6 +11,18 @@ const {
 } = require('../src/support-service');
 
 const schemas = loadSupportSchemas();
+const installationCommentColumns = [
+  'entorno_comentario',
+  'nivelacion_comentario',
+  'movilizacion_comentario',
+  'flujo_pesadas_comentario',
+  'superficie_apoyo_comentario',
+  'tension_red_comentario',
+  'sistema_tierra_comentario',
+  'comunicacion_pc_comentario',
+  'vibracion_externa_comentario',
+  'comentario_general',
+];
 
 test('carga los esquemas de los ocho módulos de soporte', () => {
   assert.equal(schemas.size, 8);
@@ -24,6 +36,10 @@ test('carga los esquemas de los ocho módulos de soporte', () => {
       assert.equal(field.type, 'nvarchar');
       assert.equal(field.maxLength, 50);
     }
+  }
+  for (const column of installationCommentColumns) {
+    assert.equal(schemas.get('instalacion').get(column).type, 'nvarchar');
+    assert.equal(schemas.get('instalacion').get(column).maxLength, 1000);
   }
 });
 
@@ -380,6 +396,37 @@ test('comentario_general admite 1000 caracteres en los ocho módulos', () => {
       ),
       true,
       module,
+    );
+  }
+});
+
+test('todos los comentarios de instalación admiten hasta 1000 caracteres', () => {
+  for (const [index, column] of installationCommentColumns.entries()) {
+    const completeData = {
+      otst: `OTST-INS-COM-${index}`,
+      cod_metrica: `MET-INS-COM-${index}`,
+      estado_servicio: 'Completo',
+      [column]: 'C'.repeat(1000),
+    };
+    const accepted = validateSupportRecords(
+      [{ module: 'instalacion', data: completeData }],
+      schemas,
+    );
+    assert.equal(accepted.records[0].valid, true, column);
+
+    const rejected = validateSupportRecords(
+      [{
+        module: 'instalacion',
+        data: { ...completeData, [column]: 'C'.repeat(1001) },
+      }],
+      schemas,
+    );
+    assert.equal(
+      rejected.records[0].errors.some(
+        (error) => error.column === column && error.code === 'MAX_LENGTH',
+      ),
+      true,
+      column,
     );
   }
 });

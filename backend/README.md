@@ -30,8 +30,12 @@ extensos, deben ejecutarse una sola vez, y en este orden:
    a `nvarchar(50)`.
 2. `sql/009_expand_support_comentario_general.sql`, que amplía
    `comentario_general` a `nvarchar(1000)` en las ocho tablas.
+3. `sql/010_expand_installation_comments.sql`, que amplía a
+   `nvarchar(1000)` los nueve comentarios de condiciones de instalación y
+   reafirma el mismo límite para `comentario_general` en
+   `DATA_SERVICIOS_DATOS_INT`.
 
-Ambos scripts validan la estructura y aplican todos los cambios dentro de una
+Los scripts validan la estructura y aplican todos los cambios dentro de una
 transacción antes de mostrar el esquema resultante.
 
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
