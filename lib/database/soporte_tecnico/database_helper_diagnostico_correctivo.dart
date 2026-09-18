@@ -295,12 +295,44 @@ class DatabaseHelperDiagnosticoCorrectivo {
         },
       );
 
+      await _ensureColumns(database);
+
       return database;
     } catch (e) {
       debugPrint('Error inicializando base de datos: $e');
       rethrow;
     } finally {
       _isInitializing = false;
+    }
+  }
+
+  Future<void> _ensureColumns(Database db) async {
+    const columnasPorTabla = {
+      'diagnostico': {
+        'estado_servicio': "TEXT DEFAULT ''",
+      },
+      'diagnostico_correctivo': {
+        'estado_servicio': "TEXT DEFAULT ''",
+      },
+    };
+
+    for (final tabla in columnasPorTabla.entries) {
+      try {
+        final tableInfo = await db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='${tabla.key}'");
+        if (tableInfo.isEmpty) continue;
+
+        final rows = await db.rawQuery('PRAGMA table_info(${tabla.key})');
+        final existing = rows.map((r) => r['name'].toString()).toSet();
+
+        for (final entry in tabla.value.entries) {
+          if (existing.contains(entry.key)) continue;
+          await db.execute(
+              'ALTER TABLE ${tabla.key} ADD COLUMN ${entry.key} ${entry.value}');
+        }
+      } catch (e) {
+        debugPrint('Error asegurando columnas de ${tabla.key}: $e');
+      }
     }
   }
 
@@ -524,6 +556,7 @@ class DatabaseHelperDiagnosticoCorrectivo {
         -- Datos específicos
         reporte TEXT DEFAULT '',       -- Reporte de falla
         evaluacion TEXT DEFAULT '',    -- Evaluación y análisis técnico
+        estado_servicio TEXT DEFAULT '',
         comentario_general TEXT DEFAULT ''
       )
       ''');
