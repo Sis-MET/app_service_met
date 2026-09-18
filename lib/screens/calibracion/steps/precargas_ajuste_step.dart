@@ -326,6 +326,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
               style: GoogleFonts.inter(color: cs.onSurface),
               controller: _rows[i][1],
               column: 'p_indicador${i + 1}',
+              readable: true,
               onChanged: (_) => _saveToProvider(),
               decoration: _deco('Indicación', isDark).copyWith(
                 suffixIcon: _rows[i][0].text.isNotEmpty

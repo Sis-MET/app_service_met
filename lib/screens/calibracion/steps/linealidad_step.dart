@@ -10,6 +10,7 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
@@ -783,6 +784,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
       controller: _indCtrls[i],
       column: 'ind${i + 1}',
       allowNegative: true,
+      readable: true,
       onChanged: (val) => _onIndicacionChanged(i, val),
       decoration: _fieldDecoration(
         isDark,
@@ -805,6 +807,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
       controller: _retCtrls[i],
       column: 'retorno_lin${i + 1}',
       allowNegative: true,
+      readable: true,
       onChanged: (_) => _onRetornoChanged(),
       decoration: _fieldDecoration(isDark, labelText: 'Retorno a cero'),
     );
@@ -851,6 +854,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
     if (!_cargasValidadas || _cargasPatronValidadas <= 0) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final balanza = context.read<ServiceSessionProvider>().session?.balanza;
     final indicacionCtrl = TextEditingController();
     final validatedLoads = _referenceLoads();
     final baseLoads = _baseLoads();
@@ -902,157 +906,161 @@ class _LinealidadStepState extends State<LinealidadStep> {
             return Padding(
               padding: EdgeInsets.fromLTRB(
                   20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-              // La hoja queda fuera del teclado de la pantalla: lleva el suyo.
+              // La hoja queda fuera del teclado de la pantalla: lleva el suyo,
+              // también con el lector del display.
               child: NumericKeypadHost(
+                  onReadIndicator: (context) =>
+                      IndicatorReaderScreen.read(context, balanza: balanza),
                   child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _sheetHandle(isDark),
-                  _sheetTitle('Carga sustitutiva', isDark),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ingrese la indicacion obtenida con la carga sustitutiva. Elija la carga base que se sumara; el error se toma de la referencia mas cercana a la indicacion.',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      height: 1.4,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<int>(
-                    isExpanded: true,
-                    value: selectedBaseIndex,
-                    decoration: _deco('Carga base para sumar', isDark),
-                    dropdownColor:
-                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                    selectedItemBuilder: (context) => baseLoads
-                        .map(
-                          (load) => Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Carga ${load.index + 1}: ${_fmt(load.carga)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A),
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sheetHandle(isDark),
+                      _sheetTitle('Carga sustitutiva', isDark),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ingrese la indicacion obtenida con la carga sustitutiva. Elija la carga base que se sumara; el error se toma de la referencia mas cercana a la indicacion.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          height: 1.4,
+                          color: isDark ? Colors.white60 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      DropdownButtonFormField<int>(
+                        isExpanded: true,
+                        value: selectedBaseIndex,
+                        decoration: _deco('Carga base para sumar', isDark),
+                        dropdownColor:
+                            isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                        selectedItemBuilder: (context) => baseLoads
+                            .map(
+                              (load) => Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Carga ${load.index + 1}: ${_fmt(load.carga)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    items: baseLoads
-                        .map(
-                          (load) => DropdownMenuItem(
-                            value: load.index,
-                            child: Text(
-                              'Carga ${load.index + 1}: ${_fmt(load.carga)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A),
+                            )
+                            .toList(),
+                        items: baseLoads
+                            .map(
+                              (load) => DropdownMenuItem(
+                                value: load.index,
+                                child: Text(
+                                  'Carga ${load.index + 1}: ${_fmt(load.carga)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setSheetState(() => selectedBaseIndex = value);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<int>(
-                    isExpanded: true,
-                    value: selectedLoadIndex,
-                    decoration:
-                        _deco('Carga de referencia para correccion', isDark),
-                    dropdownColor:
-                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                    selectedItemBuilder: (context) => validatedLoads
-                        .map(
-                          (load) => Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'Carga ${load.index + 1}: ${_fmt(load.carga)} | Err ${_fmt(load.error)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setSheetState(() => selectedBaseIndex = value);
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<int>(
+                        isExpanded: true,
+                        value: selectedLoadIndex,
+                        decoration: _deco(
+                            'Carga de referencia para correccion', isDark),
+                        dropdownColor:
+                            isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                        selectedItemBuilder: (context) => validatedLoads
+                            .map(
+                              (load) => Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'Carga ${load.index + 1}: ${_fmt(load.carga)} | Err ${_fmt(load.error)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    items: validatedLoads
-                        .map(
-                          (load) => DropdownMenuItem(
-                            value: load.index,
-                            child: Text(
-                              'Carga ${load.index + 1}: ${_fmt(load.carga)} | Ind ${_fmt(load.indicacion)} | Error ${_fmt(load.error)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.inter(
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF1A1A1A),
+                            )
+                            .toList(),
+                        items: validatedLoads
+                            .map(
+                              (load) => DropdownMenuItem(
+                                value: load.index,
+                                child: Text(
+                                  'Carga ${load.index + 1}: ${_fmt(load.carga)} | Ind ${_fmt(load.indicacion)} | Error ${_fmt(load.error)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF1A1A1A),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setSheetState(() {
-                        selectedLoadIndex = value;
-                        referenceSelectedManually = true;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  _sheetNumberField(
-                    controller: indicacionCtrl,
-                    label: 'Indicacion carga sustitutiva',
-                    isDark: isDark,
-                    onChanged: (value) {
-                      final reference = double.tryParse(value);
-                      setSheetState(() {
-                        if (!referenceSelectedManually && reference != null) {
-                          selectedLoadIndex =
-                              _nearestReferenceLoad(reference, validatedLoads)
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setSheetState(() {
+                            selectedLoadIndex = value;
+                            referenceSelectedManually = true;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      _sheetNumberField(
+                        controller: indicacionCtrl,
+                        label: 'Indicacion carga sustitutiva',
+                        isDark: isDark,
+                        onChanged: (value) {
+                          final reference = double.tryParse(value);
+                          setSheetState(() {
+                            if (!referenceSelectedManually &&
+                                reference != null) {
+                              selectedLoadIndex = _nearestReferenceLoad(
+                                      reference, validatedLoads)
                                   .index;
-                        }
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _sheetResult(
-                    'Carga base a sumar: ${_fmt(selectedBase.carga)}\n'
-                    'Referencia elegida: ${_fmt(patronCarga)}\n'
-                    'Error referencia: ${_fmt(patronError)}\n'
-                    'Carga real sustitutiva: ${_fmt(cargaRealSustitutiva)}\n'
-                    'Carga acumulada a registrar: ${_fmt(acumulado)}',
-                    isDark,
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: indicacionCtrl.text.trim().isEmpty
-                          ? null
-                          : () => Navigator.pop(ctx, _fmt(acumulado)),
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text('Guardar carga sustitutiva'),
-                    ),
-                  ),
-                ],
-              )),
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      _sheetResult(
+                        'Carga base a sumar: ${_fmt(selectedBase.carga)}\n'
+                        'Referencia elegida: ${_fmt(patronCarga)}\n'
+                        'Error referencia: ${_fmt(patronError)}\n'
+                        'Carga real sustitutiva: ${_fmt(cargaRealSustitutiva)}\n'
+                        'Carga acumulada a registrar: ${_fmt(acumulado)}',
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: indicacionCtrl.text.trim().isEmpty
+                              ? null
+                              : () => Navigator.pop(ctx, _fmt(acumulado)),
+                          icon: const Icon(Icons.check_rounded),
+                          label: const Text('Guardar carga sustitutiva'),
+                        ),
+                      ),
+                    ],
+                  )),
             );
           },
         );
@@ -1175,6 +1183,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
     // Valor intermedio: la carga acumulada que resulta se valida en la fila.
     return CalibrationNumberField(
       controller: controller,
+      readable: true,
       onChanged: onChanged,
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),

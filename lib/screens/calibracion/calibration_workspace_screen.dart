@@ -22,6 +22,7 @@ import 'steps/repetibilidad_step.dart';
 import 'steps/linealidad_step.dart';
 import 'steps/condiciones_finales_step.dart';
 import 'steps/exportacion_step.dart';
+import 'widgets/indicator_reader_screen.dart';
 import 'widgets/save_blocked_dialog.dart';
 
 class CalibrationWorkspaceScreen extends StatefulWidget {
@@ -48,14 +49,21 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
   Timer? _showButtonTimer;
 
   /// Teclado numérico propio de las lecturas. Mientras escribe ocupa el pie de
-  /// la pantalla, donde flota la navegación.
-  final _keypad = NumericKeypadController();
+  /// la pantalla, donde flota la navegación. En las lecturas del display
+  /// ofrece leerlas con la cámara.
+  late final NumericKeypadController _keypad;
   late final ServiceSessionProvider _provider;
 
   @override
   void initState() {
     super.initState();
     _provider = context.read<ServiceSessionProvider>();
+    _keypad = NumericKeypadController(
+      onReadIndicator: (context) => IndicatorReaderScreen.read(
+        context,
+        balanza: _provider.session?.balanza,
+      ),
+    );
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context

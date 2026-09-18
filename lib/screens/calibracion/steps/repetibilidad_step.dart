@@ -500,6 +500,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
       controller: _indCtrls[cargaIdx][medIdx],
       column: 'indicacion${cargaIdx + 1}_${medIdx + 1}',
       allowNegative: true,
+      readable: true,
       onChanged: (_) => _saveToProvider(),
       decoration: _fieldDecoration(
         isDark,
@@ -544,6 +545,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         controller: ctrl,
         column: column,
         allowNegative: true,
+        readable: true,
         onChanged: (_) => _saveToProvider(),
         decoration: _fieldDecoration(isDark),
       );

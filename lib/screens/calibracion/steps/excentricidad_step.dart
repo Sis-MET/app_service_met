@@ -740,6 +740,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       controller: _rows[i][0],
       column: 'indicacion${i + 1}',
       allowNegative: true,
+      readable: true,
       onChanged: (_) => _saveToProvider(),
       decoration: InputDecoration(
         isDense: true,
@@ -793,6 +794,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         controller: ctrl,
         column: column,
         allowNegative: true,
+        readable: true,
         onChanged: (_) => _saveToProvider(),
         decoration: InputDecoration(
           isDense: true,

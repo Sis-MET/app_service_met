@@ -9,6 +9,15 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <!-- El lector del indicador usa el plugin camera, que declara micrófono
+         (para grabar video) y exige cámara. ServiceMET no graba audio ni
+         video, y la cámara sigue siendo opcional para instalar la app. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false"
+        tools:replace="android:required" />
+
     <!-- Notificaciones y Alarmas -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

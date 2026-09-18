@@ -23,12 +23,40 @@ import '../theme/app_design.dart';
 /// mismo `onChanged` que usa el teclado del sistema, así que la validación y el
 /// autoguardado no distinguen de dónde vino la pulsación.
 class NumericKeypadController extends ChangeNotifier {
+  NumericKeypadController({this.onReadIndicator});
+
+  /// Abre el lector del display de la balanza y devuelve la lectura que el
+  /// técnico confirmó, o null si canceló. Sin él, el teclado no ofrece leer.
+  final IndicatorReader? onReadIndicator;
+
   final Set<_KeypadInputState> _fields = <_KeypadInputState>{};
   _KeypadInputState? _active;
   bool _disposed = false;
 
   /// Hay un campo del teclado enfocado.
   bool get visible => _active != null;
+
+  /// El campo enfocado es una lectura del indicador y hay con qué leerla.
+  bool get canRead =>
+      onReadIndicator != null && (_active?.widget.readable ?? false);
+
+  /// Lee el indicador y escribe la lectura en el campo enfocado, como si se
+  /// hubiera tecleado. Después devuelve el foco al campo para seguir con
+  /// "Siguiente".
+  Future<void> readIndicator(BuildContext context) async {
+    final field = _active;
+    final reader = onReadIndicator;
+    if (field == null || reader == null || !field.widget.readable) return;
+    final reading = await reader(context);
+    if (reading == null || _disposed || !field.mounted) return;
+    final before = field.widget.controller.value;
+    field.widget.controller.value = TextEditingValue(
+      text: reading,
+      selection: TextSelection.collapsed(offset: reading.length),
+    );
+    if (reading != before.text) field.widget.onChanged?.call(reading);
+    field.focusNode.requestFocus();
+  }
 
   /// El campo enfocado admite valores negativos (indicación, retorno a cero).
   bool get allowNegative => _active?.widget.allowNegative ?? false;
@@ -130,6 +158,10 @@ class NumericKeypadController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// Lector de la lectura del indicador: abre su pantalla desde [context] y
+/// devuelve el valor confirmado ("12.345"), o null si se canceló.
+typedef IndicatorReader = Future<String?> Function(BuildContext context);
 
 /// Ediciones de cada tecla, sin estado, sobre el valor del campo.
 abstract final class KeypadEdit {
@@ -252,6 +284,7 @@ class KeypadInput extends StatefulWidget {
     this.onChanged,
     this.allowNegative = false,
     this.allowDecimal = true,
+    this.readable = false,
     super.key,
   });
 
@@ -259,6 +292,10 @@ class KeypadInput extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final bool allowNegative;
   final bool allowDecimal;
+
+  /// El valor sale del display de la balanza (indicación, retorno): el
+  /// teclado ofrece leerlo con la cámara.
+  final bool readable;
   final Widget Function(BuildContext context, FocusNode? keypadFocus) builder;
 
   @override
@@ -326,16 +363,24 @@ class _KeypadInputState extends State<KeypadInput> {
 /// Necesita alto acotado (un diálogo o una hoja modal): con el panel abierto
 /// queda menos sitio y [child] se desplaza.
 class NumericKeypadHost extends StatefulWidget {
-  const NumericKeypadHost({required this.child, super.key});
+  const NumericKeypadHost({
+    required this.child,
+    this.onReadIndicator,
+    super.key,
+  });
 
   final Widget child;
+
+  /// Lector del display para los campos marcados como lectura.
+  final IndicatorReader? onReadIndicator;
 
   @override
   State<NumericKeypadHost> createState() => _NumericKeypadHostState();
 }
 
 class _NumericKeypadHostState extends State<NumericKeypadHost> {
-  final _keypad = NumericKeypadController();
+  late final _keypad =
+      NumericKeypadController(onReadIndicator: widget.onReadIndicator);
 
   @override
   void dispose() {
@@ -411,7 +456,7 @@ class NumericKeypad extends StatelessWidget {
               ),
             );
 
-        return Row(
+        final keys = Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: _gap,
           children: [
@@ -468,6 +513,27 @@ class NumericKeypad extends StatelessWidget {
             ]),
           ],
         );
+        if (!controller.canRead) return keys;
+
+        // Encima de las teclas, para no mover ninguna de un campo a otro.
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: _gap,
+          children: [
+            _KeypadKey(
+              key: const ValueKey('keypad-read'),
+              height: 44,
+              label: 'Leer del indicador',
+              icon: Icons.document_scanner_outlined,
+              small: true,
+              horizontal: true,
+              semanticLabel: 'Leer la lectura del indicador con la cámara',
+              onTap: () => controller.readIndicator(context),
+            ),
+            keys,
+          ],
+        );
       },
     );
 
@@ -511,6 +577,7 @@ class _KeypadKey extends StatelessWidget {
     this.primary = false,
     this.small = false,
     this.glyph = false,
+    this.horizontal = false,
     super.key,
   });
 
@@ -521,6 +588,9 @@ class _KeypadKey extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool primary;
+
+  /// Ícono al lado del rótulo, para la tecla ancha de leer el indicador.
+  final bool horizontal;
 
   /// Rótulo de palabra ("Listo") en vez de cifra: cuerpo más pequeño.
   final bool small;
@@ -570,12 +640,13 @@ class _KeypadKey extends StatelessWidget {
             onLongPress: onLongPress,
             child: SizedBox(
               height: height,
-              child: Column(
+              child: Flex(
+                direction: horizontal ? Axis.horizontal : Axis.vertical,
                 mainAxisAlignment: MainAxisAlignment.center,
+                spacing: horizontal ? 8 : 4,
                 children: [
                   if (icon != null)
                     Icon(icon, size: small ? 20 : 24, color: ink),
-                  if (icon != null && label != null) const SizedBox(height: 4),
                   if (label != null)
                     Text(
                       label!,

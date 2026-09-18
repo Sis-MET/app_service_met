@@ -69,6 +69,9 @@ dependencies:
   photo_view: ^0.15.0
   flutter_image_compress: ^2.4.0
   mobile_scanner: ^7.0.1
+  # Lector del indicador: cámara en vivo y OCR de ML Kit en el teléfono.
+  camera: ^0.12.1
+  google_mlkit_text_recognition: ^0.17.1
   font_awesome_flutter: ^11.0.0
   timezone: ^0.11.1
   local_auth: ^3.0.2

@@ -208,6 +208,137 @@ void main() {
     });
   });
 
+  group('leer del indicador', () {
+    late TextEditingController indicacion;
+    late TextEditingController carga;
+    late List<String> escritos;
+
+    setUp(() {
+      indicacion = TextEditingController();
+      carga = TextEditingController();
+      escritos = [];
+    });
+
+    tearDown(() {
+      indicacion.dispose();
+      carga.dispose();
+    });
+
+    /// Lector falso: abre una pantalla, como la cámara, y devuelve [lectura]
+    /// al tocar "usar" o null al tocar "cancelar".
+    Future<String?> lector(BuildContext context, String lectura) {
+      return Navigator.of(context).push<String>(MaterialPageRoute(
+        builder: (context) => Scaffold(
+          body: Column(children: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, lectura),
+              child: const Text('usar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('cancelar'),
+            ),
+          ]),
+        ),
+      ));
+    }
+
+    Future<NumericKeypadController> montar(
+      WidgetTester tester, {
+      bool conLector = true,
+    }) async {
+      final keypad = NumericKeypadController(
+        onReadIndicator:
+            conLector ? (context) => lector(context, '12.345') : null,
+      );
+      addTearDown(keypad.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: NumericKeypadScope(
+              controller: keypad,
+              child: Column(
+                children: [
+                  CalibrationNumberField(
+                    key: const ValueKey('indicacion'),
+                    controller: indicacion,
+                    column: 'indicacion1',
+                    allowNegative: true,
+                    readable: true,
+                    onChanged: escritos.add,
+                  ),
+                  CalibrationNumberField(
+                    key: const ValueKey('carga'),
+                    controller: carga,
+                    column: 'carga',
+                  ),
+                  const Spacer(),
+                  ListenableBuilder(
+                    listenable: keypad,
+                    builder: (_, __) => keypad.visible
+                        ? NumericKeypad(controller: keypad)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      return keypad;
+    }
+
+    testWidgets('escribe la lectura confirmada y vuelve al campo',
+        (tester) async {
+      await montar(tester);
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('keypad-read')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('usar'));
+      await tester.pumpAndSettle();
+
+      expect(indicacion.text, '12.345');
+      expect(escritos, ['12.345']);
+      // El teclado vuelve para seguir con "Siguiente".
+      expect(find.byKey(const ValueKey('keypad-next')), findsOneWidget);
+    });
+
+    testWidgets('cancelar no toca el campo', (tester) async {
+      await montar(tester);
+      indicacion.text = '10.000';
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('keypad-read')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(indicacion.text, '10.000');
+      expect(escritos, isEmpty);
+    });
+
+    testWidgets('solo se ofrece en lecturas del display', (tester) async {
+      await montar(tester);
+      await tester.tap(find.byKey(const ValueKey('carga')));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('keypad-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('keypad-read')), findsNothing);
+    });
+
+    testWidgets('sin lector no se ofrece', (tester) async {
+      await montar(tester, conLector: false);
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('keypad-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('keypad-read')), findsNothing);
+    });
+  });
+
   testWidgets('funciona dentro de un AlertDialog, que mide anchos intrínsecos',
       (tester) async {
     final cantidad = TextEditingController();

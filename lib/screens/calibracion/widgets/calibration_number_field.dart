@@ -24,6 +24,7 @@ class CalibrationNumberField extends StatelessWidget {
     this.style,
     this.enabled = true,
     this.autofocus = false,
+    this.readable = false,
   });
 
   final TextEditingController controller;
@@ -42,6 +43,10 @@ class CalibrationNumberField extends StatelessWidget {
   final bool enabled;
   final bool autofocus;
 
+  /// Es una lectura del display (indicación, retorno): el teclado ofrece
+  /// leerla con la cámara.
+  final bool readable;
+
   bool get _allowDecimal =>
       allowDecimal ?? !CalibrationRecordValidator.isIntegerColumn(column);
 
@@ -53,6 +58,7 @@ class CalibrationNumberField extends StatelessWidget {
       onChanged: onChanged,
       allowNegative: allowNegative,
       allowDecimal: allowDecimal,
+      readable: readable,
       builder: (context, keypadFocus) =>
           ValueListenableBuilder<TextEditingValue>(
         valueListenable: controller,
