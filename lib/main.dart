@@ -21,6 +21,7 @@ import 'package:service_met/login/services/connection_profile_service.dart';
 import 'login/screens/initial_setup_screen.dart';
 import 'login/screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/system_navigation_scrim.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -129,7 +130,9 @@ class MyApp extends StatelessWidget {
                   data: MediaQuery.of(context).copyWith(
                     textScaler: TextScaler.linear(settings.textScaleFactor),
                   ),
-                  child: child!,
+                  // Encima de todas las pantallas, también de diálogos y
+                  // hojas: oscurece la franja de la barra de navegación.
+                  child: SystemNavigationScrim(child: child!),
                 ),
               ),
             );
