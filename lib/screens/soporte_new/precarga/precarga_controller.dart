@@ -171,6 +171,11 @@ class PrecargaController extends ChangeNotifier {
   Map<String, dynamic>? selectedPlanta;
   Map<String, dynamic>? selectedInstrumentoData;
 
+  /// Código métrica del QR escaneado en el paso Cliente, a la espera de que
+  /// se confirme la OTST: el paso Instrumento lo aplica al abrirse. Se
+  /// descarta si el técnico cambia el cliente o la planta a mano.
+  String? qrCodMetrica;
+
   bool isLoading = false;
   String? errorMessage;
 
@@ -327,13 +332,16 @@ class PrecargaController extends ChangeNotifier {
     selectedInstrumentoData = null;
     plantas = [];
     instrumentos = [];
+    qrCodMetrica = null;
     notifyListeners();
     loadClientes();
   }
 
-  void selectCliente(Map<String, dynamic> cliente) {
+  /// Elige el cliente y carga sus plantas; el Future termina con ellas.
+  Future<void> selectCliente(Map<String, dynamic> cliente) {
     selectedCliente = cliente;
     clienteId = cliente['cliente_id']?.toString() ?? cliente['id']?.toString();
+    qrCodMetrica = null;
     selectedPlanta = null;
     plantaCodigo = null;
     suggestedSeca = null;
@@ -345,13 +353,14 @@ class PrecargaController extends ChangeNotifier {
     instrumentos = [];
     stepErrors[1] = null;
     notifyListeners();
-    loadPlantas();
+    return loadPlantas();
   }
 
   void selectPlanta(Map<String, dynamic> planta) {
     selectedPlanta = planta;
     plantaCodigo =
         planta['codigo_planta']?.toString() ?? planta['codigo']?.toString();
+    qrCodMetrica = null;
     selectedSeca = null;
     secaConfirmed = false;
     selectedInstrumento = null;
@@ -371,6 +380,59 @@ class PrecargaController extends ChangeNotifier {
     codMetrica = selectedInstrumento;
     stepErrors[4] = null;
     if (notify) notifyListeners();
+  }
+
+  /// Lee el QR del equipo ("0032-11-020", a veces con texto después) y elige
+  /// el cliente y la planta a los que pertenece, como en calibración: el
+  /// código métrica empieza con el del cliente ("0032") y el de la planta
+  /// ("0032-11"). Deja la pantalla en la OTST, que el técnico confirma; el
+  /// instrumento lo elige después el paso Instrumento con [qrCodMetrica].
+  /// Devuelve el motivo si no se pudo.
+  Future<String?> processQrCode(String raw) async {
+    final metrica = codMetricaFromQr(raw);
+    if (metrica == null) return 'Formato de código QR inválido: $raw';
+    final parts = metrica.split('-');
+    final codigoCliente = parts[0];
+    final codigoPlanta = '${parts[0]}-${parts[1]}';
+
+    if (clientes.isEmpty) await loadClientes();
+    final cliente = _firstWhereOrNull(clientes,
+        (c) => c['codigo_cliente']?.toString().trim() == codigoCliente);
+    if (cliente == null) {
+      return 'No se encontró cliente con código: $codigoCliente';
+    }
+    await selectCliente(cliente);
+
+    final planta = _firstWhereOrNull(plantas,
+        (p) => p['codigo_planta']?.toString().trim() == codigoPlanta);
+    if (planta == null) {
+      return 'No se encontró planta con código: $codigoPlanta';
+    }
+    selectPlanta(planta);
+
+    qrCodMetrica = metrica;
+    setStep(3);
+    return null;
+  }
+
+  /// El código métrica de un QR, sin el texto que a veces trae después:
+  /// "0032-11-020 Balanza X" → "0032-11-020". Null si no tiene esa forma.
+  static String? codMetricaFromQr(String raw) {
+    final parts = raw.trim().split('-');
+    if (parts.length < 3) return null;
+    final numero = RegExp(r'^\d+').stringMatch(parts[2].trim());
+    if (numero == null) return null;
+    return '${parts[0].trim()}-${parts[1].trim()}-$numero';
+  }
+
+  static Map<String, dynamic>? _firstWhereOrNull(
+    List<Map<String, dynamic>> rows,
+    bool Function(Map<String, dynamic> row) test,
+  ) {
+    for (final row in rows) {
+      if (test(row)) return row;
+    }
+    return null;
   }
 
   void setStep(int step) {
@@ -521,6 +583,7 @@ class PrecargaController extends ChangeNotifier {
     selectedCliente = null;
     selectedPlanta = null;
     selectedInstrumentoData = null;
+    qrCodMetrica = null;
     clientes = [];
     plantas = [];
     instrumentos = [];

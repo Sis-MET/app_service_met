@@ -794,6 +794,8 @@ class _ClienteStepState extends State<ClienteStep> {
     );
   }
 
+  /// Escanea el QR del equipo y elige su cliente y su planta, como en
+  /// calibración. El instrumento se elige al confirmar la OTST.
   Future<void> _scanQrAndProcess(PrecargaController provider) async {
     final codMetrica = await Navigator.push<String>(
       context,
@@ -801,6 +803,45 @@ class _ClienteStepState extends State<ClienteStep> {
     );
     if (codMetrica == null || codMetrica.isEmpty || !mounted) return;
 
-    TopAlert.show(context, 'Buscando equipo: $codMetrica');
+    final navigator = Navigator.of(context);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Identificando instrumento...\n$codMetrica',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    String? error;
+    try {
+      error = await provider.processQrCode(codMetrica);
+    } catch (e) {
+      error = 'Error al procesar QR: $e';
+    }
+
+    if (navigator.context.mounted) navigator.pop();
+    if (!mounted) return;
+
+    if (error != null) {
+      TopAlert.show(context, error, isError: true);
+    } else {
+      setState(() => _showQrBanner = false);
+      TopAlert.show(
+        context,
+        'Cliente y planta identificados\nConfirme la OTST para continuar',
+      );
+    }
   }
 }

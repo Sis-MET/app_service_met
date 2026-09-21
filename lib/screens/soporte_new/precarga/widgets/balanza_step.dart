@@ -82,7 +82,20 @@ class _BalanzaStepState extends State<BalanzaStep> {
   void initState() {
     super.initState();
     _initFromController();
-    _loadCompletedCodMetricas();
+    _loadCompletedCodMetricas().then((_) => _applyPendingQr());
+  }
+
+  /// El QR escaneado en el paso Cliente, ya con la OTST confirmada: se aplica
+  /// como el botón QR de este paso. Después de saber qué equipos ya tienen
+  /// servicio en el módulo, para no volver a registrarlos.
+  void _applyPendingQr() {
+    final c = widget.controller;
+    final codMetrica = c.qrCodMetrica;
+    if (!mounted || codMetrica == null || !c.secaConfirmed) return;
+    c.qrCodMetrica = null;
+    // Instalación solo admite balanzas nuevas: no se busca el equipo.
+    if (_isInstallation) return;
+    _applyQrCode(codMetrica);
   }
 
   Future<void> _loadCompletedCodMetricas() async {
@@ -861,8 +874,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
       MaterialPageRoute(builder: (_) => const QrScannerScreen()),
     );
     if (rawValue == null || !mounted) return;
+    _applyQrCode(
+        PrecargaController.codMetricaFromQr(rawValue) ?? rawValue.trim());
+  }
 
-    final codMetrica = rawValue.trim();
+  /// Elige el equipo de [codMetrica] entre los de la planta. Si no está, lo
+  /// registra como nuevo con ese código.
+  void _applyQrCode(String codMetrica) {
+    final provider = widget.controller;
     final list = provider.instrumentos;
 
     final match = list.cast<Map<String, dynamic>?>().firstWhere(
