@@ -58,6 +58,10 @@ abstract class BaseSoporteController extends ChangeNotifier
   bool _lastSaveSuccessful = true;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
 
+  /// Por qué falló el último guardado, si el módulo lo informó.
+  String? _lastSaveError;
+  String? get lastSaveError => _lastSaveError;
+
   // Setters públicos para que los controladores que persisten en la DB
   // legacy puedan actualizar el estado de guardado (indicador en UI).
   void setSaveInProgress() {
@@ -65,9 +69,10 @@ abstract class BaseSoporteController extends ChangeNotifier
     notifyListenersSafely();
   }
 
-  void setSaveSuccess(bool successful) {
+  void setSaveSuccess(bool successful, {Object? error}) {
     _isSaving = false;
     _lastSaveSuccessful = successful;
+    _lastSaveError = successful ? null : error?.toString();
     notifyListenersSafely();
   }
 
@@ -209,7 +214,9 @@ abstract class BaseSoporteController extends ChangeNotifier
   Future<void> autoSave() async {
     if (!hasUnsavedChanges.value) return;
     await guardarSesion();
-    hasUnsavedChanges.value = false;
+    // Si no se pudo guardar, sigue pendiente: el próximo cambio o el paso a
+    // segundo plano lo vuelven a intentar.
+    if (_lastSaveSuccessful) hasUnsavedChanges.value = false;
   }
 
   Future<void> loadExistingSession(
@@ -337,8 +344,10 @@ abstract class BaseSoporteController extends ChangeNotifier
         codMetrica: model.codMetrica,
       );
       _lastSaveSuccessful = true;
+      _lastSaveError = null;
     } catch (e) {
       _lastSaveSuccessful = false;
+      _lastSaveError = e.toString();
       debugPrint('Error guardando sesion $tableName: $e');
     } finally {
       _isGuardando = false;

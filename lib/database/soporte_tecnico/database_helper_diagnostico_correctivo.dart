@@ -218,6 +218,9 @@ class DatabaseHelperDiagnosticoCorrectivo {
       }
     } catch (e) {
       debugPrint('Error en upsertRegistroRelevamiento: $e');
+      // Quien guarda tiene que enterarse: si no, Mantenimiento Correctivo
+      // daba por guardado (y hasta por finalizado) lo que no quedó en la base.
+      rethrow;
     }
   }
 

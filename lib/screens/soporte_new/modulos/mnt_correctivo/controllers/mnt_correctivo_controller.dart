@@ -125,7 +125,7 @@ class MntCorrectivoController extends BaseSoporteController {
       setSaveSuccess(true);
     } catch (error) {
       debugPrint('Error guardando MNT Correctivo: $error');
-      setSaveSuccess(false);
+      setSaveSuccess(false, error: error);
     }
   }
 
@@ -142,7 +142,7 @@ class MntCorrectivoController extends BaseSoporteController {
       await _dbLegacy.upsertRegistroRelevamiento(data);
       setSaveSuccess(true);
     } catch (error) {
-      setSaveSuccess(false);
+      setSaveSuccess(false, error: error);
       rethrow;
     }
   }

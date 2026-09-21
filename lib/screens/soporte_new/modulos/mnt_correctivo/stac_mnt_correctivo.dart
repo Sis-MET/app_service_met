@@ -186,18 +186,31 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     }
   }
 
-  Future<void> _saveCurrentStep() async {
-    if (_isSaving) return;
+  /// Guarda el servicio y devuelve si quedó en el teléfono. Si no, avisa por
+  /// qué: antes el fallo no se veía y la pantalla seguía como si nada.
+  Future<bool> _saveCurrentStep() async {
+    if (_isSaving) return false;
     setState(() => _isSaving = true);
+    var saved = false;
+    Object? error;
     try {
       await _controller.guardarSesion();
+      saved = _controller.lastSaveSuccessful;
     } catch (e) {
-      if (mounted) {
-        TopAlert.show(context, 'Error al guardar: $e', isError: true);
-      }
+      error = e;
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+    if (!saved && mounted) {
+      final motivo = _controller.lastSaveError ?? error;
+      TopAlert.show(
+        context,
+        'No se pudo guardar en el teléfono${motivo == null ? '' : ': $motivo'}'
+        '\nLo escrito sigue en pantalla; intente de nuevo.',
+        isError: true,
+      );
+    }
+    return saved;
   }
 
   bool _validateCurrentStep() {
@@ -250,14 +263,18 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   }
 
   Future<void> _goToStep(int step) async {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    await _saveCurrentStep();
+    final adelante = step > _controller.currentStep;
+    if (adelante && !_validateCurrentStep()) return;
+    final saved = await _saveCurrentStep();
+    // Hacia adelante solo con lo escrito guardado. Hacia atrás no se pierde
+    // nada: sigue en pantalla y se vuelve a intentar al avanzar.
+    if (!saved && adelante) return;
     if (mounted) _controller.setCurrentStep(step);
   }
 
   Future<void> _finalizar() async {
     if (!_validateCurrentStep()) return;
-    await _saveCurrentStep();
+    if (!await _saveCurrentStep()) return;
     if (!mounted) return;
     Navigator.push(
       context,
