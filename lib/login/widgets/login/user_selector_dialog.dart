@@ -124,7 +124,8 @@ class _UserSelectorSheetState extends State<UserSelectorSheet> {
                     ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              padding: EdgeInsets.fromLTRB(
+                  20, 4, 20, 20 + MediaQuery.paddingOf(context).bottom),
               child: SizedBox(
                 width: double.infinity,
                 height: 56,

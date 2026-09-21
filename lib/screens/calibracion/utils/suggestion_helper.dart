@@ -96,6 +96,10 @@ class SuggestionHelper {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(ctx).size.height * 0.5,
               ),
+              // La hoja dibuja detrás de la barra de navegación: sin esto,
+              // "Ver menos valores" quedaba debajo de ella.
+              padding:
+                  EdgeInsets.only(bottom: MediaQuery.paddingOf(ctx).bottom),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -191,6 +195,8 @@ class SuggestionHelper {
 
                   Flexible(
                     child: ListView.builder(
+                      // El sitio de la barra ya lo deja la hoja.
+                      padding: EdgeInsets.zero,
                       shrinkWrap: true,
                       itemCount: values.length,
                       itemBuilder: (ctx, vi) {

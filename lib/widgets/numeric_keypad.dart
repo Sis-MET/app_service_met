@@ -415,13 +415,33 @@ class _NumericKeypadHostState extends State<NumericKeypadHost> {
   Widget build(BuildContext context) {
     return NumericKeypadScope(
       controller: _keypad,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Flexible(child: SingleChildScrollView(child: widget.child)),
-          NumericKeypadSlot(controller: _keypad, embedded: true),
-        ],
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _keypad.visibility,
+        builder: (context, visible, child) => PopScope(
+          // Atrás primero cierra el teclado, como con el del sistema. Antes
+          // cerraba la hoja o el diálogo y se perdía lo escrito.
+          canPop: !visible,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _keypad.close();
+          },
+          child: child!,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              // Tocar fuera de un campo cierra el teclado; los campos y
+              // botones atienden su toque antes.
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _keypad.close,
+                child: SingleChildScrollView(child: widget.child),
+              ),
+            ),
+            NumericKeypadSlot(controller: _keypad, embedded: true),
+          ],
+        ),
       ),
     );
   }
@@ -596,6 +616,9 @@ class _NumericKeypadState extends State<NumericKeypad> {
             isDark: isDark,
             label: 'Listo',
             small: true,
+            // Con el ícono de ocultar teclado se reconoce como la tecla que
+            // cierra; el rótulo solo no bastaba.
+            icon: Icons.keyboard_hide_outlined,
             semanticLabel: 'Ocultar teclado',
             onTap: controller.close,
           ),

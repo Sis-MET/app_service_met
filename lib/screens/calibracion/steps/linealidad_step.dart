@@ -904,8 +904,15 @@ class _LinealidadStepState extends State<LinealidadStep> {
             final acumulado = selectedBase.carga + cargaRealSustitutiva;
 
             return Padding(
+              // Abajo, el teclado del sistema o la barra de navegación: la
+              // hoja dibuja detrás de ella y el teclado propio quedaba tapado.
               padding: EdgeInsets.fromLTRB(
-                  20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+                  20,
+                  16,
+                  20,
+                  MediaQuery.viewInsetsOf(ctx).bottom +
+                      MediaQuery.paddingOf(ctx).bottom +
+                      20),
               // La hoja queda fuera del teclado de la pantalla: lleva el suyo,
               // también con el lector del display.
               child: NumericKeypadHost(

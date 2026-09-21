@@ -258,7 +258,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _onPopBlocked(provider);
         },
-        child: child!,
+        // La app dibuja detrás de la barra de navegación (edge-to-edge): la
+        // pantalla termina encima de ella. Con navegación de tres botones la
+        // barra es alta y tapaba la píldora de Siguiente y el teclado.
+        child: SafeArea(top: false, child: child!),
       ),
       child: Scaffold(
         appBar: ServiceAppBar(
@@ -295,22 +298,29 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
               Expanded(
                 child: Stack(
                   children: [
-                    PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        const ClienteStep(),
-                        const PlantaStep(),
-                        const SecaStep(),
-                        const BalanzaStep(),
-                        const InspeccionVisualStep(),
-                        _scrollHide(const PrecargasAjusteStep()),
-                        _scrollHide(const ExcentricidadStep()),
-                        _scrollHide(const RepetibilidadStep()),
-                        _scrollHide(const LinealidadStep()),
-                        _scrollHide(const CondicionesFinalesStep()),
-                        _scrollHide(const ExportacionStep()),
-                      ],
+                    // Tocar fuera de un campo cierra el teclado numérico. Los
+                    // campos, botones y listas atienden su toque antes, y
+                    // desplazar la página no cuenta como toque.
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _keypad.close,
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          const ClienteStep(),
+                          const PlantaStep(),
+                          const SecaStep(),
+                          const BalanzaStep(),
+                          const InspeccionVisualStep(),
+                          _scrollHide(const PrecargasAjusteStep()),
+                          _scrollHide(const ExcentricidadStep()),
+                          _scrollHide(const RepetibilidadStep()),
+                          _scrollHide(const LinealidadStep()),
+                          _scrollHide(const CondicionesFinalesStep()),
+                          _scrollHide(const ExportacionStep()),
+                        ],
+                      ),
                     ),
 
                     // Info button — visible on technical steps, hides on scroll

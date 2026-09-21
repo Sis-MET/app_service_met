@@ -82,6 +82,7 @@ void main() {
             body: NumericKeypadHost(
               child: Column(
                 children: [
+                  const Text('Lecturas', key: ValueKey('rotulo')),
                   CalibrationNumberField(
                     key: const ValueKey('indicacion'),
                     controller: indicacion,
@@ -174,6 +175,20 @@ void main() {
       await tecla(tester, 'next');
       await tester.pump();
       expect(find.byKey(const ValueKey('keypad-1')), findsNothing);
+    });
+
+    testWidgets('tocar fuera de un campo cierra el teclado sin borrar',
+        (tester) async {
+      await montar(tester);
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+      await tecla(tester, '7');
+
+      await tester.tap(find.byKey(const ValueKey('rotulo')));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('keypad-1')), findsNothing);
+      expect(indicacion.text, '7');
     });
 
     testWidgets('el panel no se rearma al cerrarlo y volverlo a abrir',
@@ -376,46 +391,71 @@ void main() {
     });
   });
 
-  testWidgets('funciona dentro de un AlertDialog, que mide anchos intrínsecos',
-      (tester) async {
-    final cantidad = TextEditingController();
-    addTearDown(cantidad.dispose);
+  group('en un diálogo', () {
+    late TextEditingController cantidad;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    content: NumericKeypadHost(
-                      child: CalibrationNumberField(
-                        controller: cantidad,
-                        column: 'cantidad1',
-                        autofocus: true,
+    setUp(() => cantidad = TextEditingController());
+    tearDown(() => cantidad.dispose());
+
+    /// Abre un `AlertDialog` con un campo que se enfoca solo.
+    Future<void> abrirDialogo(WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      content: NumericKeypadHost(
+                        child: CalibrationNumberField(
+                          controller: cantidad,
+                          column: 'cantidad1',
+                          autofocus: true,
+                        ),
                       ),
                     ),
                   ),
+                  child: const Text('abrir'),
                 ),
-                child: const Text('abrir'),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+      await tester.tap(find.text('abrir'));
+      await tester.pumpAndSettle();
+    }
 
-    await tester.tap(find.text('abrir'));
-    await tester.pumpAndSettle();
+    testWidgets('funciona dentro de un AlertDialog, que mide anchos intrínsecos',
+        (tester) async {
+      await abrirDialogo(tester);
 
-    // El autofoco abre el teclado propio del diálogo.
-    expect(find.byKey(const ValueKey('keypad-3')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('keypad-3')));
-    await tester.pump();
+      // El autofoco abre el teclado propio del diálogo.
+      expect(find.byKey(const ValueKey('keypad-3')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('keypad-3')));
+      await tester.pump();
 
-    expect(cantidad.text, '3');
-    expect(tester.takeException(), isNull);
+      expect(cantidad.text, '3');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Atrás cierra primero el teclado y después el diálogo',
+        (tester) async {
+      await abrirDialogo(tester);
+      await tester.tap(find.byKey(const ValueKey('keypad-3')));
+      await tester.pump();
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('keypad-3')), findsNothing);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(cantidad.text, '3');
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+    });
   });
 }

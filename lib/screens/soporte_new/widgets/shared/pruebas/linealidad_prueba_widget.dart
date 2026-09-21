@@ -627,8 +627,15 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
             final acumulado = selectedBase.carga + cargaRealSustitutiva;
 
             return Padding(
+              // Abajo, el teclado o la barra de navegación: la hoja dibuja
+              // detrás de ella y el botón de guardar quedaba tapado.
               padding: EdgeInsets.fromLTRB(
-                  20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+                  20,
+                  16,
+                  20,
+                  MediaQuery.viewInsetsOf(ctx).bottom +
+                      MediaQuery.paddingOf(ctx).bottom +
+                      20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -171,7 +171,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: EdgeInsets.fromLTRB(
+            20, 0, 20, 24 + MediaQuery.paddingOf(sheetContext).bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,7 +701,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               Expanded(
                 child: ListView.separated(
                   controller: controller,
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+                  padding: EdgeInsets.fromLTRB(
+                      20, 20, 20, 40 + MediaQuery.paddingOf(ctx).bottom),
                   itemCount: camposConDatos.length,
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
@@ -771,7 +773,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (sheetContext) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: EdgeInsets.fromLTRB(
+            20, 0, 20, 24 + MediaQuery.paddingOf(sheetContext).bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

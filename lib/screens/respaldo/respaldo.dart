@@ -312,7 +312,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+        padding: EdgeInsets.fromLTRB(
+            24, 0, 24, 28 + MediaQuery.paddingOf(ctx).bottom),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
