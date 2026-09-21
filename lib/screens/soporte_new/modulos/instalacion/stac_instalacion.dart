@@ -13,6 +13,7 @@ import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class StacInstalacion extends StatefulWidget {
   final String sessionId;
@@ -430,7 +431,7 @@ class _StacInstalacionState extends State<StacInstalacion> {
 
   Widget _buildPaso(Widget header, Widget content) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

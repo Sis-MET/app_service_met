@@ -18,6 +18,7 @@ import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
 import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class BalanzaStep extends StatefulWidget {
   const BalanzaStep({super.key});
@@ -427,7 +428,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: ServiceNavPill.pagePadding(context, top: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

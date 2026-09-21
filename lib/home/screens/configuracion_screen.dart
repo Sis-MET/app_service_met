@@ -44,13 +44,16 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      // Abajo sin SafeArea: la lista pasa por detrás de la barra de
+      // navegación, como en el inicio, y su margen deja libre lo último.
       body: SafeArea(
+        bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             AppDesign.pagePadding,
             14,
             AppDesign.pagePadding,
-            36,
+            36 + MediaQuery.paddingOf(context).bottom,
           ),
           children: [
             Center(

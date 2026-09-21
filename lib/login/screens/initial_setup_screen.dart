@@ -124,8 +124,11 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                 ? const BackButton()
                 : null,
       ),
+      // Sin SafeArea abajo: la lista pasa por detrás de la barra de
+      // navegación, como en el inicio.
       body: SafeArea(
         top: false,
+        bottom: false,
         child: _loading
             ? SetupLoading(
                 isDark: dark,
@@ -138,7 +141,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   child: Form(
                     key: _formKey,
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      padding: EdgeInsets.fromLTRB(20, 8, 20,
+                          32 + MediaQuery.paddingOf(context).bottom),
                       children: [
                         Row(
                           children: [

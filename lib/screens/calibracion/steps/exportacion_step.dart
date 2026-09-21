@@ -12,6 +12,7 @@ import 'package:service_met/home/screens/home_screen.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/save_blocked_dialog.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class ExportacionStep extends StatefulWidget {
   const ExportacionStep({super.key});
@@ -677,7 +678,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: ServiceNavPill.pagePadding(context, top: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

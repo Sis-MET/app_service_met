@@ -271,6 +271,9 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     final colors = Theme.of(context).colorScheme;
     final isDark = colors.brightness == Brightness.dark;
     return Scaffold(
+      // La lista pasa por detrás del botón de subir y de la barra de
+      // navegación, como en el inicio.
+      extendBody: true,
       appBar: ServiceAppBar(
         title: 'Subir calibración',
         actions: [
@@ -284,7 +287,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+              padding: EdgeInsets.fromLTRB(
+                  20, 12, 20, 120 + MediaQuery.paddingOf(context).bottom),
               children: [
                 _summaryCard(colors, isDark),
                 if (_error != null) ...[

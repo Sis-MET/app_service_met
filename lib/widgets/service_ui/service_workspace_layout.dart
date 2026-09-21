@@ -99,62 +99,59 @@ class _ServiceWorkspaceLayoutState extends State<ServiceWorkspaceLayout> {
       _pageController.jumpToPage(widget.currentStep);
     }
 
-    // La app dibuja detrás de la barra de navegación (edge-to-edge): la
-    // pantalla termina encima de ella. Con navegación de tres botones la
-    // barra es alta y tapaba la píldora de Siguiente.
-    return SafeArea(
-      top: false,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: ServiceAppBar(
-          title: widget.title,
-          automaticallyImplyLeading: !widget.hideBackButton,
-          actions: [
-            ...?widget.appBarActions,
-            if (widget.showSaveStatus)
-              SaveStatusIndicator(status: widget.saveStatus),
-          ],
-        ),
-        body: Column(
-          children: [
-            StepIndicator(
-              currentStep: widget.currentStep,
-              steps: widget.steps,
-              onStepTapped: widget.onStepTapped,
-            ),
-            Expanded(
-              child: Stack(
-                children: [
-                  PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: widget.stepWidgets,
-                  ),
+    // Sin SafeArea abajo: los pasos pasan por detrás de la barra de
+    // navegación, como en el inicio. La píldora y el botón de información se
+    // ubican encima de ella.
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: ServiceAppBar(
+        title: widget.title,
+        automaticallyImplyLeading: !widget.hideBackButton,
+        actions: [
+          ...?widget.appBarActions,
+          if (widget.showSaveStatus)
+            SaveStatusIndicator(status: widget.saveStatus),
+        ],
+      ),
+      body: Column(
+        children: [
+          StepIndicator(
+            currentStep: widget.currentStep,
+            steps: widget.steps,
+            onStepTapped: widget.onStepTapped,
+          ),
+          Expanded(
+            child: Stack(
+              children: [
+                PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: widget.stepWidgets,
+                ),
 
-                  // FAB info del instrumento
-                  if (widget.balanzaInfo != null)
-                    Positioned(
-                      bottom: 88,
-                      right: 20,
-                      child: BalanzaInfoButton(info: widget.balanzaInfo!),
-                    ),
-
-                  // Pill de navegación flotante
+                // FAB info del instrumento
+                if (widget.balanzaInfo != null)
                   Positioned(
-                    bottom: 20,
+                    bottom: ServiceNavPill.bottomOffset(context) + 68,
                     right: 20,
-                    child: ServiceNavPill(
-                      label: widget.nextLabel,
-                      actionColor: AppColors.actionPositive,
-                      onNext: widget.onNext,
-                      onBack: widget.onBack,
-                    ),
+                    child: BalanzaInfoButton(info: widget.balanzaInfo!),
                   ),
-                ],
-              ),
+
+                // Pill de navegación flotante
+                Positioned(
+                  bottom: ServiceNavPill.bottomOffset(context),
+                  right: 20,
+                  child: ServiceNavPill(
+                    label: widget.nextLabel,
+                    actionColor: AppColors.actionPositive,
+                    onNext: widget.onNext,
+                    onBack: widget.onBack,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

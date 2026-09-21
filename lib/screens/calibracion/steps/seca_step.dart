@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class SecaStep extends StatefulWidget {
   const SecaStep({super.key});
@@ -68,7 +69,7 @@ class _SecaStepState extends State<SecaStep> {
         final tieneCodigoTemporal = currentSeca?.contains('NNNN-NN') ?? false;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+          padding: ServiceNavPill.pagePadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

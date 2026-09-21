@@ -296,11 +296,15 @@ class _LoginScreenState extends State<LoginScreen> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: dark ? const Color(0xFF101010) : const Color(0xFFFAFAF8),
+      // Abajo sin SafeArea: el contenido pasa por detrás de la barra de
+      // navegación, como en el inicio.
       body: SafeArea(
+        bottom: false,
         child: _initializing
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
+                padding: EdgeInsets.fromLTRB(
+                    20, 14, 20, 36 + MediaQuery.paddingOf(context).bottom),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),

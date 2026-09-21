@@ -9,6 +9,7 @@ import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
@@ -349,7 +350,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   Widget _buildLegacyInfoGeneralUnused() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -431,7 +432,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   Widget _buildModernInfoGeneral() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -498,7 +499,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
 
   Widget _buildPasoPruebas() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -559,7 +560,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
 
   Widget _buildPasoEstadoFinal() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

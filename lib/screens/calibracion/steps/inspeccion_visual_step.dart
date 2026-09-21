@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class InspeccionVisualStep extends StatefulWidget {
   const InspeccionVisualStep({super.key});
@@ -120,7 +121,7 @@ class _InspeccionVisualStepState extends State<InspeccionVisualStep> {
         final comentarios = insp?.comentarios ?? {};
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: ServiceNavPill.pagePadding(context, top: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

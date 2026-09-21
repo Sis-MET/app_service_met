@@ -7,8 +7,23 @@ import 'package:service_met/theme/app_design.dart';
 /// Pill flotante de navegación (Atrás + acción dinámica),
 /// idéntica a la usada en el workspace de Calibración.
 ///
-/// Se ubica típicamente en un `Positioned(bottom: 20, right: 20)`.
+/// Se ubica en un `Positioned(bottom: ServiceNavPill.bottomOffset(context),
+/// right: 20)`, y los pasos que pasan por debajo usan [pagePadding].
 class ServiceNavPill extends StatelessWidget {
+  /// Distancia de la píldora al borde inferior de la pantalla. La app dibuja
+  /// detrás de la barra de navegación (edge-to-edge), así que la píldora va
+  /// encima de ella: con tres botones la barra es alta y la tapaba.
+  static double bottomOffset(BuildContext context) =>
+      20 + MediaQuery.paddingOf(context).bottom;
+
+  /// Margen de un paso que se desplaza por debajo de la píldora. El contenido
+  /// llega hasta el borde de la pantalla, por detrás de la barra, como en el
+  /// inicio; abajo deja libre la píldora y la barra para que lo último se
+  /// pueda leer.
+  static EdgeInsets pagePadding(BuildContext context, {double top = 24}) =>
+      EdgeInsets.fromLTRB(
+          20, top, 20, 100 + MediaQuery.paddingOf(context).bottom);
+
   /// Texto del botón de acción ("Siguiente", "Guardar Datos", "Finalizar"...).
   final String label;
 

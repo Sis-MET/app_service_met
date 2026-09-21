@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class PlantaStep extends StatefulWidget {
   const PlantaStep({super.key});
@@ -103,7 +104,7 @@ class _PlantaStepState extends State<PlantaStep> {
             selectedPlanta?.codigo != null || selectedPlanta?.nombre != null;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+          padding: ServiceNavPill.pagePadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

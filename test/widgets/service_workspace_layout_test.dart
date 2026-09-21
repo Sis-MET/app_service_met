@@ -32,5 +32,12 @@ void main() {
 
     final pildora = tester.getRect(find.byType(ServiceNavPill));
     expect(pildora.bottom, lessThanOrEqualTo(800 - 48 - 20));
+
+    // Los pasos llegan hasta el borde, por detrás de la barra, como en el
+    // inicio: si terminaran encima quedaría una franja lisa que el degradado
+    // inferior oscurece hasta verse negra.
+    expect(tester.getRect(find.byType(PageView)).bottom, 800);
+    final context = tester.element(find.byType(PageView));
+    expect(ServiceNavPill.pagePadding(context).bottom, 100 + 48);
   });
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class PlantaStep extends StatefulWidget {
   final PrecargaController controller;
@@ -58,7 +59,7 @@ class _PlantaStepState extends State<PlantaStep> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

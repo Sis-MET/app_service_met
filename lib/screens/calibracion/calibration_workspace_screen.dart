@@ -258,10 +258,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _onPopBlocked(provider);
         },
-        // La app dibuja detrás de la barra de navegación (edge-to-edge): la
-        // pantalla termina encima de ella. Con navegación de tres botones la
-        // barra es alta y tapaba la píldora de Siguiente y el teclado.
-        child: SafeArea(top: false, child: child!),
+        // Sin SafeArea abajo: los pasos pasan por detrás de la barra de
+        // navegación, como en el inicio. La píldora, el botón de información
+        // y el teclado se ubican encima de ella.
+        child: child!,
       ),
       child: Scaffold(
         appBar: ServiceAppBar(
@@ -327,7 +327,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                     // and while the numeric keypad is open.
                     if (session.balanza != null && provider.currentStep >= 5)
                       Positioned(
-                        bottom: 88,
+                        bottom: ServiceNavPill.bottomOffset(context) + 68,
                         right: 20,
                         child: ValueListenableBuilder<bool>(
                           valueListenable: _keypad.visibility,
@@ -350,7 +350,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                     // Floating nav buttons — bottom-right, pill grouped. The
                     // numeric keypad takes their place while it is open.
                     Positioned(
-                      bottom: 20,
+                      bottom: ServiceNavPill.bottomOffset(context),
                       right: 20,
                       child: ValueListenableBuilder<bool>(
                         valueListenable: _keypad.visibility,

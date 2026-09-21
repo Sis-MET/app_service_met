@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 /// Cuerpo desplazable de un paso de la calibración.
 ///
@@ -13,12 +14,10 @@ class StepScrollView extends StatelessWidget {
   /// El contenido del paso, normalmente una `Column`.
   final Widget child;
 
-  /// Abajo queda sitio para los botones flotantes de navegación.
-  static const EdgeInsets padding = EdgeInsets.fromLTRB(20, 20, 20, 100);
-
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
-        padding: padding,
+        // Abajo deja libre la píldora de navegación y la barra del sistema.
+        padding: ServiceNavPill.pagePadding(context, top: 20),
         child: RepaintBoundary(child: child),
       );
 }

@@ -9,6 +9,7 @@ import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
 import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class BalanzaStep extends StatefulWidget {
   final PrecargaController controller;
@@ -347,7 +348,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _maybeShowInstallationDialog();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

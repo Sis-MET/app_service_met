@@ -9,6 +9,7 @@ import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class ClienteStep extends StatefulWidget {
   const ClienteStep({super.key});
@@ -130,7 +131,7 @@ class _ClienteStepState extends State<ClienteStep> {
             selectedCliente!.nombreComercial!.isNotEmpty;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+          padding: ServiceNavPill.pagePadding(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

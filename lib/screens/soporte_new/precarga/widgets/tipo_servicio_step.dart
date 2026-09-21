@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class TipoServicioStep extends StatelessWidget {
   final List<ServicioInfo> servicios;
@@ -21,7 +22,7 @@ class TipoServicioStep extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

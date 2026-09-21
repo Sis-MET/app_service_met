@@ -16,6 +16,7 @@ import 'package:service_met/screens/soporte_new/services/support_legacy_recovery
 import 'package:service_met/screens/soporte_new/utils/support_module_catalog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 
@@ -740,7 +741,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
   Widget _buildResumenStep() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/service_ui/nav_pill.dart';
 
 class ClienteStep extends StatefulWidget {
   final PrecargaController controller;
@@ -108,7 +109,7 @@ class _ClienteStepState extends State<ClienteStep> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 100),
+      padding: ServiceNavPill.pagePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
