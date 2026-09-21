@@ -8,6 +8,7 @@ import 'package:service_met/screens/soporte_new/controllers/base_soporte_control
 import 'package:service_met/screens/soporte_new/models/base_soporte_model.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_iniciales_columnas.dart';
 import '../models/verificaciones_internas_model.dart';
 
 class VerificacionesInternasController extends BaseSoporteController {
@@ -258,42 +259,40 @@ class VerificacionesInternasController extends BaseSoporteController {
       'metrologico': estadoMetrologico,
       'retorno_cero_inicial_valoracion': retornoCeroInicial,
       'estabilizacion_inicial': estabilidadInicial,
-      'tipo_plataforma_inicial': excentricidadInicial.tipoPlataforma ?? '',
-      'puntos_ind_inicial': excentricidadInicial.puntosIndicacion ?? '',
-      'carga_exc_inicial': excentricidadInicial.carga ?? '',
     });
-    for (var i = 0; i < excentricidadInicial.posiciones.length && i < 12; i++) {
-      final point = excentricidadInicial.posiciones[i];
-      final number = i + 1;
-      if (number <= 6) data['posicion_inicial_$number'] = point.posicion ?? '';
-      data['indicacion_inicial_$number'] = point.indicacion ?? '';
-      data['retorno_inicial_$number'] = point.retorno ?? '';
-    }
-    for (var i = 0; i < linealidadInicial.filas.length && i < 12; i++) {
-      final row = linealidadInicial.filas[i];
-      final number = i + 1;
-      data['lin_inicial_$number'] = row.carga ?? '';
-      data['ind_inicial_$number'] = row.indicacion ?? '';
-      data['retorno_lin_inicial_$number'] = row.retorno ?? '';
-    }
-    const inspectionKeys = [
-      'espaciamiento_topes_long',
-      'espaciamiento_topes_front',
-      'limpieza_puente',
-      'limpieza_debajo_puente',
-    ];
-    for (var i = 0; i < inspectionKeys.length && i < camposEstado.length; i++) {
+    // Antes solo se escribían excentricidad y linealidad; la repetibilidad
+    // se perdía aunque la tabla tiene sus columnas.
+    PruebasInicialesColumnas.escribir(
+      data,
+      excentricidad: excentricidadInicial,
+      excentricidadRealizada: excentricidadRealizada,
+      repetibilidad: repetibilidadInicial,
+      repetibilidadRealizada: repetibilidadRealizada,
+      linealidad: linealidadInicial,
+      linealidadRealizada: linealidadRealizada,
+    );
+    for (var i = 0; i < _inspectionKeys.length && i < camposEstado.length; i++) {
       final field = camposEstado[i];
-      data['${inspectionKeys[i]}_estado'] = field.value;
-      data['${inspectionKeys[i]}_solucion'] = field.solutionValue;
-      data['${inspectionKeys[i]}_foto'] = field.fotos.join(',');
+      data['${_inspectionKeys[i]}_estado'] = field.value;
+      data['${_inspectionKeys[i]}_solucion'] = field.solutionValue;
+      data['${_inspectionKeys[i]}_foto'] = field.fotos.join(',');
     }
+    data[DatabaseHelperVerificaciones.camposEstadoFotoColumn] =
+        jsonEncode([for (final campo in camposEstado) campo.fotos]);
     data.remove('seca_value');
     data.remove('estado_fisico');
     data.remove('estado_operacional');
     data.remove('estado_metrologico');
     return data;
   }
+
+  /// Columnas del servidor para los primeros campos de inspección.
+  static const _inspectionKeys = [
+    'espaciamiento_topes_long',
+    'espaciamiento_topes_front',
+    'limpieza_puente',
+    'limpieza_debajo_puente',
+  ];
 
   @override
   Future<Map<String, dynamic>> buildDataMap() async {
@@ -315,15 +314,55 @@ class VerificacionesInternasController extends BaseSoporteController {
     estadoFisico = data['fisico']?.toString() ?? estadoFisico;
     estadoOperacional = data['operacional']?.toString() ?? estadoOperacional;
     estadoMetrologico = data['metrologico']?.toString() ?? estadoMetrologico;
-    if (data['campos_estado'] != null) {
+
+    // Lo que se guarda en columnas propias y antes no se leía: al continuar,
+    // la pantalla volvía sin pruebas iniciales y pedía de nuevo el retorno
+    // a cero y la estabilización para avanzar.
+    retornoCeroInicial =
+        data['retorno_cero_inicial_valoracion']?.toString() ?? '';
+    estabilidadInicial = data['estabilizacion_inicial']?.toString() ?? '';
+    final pruebas = PruebasInicialesColumnas.leer(data);
+    excentricidadInicial = pruebas.excentricidad;
+    excentricidadRealizada = pruebas.excentricidadRealizada;
+    repetibilidadInicial = pruebas.repetibilidad;
+    repetibilidadRealizada = pruebas.repetibilidadRealizada;
+    linealidadInicial = pruebas.linealidad;
+    linealidadRealizada = pruebas.linealidadRealizada;
+
+    _loadCamposEstado(data);
+    notifyListenersSafely();
+  }
+
+  void _loadCamposEstado(Map<String, dynamic> data) {
+    List<dynamic> json(String column) {
       try {
-        final decoded = jsonDecode(data['campos_estado']);
-        for (int i = 0; i < decoded.length && i < camposEstado.length; i++) {
-          camposEstado[i].value = decoded[i]['value'] ?? '';
-          camposEstado[i].solutionValue =
-              decoded[i]['solutionValue'] ?? 'No aplica';
-        }
+        final raw = data[column];
+        if (raw is String && raw.isNotEmpty) return jsonDecode(raw) as List;
       } catch (_) {}
+      return const [];
+    }
+
+    final estados = json('campos_estado');
+    final fotos = json(DatabaseHelperVerificaciones.camposEstadoFotoColumn);
+    for (var i = 0; i < camposEstado.length; i++) {
+      final campo = camposEstado[i];
+      if (i < estados.length && estados[i] is Map) {
+        final item = estados[i] as Map;
+        campo.value = item['value']?.toString() ?? '';
+        campo.solutionValue = item['solutionValue']?.toString() ?? 'No aplica';
+      }
+      if (i < fotos.length && fotos[i] is List) {
+        campo.fotos = [
+          for (final foto in fotos[i] as List)
+            if (foto is String && foto.isNotEmpty) foto,
+        ];
+      }
+      // Registros guardados antes de esa columna: las fotos de los primeros
+      // campos siguen en las suyas.
+      if (campo.fotos.isEmpty && i < _inspectionKeys.length) {
+        final raw = data['${_inspectionKeys[i]}_foto']?.toString() ?? '';
+        campo.fotos = raw.split(',').where((f) => f.isNotEmpty).toList();
+      }
     }
   }
 }

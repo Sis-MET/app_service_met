@@ -255,7 +255,8 @@ class DatabaseHelperInstalacion {
         path,
         version: 1, // Reset to version 1
         onCreate: _onCreate,
-        onOpen: (db) {
+        onOpen: (db) async {
+          await _ensureFotoColumns(db);
           debugPrint('Base de datos abierta correctamente: $path');
         },
       );
@@ -266,6 +267,32 @@ class DatabaseHelperInstalacion {
       rethrow;
     } finally {
       _isInitializing = false;
+    }
+  }
+
+  /// Fotos de las condiciones de instalación. Se toman en pantalla desde
+  /// siempre, pero la tabla no tenía dónde guardarlas: al continuar un
+  /// servicio pendiente desaparecían. La subida descarta las columnas
+  /// `*_foto`.
+  static const fotoColumns = [
+    'entorno_foto',
+    'superficie_apoyo_foto',
+    'tension_red_foto',
+    'sistema_tierra_foto',
+    'comunicacion_pc_foto',
+    'movilizacion_foto',
+    'vibracion_externa_foto',
+    'flujo_pesadas_foto',
+  ];
+
+  Future<void> _ensureFotoColumns(Database db) async {
+    final rows = await db.rawQuery('PRAGMA table_info(instalacion)');
+    final existing = rows.map((row) => row['name']?.toString()).toSet();
+    for (final column in fotoColumns) {
+      if (!existing.contains(column)) {
+        await db.execute(
+            "ALTER TABLE instalacion ADD COLUMN $column TEXT DEFAULT ''");
+      }
     }
   }
 
@@ -451,8 +478,19 @@ class DatabaseHelperInstalacion {
         lin_inicial_12 TEXT DEFAULT '',
         ind_inicial_12 TEXT DEFAULT '',
         retorno_lin_inicial_12 TEXT DEFAULT '',
-        
-        estado_servicio TEXT DEFAULT ''
+
+        estado_servicio TEXT DEFAULT '',
+
+        -- Rutas locales de las fotos de cada condición. Al final, como las
+        -- agrega _ensureFotoColumns en las bases que ya existían.
+        entorno_foto TEXT DEFAULT '',
+        superficie_apoyo_foto TEXT DEFAULT '',
+        tension_red_foto TEXT DEFAULT '',
+        sistema_tierra_foto TEXT DEFAULT '',
+        comunicacion_pc_foto TEXT DEFAULT '',
+        movilizacion_foto TEXT DEFAULT '',
+        vibracion_externa_foto TEXT DEFAULT '',
+        flujo_pesadas_foto TEXT DEFAULT ''
       )
       ''');
 

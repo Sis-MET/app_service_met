@@ -19,6 +19,32 @@ void main() {
     expect(data, isNot(contains('retorno_cero_final_unidad')));
   });
 
+  test('no envía las rutas locales de las fotos', () {
+    // Verificaciones internas e Instalación guardan fotos en columnas propias
+    // para poder continuar un servicio; el servidor no las tiene.
+    final envelopes = buildSupportUploadEnvelopes([
+      {
+        '_support_module': 'verificaciones_internas',
+        'otst': '26-0090-11-S02',
+        'campos_estado_foto': '[["/fotos/001.jpg"],[]]',
+        'limpieza_puente_foto': '/fotos/002.jpg',
+      },
+      {
+        '_support_module': 'instalacion',
+        'otst': '26-0090-11-S02',
+        'entorno_foto': '/fotos/003.jpg',
+        'entorno_valor': 'Adecuado',
+      },
+    ]);
+
+    final verificaciones = envelopes.first['data'] as Map<String, dynamic>;
+    final instalacion = envelopes.last['data'] as Map<String, dynamic>;
+    expect(verificaciones, isNot(contains('campos_estado_foto')));
+    expect(verificaciones, isNot(contains('limpieza_puente_foto')));
+    expect(instalacion, isNot(contains('entorno_foto')));
+    expect(instalacion['entorno_valor'], 'Adecuado');
+  });
+
   test('conserva las unidades de retorno a cero para instalación', () {
     final envelopes = buildSupportUploadEnvelopes([
       {

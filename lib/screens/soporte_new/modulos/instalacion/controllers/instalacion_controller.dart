@@ -7,6 +7,7 @@ import 'package:service_met/models/service_session.dart' as session;
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/modulos/instalacion/models/instalacion_model.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_iniciales_columnas.dart';
 
 class InstalacionController extends BaseSoporteController {
   @override
@@ -133,71 +134,19 @@ class InstalacionController extends BaseSoporteController {
           row['${conditionKeys[i]}_valor']?.toString() ?? '';
       camposEstado[i].solutionValue =
           row['${conditionKeys[i]}_comentario']?.toString() ?? '';
+      camposEstado[i].fotos = (row['${conditionKeys[i]}_foto']?.toString() ?? '')
+          .split(',')
+          .where((f) => f.isNotEmpty)
+          .toList();
     }
 
-    final posiciones = <session.PosicionData>[];
-    for (var i = 1; i <= 12; i++) {
-      final posicion =
-          i <= 6 ? row['posicion_inicial_$i']?.toString() ?? '' : '';
-      final indicacion = row['indicacion_inicial_$i']?.toString() ?? '';
-      final retorno = row['retorno_inicial_$i']?.toString() ?? '';
-      if (posicion.isEmpty && indicacion.isEmpty && retorno.isEmpty) continue;
-      posiciones.add(session.PosicionData(
-        posicion: posicion,
-        indicacion: indicacion,
-        retorno: retorno,
-      ));
-    }
-    excentricidadInicial = session.ExcentricidadData(
-      tipoPlataforma: row['tipo_plataforma_inicial']?.toString(),
-      puntosIndicacion: row['puntos_ind_inicial']?.toString(),
-      carga: row['carga_exc_inicial']?.toString(),
-      posiciones: posiciones,
-    );
-    excentricidadRealizada = posiciones.isNotEmpty ||
-        (excentricidadInicial.tipoPlataforma?.isNotEmpty ?? false) ||
-        (excentricidadInicial.carga?.isNotEmpty ?? false);
-
-    final cargaRepetibilidad = row['repetibilidad1_inicial']?.toString() ?? '';
-    final indicaciones = <String?>[];
-    final retornos = <String?>[];
-    var tieneRepetibilidad = cargaRepetibilidad.isNotEmpty;
-    for (var i = 1; i <= 10; i++) {
-      final indicacion = row['indicacion1_inicial_$i']?.toString() ?? '';
-      final retorno = row['retorno1_inicial_$i']?.toString() ?? '';
-      if (indicacion.isNotEmpty || retorno.isNotEmpty) {
-        tieneRepetibilidad = true;
-      }
-      indicaciones.add(indicacion);
-      retornos.add(retorno);
-    }
-    repetibilidadInicial = session.RepetibilidadData(
-      cargas: tieneRepetibilidad
-          ? [
-              session.CargaRepetibilidad(
-                carga: cargaRepetibilidad,
-                indicaciones: indicaciones,
-                retornos: retornos,
-              )
-            ]
-          : const [],
-    );
-    repetibilidadRealizada = tieneRepetibilidad;
-
-    final filas = <session.FilaLinealidad>[];
-    for (var i = 1; i <= 12; i++) {
-      final carga = row['lin_inicial_$i']?.toString() ?? '';
-      final indicacion = row['ind_inicial_$i']?.toString() ?? '';
-      final retorno = row['retorno_lin_inicial_$i']?.toString() ?? '';
-      if (carga.isEmpty && indicacion.isEmpty && retorno.isEmpty) continue;
-      filas.add(session.FilaLinealidad(
-        carga: carga,
-        indicacion: indicacion,
-        retorno: retorno,
-      ));
-    }
-    linealidadInicial = session.LinealidadData(filas: filas);
-    linealidadRealizada = filas.isNotEmpty;
+    final pruebas = PruebasInicialesColumnas.leer(row);
+    excentricidadInicial = pruebas.excentricidad;
+    excentricidadRealizada = pruebas.excentricidadRealizada;
+    repetibilidadInicial = pruebas.repetibilidad;
+    repetibilidadRealizada = pruebas.repetibilidadRealizada;
+    linealidadInicial = pruebas.linealidad;
+    linealidadRealizada = pruebas.linealidadRealizada;
     notifyListeners();
   }
 
@@ -311,71 +260,24 @@ class InstalacionController extends BaseSoporteController {
       'estado_metrologico': estadoMetrologico,
       'retorno_cero_inicial_valoracion': retornoCeroInicial,
       'retorno_cero_inicial_estabilidad': estabilidadInicial,
-      'tipo_plataforma_inicial': '',
-      'puntos_ind_inicial': '',
-      'carga_exc_inicial': '',
-      'repetibilidad1_inicial': '',
-      'linealidad_inicial_cantidad_puntos': 0,
     };
 
     for (var i = 0; i < conditionKeys.length; i++) {
       data['${conditionKeys[i]}_valor'] = camposEstado[i].value;
       data['${conditionKeys[i]}_comentario'] = camposEstado[i].solutionValue;
+      data['${conditionKeys[i]}_foto'] =
+          camposEstado[i].fotos.where((f) => f.isNotEmpty).join(',');
     }
 
-    for (var i = 1; i <= 12; i++) {
-      if (i <= 6) data['posicion_inicial_$i'] = '';
-      data['indicacion_inicial_$i'] = '';
-      data['retorno_inicial_$i'] = '';
-      data['lin_inicial_$i'] = '';
-      data['ind_inicial_$i'] = '';
-      data['retorno_lin_inicial_$i'] = '';
-    }
-    for (var i = 1; i <= 10; i++) {
-      data['indicacion1_inicial_$i'] = '';
-      data['retorno1_inicial_$i'] = '';
-    }
-
-    if (excentricidadRealizada) {
-      data['tipo_plataforma_inicial'] =
-          excentricidadInicial.tipoPlataforma ?? '';
-      data['puntos_ind_inicial'] = excentricidadInicial.puntosIndicacion ?? '';
-      data['carga_exc_inicial'] = excentricidadInicial.carga ?? '';
-      for (var i = 0;
-          i < excentricidadInicial.posiciones.length && i < 12;
-          i++) {
-        final posicion = excentricidadInicial.posiciones[i];
-        final number = i + 1;
-        if (number <= 6) {
-          data['posicion_inicial_$number'] = posicion.posicion ?? '';
-        }
-        data['indicacion_inicial_$number'] = posicion.indicacion ?? '';
-        data['retorno_inicial_$number'] = posicion.retorno ?? '';
-      }
-    }
-
-    if (repetibilidadRealizada && repetibilidadInicial.cargas.isNotEmpty) {
-      final carga = repetibilidadInicial.cargas.first;
-      data['repetibilidad1_inicial'] = carga.carga ?? '';
-      for (var i = 0; i < carga.indicaciones.length && i < 10; i++) {
-        final number = i + 1;
-        data['indicacion1_inicial_$number'] = carga.indicaciones[i] ?? '';
-        data['retorno1_inicial_$number'] =
-            i < carga.retornos.length ? carga.retornos[i] ?? '' : '';
-      }
-    }
-
-    if (linealidadRealizada) {
-      data['linealidad_inicial_cantidad_puntos'] =
-          linealidadInicial.filas.length.clamp(0, 12);
-      for (var i = 0; i < linealidadInicial.filas.length && i < 12; i++) {
-        final fila = linealidadInicial.filas[i];
-        final number = i + 1;
-        data['lin_inicial_$number'] = fila.carga ?? '';
-        data['ind_inicial_$number'] = fila.indicacion ?? '';
-        data['retorno_lin_inicial_$number'] = fila.retorno ?? '';
-      }
-    }
+    PruebasInicialesColumnas.escribir(
+      data,
+      excentricidad: excentricidadInicial,
+      excentricidadRealizada: excentricidadRealizada,
+      repetibilidad: repetibilidadInicial,
+      repetibilidadRealizada: repetibilidadRealizada,
+      linealidad: linealidadInicial,
+      linealidadRealizada: linealidadRealizada,
+    );
 
     return data;
   }

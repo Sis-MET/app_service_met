@@ -245,7 +245,8 @@ class DatabaseHelperVerificaciones {
             }
           }
         },
-        onOpen: (db) {
+        onOpen: (db) async {
+          await _ensureFotoColumns(db);
           debugPrint('Base de datos abierta correctamente: $path');
         },
       );
@@ -256,6 +257,22 @@ class DatabaseHelperVerificaciones {
       rethrow; // Re-lanzar para manejar en la UI
     } finally {
       _isInitializing = false;
+    }
+  }
+
+  /// Fotos de todos los campos de inspección, una lista por campo en JSON.
+  /// Las columnas `*_foto` del servidor solo cubren los primeros cuatro, y
+  /// sin esta, al continuar un servicio pendiente las fotos desaparecían. La
+  /// subida descarta las columnas `*_foto`.
+  static const camposEstadoFotoColumn = 'campos_estado_foto';
+
+  Future<void> _ensureFotoColumns(Database db) async {
+    final rows =
+        await db.rawQuery('PRAGMA table_info(verificaciones_internas)');
+    final existing = rows.map((row) => row['name']?.toString()).toSet();
+    if (!existing.contains(camposEstadoFotoColumn)) {
+      await db.execute('ALTER TABLE verificaciones_internas '
+          "ADD COLUMN $camposEstadoFotoColumn TEXT DEFAULT ''");
     }
   }
 
