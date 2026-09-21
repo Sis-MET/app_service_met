@@ -119,6 +119,68 @@ void main() {
       }
       expect(map['indicacion1_4'], isNull);
     });
+
+    test('recupera las fotos de cada paso', () {
+      // Una carpeta con coma en el nombre: por eso las rutas van como JSON.
+      const carpeta = '/fotos/0032-11-C01-26/calibracion_fotos/0032,11';
+      final sesion = ServiceSession(
+        sessionInfo: SessionInfo(seca: '0032-11-C01-26', sessionId: '0001'),
+        metadata: SessionMetadata(),
+        balanza: BalanzaInfo(fotosPaths: ['$carpeta/001.jpg']),
+        linealidad: LinealidadData(
+          fotosPaths: ['$carpeta/002.jpg', '$carpeta/003.jpg'],
+        ),
+        condicionesFinales: CondicionesFinales(
+          fotosFinalesPaths: ['/fotos/fotos_finales/001.jpg'],
+        ),
+      );
+
+      final recuperada = ServiceSession.fromMap(sesion.toMap());
+
+      expect(recuperada.balanza!.fotosPaths, ['$carpeta/001.jpg']);
+      expect(recuperada.linealidad!.fotosPaths,
+          ['$carpeta/002.jpg', '$carpeta/003.jpg']);
+      expect(recuperada.condicionesFinales!.fotosFinalesPaths,
+          ['/fotos/fotos_finales/001.jpg']);
+    });
+
+    test('sin fotos, la columna queda vacía y vuelve vacía', () {
+      final map = _sesion(linealidad: LinealidadData()).toMap();
+
+      expect(map[ServiceSession.fotosLinealidadColumn], '');
+      expect(ServiceSession.fromMap(map).linealidad!.fotosPaths, isEmpty);
+    });
+
+    test('lee también rutas sueltas o separadas por comas', () {
+      final sesion = ServiceSession.fromMap({
+        ServiceSession.fotosBalanzaColumn: '/a/001.jpg, /a/002.jpg',
+      });
+
+      expect(sesion.balanza!.fotosPaths, ['/a/001.jpg', '/a/002.jpg']);
+    });
+
+    test('recupera el código métrica de la balanza y el del cliente', () {
+      // Sin el código de la balanza, linealidad no dejaba tomar fotos y el
+      // paso Balanza quedaba sin instrumento.
+      final sesion = ServiceSession.fromMap({
+        'cod_metrica': '0032-11-020',
+        'cod_planta': '0032-11',
+      });
+
+      expect(sesion.balanza!.codMetrica, '0032-11-020');
+      expect(sesion.sessionInfo.codMetrica, '0032-11-020');
+      expect(sesion.cliente!.codigoCliente, '0032');
+    });
+
+    test('un ajuste sin responder sigue sin responder', () {
+      bool? ajuste(Map<String, dynamic> map) =>
+          ServiceSession.fromMap(map).precargasAjuste!.ajusteRealizado;
+
+      expect(ajuste({}), isNull);
+      expect(ajuste({'ajuste': ''}), isNull);
+      expect(ajuste({'ajuste': 'No'}), isFalse);
+      expect(ajuste({'ajuste': 'Sí'}), isTrue);
+    });
   });
 
   test('puntosCount lee el formato actual y el anterior', () {

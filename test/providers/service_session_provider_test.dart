@@ -207,4 +207,74 @@ void main() {
       expect(provider.validateStep(8), 'Falta la Indicación de la Carga 2.');
     });
   });
+
+  group('continuar una calibración pendiente', () {
+    /// Guarda la sesión de [provider] y la abre en otro, como al tocar
+    /// "Continuar" en una calibración pendiente.
+    Future<ServiceSessionProvider> continuar(
+        ServiceSessionProvider provider) async {
+      expect(await provider.flushAutoSave(), isTrue);
+      final info = provider.session!.sessionInfo;
+      final continuada = ServiceSessionProvider(CalibrationRepository());
+      addTearDown(continuada.dispose);
+      await continuada.loadExistingSession(info.seca!, info.sessionId!);
+      return continuada;
+    }
+
+    test('linealidad conserva sus fotos y deja pasar al siguiente paso',
+        () async {
+      // El caso reportado: al continuar volvían los datos, pero no las fotos
+      // ni el código de la balanza, así que linealidad exigía una foto y a
+      // la vez no dejaba tomarla.
+      final provider = await nuevaSesion();
+      provider.updateBalanza(BalanzaInfo(
+        codMetrica: '0032-11-020',
+        fotosPaths: ['/fotos/001.jpg'],
+      ));
+      provider.updateSessionInfo(
+          provider.session!.sessionInfo.copyWith(codMetrica: '0032-11-020'));
+      provider.updateLinealidad(LinealidadData(
+        metodo: 'Ascendente',
+        metodoCarga: 'Sin cargas sustitutivas',
+        filas: [FilaLinealidad(carga: '50', indicacion: '50.0', retorno: '0')],
+        fotosPaths: ['/fotos/002.jpg'],
+      ));
+      provider.updateCondicionesFinales(CondicionesFinales(
+        fotosFinalesPaths: ['/fotos/fotos_finales/001.jpg'],
+      ));
+      expect(provider.validateLinealidad(), isNull);
+
+      final continuada = await continuar(provider);
+      final sesion = continuada.session!;
+
+      expect(sesion.balanza!.codMetrica, '0032-11-020');
+      expect(sesion.balanza!.fotosPaths, ['/fotos/001.jpg']);
+      expect(sesion.linealidad!.fotosPaths, ['/fotos/002.jpg']);
+      expect(sesion.condicionesFinales!.fotosFinalesPaths,
+          ['/fotos/fotos_finales/001.jpg']);
+      expect(continuada.validateLinealidad(), isNull);
+    });
+
+    test('volver a tocar el mismo cliente no borra la planta', () async {
+      final continuada = await continuar(await nuevaSesion());
+
+      continuada.updateCliente(ClienteInfo(
+        id: '1',
+        codigoCliente: '0032',
+        nombreComercial: 'Cliente',
+        isNew: false,
+      ));
+      expect(continuada.session!.planta!.codigo, '0032-11');
+      expect(continuada.session!.planta!.nombre, 'Planta');
+
+      // Otro cliente sí la borra: la planta era del anterior.
+      continuada.updateCliente(ClienteInfo(
+        id: '2',
+        codigoCliente: '0099',
+        nombreComercial: 'Otro cliente',
+        isNew: false,
+      ));
+      expect(continuada.session!.planta!.codigo, isNull);
+    });
+  });
 }

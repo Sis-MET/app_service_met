@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ServiceSession {
   final SessionInfo sessionInfo;
   final ClienteInfo? cliente;
@@ -38,6 +40,48 @@ class ServiceSession {
 
   static T? _slot<T>(List<T>? list, int index) =>
       list != null && index < list.length ? list[index] : null;
+
+  /// Columnas locales con las rutas de las fotos de cada paso. Terminan en
+  /// `_foto` (o son `foto_balanza`): el guardado local las acepta sin el
+  /// esquema del servidor y la subida las descarta. Sin ellas, al continuar
+  /// una calibración pendiente las fotos desaparecían, y linealidad, que exige
+  /// una, no dejaba avanzar.
+  static const fotosBalanzaColumn = 'foto_balanza';
+  static const fotosLinealidadColumn = 'linealidad_foto';
+  static const fotosFinalesColumn = 'condiciones_finales_foto';
+
+  /// Las rutas van como lista JSON: las carpetas llevan el SECA y el código
+  /// métrica, que pueden tener comas. Sin fotos, la columna queda vacía.
+  static String _fotosToColumn(List<String>? fotos) =>
+      fotos == null || fotos.isEmpty ? '' : jsonEncode(fotos);
+
+  static List<String> _fotosFromColumn(Object? value) {
+    final text = value?.toString().trim() ?? '';
+    if (text.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is List) {
+        return [
+          for (final path in decoded)
+            if (path is String && path.isNotEmpty) path,
+        ];
+      }
+    } on FormatException {
+      // Una ruta suelta o separadas por comas, como en los módulos de soporte.
+    }
+    return [
+      for (final path in text.split(','))
+        if (path.trim().isNotEmpty) path.trim(),
+    ];
+  }
+
+  /// El código del cliente no tiene columna, pero es el comienzo del de la
+  /// planta, como en el QR: "0032-11" → "0032".
+  static String? _clienteDePlanta(Object? codPlanta) {
+    final text = codPlanta?.toString().trim() ?? '';
+    final guion = text.indexOf('-');
+    return guion > 0 ? text.substring(0, guion) : null;
+  }
 
   ServiceSession copyWith({
     SessionInfo? sessionInfo,
@@ -124,6 +168,8 @@ class ServiceSession {
       if (balanza?.dec2 != null) 'dec2': balanza!.dec2,
       if (balanza?.dec3 != null) 'dec3': balanza!.dec3,
       if (balanza?.infBal != null && balanza!.infBal!.isNotEmpty) 'inf_bal': balanza!.infBal,
+      if (balanza != null)
+        fotosBalanzaColumn: _fotosToColumn(balanza!.fotosPaths),
       // Equipos: pesas patron en 1-5, instrumentos de medicion en 6-7
       for (int i = 0; i < pesas.length; i++) ...{
         'equipo${i + 1}': pesas[i].codInstrumento,
@@ -205,6 +251,8 @@ class ServiceSession {
           'ind${i + 1}': _slot(linealidad!.filas, i)?.indicacion,
           'retorno_lin${i + 1}': _slot(linealidad!.filas, i)?.retorno,
         },
+      if (linealidad != null)
+        fotosLinealidadColumn: _fotosToColumn(linealidad!.fotosPaths),
       // Condiciones Finales
       if (condicionesFinales?.horaFin != null)
         'hora_fin': condicionesFinales!.horaFin,
@@ -222,6 +270,9 @@ class ServiceSession {
         'reemplazo': condicionesFinales!.reemplazo,
       if (condicionesFinales?.observaciones != null)
         'observaciones': condicionesFinales!.observaciones,
+      if (condicionesFinales != null)
+        fotosFinalesColumn:
+            _fotosToColumn(condicionesFinales!.fotosFinalesPaths),
       // Exportacion
       if (exportacion?.emp23001 != null) 'emp': exportacion!.emp23001,
       if (exportacion?.indicar != null) 'indicar': exportacion!.indicar,
@@ -373,6 +424,7 @@ class ServiceSession {
         codMetrica: map['cod_metrica'],
       ),
       cliente: ClienteInfo(
+        codigoCliente: _clienteDePlanta(map['cod_planta']),
         nombreComercial: map['cliente'],
         razonSocial: map['razon_social'],
       ),
@@ -383,6 +435,9 @@ class ServiceSession {
         codigo: map['cod_planta'],
       ),
       balanza: BalanzaInfo(
+        // Sin él, el paso Balanza quedaba sin instrumento y linealidad
+        // no dejaba tomar fotos.
+        codMetrica: map['cod_metrica']?.toString(),
         categoria: map['categoria_balanza'],
         // tecnologia: solo visual, no se carga desde BD
         // clase: solo visual, no se carga desde BD
@@ -408,6 +463,7 @@ class ServiceSession {
         dec2: double.tryParse(map['dec2']?.toString() ?? ''),
         dec3: double.tryParse(map['dec3']?.toString() ?? ''),
         infBal: map['inf_bal'],
+        fotosPaths: _fotosFromColumn(map[fotosBalanzaColumn]),
       ),
       equipos: equiposParsed,
       inspeccion: InspeccionVisual(
@@ -418,7 +474,8 @@ class ServiceSession {
         comentarios: inspeccionComentarios,
       ),
       precargasAjuste: PrecargasAjuste(
-        ajusteRealizado: map['ajuste'] == 'Sí',
+        // Sin respuesta sigue sin respuesta: antes volvía como "No".
+        ajusteRealizado: _hasData(map['ajuste']) ? map['ajuste'] == 'Sí' : null,
         tipoAjuste: map['tipo'],
         cargasPesas: map['cargas_pesas'],
         hora: map['hora'],
@@ -443,6 +500,7 @@ class ServiceSession {
         metodoCarga: map['metodo_carga'],
         nota: map['linealidad_comentario'],
         filas: filasLin,
+        fotosPaths: _fotosFromColumn(map[fotosLinealidadColumn]),
       ),
       condicionesFinales: CondicionesFinales(
         horaFin: map['hora_fin'],
@@ -453,6 +511,7 @@ class ServiceSession {
         ventaPesas: map['venta_pesas'],
         reemplazo: map['reemplazo'],
         observaciones: map['observaciones'],
+        fotosFinalesPaths: _fotosFromColumn(map[fotosFinalesColumn]),
       ),
       exportacion: ExportacionData(
         emp23001: map['emp'],

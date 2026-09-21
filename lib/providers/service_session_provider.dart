@@ -242,8 +242,14 @@ class ServiceSessionProvider extends ChangeNotifier {
   void updateCliente(ClienteInfo cliente) {
     if (_session == null) return;
     final anterior = _session!.cliente;
-    final cambioCliente =
-        anterior?.id != cliente.id || anterior?.isNew != cliente.isNew;
+    // Una sesión recuperada de la base no trae el id del catálogo ni si el
+    // cliente era nuevo: se compara por código o nombre, para que volver a
+    // tocar el mismo cliente no borre la planta.
+    final recuperado =
+        anterior != null && anterior.id == null && anterior.isNew == null;
+    final cambioCliente = recuperado
+        ? !_mismoCliente(anterior, cliente)
+        : anterior?.id != cliente.id || anterior?.isNew != cliente.isNew;
     _session = _session!.copyWith(
       cliente: cliente,
       planta: cambioCliente ? PlantaInfo() : _session!.planta,
@@ -646,6 +652,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   static bool _isBlank(String? value) => value == null || value.trim().isEmpty;
+
+  static bool _mismoCliente(ClienteInfo a, ClienteInfo b) {
+    bool igual(String? x, String? y) => !_isBlank(x) && x!.trim() == y?.trim();
+    return igual(a.codigoCliente, b.codigoCliente) ||
+        igual(a.nombreComercial, b.nombreComercial);
+  }
 
   /// Lo que impide dejar el paso [step]: primero un dato que la base
   /// rechazaría, después un dato obligatorio vacío. Null si se puede avanzar.

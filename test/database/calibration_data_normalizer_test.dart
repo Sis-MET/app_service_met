@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/database/calibration_data_normalizer.dart';
 import 'package:service_met/database/calibration_server_schema.dart';
+import 'package:service_met/models/service_session.dart';
 
 void main() {
   test('el esquema generado contiene las 426 columnas del servidor', () {
@@ -80,6 +81,29 @@ void main() {
     expect(upload.containsKey('vibracion_foto'), isFalse);
     expect(upload.containsKey('foto_balanza'), isFalse);
     expect(upload['cantidad1'], 2);
+  });
+
+  test('las rutas de las fotos de la calibración nunca se suben', () {
+    final record = ServiceSession(
+      sessionInfo: SessionInfo(seca: '0032-11-C01-26', sessionId: '0001'),
+      metadata: SessionMetadata(),
+      balanza: BalanzaInfo(fotosPaths: ['/fotos/001.jpg']),
+      linealidad: LinealidadData(fotosPaths: ['/fotos/002.jpg']),
+      condicionesFinales:
+          CondicionesFinales(fotosFinalesPaths: ['/fotos/003.jpg']),
+    ).toMap();
+
+    final local = CalibrationDataNormalizer.normalizeRecord(record);
+    final upload = CalibrationDataNormalizer.normalizeForUpload(record);
+
+    for (final column in [
+      ServiceSession.fotosBalanzaColumn,
+      ServiceSession.fotosLinealidadColumn,
+      ServiceSession.fotosFinalesColumn,
+    ]) {
+      expect(local[column], contains('.jpg'), reason: column);
+      expect(upload.containsKey(column), isFalse, reason: column);
+    }
   });
 
   test('normaliza decimales sin perder precisión en punto flotante', () {

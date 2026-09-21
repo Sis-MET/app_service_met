@@ -398,6 +398,7 @@ class AppDatabase {
         version: 1,
         onCreate: _onCreate,
         onOpen: (db) async {
+          await _ensureFotoColumns(db);
           await _createServicioStatusTable(db);
           await _ensureServicioStatusColumns(db);
           await _createCalibrationUploadStatusTable(db);
@@ -853,7 +854,11 @@ class AppDatabase {
         regla_aceptacion TEXT DEFAULT '',
         estado_servicio_bal TEXT DEFAULT '',
         tipo_servicio TEXT DEFAULT 'CAL.BL',
-        inf_bal TEXT DEFAULT ''
+        inf_bal TEXT DEFAULT '',
+        -- Rutas locales de las fotos. Al final, como las agrega
+        -- _ensureFotoColumns en las bases que ya existían.
+        linealidad_foto TEXT DEFAULT '',
+        condiciones_finales_foto TEXT DEFAULT ''
       )
       ''');
 
@@ -886,6 +891,22 @@ class AppDatabase {
         PRIMARY KEY (seca, session_id)
       )
     ''');
+  }
+
+  /// Columnas de las rutas de fotos de linealidad y condiciones finales, que
+  /// las bases anteriores no tienen. `foto_balanza` existe desde siempre.
+  static const _fotoColumns = ['linealidad_foto', 'condiciones_finales_foto'];
+
+  Future<void> _ensureFotoColumns(Database db) async {
+    final columns =
+        await db.rawQuery('PRAGMA table_info(registros_calibracion)');
+    final names = columns.map((column) => column['name']?.toString()).toSet();
+    for (final column in _fotoColumns) {
+      if (!names.contains(column)) {
+        await db.execute("ALTER TABLE registros_calibracion "
+            "ADD COLUMN $column TEXT DEFAULT ''");
+      }
+    }
   }
 
   Future<void> _ensureServicioStatusColumns(Database db) async {

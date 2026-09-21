@@ -193,6 +193,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
           // Found it in the DB list → restore as "selected"
           _selectedBalanza = match;
           _isNewBalanza = false;
+          // Tecnología y clase solo se muestran, no se guardan: al continuar
+          // una calibración pendiente se toman otra vez del catálogo.
+          if (_tecnologiaCtrl.text.isEmpty) {
+            _tecnologiaCtrl.text = match['tecnologia']?.toString() ?? '';
+          }
+          if (_claseCtrl.text.isEmpty) {
+            _claseCtrl.text = match['clase']?.toString() ?? '';
+          }
         } else {
           // Not in the list → was entered as a new balanza
           _isNewBalanza = true;
