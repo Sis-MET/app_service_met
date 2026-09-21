@@ -11,6 +11,7 @@ import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
+import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
@@ -448,8 +449,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
 
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        return StepScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

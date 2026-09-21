@@ -251,10 +251,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
       _pageController.jumpToPage(provider.currentStep);
     }
 
-    return ListenableBuilder(
-      listenable: _keypad,
-      builder: (context, child) => PopScope(
-        canPop: !_keypad.visible && provider.saveError == null,
+    return ValueListenableBuilder<bool>(
+      valueListenable: _keypad.visibility,
+      builder: (context, teclado, child) => PopScope(
+        canPop: !teclado && provider.saveError == null,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _onPopBlocked(provider);
         },
@@ -319,11 +319,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                       Positioned(
                         bottom: 88,
                         right: 20,
-                        child: ListenableBuilder(
-                          listenable: _keypad,
-                          builder: (context, child) => _keypad.visible
-                              ? const SizedBox.shrink()
-                              : child!,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: _keypad.visibility,
+                          builder: (context, teclado, child) =>
+                              teclado ? const SizedBox.shrink() : child!,
                           child: AnimatedOpacity(
                             opacity: _infoButtonVisible ? 1.0 : 0.0,
                             duration: const Duration(milliseconds: 200),
@@ -343,10 +342,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                     Positioned(
                       bottom: 20,
                       right: 20,
-                      child: ListenableBuilder(
-                        listenable: _keypad,
-                        builder: (ctx, _) {
-                          if (_keypad.visible) return const SizedBox.shrink();
+                      child: ValueListenableBuilder<bool>(
+                        valueListenable: _keypad.visibility,
+                        builder: (ctx, teclado, _) {
+                          if (teclado) return const SizedBox.shrink();
                           final step = provider.currentStep;
                           final meta = provider.session?.metadata;
 
@@ -677,12 +676,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                   ],
                 ),
               ),
-              ListenableBuilder(
-                listenable: _keypad,
-                builder: (context, _) => _keypad.visible
-                    ? NumericKeypad(controller: _keypad)
-                    : const SizedBox.shrink(),
-              ),
+              NumericKeypadSlot(controller: _keypad),
             ],
           ),
         ),

@@ -114,9 +114,9 @@ void main() {
 
     bool teclaActiva(WidgetTester tester, String nombre) =>
         tester
-            .widget<InkWell>(find.descendant(
+            .widget<GestureDetector>(find.descendant(
               of: find.byKey(ValueKey('keypad-$nombre')),
-              matching: find.byType(InkWell),
+              matching: find.byType(GestureDetector),
             ))
             .onTap !=
         null;
@@ -130,10 +130,10 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const ValueKey('keypad-1')), findsOneWidget);
-      expect(
-        (tester.testTextInput.setClientArgs?['inputType'] as Map)['name'],
-        'TextInputType.none',
-      );
+      // Ni siquiera se abre la conexión con el teclado del sistema: el campo
+      // es de solo lectura y lo escribe el teclado propio.
+      expect(tester.testTextInput.setClientArgs, isNull);
+      expect(tester.testTextInput.isVisible, isFalse);
 
       await tecla(tester, 'sign');
       await tecla(tester, '1');
@@ -174,6 +174,43 @@ void main() {
       await tecla(tester, 'next');
       await tester.pump();
       expect(find.byKey(const ValueKey('keypad-1')), findsNothing);
+    });
+
+    testWidgets('el panel no se rearma al cerrarlo y volverlo a abrir',
+        (tester) async {
+      await montar(tester);
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+      final antes = tester.element(find.byKey(const ValueKey('keypad-1')));
+
+      await tecla(tester, 'done');
+      expect(find.byKey(const ValueKey('keypad-1')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('carga')));
+      await tester.pump();
+      expect(
+        tester.element(find.byKey(const ValueKey('keypad-1'))),
+        same(antes),
+      );
+    });
+
+    testWidgets('pasar de un campo a otro no avisa que el teclado se ve',
+        (tester) async {
+      await montar(tester);
+      final keypad = NumericKeypadScope.maybeOf(
+        tester.element(find.byKey(const ValueKey('indicacion'))),
+      )!;
+      await tester.tap(find.byKey(const ValueKey('indicacion')));
+      await tester.pump();
+
+      var avisos = 0;
+      keypad.visibility.addListener(() => avisos++);
+      await tecla(tester, 'next');
+      await tecla(tester, 'next');
+
+      expect(cantidad.text, isEmpty);
+      expect(keypad.visible, isTrue);
+      expect(avisos, 0);
     });
 
     testWidgets('muestra debajo del campo lo que el guardado rechazaría',

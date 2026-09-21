@@ -9,6 +9,7 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
@@ -157,8 +158,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final provider = context.read<ServiceSessionProvider>();
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+    return StepScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

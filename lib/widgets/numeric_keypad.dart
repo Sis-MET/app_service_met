@@ -33,6 +33,11 @@ class NumericKeypadController extends ChangeNotifier {
   _KeypadInputState? _active;
   bool _disposed = false;
 
+  /// Si el panel se ve, aparte de los demás avisos: lo que solo depende de
+  /// esto —el panel, los botones que le dejan el sitio— no se rehace al
+  /// pasar de un campo a otro.
+  final ValueNotifier<bool> visibility = ValueNotifier<bool>(false);
+
   /// Hay un campo del teclado enfocado.
   bool get visible => _active != null;
 
@@ -86,22 +91,29 @@ class NumericKeypadController extends ChangeNotifier {
     // Solo los campos de la misma lista: el PageView de la calibración puede
     // tener construida otra página, y enfocarla la traería a la vista.
     final scrollable = current._scrollable;
-    final following = _fields
-        .where(
-          (field) =>
-              field != current &&
-              field.mounted &&
-              field.focusNode.context != null &&
-              field.focusNode.canRequestFocus &&
-              field._scrollable == scrollable &&
-              _readingOrder(field.focusNode.rect, from) > 0,
-        )
-        .toList()
-      ..sort((a, b) => _readingOrder(a.focusNode.rect, b.focusNode.rect));
-    if (following.isEmpty) {
+    // El rectángulo de cada campo se mide una sola vez: pedirlo al ordenar lo
+    // recalculaba en cada comparación, y una linealidad tiene decenas.
+    _KeypadInputState? next;
+    Rect? nextRect;
+    for (final field in _fields) {
+      if (field == current ||
+          !field.mounted ||
+          field._scrollable != scrollable ||
+          field.focusNode.context == null ||
+          !field.focusNode.canRequestFocus) {
+        continue;
+      }
+      final rect = field.focusNode.rect;
+      if (_readingOrder(rect, from) <= 0) continue;
+      if (nextRect == null || _readingOrder(rect, nextRect) < 0) {
+        next = field;
+        nextRect = rect;
+      }
+    }
+    if (next == null) {
       close();
     } else {
-      following.first.focusNode.requestFocus();
+      next.focusNode.requestFocus();
     }
   }
 
@@ -131,7 +143,9 @@ class NumericKeypadController extends ChangeNotifier {
       // Se llega aquí al desmontar el campo, con el árbol bloqueado: el panel
       // se redibuja en el cuadro siguiente, si la pantalla sigue abierta.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_disposed) notifyListeners();
+        if (_disposed) return;
+        visibility.value = visible;
+        notifyListeners();
       });
     }
   }
@@ -139,6 +153,7 @@ class NumericKeypadController extends ChangeNotifier {
   void _focusChanged(_KeypadInputState field, bool focused) {
     if (focused) {
       _active = field;
+      visibility.value = true;
       notifyListeners();
       // El panel aparece en este cuadro y le quita alto a la pantalla: el
       // campo se vuelve a mostrar cuando ya se sabe cuánto sitio queda. Va
@@ -149,12 +164,19 @@ class NumericKeypadController extends ChangeNotifier {
     } else if (_active == field) {
       _active = null;
       notifyListeners();
+      // Al pasar de un campo a otro, este pierde el foco antes de que el
+      // siguiente lo gane, dentro del mismo cambio de foco: se decide después
+      // si el panel se oculta, para no ocultarlo y volverlo a mostrar.
+      scheduleMicrotask(() {
+        if (!_disposed) visibility.value = visible;
+      });
     }
   }
 
   @override
   void dispose() {
     _disposed = true;
+    visibility.dispose();
     super.dispose();
   }
 }
@@ -307,9 +329,9 @@ class _KeypadInputState extends State<KeypadInput> {
   NumericKeypadController? keypad;
 
   /// Lista que contiene al campo; null dentro de un diálogo sin desplazamiento.
-  /// Se busca sin crear dependencia: se consulta fuera de `build`.
-  ScrollableState? get _scrollable =>
-      context.findAncestorStateOfType<ScrollableState>();
+  /// Se guarda al montarlo: buscarla recorre el árbol hacia arriba y hace
+  /// falta para cada campo al pasar al siguiente.
+  ScrollableState? _scrollable;
 
   @override
   void initState() {
@@ -322,6 +344,7 @@ class _KeypadInputState extends State<KeypadInput> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _scrollable = Scrollable.maybeOf(context);
     final scope = NumericKeypadScope.maybeOf(context);
     if (scope != keypad) {
       keypad?._unregister(this);
@@ -397,13 +420,51 @@ class _NumericKeypadHostState extends State<NumericKeypadHost> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Flexible(child: SingleChildScrollView(child: widget.child)),
-          ListenableBuilder(
-            listenable: _keypad,
-            builder: (context, _) => _keypad.visible
-                ? NumericKeypad(controller: _keypad, embedded: true)
-                : const SizedBox.shrink(),
-          ),
+          NumericKeypadSlot(controller: _keypad, embedded: true),
         ],
+      ),
+    );
+  }
+}
+
+/// Sitio del panel al pie de una pantalla o de un diálogo.
+///
+/// Arma el teclado la primera vez que hace falta y después lo deja montado,
+/// oculto. Volverlo a armar en cada campo enfocado costaba un cuadro entero:
+/// son catorce teclas, y con ellas todo su estado, que el teléfono rehacía
+/// cada vez que el técnico tocaba una casilla.
+class NumericKeypadSlot extends StatefulWidget {
+  const NumericKeypadSlot({
+    required this.controller,
+    this.embedded = false,
+    super.key,
+  });
+
+  final NumericKeypadController controller;
+
+  /// Dentro de una hoja o un diálogo: sin fondo propio ni margen del sistema.
+  final bool embedded;
+
+  @override
+  State<NumericKeypadSlot> createState() => _NumericKeypadSlotState();
+}
+
+class _NumericKeypadSlotState extends State<NumericKeypadSlot> {
+  /// El panel ya se armó alguna vez: de aquí en adelante solo se oculta.
+  bool _built = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: widget.controller.visibility,
+      builder: (context, visible, child) {
+        if (!visible && !_built) return const SizedBox.shrink();
+        _built = true;
+        return Offstage(offstage: !visible, child: child);
+      },
+      child: NumericKeypad(
+        controller: widget.controller,
+        embedded: widget.embedded,
       ),
     );
   }
@@ -421,7 +482,10 @@ class _NumericKeypadHostState extends State<NumericKeypadHost> {
 ///
 /// Se arma por columnas iguales, sin medir el ancho disponible, para que
 /// también funcione dentro de un `AlertDialog`, que pide anchos intrínsecos.
-class NumericKeypad extends StatelessWidget {
+///
+/// Normalmente se usa a través de [NumericKeypadSlot], que lo deja montado
+/// entre un campo y otro.
+class NumericKeypad extends StatefulWidget {
   const NumericKeypad({
     required this.controller,
     this.embedded = false,
@@ -437,110 +501,164 @@ class NumericKeypad extends StatelessWidget {
   static const double _keyHeight = 52;
 
   @override
+  State<NumericKeypad> createState() => _NumericKeypadState();
+}
+
+class _NumericKeypadState extends State<NumericKeypad> {
+  late bool _allowDecimal = widget.controller.allowDecimal;
+  late bool _allowNegative = widget.controller.allowNegative;
+  late bool _canRead = widget.controller.canRead;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_keysChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant NumericKeypad oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_keysChanged);
+      widget.controller.addListener(_keysChanged);
+      _keysChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_keysChanged);
+    super.dispose();
+  }
+
+  /// El panel se rehace solo cuando alguna tecla cambia, no cada vez que se
+  /// enfoca un campo: entre dos campos del mismo tipo no hay nada que hacer.
+  /// Al cerrarse tampoco, que ya no se ve y el próximo foco lo dirá.
+  void _keysChanged() {
+    final controller = widget.controller;
+    if (!controller.visible ||
+        (controller.allowDecimal == _allowDecimal &&
+            controller.allowNegative == _allowNegative &&
+            controller.canRead == _canRead)) {
+      return;
+    }
+    setState(() {
+      _allowDecimal = controller.allowDecimal;
+      _allowNegative = controller.allowNegative;
+      _canRead = controller.canRead;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    const gap = NumericKeypad._gap;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final controller = widget.controller;
 
-    final keys = ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        Widget digit(String value) => _KeypadKey(
-              key: ValueKey('keypad-$value'),
-              label: value,
-              onTap: () => controller.digit(value),
-            );
-        Widget column(List<Widget> children) => Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: _gap,
-                children: children,
-              ),
-            );
-
-        final keys = Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: _gap,
-          children: [
-            column([
-              digit('1'),
-              digit('4'),
-              digit('7'),
-              _KeypadKey(
-                key: const ValueKey('keypad-point'),
-                label: '.',
-                glyph: true,
-                semanticLabel: 'Punto decimal',
-                onTap: controller.allowDecimal ? controller.decimalPoint : null,
-              ),
-            ]),
-            column([digit('2'), digit('5'), digit('8'), digit('0')]),
-            column([
-              digit('3'),
-              digit('6'),
-              digit('9'),
-              _KeypadKey(
-                key: const ValueKey('keypad-done'),
-                label: 'Listo',
-                small: true,
-                semanticLabel: 'Ocultar teclado',
-                onTap: controller.close,
-              ),
-            ]),
-            column([
-              _KeypadKey(
-                key: const ValueKey('keypad-backspace'),
-                icon: Icons.backspace_outlined,
-                semanticLabel: 'Borrar',
-                onTap: controller.backspace,
-                onLongPress: controller.clear,
-              ),
-              _KeypadKey(
-                key: const ValueKey('keypad-sign'),
-                label: '−',
-                glyph: true,
-                semanticLabel: 'Signo menos',
-                onTap: controller.allowNegative ? controller.toggleSign : null,
-              ),
-              _KeypadKey(
-                key: const ValueKey('keypad-next'),
-                height: _keyHeight * 2 + _gap,
-                label: 'Siguiente',
-                small: true,
-                icon: Icons.arrow_downward_rounded,
-                semanticLabel: 'Siguiente campo',
-                primary: true,
-                onTap: controller.next,
-              ),
-            ]),
-          ],
+    Widget digit(String value) => _KeypadKey(
+          key: ValueKey('keypad-$value'),
+          isDark: isDark,
+          label: value,
+          onTap: () => controller.digit(value),
         );
-        if (!controller.canRead) return keys;
-
-        // Encima de las teclas, para no mover ninguna de un campo a otro.
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: _gap,
-          children: [
-            _KeypadKey(
-              key: const ValueKey('keypad-read'),
-              height: 44,
-              label: 'Leer del indicador',
-              icon: Icons.document_scanner_outlined,
-              small: true,
-              horizontal: true,
-              semanticLabel: 'Leer la lectura del indicador con la cámara',
-              onTap: () => controller.readIndicator(context),
-            ),
-            keys,
-          ],
+    Widget column(List<Widget> children) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: gap,
+            children: children,
+          ),
         );
-      },
+
+    Widget keys = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: gap,
+      children: [
+        column([
+          digit('1'),
+          digit('4'),
+          digit('7'),
+          _KeypadKey(
+            key: const ValueKey('keypad-point'),
+            isDark: isDark,
+            label: '.',
+            glyph: true,
+            semanticLabel: 'Punto decimal',
+            onTap: _allowDecimal ? controller.decimalPoint : null,
+          ),
+        ]),
+        column([digit('2'), digit('5'), digit('8'), digit('0')]),
+        column([
+          digit('3'),
+          digit('6'),
+          digit('9'),
+          _KeypadKey(
+            key: const ValueKey('keypad-done'),
+            isDark: isDark,
+            label: 'Listo',
+            small: true,
+            semanticLabel: 'Ocultar teclado',
+            onTap: controller.close,
+          ),
+        ]),
+        column([
+          _KeypadKey(
+            key: const ValueKey('keypad-backspace'),
+            isDark: isDark,
+            icon: Icons.backspace_outlined,
+            semanticLabel: 'Borrar',
+            onTap: controller.backspace,
+            onLongPress: controller.clear,
+          ),
+          _KeypadKey(
+            key: const ValueKey('keypad-sign'),
+            isDark: isDark,
+            label: '−',
+            glyph: true,
+            semanticLabel: 'Signo menos',
+            onTap: _allowNegative ? controller.toggleSign : null,
+          ),
+          _KeypadKey(
+            key: const ValueKey('keypad-next'),
+            isDark: isDark,
+            height: NumericKeypad._keyHeight * 2 + gap,
+            label: 'Siguiente',
+            small: true,
+            icon: Icons.arrow_downward_rounded,
+            semanticLabel: 'Siguiente campo',
+            primary: true,
+            onTap: controller.next,
+          ),
+        ]),
+      ],
     );
+
+    if (_canRead) {
+      // Encima de las teclas, para no mover ninguna de un campo a otro.
+      keys = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: gap,
+        children: [
+          _KeypadKey(
+            key: const ValueKey('keypad-read'),
+            isDark: isDark,
+            height: 44,
+            label: 'Leer del indicador',
+            icon: Icons.document_scanner_outlined,
+            small: true,
+            horizontal: true,
+            semanticLabel: 'Leer la lectura del indicador con la cámara',
+            onTap: () => controller.readIndicator(context),
+          ),
+          keys,
+        ],
+      );
+    }
 
     return TextFieldTapRegion(
       // Las teclas nunca le quitan el foco al campo que están escribiendo.
       child: ExcludeFocus(
-        child: embedded
+        child: widget.embedded
             ? Padding(padding: const EdgeInsets.only(top: 14), child: keys)
             : DecoratedBox(
                 decoration: BoxDecoration(
@@ -566,8 +684,15 @@ class NumericKeypad extends StatelessWidget {
   }
 }
 
-class _KeypadKey extends StatelessWidget {
+/// Una tecla.
+///
+/// Sin `Material` ni `InkWell`: la onda de Material cuesta, por tecla, un
+/// controlador de animación, un nodo de foco y una capa de recorte, y son
+/// catorce. Un destello al pulsar es lo que hace el teclado del sistema y se
+/// dibuja de una pasada.
+class _KeypadKey extends StatefulWidget {
   const _KeypadKey({
+    required this.isDark,
     this.height = NumericKeypad._keyHeight,
     this.label,
     this.icon,
@@ -581,6 +706,7 @@ class _KeypadKey extends StatelessWidget {
     super.key,
   });
 
+  final bool isDark;
   final double height;
   final String? label;
   final IconData? icon;
@@ -600,69 +726,92 @@ class _KeypadKey extends StatelessWidget {
   final bool glyph;
 
   @override
+  State<_KeypadKey> createState() => _KeypadKeyState();
+}
+
+class _KeypadKeyState extends State<_KeypadKey> {
+  /// La fuente se pide una sola vez: `GoogleFonts.inter` busca y registra la
+  /// familia en cada llamada, y aquí serían catorce por cuadro.
+  static final TextStyle _font =
+      GoogleFonts.inter(fontWeight: FontWeight.w600, height: 1);
+
+  static final BorderRadius _radius = BorderRadius.circular(10);
+
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (_pressed != value) setState(() => _pressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final enabled = onTap != null;
-    final ink = primary
+    final enabled = widget.onTap != null;
+    final primary = widget.primary;
+    final isDark = widget.isDark;
+
+    var ink = primary
         ? AppColors.actionPositiveInk
         : (isDark ? Colors.white : AppDesign.ink);
-    final fill = primary
+    var fill = primary
         ? AppColors.actionPositive
         : (isDark ? AppColors.cardDark : Colors.white);
-    final edge = primary
+    var edge = primary
         ? AppColors.actionPositive
         : (isDark ? AppColors.borderDarkSoft : AppColors.borderLight);
+    if (!enabled) {
+      // Una tecla que no aplica se apaga, no desaparece: la distribución no
+      // cambia de un campo a otro.
+      ink = ink.withValues(alpha: 0.35);
+      edge = edge.withValues(alpha: 0.35);
+    } else if (_pressed) {
+      fill = Color.alphaBlend(ink.withValues(alpha: 0.18), fill);
+    }
 
     return Semantics(
       button: true,
       enabled: enabled,
-      label: semanticLabel ?? label,
+      label: widget.semanticLabel ?? widget.label,
       excludeSemantics: true,
-      child: Opacity(
-        // Una tecla que no aplica se apaga, no desaparece: la distribución no
-        // cambia de un campo a otro.
-        opacity: enabled ? 1 : 0.35,
-        child: Material(
-          color: fill,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: edge),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: enabled ? (_) => _setPressed(true) : null,
+        onTapUp: enabled ? (_) => _setPressed(false) : null,
+        onTapCancel: enabled ? () => _setPressed(false) : null,
+        onTap: enabled
+            ? () {
+                HapticFeedback.selectionClick();
+                widget.onTap!();
+              }
+            : null,
+        onLongPress: widget.onLongPress,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: _radius,
+            border: Border.all(color: edge),
           ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            canRequestFocus: false,
-            onTap: onTap == null
-                ? null
-                : () {
-                    HapticFeedback.selectionClick();
-                    onTap!();
-                  },
-            onLongPress: onLongPress,
-            child: SizedBox(
-              height: height,
-              child: Flex(
-                direction: horizontal ? Axis.horizontal : Axis.vertical,
-                mainAxisAlignment: MainAxisAlignment.center,
-                spacing: horizontal ? 8 : 4,
-                children: [
-                  if (icon != null)
-                    Icon(icon, size: small ? 20 : 24, color: ink),
-                  if (label != null)
-                    Text(
-                      label!,
-                      style: GoogleFonts.inter(
-                        fontWeight: FontWeight.w600,
-                        fontSize: small
-                            ? 15
-                            : glyph
-                                ? 34
-                                : 26,
-                        height: 1,
-                        color: ink,
-                      ),
+          child: SizedBox(
+            height: widget.height,
+            child: Flex(
+              direction: widget.horizontal ? Axis.horizontal : Axis.vertical,
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: widget.horizontal ? 8 : 4,
+              children: [
+                if (widget.icon != null)
+                  Icon(widget.icon, size: widget.small ? 20 : 24, color: ink),
+                if (widget.label != null)
+                  Text(
+                    widget.label!,
+                    style: _font.copyWith(
+                      fontSize: widget.small
+                          ? 15
+                          : widget.glyph
+                              ? 34
+                              : 26,
+                      color: ink,
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),

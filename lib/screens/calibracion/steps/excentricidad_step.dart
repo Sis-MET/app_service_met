@@ -6,6 +6,7 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
 import 'package:service_met/utils/top_alert.dart';
 
 class ExcentricidadStep extends StatefulWidget {
@@ -358,8 +359,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
 
     return Consumer<ServiceSessionProvider>(
       builder: (context, provider, _) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        return StepScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
