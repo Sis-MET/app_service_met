@@ -1,6 +1,7 @@
 import 'dart:ui' show Rect;
 
 import '../../../models/service_session.dart';
+import 'seven_segment_reader.dart';
 import 'suggestion_helper.dart';
 
 /// Una palabra que el OCR leyó en un cuadro de la cámara, con su recuadro en
@@ -35,10 +36,11 @@ class IndicatorCandidate {
 /// Saca la lectura del indicador del texto que reconoce el OCR.
 ///
 /// Los displays de 7 segmentos no son letras de imprenta: el OCR confunde el
-/// 0 con O o D, el 1 con I o l, el 5 con S, y separa los dígitos cuando hay
-/// hueco entre segmentos. Aquí se juntan las palabras cercanas de una misma
-/// línea y se corrigen esas confusiones solo dentro de lo que ya parece un
-/// número: una palabra sin ningún dígito ("kg", "Net") nunca se convierte.
+/// 0 con O o D, el 1 con I o l, el 4 con Y, el 5 con S, y separa los dígitos
+/// cuando hay hueco entre segmentos. Aquí se juntan las palabras cercanas de
+/// una misma línea y se corrigen esas confusiones solo dentro de lo que ya
+/// parece un número: una palabra sin ningún dígito ("kg", "Net") nunca se
+/// convierte.
 abstract final class IndicatorReadingParser {
   static const _confusables = {
     'O': '0',
@@ -52,6 +54,9 @@ abstract final class IndicatorReadingParser {
     '!': '1',
     'Z': '2',
     'z': '2',
+    // El 4 de 7 segmentos no tiene la diagonal de imprenta.
+    'Y': '4',
+    'y': '4',
     'S': '5',
     's': '5',
     'b': '6',
@@ -61,8 +66,8 @@ abstract final class IndicatorReadingParser {
     'q': '9',
   };
 
-  static final _numberRun =
-      RegExp(r'-?[0-9OoDQIli|!ZzSsbGBgq]+(?:[.,][0-9OoDQIli|!ZzSsbGBgq]+)?');
+  static final _numberRun = RegExp(
+      r'-?[0-9OoDQIli|!ZzYySsbGBgq]+(?:[.,][0-9OoDQIli|!ZzYySsbGBgq]+)?');
 
   /// Hueco máximo entre dos palabras de un mismo número, en alturas de letra.
   /// Entre segmentos de un display hay poco; entre dos números, más.
@@ -154,13 +159,47 @@ abstract final class IndicatorReadingParser {
         : zeroLike == symbols && (hasPoint || symbols >= 2);
     if (!accepted) return null;
 
-    var number = body
+    final number = body
         .split('')
         .map((char) => _confusables[char] ?? char)
         .join()
         .replaceAll(',', '.');
+    return _finish(number,
+        negative: negative, expectedDecimals: expectedDecimals);
+  }
+
+  /// La lectura de un display de 7 segmentos, en el mismo formato que las
+  /// del OCR.
+  static IndicatorCandidate? fromSegments(
+    SegmentReading reading, {
+    int? expectedDecimals,
+  }) {
+    final digits = reading.digits;
+    final point = reading.pointAfter;
+    final value = _finish(
+      point == null
+          ? digits
+          : '${digits.substring(0, point)}.${digits.substring(point)}',
+      negative: reading.negative,
+      expectedDecimals: expectedDecimals,
+    );
+    if (value == null) return null;
+    return IndicatorCandidate(
+      value: value.text,
+      height: reading.height,
+      pointAdded: value.pointAdded,
+    );
+  }
+
+  /// Ubica el punto que el display no mostró y quita los ceros de la
+  /// izquierda.
+  static ({String text, bool pointAdded})? _finish(
+    String number, {
+    required bool negative,
+    required int? expectedDecimals,
+  }) {
     var pointAdded = false;
-    if (!hasPoint &&
+    if (!number.contains('.') &&
         expectedDecimals != null &&
         expectedDecimals > 0 &&
         number.length > expectedDecimals) {

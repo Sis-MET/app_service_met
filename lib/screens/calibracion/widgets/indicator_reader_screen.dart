@@ -8,13 +8,16 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 
 import '../../../models/service_session.dart';
 import '../../../theme/app_colors.dart';
+import '../utils/indicator_frame.dart';
 import '../utils/indicator_reading.dart';
+import '../utils/seven_segment_reader.dart';
 
 /// Lee el display de la balanza con la cámara.
 ///
-/// El reconocimiento corre en el teléfono (ML Kit), sin internet. Solo se lee
-/// lo que queda dentro del recuadro, y la lectura se ofrece cuando se repite
-/// en varios cuadros seguidos: el técnico la compara con el display y la
+/// El reconocimiento corre en el teléfono, sin internet. Solo se lee lo que
+/// queda dentro del recuadro: primero como display de 7 segmentos y, si no
+/// lo es, con el OCR de ML Kit. La lectura se ofrece cuando se repite en
+/// varios cuadros seguidos: el técnico la compara con el display y la
 /// confirma. Nunca se escribe sola en el campo.
 class IndicatorReaderScreen extends StatefulWidget {
   const IndicatorReaderScreen({super.key, this.balanza});
@@ -45,8 +48,13 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     with WidgetsBindingObserver {
   final _recognizer = TextRecognizer();
   final _stability = ReadingStability();
-  late final int? _expectedDecimals =
-      IndicatorReadingCheck.expectedDecimals(widget.balanza);
+  late final _reader = IndicatorFrameReader(
+    // Un poco de holgura: el cuadro analizado y la vista previa pueden no
+    // coincidir al píxel.
+    region: IndicatorReaderScreen.region.inflate(0.03),
+    expectedDecimals: IndicatorReadingCheck.expectedDecimals(widget.balanza),
+    recognize: _recognize,
+  );
 
   CameraController? _camera;
   CameraDescription? _description;
@@ -141,6 +149,9 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
   Future<void> _stop({bool rebuild = true}) async {
     final camera = _camera;
     _camera = null;
+    _candidate = null;
+    _stability.add(null);
+    _reader.reset();
     if (camera == null) return;
     if (rebuild && mounted) setState(() {});
     try {
@@ -177,33 +188,19 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     _lastFrame = now;
     try {
       final rotation = _rotation(camera, description);
-      final input = rotation == null ? null : _inputImage(image, rotation);
-      if (input == null) return;
-      final recognized = await _recognizer.processImage(input);
-      if (!mounted) return;
-
-      final upright = rotation == InputImageRotation.rotation90deg ||
-              rotation == InputImageRotation.rotation270deg
-          ? Size(image.height.toDouble(), image.width.toDouble())
-          : Size(image.width.toDouble(), image.height.toDouble());
-      final lines = [
-        for (final block in recognized.blocks)
-          for (final line in block.lines)
-            if (_inRegion(line.boundingBox, upright))
-              [
-                for (final element in line.elements)
-                  OcrWord(element.text, element.boundingBox),
-              ],
-      ];
-      final best = IndicatorReadingParser.candidates(
-        lines,
-        expectedDecimals: _expectedDecimals,
-      ).firstOrNull;
+      final frame = rotation == null ? null : _frame(image, rotation);
+      if (frame == null) return;
+      final best = await _reader.read(frame);
+      if (!mounted || !identical(camera, _camera)) return;
       _stability.add(best?.value);
       setState(() => _candidate = best);
     } catch (error) {
       // Un cuadro que no se pudo leer no detiene al siguiente.
       debugPrint('Lector del indicador: $error');
+      if (mounted && identical(camera, _camera)) {
+        _stability.add(null);
+        setState(() => _candidate = null);
+      }
     } finally {
       _busy = false;
     }
@@ -226,7 +223,7 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     return InputImageRotationValue.fromRawValue(degrees);
   }
 
-  InputImage? _inputImage(CameraImage image, InputImageRotation rotation) {
+  CameraFrame? _frame(CameraImage image, InputImageRotation rotation) {
     final raw = image.format.raw;
     final format = raw is int ? InputImageFormatValue.fromRawValue(raw) : null;
     final supported = Platform.isAndroid
@@ -234,25 +231,39 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
         : format == InputImageFormat.bgra8888;
     if (!supported || image.planes.length != 1) return null;
     final plane = image.planes.single;
-    return InputImage.fromBytes(
+    return CameraFrame(
       bytes: plane.bytes,
-      metadata: InputImageMetadata(
-        size: Size(image.width.toDouble(), image.height.toDouble()),
-        rotation: rotation,
-        format: format!,
-        bytesPerRow: plane.bytesPerRow,
-      ),
+      width: image.width,
+      height: image.height,
+      bytesPerRow: plane.bytesPerRow,
+      rotation: rotation.rawValue,
+      bgra: !Platform.isAndroid,
     );
   }
 
-  bool _inRegion(Rect box, Size upright) {
-    final center = Offset(
-      box.center.dx / upright.width,
-      box.center.dy / upright.height,
-    );
-    // Un poco de holgura: el cuadro analizado y la vista previa pueden no
-    // coincidir al píxel.
-    return IndicatorReaderScreen.region.inflate(0.03).contains(center);
+  /// El OCR solo ve la franja del recuadro, ya derecha: con el cuadro
+  /// entero, en un display VFD encontraba los rótulos de la balanza y no
+  /// los dígitos.
+  Future<List<List<OcrWord>>> _recognize(GrayImage band) async {
+    if (!mounted || _camera == null) return const [];
+    final android = Platform.isAndroid;
+    final recognized = await _recognizer.processImage(InputImage.fromBytes(
+      bytes: android ? grayToNv21(band) : grayToBgra(band),
+      metadata: InputImageMetadata(
+        size: Size(band.width.toDouble(), band.height.toDouble()),
+        rotation: InputImageRotation.rotation0deg,
+        format: android ? InputImageFormat.nv21 : InputImageFormat.bgra8888,
+        bytesPerRow: android ? band.width : band.width * 4,
+      ),
+    ));
+    return [
+      for (final block in recognized.blocks)
+        for (final line in block.lines)
+          [
+            for (final element in line.elements)
+              OcrWord(element.text, element.boundingBox),
+          ],
+    ];
   }
 
   /// Enfoca y expone en [point], en fracciones de la imagen: tocar el
