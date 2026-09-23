@@ -297,7 +297,8 @@ class AppDatabase {
     try {
       final db = await database;
       return await db.rawQuery('''
-        SELECT r.*, s.nombre_csv, s.finalized_at
+        SELECT r.*, s.nombre_csv, s.finalized_at,
+               s.status AS servicio_status, s.balanza_confirmed
         FROM registros_calibracion r
         LEFT JOIN servicio_status s
           ON r.seca = s.seca AND r.session_id = s.session_id
@@ -1047,18 +1048,27 @@ class AppDatabase {
 
   // ─── servicio_status CRUD ────────────────────────────────────────────────
 
-  Future<void> upsertServicioStatus(Map<String, dynamic> row) async {
-    try {
-      final db = await database;
-      await db.insert(
+  /// Guarda el avance de una sesión sin tocar lo que no es avance: la
+  /// fecha de creación, el CSV y la marca de finalizado. Un `REPLACE` los
+  /// borraba y una balanza ya exportada volvía a entrar en la siguiente
+  /// exportación con solo abrirla.
+  Future<void> saveServicioProgress(Map<String, dynamic> progress) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      final seca = progress['seca'];
+      final sessionId = progress['session_id'];
+      final update = Map<String, dynamic>.from(progress)
+        ..remove('seca')
+        ..remove('session_id')
+        ..remove('created_at');
+      final updated = await txn.update(
         'servicio_status',
-        row,
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        update,
+        where: 'seca = ? AND session_id = ?',
+        whereArgs: [seca, sessionId],
       );
-    } catch (e) {
-      debugPrint('Error en upsertServicioStatus: $e');
-      rethrow;
-    }
+      if (updated == 0) await txn.insert('servicio_status', progress);
+    });
   }
 
   Future<Map<String, dynamic>?> getServicioStatus(

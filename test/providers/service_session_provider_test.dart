@@ -50,6 +50,79 @@ void main() {
         ],
       );
 
+  /// Completa los pasos de una balanza salvo excentricidad y repetibilidad,
+  /// que cada prueba arma a su medida.
+  void completarBalanza(ServiceSessionProvider provider) {
+    provider.updateSessionInfo(provider.session!.sessionInfo.copyWith(
+      nReca: '123',
+      sticker: '456',
+      codMetrica: '0032-11-001',
+    ));
+    provider.updateBalanza(BalanzaInfo(
+      codMetrica: '0032-11-001',
+      tipo: 'Balanza',
+      marca: 'Marca',
+      modelo: 'Modelo',
+      serie: 'S1',
+      capMax1: '100',
+      d1: 0.1,
+      e1: 0.1,
+      dec1: 1,
+    ));
+    provider.setBalanzaConfirmed(true);
+    provider.updateInspeccionVisual(InspeccionVisual(
+      tiempoEstab: '15 min',
+      tiempoOperacion: '30 min',
+      campos: {
+        for (final key in const [
+          'vibracion',
+          'polvo',
+          'temp',
+          'humedad',
+          'mesada',
+          'iluminacion',
+          'limp_foza',
+          'estado_drenaje',
+          'limp_general',
+          'golpes_terminal',
+          'nivelacion',
+          'limp_recepto',
+          'golpes_receptor',
+          'encendido',
+        ])
+          key: 'Bueno',
+      },
+    ));
+    provider.updatePrecargasAjuste(PrecargasAjuste(
+      precargas: [PrecargaRow(precarga: '50', pIndicador: '50.0')],
+      ti: '20',
+      hri: '50',
+      patmi: '1010',
+    ));
+    provider.updateLinealidad(LinealidadData(
+      metodo: 'Sin metodo de carga',
+      metodoCarga: 'Sin método',
+      filas: [FilaLinealidad(carga: '50', indicacion: '50.0', retorno: '0')],
+      fotosPaths: const ['carga.jpg'],
+    ));
+    provider.updatePatronWeights(
+        [EquipoInfo(codInstrumento: 'MP-01', tipo: 'Pesa patrón')]);
+    provider.updateCondicionesFinales(CondicionesFinales(
+      horaFin: '12:00',
+      hriFin: '50',
+      tiFin: '20',
+      patmiFin: '1010',
+    ));
+  }
+
+  RepetibilidadData repetibilidad() => RepetibilidadData(cargas: [
+        CargaRepetibilidad(
+          carga: '100',
+          indicaciones: ['100.0'],
+          retornos: ['0'],
+        ),
+      ]);
+
   test('pesas e instrumentos se conservan al editar ambos pasos y continuar',
       () async {
     final provider = await nuevaSesion();
@@ -141,6 +214,7 @@ void main() {
 
       provider.updateExcentricidad(
           excentricidad('66.65', nota: 'Sin observaciones'));
+      completarBalanza(provider);
       expect(await provider.marcarBalanzaCompleta(), isNull);
       expect(provider.saveError, isNull);
 
@@ -150,6 +224,100 @@ void main() {
       expect(cerrada['carga'], '66.65');
       expect(cerrada['indicacion3'], '67');
       expect(cerrada['indicacion1_1'], '100');
+    });
+
+    test('no se marca calibrada una balanza con pruebas vacías', () async {
+      // Desde la barra de pasos se puede saltar al último paso; cerrar desde
+      // ahí dejaba "Balanza Calibrada" una balanza a la que le faltaban
+      // pruebas, y la revisión final de otra balanza lo contradecía.
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      completarBalanza(provider);
+      provider.updateRepetibilidad(repetibilidad());
+
+      final error = await provider.marcarBalanzaCompleta();
+      expect(error, contains('Excentricidad'));
+      final fila = await AppDatabase().getRegistroBySeca(seca, sessionId);
+      expect(fila!['estado_servicio_bal'], isEmpty);
+
+      provider.updateExcentricidad(excentricidad('67'));
+      expect(await provider.marcarBalanzaCompleta(), isNull);
+      final cerrada = await AppDatabase().getRegistroBySeca(seca, sessionId);
+      expect(cerrada!['estado_servicio_bal'], 'Balanza Calibrada');
+    });
+
+    test('una balanza calibrada se ve completa al releerla de la base',
+        () async {
+      // La revisión final evalúa las otras balanzas desde su fila: tiene que
+      // llegar al mismo resultado que tuvo la balanza al cerrarse.
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      completarBalanza(provider);
+      provider.updateExcentricidad(excentricidad('67'));
+      provider.updateRepetibilidad(repetibilidad());
+      expect(await provider.marcarBalanzaCompleta(), isNull);
+
+      final filas = await provider.getRegistrosCompletos(seca);
+      final fila = filas.singleWhere((r) => r['session_id'] == sessionId);
+      expect(
+          ServiceSessionProvider.calibrationIssues(
+              ServiceSession.fromMap(fila)),
+          isEmpty);
+
+      // Sin la fila de progreso (respaldo importado) sigue confirmada.
+      final sinProgreso = Map<String, dynamic>.from(fila)
+        ..remove('balanza_confirmed');
+      expect(ServiceSession.fromMap(sinProgreso).metadata.balanzaConfirmed,
+          isTrue);
+    });
+
+    test('los intentos descartados se distinguen en la consulta del SECA',
+        () async {
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      provider.updateExcentricidad(excentricidad('67'));
+      expect(await provider.flushAutoSave(), isTrue);
+      await CalibrationRepository()
+          .markServicioAbandonado(seca, sessionId, 'tecnico');
+
+      final fila = (await provider.getRegistrosCompletos(seca))
+          .singleWhere((r) => r['session_id'] == sessionId);
+      expect(fila['servicio_status'], 'abandoned');
+    });
+
+    test('abrir una balanza finalizada no borra su marca de finalizada',
+        () async {
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      final sessionId = provider.session!.sessionInfo.sessionId!;
+      completarBalanza(provider);
+      provider.updateExcentricidad(excentricidad('67'));
+      provider.updateRepetibilidad(repetibilidad());
+      expect(await provider.marcarBalanzaCompleta(), isNull);
+      await provider.finalizeCalibrationRecords(
+        seca: seca,
+        sessionIds: [sessionId],
+        nombreCsv: '${seca}_test.csv',
+        finalizedAt: DateTime(2026, 9, 23),
+      );
+
+      // Continuar el servicio guarda el avance: antes lo hacía con REPLACE y
+      // la balanza volvía a entrar en la siguiente exportación.
+      final reabierta = ServiceSessionProvider(CalibrationRepository());
+      addTearDown(reabierta.dispose);
+      await reabierta.initialize(
+          userName: 'tecnico', secaValue: seca, sessionId: sessionId);
+      reabierta.goToStep(10);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final estado = await AppDatabase().getServicioStatus(seca, sessionId);
+      expect(estado!['finalized_at'], isNotNull);
+      expect(estado['nombre_csv'], '${seca}_test.csv');
+      expect(estado['current_step'], 10);
+      await reabierta.flushPendingSave();
     });
 
     test('la relectura detecta un valor que no quedó en la base', () async {

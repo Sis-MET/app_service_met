@@ -172,15 +172,19 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
     expect(find.text('BALANZA-01'), findsOneWidget);
-    await tester.ensureVisible(find.text('Revisar'));
+    // Sin pruebas registradas: la lista lo dice con las mismas reglas del
+    // cierre y lleva directo al primer paso por completar.
+    expect(
+        find.textContaining('En curso · falta: Instrumento'), findsOneWidget);
+    await tester.ensureVisible(find.text('Corregir').last);
     await tester.pumpAndSettle();
     await tester.runAsync(() async {
-      await tester.tap(find.text('Revisar'));
+      await tester.tap(find.text('Corregir').last);
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
     await tester.pumpAndSettle();
     expect(provider.session!.sessionInfo.sessionId, firstId);
-    expect(provider.currentStep, 10);
+    expect(provider.currentStep, 3);
     await tester.pumpWidget(const SizedBox.shrink());
     await provider.flushPendingSave();
   });

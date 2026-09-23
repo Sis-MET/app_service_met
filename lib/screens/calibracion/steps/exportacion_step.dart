@@ -105,7 +105,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
   }
 
   Future<void> _reviewOtherBalance(
-      ServiceSessionProvider provider, String sessionId) async {
+      ServiceSessionProvider provider, String sessionId,
+      {int step = 10}) async {
     if (!await provider.flushAutoSave()) {
       if (mounted) {
         TopAlert.show(context, provider.saveError ?? 'No se pudo guardar.',
@@ -120,7 +121,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
       if (provider.session == null) {
         throw StateError('No se encontró la balanza seleccionada.');
       }
-      provider.goToStep(10);
+      provider.goToStep(step);
     } catch (error) {
       if (mounted) {
         TopAlert.show(context, 'No se pudo abrir la balanza: $error',
@@ -139,7 +140,59 @@ class _ExportacionStepState extends State<ExportacionStep> {
     ));
   }
 
+  /// Antes de cerrar la balanza (o de pedir los datos del certificado): si
+  /// le falta algo, se dice qué y se ofrece ir a corregirlo. Devuelve true
+  /// si está completa.
+  Future<bool> _balanzaCompleta(ServiceSessionProvider provider) async {
+    final session = provider.session;
+    if (session == null) return false;
+    final issues = ServiceSessionProvider.calibrationIssues(session);
+    if (issues.isEmpty) return true;
+    final corregir = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.fact_check_outlined, color: AppColors.warning),
+        title: const Text('Faltan datos de esta balanza'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Para darla por calibrada complete:'),
+              const SizedBox(height: 10),
+              for (final issue in issues.take(6))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text(
+                    '• ${ServiceSessionProvider.stepNames[issue.step]}: '
+                    '${issue.message}',
+                  ),
+                ),
+              if (issues.length > 6)
+                Text('• y ${issues.length - 6} dato(s) más.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cerrar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Ir a ${ServiceSessionProvider.stepNames[issues.first.step]}',
+            ),
+          ),
+        ],
+      ),
+    );
+    if (corregir == true) provider.goToStep(issues.first.step);
+    return false;
+  }
+
   Future<void> _seleccionarOtraBalanza(ServiceSessionProvider provider) async {
+    if (!await _balanzaCompleta(provider)) return;
     final error = await provider.marcarBalanzaCompleta();
     if (error != null) {
       // La balanza queda abierta: los datos siguen en pantalla para corregir.
@@ -165,6 +218,9 @@ class _ExportacionStepState extends State<ExportacionStep> {
       return;
     }
     if (!mounted) return;
+    // Antes de pedir los datos del certificado: no tiene sentido llenarlos
+    // para descubrir después que la balanza no puede cerrarse.
+    if (!await _balanzaCompleta(provider) || !mounted) return;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final datosCert = await _showCertificadoDialog(isDark);
@@ -842,25 +898,20 @@ class _ExportacionStepState extends State<ExportacionStep> {
   Widget _buildReview(ServiceSessionProvider provider) {
     final colors = Theme.of(context).colorScheme;
     final session = provider.session;
-    const labels = {
-      3: 'Instrumento',
-      4: 'Inspección visual',
-      5: 'Precarga y ajuste',
-      6: 'Excentricidad',
-      7: 'Repetibilidad',
-      8: 'Linealidad',
-      9: 'Condiciones finales',
-    };
+    const labels = ServiceSessionProvider.stepNames;
     final finalPhotos =
         session?.condicionesFinales?.fotosFinalesPaths?.length ?? 0;
     final loadPhotos = session?.linealidad?.fotosPaths.length ?? 0;
     final patterns = (session?.equipos ?? const <EquipoInfo>[])
         .where((e) => ServiceSessionProvider.isPatronType(e.tipo))
         .length;
+    // Las mismas balanzas que la lista del paso Instrumento: sin los intentos
+    // descartados, que quedan en la tabla con sus pruebas a medias.
     final otherBalances = _balanzasRegistradas
         .where((r) =>
             r['session_id']?.toString() != session?.sessionInfo.sessionId &&
-            (r['finalized_at']?.toString().isEmpty ?? true))
+            (r['finalized_at']?.toString().isEmpty ?? true) &&
+            r['servicio_status']?.toString() != 'abandoned')
         .toList();
     return Card(
       margin: EdgeInsets.zero,
@@ -922,43 +973,57 @@ class _ExportacionStepState extends State<ExportacionStep> {
                         ?.copyWith(fontWeight: FontWeight.w700))),
             for (final balance in otherBalances)
               Builder(builder: (context) {
+                // Mismas reglas que la revisión de la balanza abierta y que el
+                // cierre: si aquí dice "calibrada", al abrirla también.
                 final other = ServiceSession.fromMap(balance);
+                final issues = ServiceSessionProvider.calibrationIssues(other);
+                final calibrada = balance['estado_servicio_bal']?.toString() ==
+                    'Balanza Calibrada';
                 final patterns = other.equipos
                     .where((e) => ServiceSessionProvider.isPatronType(e.tipo))
                     .length;
                 final loadPhotos = other.linealidad?.fotosPaths.length ?? 0;
                 final finalPhotos =
                     other.condicionesFinales?.fotosFinalesPaths?.length ?? 0;
-                final missing = [
-                  ...CalibrationRecordValidator.missingTests(balance),
-                  if (loadPhotos == 0) 'Foto de linealidad',
-                  if (patterns == 0) 'Pesas patrón',
-                ];
+                final pendientes = {
+                  for (final issue in issues) labels[issue.step],
+                }.join(', ');
+                final estado = switch ((calibrada, issues.isEmpty)) {
+                  (true, true) => 'Calibrada',
+                  (true, false) =>
+                    'Calibrada con datos pendientes: $pendientes',
+                  (false, true) => 'En curso · lista para cerrar',
+                  (false, false) => 'En curso · falta: $pendientes',
+                };
+                final ok = calibrada && issues.isEmpty;
                 return ListTile(
                   dense: true,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   title:
                       Text(balance['cod_metrica']?.toString() ?? 'Sin código'),
                   subtitle: Text(
-                    '${missing.isEmpty ? 'Pruebas registradas' : 'Faltan: ${missing.join(', ')}'}\n'
+                    '$estado\n'
                     'Pesas patrón: $patterns  ·  Fotos de linealidad: '
                     '$loadPhotos  ·  Fotos finales: $finalPhotos',
                   ),
                   leading: Icon(
-                    missing.isEmpty
+                    ok
                         ? Icons.check_circle_outline_rounded
                         : Icons.warning_amber_rounded,
-                    color:
-                        missing.isEmpty ? AppColors.success : AppColors.warning,
+                    color: ok ? AppColors.success : AppColors.warning,
                   ),
                   trailing: TextButton(
                     onPressed: () {
                       final sessionId = balance['session_id']?.toString();
                       if (sessionId != null && sessionId.isNotEmpty) {
-                        _reviewOtherBalance(provider, sessionId);
+                        _reviewOtherBalance(
+                          provider,
+                          sessionId,
+                          step: issues.isEmpty ? 10 : issues.first.step,
+                        );
                       }
                     },
-                    child: const Text('Revisar'),
+                    child: Text(issues.isEmpty ? 'Revisar' : 'Corregir'),
                   ),
                 );
               }),

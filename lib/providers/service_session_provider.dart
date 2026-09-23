@@ -614,16 +614,13 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateBalanza() {
-    final issues = _balanzaIssues();
+    final issues = _withSession(_balanzaIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _balanzaIssues() {
-    if (_session == null) {
-      return [(message: 'Sesion no inicializada.', column: null)];
-    }
+  static List<_StepIssue> _balanzaIssues(ServiceSession session) {
     final issues = <_StepIssue>[];
-    final info = _session!.sessionInfo;
+    final info = session.sessionInfo;
     if (info.nReca == null || info.nReca!.trim().isEmpty) {
       issues.add((message: 'Debe ingresar el Nro. RECA.', column: null));
     }
@@ -631,7 +628,7 @@ class ServiceSessionProvider extends ChangeNotifier {
       issues.add((message: 'Debe ingresar el Nro. Sticker.', column: null));
     }
 
-    final b = _session!.balanza;
+    final b = session.balanza;
     if (b == null) {
       issues.add(
           (message: 'Debe seleccionar o registrar una balanza.', column: null));
@@ -716,6 +713,14 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (session == null) {
       return [(message: 'Sesión no inicializada.', column: null)];
     }
+    return issuesForStep(session, step);
+  }
+
+  /// Las mismas reglas de [stepIssues] aplicadas a cualquier sesión, también
+  /// a una balanza guardada que no está abierta: así la lista del servicio y
+  /// la revisión de cada balanza no pueden discrepar.
+  static List<({String message, String? column})> issuesForStep(
+      ServiceSession session, int step) {
     final issues = <_StepIssue>[
       for (final issue
           in CalibrationRecordValidator.schemaIssues(session.toMap())
@@ -723,13 +728,13 @@ class ServiceSessionProvider extends ChangeNotifier {
         (message: '$issue', column: issue.column),
     ];
     final required = switch (step) {
-      3 => _balanzaIssues(),
-      4 => _inspeccionIssues(),
-      5 => _precargasIssues(),
-      6 => _excentricidadIssues(),
-      7 => _repetibilidadIssues(),
-      8 => _linealidadIssues(),
-      9 => _condicionesFinalesIssues(),
+      3 => _balanzaIssues(session),
+      4 => _inspeccionIssues(session),
+      5 => _precargasIssues(session),
+      6 => _excentricidadIssues(session),
+      7 => _repetibilidadIssues(session),
+      8 => _linealidadIssues(session),
+      9 => _condicionesFinalesIssues(session),
       _ => <_StepIssue>[],
     };
     for (final issue in required) {
@@ -740,22 +745,66 @@ class ServiceSessionProvider extends ChangeNotifier {
     return issues;
   }
 
+  /// Pasos de medición de una balanza (instrumento a condiciones finales).
+  static const measurementSteps = [3, 4, 5, 6, 7, 8, 9];
+
+  static const stepNames = {
+    3: 'Instrumento',
+    4: 'Inspección visual',
+    5: 'Precarga y ajuste',
+    6: 'Excentricidad',
+    7: 'Repetibilidad',
+    8: 'Linealidad',
+    9: 'Condiciones finales',
+  };
+
+  /// Todo lo que le falta a [session] para darse por calibrada, con el paso
+  /// donde se corrige. Vacío si la balanza está completa.
+  static List<({int step, String message})> calibrationIssues(
+      ServiceSession session) {
+    return [
+      if (!session.metadata.balanzaConfirmed)
+        (step: 3, message: 'Confirma los datos del instrumento.'),
+      for (final step in measurementSteps)
+        for (final issue in issuesForStep(session, step))
+          (step: step, message: issue.message),
+    ];
+  }
+
+  /// Texto breve para explicar por qué la balanza no puede cerrarse.
+  static String describeCalibrationIssues(
+      List<({int step, String message})> issues) {
+    final lines = [
+      for (final issue in issues.take(4))
+        '• ${stepNames[issue.step]}: ${issue.message}',
+      if (issues.length > 4) '• y ${issues.length - 4} dato(s) más.',
+    ];
+    return 'Faltan datos para dar la balanza por calibrada:\n'
+        '${lines.join('\n')}';
+  }
+
+  List<_StepIssue> _withSession(
+      List<_StepIssue> Function(ServiceSession) issues) {
+    final session = _session;
+    if (session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
+    return issues(session);
+  }
+
   String? validateStep(int step) {
     final issues = stepIssues(step);
     return issues.isEmpty ? null : issues.first.message;
   }
 
   String? validateCondicionesFinales() {
-    final issues = _condicionesFinalesIssues();
+    final issues = _withSession(_condicionesFinalesIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _condicionesFinalesIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
+  static List<_StepIssue> _condicionesFinalesIssues(ServiceSession session) {
     final issues = <_StepIssue>[];
-    final cf = _session!.condicionesFinales;
+    final cf = session.condicionesFinales;
     if (_isBlank(cf?.horaFin)) {
       issues.add((
         message: 'Registre la Hora Fin con el botón del reloj.',
@@ -780,7 +829,7 @@ class ServiceSessionProvider extends ChangeNotifier {
         column: 'patmi_fin'
       ));
     }
-    if (!_session!.equipos.any((e) => isPatronType(e.tipo))) {
+    if (!session.equipos.any((e) => isPatronType(e.tipo))) {
       issues.add((
         message: 'Debe seleccionar al menos una pesa patron.',
         column: null
@@ -829,16 +878,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateInspeccionVisual() {
-    final issues = _inspeccionIssues();
+    final issues = _withSession(_inspeccionIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _inspeccionIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
-
-    final insp = _session!.inspeccion;
+  static List<_StepIssue> _inspeccionIssues(ServiceSession session) {
+    final insp = session.inspeccion;
     if (insp == null) {
       return [(message: 'Debe completar la inspección visual.', column: null)];
     }
@@ -906,16 +951,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validatePrecargasAjuste() {
-    final issues = _precargasIssues();
+    final issues = _withSession(_precargasIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _precargasIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
-
-    final pa = _session!.precargasAjuste;
+  static List<_StepIssue> _precargasIssues(ServiceSession session) {
+    final pa = session.precargasAjuste;
     if (pa == null) {
       return [
         (
@@ -981,16 +1022,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateExcentricidad() {
-    final issues = _excentricidadIssues();
+    final issues = _withSession(_excentricidadIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _excentricidadIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
-
-    final exc = _session!.excentricidad;
+  static List<_StepIssue> _excentricidadIssues(ServiceSession session) {
+    final exc = session.excentricidad;
     if (exc == null) {
       return [
         (message: 'Debe completar las pruebas de excentricidad.', column: null)
@@ -1045,16 +1082,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateRepetibilidad() {
-    final issues = _repetibilidadIssues();
+    final issues = _withSession(_repetibilidadIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _repetibilidadIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
-
-    final rep = _session!.repetibilidad;
+  static List<_StepIssue> _repetibilidadIssues(ServiceSession session) {
+    final rep = session.repetibilidad;
     if (rep == null || rep.cargas.isEmpty) {
       return [
         (
@@ -1097,16 +1130,12 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateLinealidad() {
-    final issues = _linealidadIssues();
+    final issues = _withSession(_linealidadIssues);
     return issues.isEmpty ? null : issues.first.message;
   }
 
-  List<_StepIssue> _linealidadIssues() {
-    if (_session == null) {
-      return [(message: 'Sesión no inicializada.', column: null)];
-    }
-
-    final lin = _session!.linealidad;
+  static List<_StepIssue> _linealidadIssues(ServiceSession session) {
+    final lin = session.linealidad;
     if (lin == null) {
       return [
         (message: 'Debe completar las pruebas de linealidad.', column: null)
@@ -1186,6 +1215,12 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (session == null || seca == null || sessionId == null) {
       return 'La sesión no tiene SECA; no se puede cerrar la balanza.';
     }
+    // "Balanza Calibrada" tiene que significar lo mismo en todas partes: la
+    // lista de balanzas, la revisión final y la exportación. Sin este control
+    // se podía saltar al último paso desde la barra y cerrar la balanza con
+    // pruebas vacías.
+    final pending = calibrationIssues(session);
+    if (pending.isNotEmpty) return describeCalibrationIssues(pending);
     if (!await flushAutoSave()) return _saveError;
     try {
       final unsaved =

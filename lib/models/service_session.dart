@@ -167,7 +167,8 @@ class ServiceSession {
       if (balanza?.dec1 != null) 'dec1': balanza!.dec1,
       if (balanza?.dec2 != null) 'dec2': balanza!.dec2,
       if (balanza?.dec3 != null) 'dec3': balanza!.dec3,
-      if (balanza?.infBal != null && balanza!.infBal!.isNotEmpty) 'inf_bal': balanza!.infBal,
+      if (balanza?.infBal != null && balanza!.infBal!.isNotEmpty)
+        'inf_bal': balanza!.infBal,
       if (balanza != null)
         fotosBalanzaColumn: _fotosToColumn(balanza!.fotosPaths),
       // Equipos: pesas patron en 1-5, instrumentos de medicion en 6-7
@@ -526,9 +527,13 @@ class ServiceSession {
           secaConfirmed: map['seca_confirmed'] != null
               ? map['seca_confirmed'] == 1 || map['seca_confirmed'] == true
               : map['seca'] != null,
+          // Una balanza cerrada pasó por la confirmación del instrumento
+          // aunque su fila no traiga el progreso (respaldos importados,
+          // registros anteriores a servicio_status).
           balanzaConfirmed: map['balanza_confirmed'] != null
-              ? map['balanza_confirmed'] == 1 || map['balanza_confirmed'] == true
-              : false,
+              ? map['balanza_confirmed'] == 1 ||
+                  map['balanza_confirmed'] == true
+              : map['estado_servicio_bal'] == 'Balanza Calibrada',
           isNewBalanza: false,
           hiddenEditedFields: ''),
     );

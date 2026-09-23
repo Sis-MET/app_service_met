@@ -229,7 +229,7 @@ class CalibrationRepository {
     bool balanzaConfirmed = false,
     String status = 'in_progress',
   }) async {
-    await _db.upsertServicioStatus({
+    await _db.saveServicioProgress({
       'seca': seca,
       'session_id': sessionId,
       'personal': personal,
