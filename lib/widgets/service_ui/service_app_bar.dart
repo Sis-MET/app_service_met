@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,64 +10,255 @@ import '../../theme/app_design.dart';
 /// Estado del guardado automático para el indicador del AppBar.
 enum SaveStatus { idle, pending, saving, local, success, error }
 
-/// Indicador de estado de guardado (spinner / nube verde / error rojo),
-/// idéntico al usado en el AppBar de Calibración.
-class SaveStatusIndicator extends StatelessWidget {
+/// Indicador discreto del guardado automático para el AppBar.
+///
+/// Solo aparece mientras hay algo que contar: un punto que late con cambios
+/// pendientes, un anillo fino mientras guarda y un check que se dibuja al
+/// terminar y luego se retira. Un error queda visible hasta resolverse.
+/// Ocupa siempre el mismo hueco para que las otras acciones no se muevan con
+/// cada autoguardado.
+class SaveStatusIndicator extends StatefulWidget {
   final SaveStatus status;
 
   const SaveStatusIndicator({super.key, required this.status});
 
+  /// Cuánto se muestra el check antes de retirarse.
+  static const savedHold = Duration(milliseconds: 1100);
+
+  @override
+  State<SaveStatusIndicator> createState() => _SaveStatusIndicatorState();
+}
+
+enum _SaveGlyph { pending, saving, saved, error }
+
+class _SaveStatusIndicatorState extends State<SaveStatusIndicator> {
+  _SaveGlyph? _glyph;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Al abrir la pantalla no se anuncia lo que ya estaba guardado.
+    _glyph = _activeGlyph(widget.status);
+  }
+
+  @override
+  void didUpdateWidget(covariant SaveStatusIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.status == widget.status) return;
+    _hideTimer?.cancel();
+    final active = _activeGlyph(widget.status);
+    if (active != null) {
+      _glyph = active;
+      return;
+    }
+    final finishedSaving = widget.status == SaveStatus.local ||
+        widget.status == SaveStatus.success;
+    if (finishedSaving && _glyph != null && _glyph != _SaveGlyph.saved) {
+      _glyph = _SaveGlyph.saved;
+      _hideTimer = Timer(SaveStatusIndicator.savedHold, () {
+        if (mounted) setState(() => _glyph = null);
+      });
+    } else if (!finishedSaving) {
+      _glyph = null;
+    }
+  }
+
+  static _SaveGlyph? _activeGlyph(SaveStatus status) => switch (status) {
+        SaveStatus.pending => _SaveGlyph.pending,
+        SaveStatus.saving => _SaveGlyph.saving,
+        SaveStatus.error => _SaveGlyph.error,
+        _ => null,
+      };
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Widget child;
-    final String description;
-    switch (status) {
-      case SaveStatus.pending:
-        description = 'Cambios pendientes de guardar en este dispositivo';
-        child = const Icon(Icons.schedule_rounded, color: AppColors.warning);
-        break;
-      case SaveStatus.saving:
-        description = 'Guardando en este dispositivo';
-        child = const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        );
-        break;
-      case SaveStatus.error:
-        description = 'Error al guardar en este dispositivo';
-        child = const Icon(
+    final reduceMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final glyph = _glyph;
+    final description = switch (glyph) {
+      _SaveGlyph.pending => 'Cambios pendientes de guardar en este dispositivo',
+      _SaveGlyph.saving => 'Guardando en este dispositivo',
+      _SaveGlyph.saved => 'Guardado en este dispositivo',
+      _SaveGlyph.error => 'Error al guardar en este dispositivo',
+      null => null,
+    };
+
+    final Widget child = switch (glyph) {
+      null => const SizedBox.shrink(key: ValueKey('hidden')),
+      _SaveGlyph.pending => const _PulsingDot(key: ValueKey('pending')),
+      _SaveGlyph.saving => const _SavingRing(key: ValueKey('saving')),
+      _SaveGlyph.saved => const _DrawnCheck(key: ValueKey('saved')),
+      _SaveGlyph.error => const Icon(
           Icons.error_outline_rounded,
+          key: ValueKey('error'),
+          size: 17,
           color: AppColors.actionNegative,
-        );
-        break;
-      case SaveStatus.local:
-        description = 'Guardado en este dispositivo';
-        child =
-            const Icon(Icons.save_outlined, color: AppColors.actionPositive);
-        break;
-      case SaveStatus.success:
-        description = 'Guardado';
-        child = const Icon(Icons.cloud_done_outlined,
-            color: AppColors.actionPositive);
-        break;
-      case SaveStatus.idle:
-        description = 'Sin cambios pendientes';
-        child =
-            const Icon(Icons.save_outlined, color: AppColors.actionPositive);
-        break;
-    }
-    return Tooltip(
-        message: description,
-        child: Semantics(
-            label: description,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: child,
+        ),
+    };
+
+    final indicator = SizedBox(
+      width: 28,
+      height: 28,
+      child: Center(
+        child: AnimatedSwitcher(
+          duration:
+              reduceMotion ? Duration.zero : const Duration(milliseconds: 220),
+          reverseDuration:
+              reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween(begin: 0.6, end: 1.0).animate(animation),
+              child: child,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: Center(
+        child: description == null
+            ? ExcludeSemantics(child: indicator)
+            : Tooltip(
+                message: description,
+                child: Semantics(
+                  label: description,
+                  liveRegion: true,
+                  child: indicator,
+                ),
               ),
-            )));
+      ),
+    );
   }
+}
+
+/// Cambios sin guardar: un punto ámbar que late suave.
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({super.key});
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 850),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: Tween(begin: 0.35, end: 1.0)
+          .animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut)),
+      child: Container(
+        width: 7,
+        height: 7,
+        decoration: const BoxDecoration(
+          color: AppColors.warning,
+          shape: BoxShape.circle,
+        ),
+      ),
+    );
+  }
+}
+
+/// Guardando: un anillo fino y neutro.
+class _SavingRing extends StatelessWidget {
+  const _SavingRing({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(
+        strokeWidth: 1.8,
+        strokeCap: StrokeCap.round,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+}
+
+/// Guardado: un check que se dibuja de izquierda a derecha.
+class _DrawnCheck extends StatefulWidget {
+  const _DrawnCheck({super.key});
+
+  @override
+  State<_DrawnCheck> createState() => _DrawnCheckState();
+}
+
+class _DrawnCheckState extends State<_DrawnCheck>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _draw = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 280),
+  )..forward();
+
+  @override
+  void dispose() {
+    _draw.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: const Size.square(16),
+      painter: _CheckPainter(
+        CurvedAnimation(parent: _draw, curve: Curves.easeOutCubic),
+      ),
+    );
+  }
+}
+
+class _CheckPainter extends CustomPainter {
+  final Animation<double> progress;
+
+  _CheckPainter(this.progress) : super(repaint: progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.54)
+      ..lineTo(size.width * 0.42, size.height * 0.76)
+      ..lineTo(size.width * 0.84, size.height * 0.28);
+    final paint = Paint()
+      ..color = AppColors.actionPositive
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final metric in path.computeMetrics()) {
+      canvas.drawPath(
+        metric.extractPath(0, metric.length * progress.value),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CheckPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 /// AppBar plano estilo Calibración: elevation 0, fondo = scaffold,
