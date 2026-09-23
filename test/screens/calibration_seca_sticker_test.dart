@@ -13,6 +13,7 @@ import 'package:service_met/screens/calibracion/calibration_workspace_screen.dar
 import 'package:service_met/screens/calibracion/steps/condiciones_finales_step.dart';
 import 'package:service_met/screens/calibracion/steps/exportacion_step.dart';
 import 'package:service_met/screens/calibracion/steps/seca_step.dart';
+import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -129,6 +130,39 @@ void main() {
         isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('el AppBar no muestra flecha; atrás del sistema sigue saliendo',
+      (tester) async {
+    final provider = _WorkspaceProvider();
+    await provider.createNewSession('tecnico');
+    addTearDown(provider.dispose);
+    await tester
+        .pumpWidget(ChangeNotifierProvider<ServiceSessionProvider>.value(
+      value: provider,
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) =>
+                        const CalibrationWorkspaceScreen(userName: 'tecnico'))),
+            child: const Text('abrir'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CalibrationWorkspaceScreen), findsOneWidget);
+    expect(find.byType(AppBackButton), findsNothing);
+    expect(find.byType(BackButton), findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(CalibrationWorkspaceScreen), findsNothing);
+    expect(find.text('abrir'), findsOneWidget);
   });
 
   testWidgets(

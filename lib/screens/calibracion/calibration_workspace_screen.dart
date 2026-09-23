@@ -349,6 +349,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
       child: Scaffold(
         appBar: ServiceAppBar(
           title: 'Calibración',
+          // Entre pasos se navega con la píldora de abajo; una flecha arriba
+          // que saca del servicio se confundía con "paso anterior". Salir
+          // sigue siendo el gesto o botón atrás del sistema, con PopScope.
+          automaticallyImplyLeading: false,
           actions: [
             if (_fieldNavigator.canUndoInStep(provider.currentStep))
               IconButton(
