@@ -54,12 +54,10 @@ void main() async {
     // Aquí se podría reportar a Crashlytics si estuviera configurado
   }
 
-  // Inicializar Notificaciones
+  // Inicializar Notificaciones. Se programan desde el inicio, que es donde se
+  // conoce al técnico (ver HomeScreen).
   try {
-    final notificationService = NotificationService();
-    await notificationService.init();
-    await notificationService.scheduleDailyUpdateReminder();
-    await notificationService.checkAndScheduleCalibrationAlerts();
+    await NotificationService().init();
   } catch (e) {
     debugPrint('Error inicializando notificaciones: $e');
   }

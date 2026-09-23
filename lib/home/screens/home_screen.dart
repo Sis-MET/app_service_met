@@ -4,11 +4,18 @@ import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../repositories/calibration_repository.dart';
+import '../../screens/calibracion/calibration_workspace_screen.dart';
+import '../../screens/precarga/descarga_de_datos.dart';
+import '../../screens/soporte_new/precarga/precarga_screen.dart';
+import '../../services/notification_service.dart';
+import '../../services/notifications/notification_plan.dart';
 import '../tabs/home_dashboard_tab.dart';
 import '../tabs/otros_apartados_tab.dart';
 import '../tabs/servicios_tab.dart';
 import '../widgets/home_bottom_bar.dart';
 import 'configuracion_screen.dart';
+import 'vencimientos_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String dbName;
@@ -19,8 +26,9 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String userName = 'Cargando...';
+  bool _userReady = false;
   int _currentIndex = 0;
   final PageController _pageController = PageController();
 
@@ -28,14 +36,93 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     initializeDateFormatting('es_ES', null);
-    _fetchUserData();
+    WidgetsBinding.instance.addObserver(this);
+    NotificationService().pendingTap.addListener(_handleNotificationTap);
+    _fetchUserData().whenComplete(_onUserReady);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    NotificationService().pendingTap.removeListener(_handleNotificationTap);
     _pageController.dispose();
     super.dispose();
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Salir de la app es el último momento en que cambian los datos: se
+    // reprograman las notificaciones con lo que quedó pendiente.
+    if (state == AppLifecycleState.paused && _userReady) {
+      NotificationService().refresh(userName);
+    }
+  }
+
+  void _onUserReady() {
+    if (!mounted) return;
+    _userReady = true;
+    NotificationService().refresh(userName);
+    _handleNotificationTap();
+  }
+
+  /// Abre el destino de la notificación tocada. Solo desde el inicio: si el
+  /// técnico está dentro de un servicio no se le cambia de pantalla.
+  Future<void> _handleNotificationTap() async {
+    final tap = NotificationService().pendingTap;
+    final payload = tap.value;
+    if (payload == null || !_userReady || !mounted) return;
+    tap.value = null;
+    if (ModalRoute.of(context)?.isCurrent == false) return;
+
+    switch (payload) {
+      case NoticePayload.vencimientosPatrones:
+        await _push(const VencimientosScreen());
+      case NoticePayload.vencimientosBalanzas:
+        await _push(
+          const VencimientosScreen(initialTab: VencimientosTab.balanzas),
+        );
+      case NoticePayload.soportePendiente:
+        // La precarga de soporte ofrece retomar el servicio pendiente.
+        await _push(PrecargaScreenSop(
+          userName: userName,
+          clienteId: '',
+          plantaCodigo: '',
+          tableName: '',
+        ));
+      case NoticePayload.precarga:
+        await _push(DescargaDeDatosScreen(userName: userName));
+      case NoticePayload.subidas || NoticePayload.resumen:
+        _selectPage(0);
+      default:
+        final calibracion = NoticePayload.parseCalibracionPendiente(payload);
+        if (calibracion != null) await _openCalibracionPendiente(calibracion);
+    }
+  }
+
+  Future<void> _openCalibracionPendiente((String, String) calibracion) async {
+    final (seca, sessionId) = calibracion;
+    final pending =
+        await CalibrationRepository().getServiciosIncompletos(userName);
+    if (!mounted) return;
+    final sigue = pending.any((row) =>
+        row['seca']?.toString().trim() == seca &&
+        row['session_id']?.toString().trim() == sessionId);
+    if (!sigue) {
+      _selectPage(1);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esa calibración ya no está pendiente.')),
+      );
+      return;
+    }
+    await _push(CalibrationWorkspaceScreen(
+      userName: userName,
+      secaValue: seca,
+      sessionId: sessionId,
+    ));
+  }
+
+  Future<void> _push(Widget screen) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
   List<Widget> _screens() => [
         HomeDashboardTab(

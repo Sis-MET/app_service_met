@@ -1,6 +1,24 @@
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+/// Un registro de soporte está listo para subirse cuando su módulo lo da
+/// por terminado; cada módulo lo marca de forma distinta.
+bool isSupportRecordComplete(Map<String, dynamic> record) {
+  final module = record['_support_module']?.toString();
+  if (module == 'diagnostico') {
+    return const [
+      'reporte',
+      'evaluacion',
+      'comentario_general',
+      'hora_fin'
+    ].every((column) => record[column]?.toString().trim().isNotEmpty == true);
+  }
+  if (module == 'relevamiento_de_datos') {
+    return record['estado_servicio']?.toString() == 'Balanza Realizada';
+  }
+  return record['estado_servicio']?.toString() == 'Completo';
+}
+
 class SupportUploadStatusService {
   Database? _database;
 
@@ -60,12 +78,13 @@ class SupportUploadStatusService {
         .toSet();
   }
 
-  Future<Set<String>> uploadedLogicalKeys(String otst) async {
+  /// Claves lógicas subidas de [otst], o de todas las OTST si es null.
+  Future<Set<String>> uploadedLogicalKeys([String? otst]) async {
     final db = await _db;
     final rows = await db.query(
       'support_upload_status',
-      where: 'otst = ?',
-      whereArgs: [otst],
+      where: otst == null ? null : 'otst = ?',
+      whereArgs: otst == null ? null : [otst],
     );
     return rows
         .map((row) => [

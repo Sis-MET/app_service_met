@@ -1,9 +1,13 @@
+import 'dart:ui' show Color;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     as fln;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter/foundation.dart';
-import '../login/services/database_service.dart';
+
+import 'notifications/notification_plan.dart';
+import 'notifications/notification_snapshot_loader.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -14,14 +18,38 @@ class NotificationService {
 
   NotificationService._internal();
 
+  /// Generado desde images/icon_notofy_black.png en res/drawable-*dpi.
+  static const String _androidSmallIcon = 'ic_stat_notify';
+
+  /// Tinte del icono en el panel desplegado (Amarillo Métrica oscurecido para
+  /// que se lea sobre el fondo claro de la tarjeta de notificación).
+  static const Color _androidAccent = Color(0xFFD4A017);
+
+  /// Canales e IDs de versiones anteriores, reemplazados por [NoticeChannel].
+  static const _legacyChannels = ['daily_reminders', 'calibration_alerts'];
+  static const _legacyIds = [0, 1];
+
   final fln.FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       fln.FlutterLocalNotificationsPlugin();
+
+  /// Payload de la última notificación tocada que el inicio aún no atendió.
+  /// Se conserva si el toque abre la app en el login: el inicio lo consume al
+  /// montarse.
+  final ValueNotifier<String?> pendingTap = ValueNotifier(null);
+
+  bool _initialized = false;
+  Future<void>? _refreshing;
+  String? _queuedFor;
 
   Future<void> init() async {
     tz.initializeTimeZones();
 
+    // Android pinta el small icon como máscara: solo usa el alfa y lo tiñe
+    // según el fondo (blanco en barra oscura, oscuro en barra clara). Por eso
+    // basta un único drawable blanco sobre transparente; el ic_launcher opaco
+    // es lo que se veía como un círculo/punto blanco.
     const fln.AndroidInitializationSettings initializationSettingsAndroid =
-        fln.AndroidInitializationSettings('@mipmap/ic_launcher');
+        fln.AndroidInitializationSettings(_androidSmallIcon);
 
     const fln.DarwinInitializationSettings initializationSettingsDarwin =
         fln.DarwinInitializationSettings(
@@ -38,129 +66,138 @@ class NotificationService {
 
     await flutterLocalNotificationsPlugin.initialize(
       settings: initializationSettings,
-      onDidReceiveNotificationResponse:
-          (fln.NotificationResponse notificationResponse) async {
-        // Manejar toque en notificación si es necesario
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) pendingTap.value = payload;
       },
     );
 
-    // Solicitar permisos en Android 13+ (Notificaciones)
+    // App abierta desde una notificación estando cerrada.
+    final launch =
+        await flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
+    final launchPayload = launch?.notificationResponse?.payload;
+    if (launch?.didNotificationLaunchApp == true &&
+        launchPayload != null &&
+        launchPayload.isNotEmpty) {
+      pendingTap.value = launchPayload;
+    }
+
     final androidImplementation =
         flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
             fln.AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidImplementation != null) {
+      // Solicitar permisos en Android 13+ (Notificaciones)
       await androidImplementation.requestNotificationsPermission();
-      // Solicitar permiso para alarmas exactas (Android 12+)
-      await androidImplementation.requestExactAlarmsPermission();
-    }
-  }
-
-  // 1. Recordatorio diario de actualización (Ej: 8:00 AM)
-  Future<void> scheduleDailyUpdateReminder() async {
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id: 0, // ID único
-      title: 'Actualización de Datos',
-      body:
-          'Recuerda actualizar la precarga de datos para trabajar con información al día.',
-      scheduledDate: _nextInstanceOfTime(8, 0), // 8:00 AM
-      notificationDetails: const fln.NotificationDetails(
-        android: fln.AndroidNotificationDetails(
-          'daily_reminders',
-          'Recordatorios Diarios',
-          channelDescription: 'Recordatorios diarios de actualización de datos',
-          importance: fln.Importance.max,
-          priority: fln.Priority.high,
-        ),
-        iOS: fln.DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: fln.AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: fln.DateTimeComponents.time,
-    );
-  }
-
-  tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
-    if (scheduledDate.isBefore(now)) {
-      scheduledDate = scheduledDate.add(const Duration(days: 1));
-    }
-    return scheduledDate;
-  }
-
-  // 2. Alerta de vencimiento de calibración
-  Future<void> checkAndScheduleCalibrationAlerts() async {
-    try {
-      final dbService = DatabaseService();
-      // Nota: Necesitamos implementar getPrecargaDatabase en DatabaseService primero
-      final db = await dbService.getPrecargaDatabase();
-
-      // Corregir tipo de retorno de query para evitar error de casting
-      final List<Map<String, Object?>> resultados = await db.query(
-        'equipamientos',
-        where: "estado != 'DESACTIVADO'",
-      );
-
-      // Convertir a List<Map<String, dynamic>>
-      final List<Map<String, dynamic>> equipos =
-          resultados.map((e) => Map<String, dynamic>.from(e)).toList();
-
-      int expiredCount = 0;
-      int warningCount = 0;
-
-      for (var equipo in equipos) {
-        final certFechaStr = equipo['cert_fecha'] as String?;
-        if (certFechaStr != null) {
-          try {
-            final certFecha = DateTime.parse(certFechaStr);
-            final now = DateTime.now();
-            final difference = now.difference(certFecha).inDays;
-
-            if (difference > 365) {
-              expiredCount++;
-            } else if (difference > 335) {
-              // Aviso 30 días antes (aprox 11 meses)
-              warningCount++;
-            }
-          } catch (e) {
-            debugPrint('Error parseando fecha cert: $certFechaStr');
-          }
-        }
-      }
-
-      await db.close();
-
-      if (expiredCount > 0 || warningCount > 0) {
-        String bodyText = '';
-        if (expiredCount > 0) {
-          bodyText += 'Tienes $expiredCount equipos con calibración VENCIDA. ';
-        }
-        if (warningCount > 0) {
-          bodyText +=
-              'Tienes $warningCount equipos próximos a vencer su calibración.';
-        }
-
-        await flutterLocalNotificationsPlugin.show(
-          id: 1, // ID único
-          title: 'Alerta de Equipos',
-          body: bodyText,
-          notificationDetails: fln.NotificationDetails(
-            android: fln.AndroidNotificationDetails(
-              'calibration_alerts',
-              'Alertas de Calibración',
-              channelDescription:
-                  'Notificaciones sobre vencimiento de calibraciones',
-              importance: fln.Importance.high,
-              priority: fln.Priority.high,
-              styleInformation: fln.BigTextStyleInformation(bodyText),
-            ),
-            iOS: const fln.DarwinNotificationDetails(),
+      // Crear los canales de entrada hace que aparezcan en los ajustes de
+      // Android, donde el técnico puede silenciar cada tipo por separado.
+      for (final channel in NoticeChannel.values) {
+        await androidImplementation.createNotificationChannel(
+          fln.AndroidNotificationChannel(
+            channel.id,
+            channel.name,
+            description: channel.description,
+            importance: _importance(channel),
           ),
         );
       }
+      for (final id in _legacyChannels) {
+        await androidImplementation.deleteNotificationChannel(channelId: id);
+      }
+    }
+    for (final id in _legacyIds) {
+      await flutterLocalNotificationsPlugin.cancel(id: id);
+    }
+
+    _initialized = true;
+  }
+
+  /// Recalcula y reprograma todas las notificaciones para [personal].
+  ///
+  /// Los datos solo cambian mientras se usa la app, así que basta llamarlo al
+  /// entrar al inicio y cada vez que la app pasa a segundo plano: las
+  /// notificaciones programadas llegan a su hora aunque la app esté cerrada.
+  Future<void> refresh(String personal) async {
+    if (!_initialized || personal.trim().isEmpty) return;
+    final running = _refreshing;
+    if (running != null) {
+      // Una sola lectura a la vez; la última petición se repite al terminar.
+      _queuedFor = personal;
+      return running;
+    }
+    _refreshing = _refresh(personal);
+    try {
+      await _refreshing;
+    } finally {
+      _refreshing = null;
+    }
+    final queued = _queuedFor;
+    _queuedFor = null;
+    if (queued != null) await refresh(queued);
+  }
+
+  Future<void> _refresh(String personal) async {
+    try {
+      final snapshot = await NotificationSnapshotLoader().load(personal);
+      final now = DateTime.now();
+      final planned = planNotifications(snapshot, now);
+      final plannedIds = planned.map((notice) => notice.id).toSet();
+
+      for (final id in NoticeIds.all) {
+        if (!plannedIds.contains(id)) {
+          await flutterLocalNotificationsPlugin.cancel(id: id);
+        }
+      }
+      for (final notice in planned) {
+        if (!notice.at.isAfter(now)) continue;
+        await flutterLocalNotificationsPlugin.zonedSchedule(
+          id: notice.id,
+          title: notice.title,
+          body: notice.body,
+          // Instante absoluto: correcto aunque tz.local quede en UTC.
+          scheduledDate: tz.TZDateTime.from(notice.at, tz.local),
+          notificationDetails: _details(notice),
+          // Un aviso de las 8:00 que llega a las 8:05 no importa, y así no
+          // hace falta el permiso de alarmas exactas.
+          androidScheduleMode: fln.AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: notice.payload,
+        );
+      }
     } catch (e) {
-      debugPrint('Error verificando alertas de calibración: $e');
+      debugPrint('Error programando notificaciones: $e');
     }
   }
+
+  fln.NotificationDetails _details(PlannedNotice notice) {
+    final channel = notice.channel;
+    return fln.NotificationDetails(
+      android: fln.AndroidNotificationDetails(
+        channel.id,
+        channel.name,
+        channelDescription: channel.description,
+        importance: _importance(channel),
+        priority: channel == NoticeChannel.recordatorios
+            ? fln.Priority.defaultPriority
+            : fln.Priority.high,
+        icon: _androidSmallIcon,
+        color: _androidAccent,
+        styleInformation: notice.lines.isEmpty
+            ? fln.BigTextStyleInformation(notice.body)
+            : fln.InboxStyleInformation(
+                notice.lines,
+                contentTitle: notice.title,
+                // Si el cuerpo ya es la suma de las líneas, repetirlo sobra.
+                summaryText: notice.lines.join(' · ') == notice.body
+                    ? null
+                    : notice.body,
+              ),
+      ),
+      iOS: fln.DarwinNotificationDetails(threadIdentifier: channel.id),
+    );
+  }
+
+  static fln.Importance _importance(NoticeChannel channel) =>
+      channel == NoticeChannel.recordatorios
+          ? fln.Importance.defaultImportance
+          : fln.Importance.high;
 }

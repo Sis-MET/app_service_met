@@ -18,9 +18,10 @@
         android:required="false"
         tools:replace="android:required" />
 
-    <!-- Notificaciones y Alarmas -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Notificaciones. Se programan inexactas, sin permiso de alarmas exactas;
+         BOOT_COMPLETED las vuelve a programar tras reiniciar el equipo. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <!--
         Permisos de almacenamiento eliminados a propósito.
@@ -70,6 +71,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- flutter_local_notifications: sin estos receivers las notificaciones
+             programadas nunca se muestran ni sobreviven a un reinicio. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
 
         <!-- Flutter Plugin -->
         <meta-data

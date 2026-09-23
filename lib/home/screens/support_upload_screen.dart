@@ -42,22 +42,6 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
     _load();
   }
 
-  bool _isComplete(Map<String, dynamic> record) {
-    final module = record['_support_module']?.toString();
-    if (module == 'diagnostico') {
-      return const [
-        'reporte',
-        'evaluacion',
-        'comentario_general',
-        'hora_fin'
-      ].every((column) => record[column]?.toString().trim().isNotEmpty == true);
-    }
-    if (module == 'relevamiento_de_datos') {
-      return record['estado_servicio']?.toString() == 'Balanza Realizada';
-    }
-    return record['estado_servicio']?.toString() == 'Completo';
-  }
-
   Future<void> _load() async {
     setState(() {
       _loading = true;
@@ -66,7 +50,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
     });
     try {
       final completed = widget.servicio.items
-          .where(_isComplete)
+          .where(isSupportRecordComplete)
           .map(Map<String, dynamic>.from)
           .toList(growable: false);
       final uploaded =

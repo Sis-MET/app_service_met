@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../screens/precarga/descarga_de_datos.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../screens/vencimientos_screen.dart';
 
 class OtrosApartadosTab extends StatelessWidget {
   final String userName;
@@ -104,6 +105,31 @@ class OtrosApartadosTab extends StatelessWidget {
                       label: const Text('Actualizar datos'),
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              AppPanel(
+                padding: EdgeInsets.zero,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 6,
+                  ),
+                  leading: const Icon(
+                    Icons.event_note_outlined,
+                    color: AppColors.shimmerGold,
+                  ),
+                  title: const Text('Vencimientos'),
+                  subtitle: const Text(
+                    'Patrones y balanzas de clientes vencidos o por vencer.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const VencimientosScreen(),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 18),
