@@ -38,7 +38,9 @@ void main() {
     return provider;
   }
 
-  testWidgets('excentricidad no inventa indicaciones al cambiar la carga',
+  // En una balanza en buen estado la indicación coincide con la carga: se
+  // replica para que el técnico solo corrija las que difieran.
+  testWidgets('excentricidad replica la carga en todas las indicaciones',
       (tester) async {
     final provider = await mount(
         tester,
@@ -55,15 +57,22 @@ void main() {
     await tester.ensureVisible(inputFor('carga'));
     await tester.enterText(inputFor('carga'), '20');
     await tester.pump();
-    expect(
-        provider.session!.excentricidad!.posiciones
-            .every((position) => position.indicacion?.isEmpty ?? true),
-        isTrue);
+    final posiciones = provider.session!.excentricidad!.posiciones;
+    expect(posiciones.map((p) => p.indicacion), ['20', '20', '20']);
+    expect(posiciones.map((p) => p.retorno), ['0', '0', '0']);
+
+    // Corregir una posición no toca las demás ni la carga.
+    await tester.ensureVisible(inputFor('indicacion2'));
+    await tester.enterText(inputFor('indicacion2'), '20.5');
+    await tester.pump();
+    expect(provider.session!.excentricidad!.posiciones.map((p) => p.indicacion),
+        ['20', '20.5', '20']);
+    expect(provider.session!.excentricidad!.carga, '20');
     await tester.pumpWidget(const SizedBox.shrink());
     await provider.flushPendingSave();
   });
 
-  testWidgets('repetibilidad conserva vacías las indicaciones al editar carga',
+  testWidgets('repetibilidad replica la carga en sus indicaciones',
       (tester) async {
     final provider = await mount(
         tester,
@@ -77,16 +86,15 @@ void main() {
     await tester.ensureVisible(inputFor('repetibilidad1'));
     await tester.enterText(inputFor('repetibilidad1'), '20');
     await tester.pump();
-    expect(
-        provider.session!.repetibilidad!.cargas.first.indicaciones
-            .every((reading) => reading == null || reading.isEmpty),
-        isTrue);
+    expect(provider.session!.repetibilidad!.cargas.first.indicaciones,
+        ['20', '20', '20']);
+    expect(provider.session!.repetibilidad!.cargas.first.retornos,
+        ['0', '0', '0']);
     await tester.pumpWidget(const SizedBox.shrink());
     await provider.flushPendingSave();
   });
 
-  testWidgets('linealidad conserva vacía la indicación al editar carga',
-      (tester) async {
+  testWidgets('linealidad replica la carga en su indicación', (tester) async {
     final provider = await mount(
         tester,
         const LinealidadStep(),
@@ -99,7 +107,7 @@ void main() {
     await tester.ensureVisible(inputFor('lin1'));
     await tester.enterText(inputFor('lin1'), '20');
     await tester.pump();
-    expect(provider.session!.linealidad!.filas.first.indicacion, isEmpty);
+    expect(provider.session!.linealidad!.filas.first.indicacion, '20');
     await tester.pumpWidget(const SizedBox.shrink());
     await provider.flushPendingSave();
   });

@@ -233,7 +233,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         setState(() {
           _cargaCtrl.text = exc;
         });
-        _saveToProvider();
+        _reflectCargaToIndicaciones();
       }
     });
   }
@@ -272,7 +272,33 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       _buildDefaultRows(n);
     });
     if (_cargaCtrl.text.isNotEmpty) {
-      _saveToProvider();
+      _reflectCargaToIndicaciones();
+    }
+    _saveToProvider();
+  }
+
+  String _formatValueWithPrecision(String value) {
+    final v = double.tryParse(value);
+    if (v == null) return value;
+    try {
+      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+      if (balanza == null) return value;
+      final d = SuggestionHelper.getDivisionForValue(balanza, v);
+      if (d == 0) return value;
+      final decimals = SuggestionHelper.getDecimalPlaces(d);
+      return v.toStringAsFixed(decimals);
+    } catch (_) {
+      return value;
+    }
+  }
+
+  /// En una balanza en buen estado la indicación coincide con la carga: se
+  /// copia a todas las posiciones para que el técnico solo corrija las que
+  /// difieran.
+  void _reflectCargaToIndicaciones() {
+    final value = _formatValueWithPrecision(_cargaCtrl.text);
+    for (final row in _rows) {
+      row[0].text = value;
     }
     _saveToProvider();
   }
@@ -395,7 +421,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 controller: _cargaCtrl,
                 column: 'carga',
                 onChanged: (_) {
-                  _saveToProvider();
+                  _reflectCargaToIndicaciones();
                 },
                 decoration: _deco('Carga', isDark),
               ).animate(delay: 450.ms).fadeIn(),
@@ -828,7 +854,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
           return GestureDetector(
             onTap: () {
               _cargaCtrl.text = formatted;
-              _saveToProvider();
+              _reflectCargaToIndicaciones();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

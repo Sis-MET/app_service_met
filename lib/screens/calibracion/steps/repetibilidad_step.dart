@@ -134,6 +134,9 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           _buildControllers(nCargas, nMediciones);
           for (int i = 0; i < nCargas; i++) {
             _cargasCtrls[i].text = repValues[i];
+            for (int j = 0; j < nMediciones; j++) {
+              _indCtrls[i][j].text = repValues[i];
+            }
           }
         });
         _saveToProvider();
@@ -239,6 +242,30 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                     : const [],
               )),
     ));
+  }
+
+  String _formatValueWithPrecision(String value) {
+    final v = double.tryParse(value);
+    if (v == null) return value;
+    try {
+      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+      if (balanza == null) return value;
+      final d = SuggestionHelper.getDivisionForValue(balanza, v);
+      if (d == 0) return value;
+      final decimals = SuggestionHelper.getDecimalPlaces(d);
+      return v.toStringAsFixed(decimals);
+    } catch (_) {
+      return value;
+    }
+  }
+
+  /// Las indicaciones arrancan iguales a la carga; el técnico corrige solo
+  /// las que la balanza marque distinto.
+  void _reflectCargaToIndicaciones(int cargaIdx, String value) {
+    final formatted = _formatValueWithPrecision(value);
+    for (final ctrl in _indCtrls[cargaIdx]) {
+      ctrl.text = formatted;
+    }
   }
 
   @override
@@ -401,6 +428,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               controller: _cargasCtrls[i],
               column: 'repetibilidad${i + 1}',
               onChanged: (val) {
+                _reflectCargaToIndicaciones(i, val);
                 _saveToProvider();
               },
               decoration: _deco(
@@ -591,6 +619,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           return GestureDetector(
             onTap: () {
               _cargasCtrls[cargaIdx].text = formatted;
+              _reflectCargaToIndicaciones(cargaIdx, formatted);
               _saveToProvider();
             },
             child: Container(
