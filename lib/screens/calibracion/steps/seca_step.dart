@@ -19,16 +19,14 @@ class _SecaStepState extends State<SecaStep> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final provider = context.read<ServiceSessionProvider>();
-      final session = provider.session;
-      if (session != null && !session.metadata.secaConfirmed) {
-        _cotizacionController.text = 'C01';
-      } else if (session != null && session.metadata.secaConfirmed) {
-        final parts = session.sessionInfo.seca?.split('-') ?? [];
-        if (parts.length >= 4) {
-          _cotizacionController.text = parts[3];
-        }
-      }
+      if (provider.session == null) return;
+      // Al continuar un servicio la cotización sale del SECA guardado; el
+      // resto de la pantalla la toma del proveedor.
+      final cotizacion = provider.cotizacion;
+      _cotizacionController.text = cotizacion;
+      provider.setCotizacionSuffix(cotizacion);
     });
   }
 

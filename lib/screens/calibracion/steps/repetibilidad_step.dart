@@ -134,9 +134,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           _buildControllers(nCargas, nMediciones);
           for (int i = 0; i < nCargas; i++) {
             _cargasCtrls[i].text = repValues[i];
-            for (int j = 0; j < nMediciones; j++) {
-              _indCtrls[i][j].text = repValues[i];
-            }
           }
         });
         _saveToProvider();
@@ -242,21 +239,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
                     : const [],
               )),
     ));
-  }
-
-  String _formatValueWithPrecision(String value) {
-    final v = double.tryParse(value);
-    if (v == null) return value;
-    try {
-      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
-      if (balanza == null) return value;
-      final d = SuggestionHelper.getDivisionForValue(balanza, v);
-      if (d == 0) return value;
-      final decimals = SuggestionHelper.getDecimalPlaces(d);
-      return v.toStringAsFixed(decimals);
-    } catch (_) {
-      return value;
-    }
   }
 
   @override
@@ -399,7 +381,17 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionHeader('Carga ${i + 1}', isDark),
+          _sectionHeader('Carga ${i + 1} de ${_cargasCtrls.length}', isDark),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              '${_indCtrls[i].where((c) => c.text.trim().isNotEmpty).length} '
+              'de $nMediciones indicaciones registradas',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white60 : Colors.black54),
+            ),
+          ),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -409,13 +401,11 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               controller: _cargasCtrls[i],
               column: 'repetibilidad${i + 1}',
               onChanged: (val) {
-                final formatted = _formatValueWithPrecision(val);
-                for (int j = 0; j < nMediciones; j++) {
-                  _indCtrls[i][j].text = formatted;
-                }
                 _saveToProvider();
               },
-              decoration: _deco('Valor de carga', isDark),
+              decoration: _deco(
+                  'Valor de carga (${context.read<ServiceSessionProvider>().session?.balanza?.unidad ?? 'sin unidad'})',
+                  isDark),
             ),
           ),
           if (_cargasCtrls[i].text.isEmpty) _buildSuggestedLoadChips(i, isDark),
@@ -601,10 +591,6 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
           return GestureDetector(
             onTap: () {
               _cargasCtrls[cargaIdx].text = formatted;
-              final nMediciones = int.tryParse(_medicionesCount ?? '3') ?? 3;
-              for (int j = 0; j < nMediciones; j++) {
-                _indCtrls[cargaIdx][j].text = formatted;
-              }
               _saveToProvider();
             },
             child: Container(

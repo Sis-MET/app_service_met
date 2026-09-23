@@ -50,6 +50,56 @@ void main() {
         ],
       );
 
+  test('pesas e instrumentos se conservan al editar ambos pasos y continuar',
+      () async {
+    final provider = await nuevaSesion();
+    final pattern =
+        EquipoInfo(codInstrumento: 'MP-01', tipo: 'Pesa patrón', cantidad: '3');
+    final thermometer = EquipoInfo(codInstrumento: 'TA-01', tipo: 'Termómetro');
+    final hygrometer = EquipoInfo(codInstrumento: 'HA-02', tipo: 'Higrómetro');
+    provider.updatePatronWeights([pattern]);
+    provider.updateMeasuringInstruments([thermometer, hygrometer]);
+    provider.updatePatronWeights([pattern.copyWith(cantidad: '4')]);
+    expect(provider.session!.equipos.map((e) => e.codInstrumento),
+        ['MP-01', 'TA-01', 'HA-02']);
+    expect(provider.session!.equipos.first.cantidad, '4');
+    expect(await provider.flushAutoSave(), isTrue);
+    final info = provider.session!.sessionInfo;
+    final reopened = ServiceSessionProvider(CalibrationRepository());
+    addTearDown(reopened.dispose);
+    await reopened.loadExistingSession(info.seca!, info.sessionId!);
+    expect(reopened.session!.equipos.map((e) => e.codInstrumento),
+        ['MP-01', 'TA-01', 'HA-02']);
+    reopened.updateMeasuringInstruments([hygrometer]);
+    expect(reopened.session!.equipos.map((e) => e.codInstrumento),
+        ['MP-01', 'HA-02']);
+    reopened.updateMeasuringInstruments([]);
+    expect(reopened.session!.equipos.single.codInstrumento, 'MP-01');
+  });
+
+  test('los pendientes obligatorios se muestran juntos y señalan el campo',
+      () async {
+    final provider = await nuevaSesion();
+    provider.updateRepetibilidad(RepetibilidadData(cargas: [
+      CargaRepetibilidad(
+          carga: '10', indicaciones: [null, '10'], retornos: [null, null]),
+    ]));
+    final readings = provider.stepIssues(7);
+    expect(readings.map((issue) => issue.column), [
+      'indicacion1_1',
+      'retorno1_1',
+      'retorno1_2',
+    ]);
+    expect(provider.validateRepetibilidad(), readings.first.message);
+
+    provider.updateCondicionesFinales(
+        CondicionesFinales(horaFin: '13:00', tiFin: '25'));
+    final finalIssues = provider.stepIssues(9);
+    expect(finalIssues.map((issue) => issue.column),
+        ['hri_fin', 'patmi_fin', null]);
+    expect(provider.validateCondicionesFinales(), finalIssues.first.message);
+  });
+
   group('cierre de la balanza', () {
     test(
         'un dato fuera de esquema ya no deja la balanza "calibrada" sin sus '
@@ -149,6 +199,25 @@ void main() {
   });
 
   group('validaciones por paso', () {
+    test('muestra todos los números rechazados del paso y su columna',
+        () async {
+      final provider = await nuevaSesion(conSeca: false);
+      provider.updateExcentricidad(ExcentricidadData(
+        tipoPlataforma: 'Rectangular',
+        puntosIndicacion: 'Rectangular 3F',
+        carga: 'no',
+        posiciones: [
+          PosicionData(posicion: '1', indicacion: 'abc', retorno: '0'),
+          PosicionData(posicion: '2', indicacion: '', retorno: '0'),
+          PosicionData(posicion: '3', indicacion: '', retorno: '0'),
+        ],
+      ));
+      final issues = provider.stepIssues(6);
+      expect(
+          issues.map((i) => i.column), containsAll(['carga', 'indicacion1']));
+      expect(provider.validateStep(6), issues.first.message);
+    });
+
     test('Repetibilidad pide cada indicación de las cargas elegidas', () async {
       final provider = await nuevaSesion(conSeca: false);
 
@@ -220,6 +289,27 @@ void main() {
       await continuada.loadExistingSession(info.seca!, info.sessionId!);
       return continuada;
     }
+
+    test('recupera la cotización del SECA, no el C01 de la memoria', () async {
+      final provider = await nuevaSesion(conSeca: false);
+      provider.updatePlanta(PlantaInfo(codigo: '0032-11', nombre: 'Planta'));
+      provider.setCotizacionSuffix('C07');
+      expect(await provider.confirmSeca(), isTrue);
+      final continuada = await continuar(provider);
+      expect(continuada.cotizacion, 'C07');
+      // Un borrador no cambia el SECA que ya se confirmó.
+      continuada.setCotizacionSuffix('C09');
+      expect(continuada.cotizacion, 'C07');
+    });
+
+    test('una sesión nueva no hereda la cotización de la anterior', () async {
+      final provider = await nuevaSesion(conSeca: false);
+      expect(provider.cotizacion, 'C01');
+      provider.setCotizacionSuffix('C08');
+      expect(provider.cotizacion, 'C08');
+      await provider.createNewSession('tecnico');
+      expect(provider.cotizacion, 'C01');
+    });
 
     test('linealidad conserva sus fotos y deja pasar al siguiente paso',
         () async {

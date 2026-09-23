@@ -7,6 +7,8 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/utils/scale_range_validator.dart';
 
+typedef _StepIssue = ({String message, String? column});
+
 class ServiceSessionProvider extends ChangeNotifier {
   final CalibrationRepository _repository;
 
@@ -41,6 +43,7 @@ class ServiceSessionProvider extends ChangeNotifier {
   int get currentStep => _currentStep;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
+  bool get hasPendingSave => _autoSaveTimer?.isActive ?? false;
   bool get lastSaveSuccessful => _lastSaveSuccessful;
 
   /// Por qué la base rechazó el último guardado. Mientras no sea null, lo que
@@ -150,6 +153,7 @@ class ServiceSessionProvider extends ChangeNotifier {
 
   Future<void> createNewSession(String userName, {String? secaValue}) async {
     clearQrMode();
+    _cotizacionSuffix = 'C01';
     _saveError = null;
     _lastSaveSuccessful = true;
     _session = ServiceSession(
@@ -277,6 +281,30 @@ class ServiceSessionProvider extends ChangeNotifier {
     _session = _session!.copyWith(equipos: equipos);
     notifyListeners();
     _scheduleAutoSave();
+  }
+
+  /// Una sesión contiene patrones e instrumentos ambientales en la misma lista.
+  /// Cada paso modifica solo su parte para conservar lo elegido en el otro.
+  static bool isPatronType(String? type) {
+    final value = type?.toLowerCase() ?? '';
+    return value.contains('pesa') ||
+        value.contains('masa') ||
+        value.contains('patron') ||
+        value.contains('patr');
+  }
+
+  void updatePatronWeights(List<EquipoInfo> weights) {
+    final other =
+        _session?.equipos.where((e) => !isPatronType(e.tipo)).toList() ??
+            <EquipoInfo>[];
+    updateEquipos([...weights, ...other]);
+  }
+
+  void updateMeasuringInstruments(List<EquipoInfo> instruments) {
+    final weights =
+        _session?.equipos.where((e) => isPatronType(e.tipo)).toList() ??
+            <EquipoInfo>[];
+    updateEquipos([...weights, ...instruments]);
   }
 
   void updateInspeccionVisual(InspeccionVisual data) {
@@ -409,6 +437,17 @@ class ServiceSessionProvider extends ChangeNotifier {
   void setCotizacionSuffix(String val) {
     _cotizacionSuffix = val;
     notifyListeners();
+  }
+
+  /// La cotización del servicio (C01, C02...): la del SECA ya confirmado o,
+  /// mientras se lo arma, la que se está escribiendo. Al continuar un
+  /// servicio lo escrito al crearlo ya no está en memoria, así que sale del
+  /// SECA guardado: `<código de planta>-<cotización>-<año>`, y el código de
+  /// planta lleva su propio guion.
+  String get cotizacion {
+    final parts = _session?.sessionInfo.seca?.split('-') ?? const <String>[];
+    if (parts.length >= 3) return parts[parts.length - 2];
+    return _cotizacionSuffix.isEmpty ? 'C01' : _cotizacionSuffix;
   }
 
   String getProposedSeca() {
@@ -575,36 +614,43 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateBalanza() {
-    if (_session == null) {
-      return "Sesion no inicializada.";
-    }
+    final issues = _balanzaIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
 
+  List<_StepIssue> _balanzaIssues() {
+    if (_session == null) {
+      return [(message: 'Sesion no inicializada.', column: null)];
+    }
+    final issues = <_StepIssue>[];
     final info = _session!.sessionInfo;
     if (info.nReca == null || info.nReca!.trim().isEmpty) {
-      return "Debe ingresar el Nro. RECA.";
+      issues.add((message: 'Debe ingresar el Nro. RECA.', column: null));
     }
     if (info.sticker == null || info.sticker!.trim().isEmpty) {
-      return "Debe ingresar el Nro. Sticker.";
+      issues.add((message: 'Debe ingresar el Nro. Sticker.', column: null));
     }
 
     final b = _session!.balanza;
     if (b == null) {
-      return "Debe seleccionar o registrar una balanza.";
+      issues.add(
+          (message: 'Debe seleccionar o registrar una balanza.', column: null));
+      return issues;
     }
     if (b.codMetrica == null || b.codMetrica!.trim().isEmpty) {
-      return "Falta el Codigo Metrica.";
+      issues.add((message: 'Falta el Codigo Metrica.', column: null));
     }
     if (b.tipo == null || b.tipo!.trim().isEmpty) {
-      return "Falta el Tipo de Instrumento.";
+      issues.add((message: 'Falta el Tipo de Instrumento.', column: null));
     }
     if (b.marca == null || b.marca!.trim().isEmpty) {
-      return "Falta la Marca.";
+      issues.add((message: 'Falta la Marca.', column: null));
     }
     if (b.modelo == null || b.modelo!.trim().isEmpty) {
-      return "Falta el Modelo.";
+      issues.add((message: 'Falta el Modelo.', column: null));
     }
     if (b.serie == null || b.serie!.trim().isEmpty) {
-      return "Falta la Serie.";
+      issues.add((message: 'Falta la Serie.', column: null));
     }
     final rangeError = ScaleRangeValidator.validate([
       ScaleRangeValues(
@@ -626,9 +672,10 @@ class ServiceSessionProvider extends ChangeNotifier {
         decimals: b.dec3,
       ),
     ]);
-    if (rangeError != null) return rangeError;
-
-    return null;
+    if (rangeError != null) {
+      issues.add((message: rangeError, column: null));
+    }
+    return issues;
   }
 
   Future<String?> validateDuplicateBalanza() async {
@@ -664,56 +711,82 @@ class ServiceSessionProvider extends ChangeNotifier {
   ///
   /// El chequeo de esquema es el mismo que aplica el guardado: si pasa aquí,
   /// el paso se guarda.
-  String? validateStep(int step) {
+  List<({String message, String? column})> stepIssues(int step) {
     final session = _session;
-    if (session == null) return "Sesión no inicializada.";
-
-    final issues = CalibrationRecordValidator.schemaIssues(session.toMap())
-        .where((issue) => issue.step == step);
-    if (issues.isNotEmpty) return '${issues.first}';
-
-    return switch (step) {
-      3 => validateBalanza(),
-      4 => validateInspeccionVisual(),
-      5 => validatePrecargasAjuste(),
-      6 => validateExcentricidad(),
-      7 => validateRepetibilidad(),
-      8 => validateLinealidad(),
-      9 => validateCondicionesFinales(),
-      _ => null,
+    if (session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
+    final issues = <_StepIssue>[
+      for (final issue
+          in CalibrationRecordValidator.schemaIssues(session.toMap())
+              .where((issue) => issue.step == step))
+        (message: '$issue', column: issue.column),
+    ];
+    final required = switch (step) {
+      3 => _balanzaIssues(),
+      4 => _inspeccionIssues(),
+      5 => _precargasIssues(),
+      6 => _excentricidadIssues(),
+      7 => _repetibilidadIssues(),
+      8 => _linealidadIssues(),
+      9 => _condicionesFinalesIssues(),
+      _ => <_StepIssue>[],
     };
+    for (final issue in required) {
+      if (!issues.any((existing) => existing.message == issue.message)) {
+        issues.add(issue);
+      }
+    }
+    return issues;
+  }
+
+  String? validateStep(int step) {
+    final issues = stepIssues(step);
+    return issues.isEmpty ? null : issues.first.message;
   }
 
   String? validateCondicionesFinales() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _condicionesFinalesIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
 
+  List<_StepIssue> _condicionesFinalesIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
+    final issues = <_StepIssue>[];
     final cf = _session!.condicionesFinales;
     if (_isBlank(cf?.horaFin)) {
-      return "Registre la Hora Fin con el botón del reloj.";
+      issues.add((
+        message: 'Registre la Hora Fin con el botón del reloj.',
+        column: null
+      ));
     }
     if (_isBlank(cf?.hriFin)) {
-      return "Debe ingresar la Humedad Relativa final (HRi Fin).";
+      issues.add((
+        message: 'Debe ingresar la Humedad Relativa final (HRi Fin).',
+        column: 'hri_fin'
+      ));
     }
     if (_isBlank(cf?.tiFin)) {
-      return "Debe ingresar la Temperatura final (Ti Fin).";
+      issues.add((
+        message: 'Debe ingresar la Temperatura final (Ti Fin).',
+        column: 'ti_fin'
+      ));
     }
     if (_isBlank(cf?.patmiFin)) {
-      return "Debe ingresar la Presión Atmosférica final (Patmi Fin).";
+      issues.add((
+        message: 'Debe ingresar la Presión Atmosférica final (Patmi Fin).',
+        column: 'patmi_fin'
+      ));
     }
-
-    final pesas = _session!.equipos.where((e) {
-      final tipo = e.tipo?.toLowerCase() ?? '';
-      return tipo.contains('pesa') ||
-          tipo.contains('masa') ||
-          tipo.contains('patron') ||
-          tipo.contains('patr');
-    }).length;
-
-    if (pesas < 1) {
-      return "Debe seleccionar al menos una pesa patron.";
+    if (!_session!.equipos.any((e) => isPatronType(e.tipo))) {
+      issues.add((
+        message: 'Debe seleccionar al menos una pesa patron.',
+        column: null
+      ));
     }
-
-    return null;
+    return issues;
   }
 
   String? validarCondicionesAmbientales() {
@@ -756,16 +829,32 @@ class ServiceSessionProvider extends ChangeNotifier {
   }
 
   String? validateInspeccionVisual() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _inspeccionIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
+
+  List<_StepIssue> _inspeccionIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
 
     final insp = _session!.inspeccion;
-    if (insp == null) return "Debe completar la inspección visual.";
+    if (insp == null) {
+      return [(message: 'Debe completar la inspección visual.', column: null)];
+    }
+    final issues = <_StepIssue>[];
 
     if (insp.tiempoEstab == null || insp.tiempoEstab!.trim().isEmpty) {
-      return "Seleccione el tiempo de estabilización de pesas.";
+      issues.add((
+        message: 'Seleccione el tiempo de estabilización de pesas.',
+        column: null
+      ));
     }
     if (insp.tiempoOperacion == null || insp.tiempoOperacion!.trim().isEmpty) {
-      return "Seleccione el tiempo previo a operación de la balanza.";
+      issues.add((
+        message: 'Seleccione el tiempo previo a operación de la balanza.',
+        column: null
+      ));
     }
 
     const entornoFields = [
@@ -806,130 +895,233 @@ class ServiceSessionProvider extends ChangeNotifier {
     for (final key in [...entornoFields, ...balanzaFields]) {
       final val = insp.campos[key];
       if (val == null || val.trim().isEmpty) {
-        return "Falta el estado de: ${fieldLabels[key] ?? key}.";
+        issues.add((
+          message: 'Falta el estado de: ${fieldLabels[key] ?? key}.',
+          column: null
+        ));
       }
     }
 
-    return null;
+    return issues;
   }
 
   String? validatePrecargasAjuste() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _precargasIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
+
+  List<_StepIssue> _precargasIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
 
     final pa = _session!.precargasAjuste;
     if (pa == null) {
-      return "Debe completar las precargas y condiciones ambientales.";
+      return [
+        (
+          message: 'Debe completar las precargas y condiciones ambientales.',
+          column: null
+        )
+      ];
     }
+    final issues = <_StepIssue>[];
 
     // Al menos una fila de precarga debe estar completa
     final tienePrecargas = pa.precargas.any(
       (r) => (r.precarga?.trim().isNotEmpty ?? false),
     );
     if (!tienePrecargas) {
-      return "Debe ingresar al menos una precarga.";
+      issues
+          .add((message: 'Debe ingresar al menos una precarga.', column: null));
     }
     for (var i = 0; i < pa.precargas.length; i++) {
       final fila = pa.precargas[i];
       if (!_isBlank(fila.precarga) && _isBlank(fila.pIndicador)) {
-        return "Falta la Indicación de la Precarga ${i + 1}.";
+        issues.add((
+          message: 'Falta la Indicación de la Precarga ${i + 1}.',
+          column: 'p_indicador${i + 1}'
+        ));
       }
       if (_isBlank(fila.precarga) && !_isBlank(fila.pIndicador)) {
-        return "Falta el valor de la Precarga ${i + 1}.";
+        issues.add((
+          message: 'Falta el valor de la Precarga ${i + 1}.',
+          column: 'precarga${i + 1}'
+        ));
       }
     }
 
     // Condiciones ambientales obligatorias
     if (pa.ti == null || pa.ti!.trim().isEmpty) {
-      return "Debe ingresar la Temperatura inicial (Ti).";
+      issues.add((
+        message: 'Debe ingresar la Temperatura inicial (Ti).',
+        column: 'ti'
+      ));
     }
     if (pa.hri == null || pa.hri!.trim().isEmpty) {
-      return "Debe ingresar la Humedad Relativa inicial (HRi).";
+      issues.add((
+        message: 'Debe ingresar la Humedad Relativa inicial (HRi).',
+        column: 'hri'
+      ));
     }
     if (pa.patmi == null || pa.patmi!.trim().isEmpty) {
-      return "Debe ingresar la Presión Atmosférica inicial (Patmi).";
+      issues.add((
+        message: 'Debe ingresar la Presión Atmosférica inicial (Patmi).',
+        column: 'patmi'
+      ));
     }
 
     // Si se realizó ajuste, debe indicar el tipo
     if ((pa.ajusteRealizado ?? false) &&
         (pa.tipoAjuste == null || pa.tipoAjuste!.trim().isEmpty)) {
-      return "Debe seleccionar el Tipo de Ajuste.";
+      issues
+          .add((message: 'Debe seleccionar el Tipo de Ajuste.', column: null));
     }
 
-    return null;
+    return issues;
   }
 
   String? validateExcentricidad() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _excentricidadIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
+
+  List<_StepIssue> _excentricidadIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
 
     final exc = _session!.excentricidad;
-    if (exc == null) return "Debe completar las pruebas de excentricidad.";
+    if (exc == null) {
+      return [
+        (message: 'Debe completar las pruebas de excentricidad.', column: null)
+      ];
+    }
+    final issues = <_StepIssue>[];
     if (exc.tipoPlataforma == null || exc.tipoPlataforma!.trim().isEmpty) {
-      return "Debe seleccionar el Tipo de Plataforma.";
+      issues.add(
+          (message: 'Debe seleccionar el Tipo de Plataforma.', column: null));
     }
     final puntos = exc.puntosCount;
     if (puntos == null) {
-      return "Debe seleccionar el N° de Puntos de Indicación.";
+      issues.add((
+        message: 'Debe seleccionar el N° de Puntos de Indicación.',
+        column: null
+      ));
     }
-    if (!RegExp(r'\d[FAID]$').hasMatch(exc.puntosIndicacion!.trim())) {
-      return "Debe seleccionar la Posición del Indicador.";
+    if (exc.puntosIndicacion == null ||
+        !RegExp(r'\d[FAID]$').hasMatch(exc.puntosIndicacion!.trim())) {
+      issues.add((
+        message: 'Debe seleccionar la Posición del Indicador.',
+        column: null
+      ));
     }
     if (exc.carga == null || exc.carga!.trim().isEmpty) {
-      return "Debe ingresar la Carga.";
+      issues.add((message: 'Debe ingresar la Carga.', column: 'carga'));
     }
-    if (exc.posiciones.length < puntos) {
-      return "Faltan posiciones: la prueba es de $puntos puntos.";
+    if (puntos != null && exc.posiciones.length < puntos) {
+      issues.add((
+        message: 'Faltan posiciones: la prueba es de $puntos puntos.',
+        column: null
+      ));
     }
     // Solo las posiciones de la prueba: una sesión recuperada puede traer
     // más filas vacías que puntos.
-    for (var i = 0; i < puntos; i++) {
+    for (var i = 0; i < (puntos ?? 0) && i < exc.posiciones.length; i++) {
       final p = exc.posiciones[i];
       if (_isBlank(p.indicacion)) {
-        return "Falta la Indicación en Posición ${i + 1}.";
+        issues.add((
+          message: 'Falta la Indicación en Posición ${i + 1}.',
+          column: 'indicacion${i + 1}'
+        ));
       }
       if (_isBlank(p.retorno)) {
-        return "Falta el Retorno en Posición ${i + 1}.";
+        issues.add((
+          message: 'Falta el Retorno en Posición ${i + 1}.',
+          column: 'retorno${i + 1}'
+        ));
       }
     }
-    return null;
+    return issues;
   }
 
   String? validateRepetibilidad() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _repetibilidadIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
+
+  List<_StepIssue> _repetibilidadIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
 
     final rep = _session!.repetibilidad;
     if (rep == null || rep.cargas.isEmpty) {
-      return "Debe seleccionar el N° de Cargas de repetibilidad.";
+      return [
+        (
+          message: 'Debe seleccionar el N° de Cargas de repetibilidad.',
+          column: null
+        )
+      ];
     }
+    final issues = <_StepIssue>[];
     for (var i = 0; i < rep.cargas.length; i++) {
       final carga = rep.cargas[i];
       if (carga.indicaciones.isEmpty) {
-        return "Debe seleccionar el N° de Mediciones por Carga.";
+        issues.add((
+          message: 'Debe seleccionar el N° de Mediciones por Carga.',
+          column: null
+        ));
       }
       if (_isBlank(carga.carga)) {
-        return "Falta el valor de la Carga ${i + 1}.";
+        issues.add((
+          message: 'Falta el valor de la Carga ${i + 1}.',
+          column: 'repetibilidad${i + 1}'
+        ));
       }
       for (var j = 0; j < carga.indicaciones.length; j++) {
         if (_isBlank(carga.indicaciones[j])) {
-          return "Falta la Indicación ${j + 1} de la Carga ${i + 1}.";
+          issues.add((
+            message: 'Falta la Indicación ${j + 1} de la Carga ${i + 1}.',
+            column: 'indicacion${i + 1}_${j + 1}'
+          ));
         }
         if (j >= carga.retornos.length || _isBlank(carga.retornos[j])) {
-          return "Falta el Retorno ${j + 1} de la Carga ${i + 1}.";
+          issues.add((
+            message: 'Falta el Retorno ${j + 1} de la Carga ${i + 1}.',
+            column: 'retorno${i + 1}_${j + 1}'
+          ));
         }
       }
     }
-    return null;
+    return issues;
   }
 
   String? validateLinealidad() {
-    if (_session == null) return "Sesión no inicializada.";
+    final issues = _linealidadIssues();
+    return issues.isEmpty ? null : issues.first.message;
+  }
+
+  List<_StepIssue> _linealidadIssues() {
+    if (_session == null) {
+      return [(message: 'Sesión no inicializada.', column: null)];
+    }
 
     final lin = _session!.linealidad;
-    if (lin == null) return "Debe completar las pruebas de linealidad.";
+    if (lin == null) {
+      return [
+        (message: 'Debe completar las pruebas de linealidad.', column: null)
+      ];
+    }
+    final issues = <_StepIssue>[];
     if (_isBlank(lin.metodo)) {
-      return "Debe seleccionar el Método de Carga.";
+      issues
+          .add((message: 'Debe seleccionar el Método de Carga.', column: null));
     }
     if (_isBlank(lin.metodoCarga)) {
-      return "Debe seleccionar el Método de Cargas Sustitutivas.";
+      issues.add((
+        message: 'Debe seleccionar el Método de Cargas Sustitutivas.',
+        column: null
+      ));
     }
     var puntos = 0;
     for (var i = 0; i < lin.filas.length; i++) {
@@ -937,20 +1129,32 @@ class ServiceSessionProvider extends ChangeNotifier {
       final tieneCarga = !_isBlank(fila.carga);
       final tieneIndicacion = !_isBlank(fila.indicacion);
       if (tieneCarga && !tieneIndicacion) {
-        return "Falta la Indicación de la Carga ${i + 1}.";
+        issues.add((
+          message: 'Falta la Indicación de la Carga ${i + 1}.',
+          column: 'ind${i + 1}'
+        ));
       }
       if (!tieneCarga && tieneIndicacion) {
-        return "Falta la Carga real de la Carga ${i + 1}.";
+        issues.add((
+          message: 'Falta la Carga real de la Carga ${i + 1}.',
+          column: 'lin${i + 1}'
+        ));
       }
       if (tieneCarga) puntos++;
     }
     if (puntos == 0) {
-      return "Debe registrar al menos una carga con su indicación.";
+      issues.add((
+        message: 'Debe registrar al menos una carga con su indicación.',
+        column: null
+      ));
     }
     if (lin.fotosPaths.isEmpty) {
-      return "Debe tomar al menos una fotografía de la última carga.";
+      issues.add((
+        message: 'Debe tomar al menos una fotografía de la última carga.',
+        column: null
+      ));
     }
-    return null;
+    return issues;
   }
 
   /// Confirma la balanza solo si quedó guardada. Si la base la rechaza,

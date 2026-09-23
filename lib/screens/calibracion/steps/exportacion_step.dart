@@ -13,6 +13,7 @@ import 'package:service_met/screens/calibracion/widgets/calibration_number_field
 import 'package:service_met/screens/calibracion/widgets/save_blocked_dialog.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import 'package:service_met/theme/app_colors.dart';
 
 class ExportacionStep extends StatefulWidget {
   const ExportacionStep({super.key});
@@ -27,6 +28,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
   final _indicarCtrl = TextEditingController();
   final _factorCtrl = TextEditingController();
   int _balanzasCount = 0;
+  List<Map<String, dynamic>> _balanzasRegistradas = [];
 
   List<Map<String, dynamic>> _equipamientos = [];
   List<EquipoInfo> _selectedInstrumentos = [];
@@ -43,7 +45,13 @@ class _ExportacionStepState extends State<ExportacionStep> {
 
   void _initFromSession() {
     final provider = context.read<ServiceSessionProvider>();
-    final exp = provider.session?.exportacion;
+    final session = provider.session;
+    _selectedInstrumentos = session?.equipos
+            .where((e) => !ServiceSessionProvider.isPatronType(e.tipo))
+            .take(2)
+            .toList() ??
+        [];
+    final exp = session?.exportacion;
     if (exp != null) {
       setState(() {
         _emp = const ['Sí', 'No'].contains(exp.emp23001) ? exp.emp23001 : null;
@@ -63,14 +71,12 @@ class _ExportacionStepState extends State<ExportacionStep> {
       final result = await CalibrationRepository().getEquipos();
       if (!mounted) return;
       final instrumentos = result.where((eq) {
-        final type = (eq['instrumento']?.toString() ??
-                eq['tipo_instrumento']?.toString() ??
-                '')
+        final primary = eq['instrumento']?.toString() ?? '';
+        final type = (primary.isNotEmpty
+                ? primary
+                : (eq['tipo_instrumento']?.toString() ?? ''))
             .toLowerCase();
-        return !type.contains('pesa') &&
-            !type.contains('masa') &&
-            !type.contains('patron') &&
-            !type.contains('patr');
+        return !ServiceSessionProvider.isPatronType(type);
       }).toList();
       instrumentos.sort((a, b) {
         final codeA = a['cod_instrumento']?.toString() ?? '';
@@ -92,7 +98,35 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final registros =
         await provider.getRegistrosCompletos(seca, soloHoy: false);
     if (!mounted) return;
-    setState(() => _balanzasCount = registros.length);
+    setState(() {
+      _balanzasRegistradas = registros;
+      _balanzasCount = registros.length;
+    });
+  }
+
+  Future<void> _reviewOtherBalance(
+      ServiceSessionProvider provider, String sessionId) async {
+    if (!await provider.flushAutoSave()) {
+      if (mounted) {
+        TopAlert.show(context, provider.saveError ?? 'No se pudo guardar.',
+            isError: true);
+      }
+      return;
+    }
+    final seca = provider.session?.sessionInfo.seca;
+    if (seca == null || seca.isEmpty) return;
+    try {
+      await provider.loadExistingSession(seca, sessionId);
+      if (provider.session == null) {
+        throw StateError('No se encontró la balanza seleccionada.');
+      }
+      provider.goToStep(10);
+    } catch (error) {
+      if (mounted) {
+        TopAlert.show(context, 'No se pudo abrir la balanza: $error',
+            isError: true);
+      }
+    }
   }
 
   void _saveToProvider() {
@@ -154,11 +188,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
     _saveToProvider();
 
     // Persist instrument selection
-    if (instrumentos.isNotEmpty) {
-      final existing = provider.session?.equipos ?? [];
-      final pesas = existing.where((e) => _isPesaTipo(e.tipo)).toList();
-      provider.updateEquipos([...pesas, ...instrumentos]);
-    }
+    provider.updateMeasuringInstruments(instrumentos);
 
     try {
       await provider.persistSharedExportData(seca, {
@@ -173,7 +203,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
       }
       final registros = (await provider.getRegistrosCompletos(
         seca,
-        soloHoy: true,
+        soloHoy: false,
       ))
           .where((record) =>
               record['estado_servicio_bal']?.toString() ==
@@ -284,14 +314,6 @@ class _ExportacionStepState extends State<ExportacionStep> {
     return continuar == true;
   }
 
-  bool _isPesaTipo(String? value) {
-    final v = value?.toLowerCase() ?? '';
-    return v.contains('pesa') ||
-        v.contains('masa') ||
-        v.contains('patron') ||
-        v.contains('patr');
-  }
-
   Map<String, String> _instrumentosToColumns(List<EquipoInfo> instrumentos) {
     final map = <String, String>{};
     for (int i = 0; i < instrumentos.length && i < 2; i++) {
@@ -319,13 +341,25 @@ class _ExportacionStepState extends State<ExportacionStep> {
   Future<List<EquipoInfo>?> _showInstrumentosDialog(bool isDark) async {
     List<EquipoInfo> selected = List<EquipoInfo>.from(_selectedInstrumentos);
     final searchCtrl = TextEditingController();
+    final available = List<Map<String, dynamic>>.from(_equipamientos);
+    for (final instrument in selected) {
+      if (!available.any((item) =>
+          item['cod_instrumento']?.toString() == instrument.codInstrumento)) {
+        available.add({
+          'cod_instrumento': instrument.codInstrumento,
+          'instrumento': instrument.tipo,
+          'cert_fecha': instrument.certFecha,
+          'ente_calibrador': instrument.enteCalibrador,
+        });
+      }
+    }
 
     final result = await showDialog<List<EquipoInfo>>(
       context: context,
       barrierDismissible: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          final filtered = _equipamientos.where((eq) {
+          final filtered = available.where((eq) {
             final q = searchCtrl.text.toLowerCase();
             if (q.isEmpty) return true;
             final code = eq['cod_instrumento']?.toString().toLowerCase() ?? '';
@@ -516,9 +550,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                         color: isDark ? Colors.white60 : Colors.black54)),
               ),
               FilledButton(
-                onPressed: selected.isEmpty
-                    ? null
-                    : () => Navigator.pop(ctx, List<EquipoInfo>.from(selected)),
+                onPressed: () =>
+                    Navigator.pop(ctx, List<EquipoInfo>.from(selected)),
                 child: const Text('Confirmar'),
               ),
             ],
@@ -547,111 +580,118 @@ class _ExportacionStepState extends State<ExportacionStep> {
       barrierDismissible: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
-          return AlertDialog(
-            title: Row(
-              children: [
-                Icon(Icons.verified_outlined,
-                    color: isDark ? Colors.green[300] : Colors.green[700],
-                    size: 22),
-                const SizedBox(width: 8),
-                Expanded(
-                    child: Text('Datos del Certificado',
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? Colors.white
-                                : const Color(0xFF1A1A1A)))),
+          return NumericKeypadHost(
+            dockToScreen: true,
+            child: AlertDialog(
+              scrollable: true,
+              title: Row(
+                children: [
+                  Icon(Icons.verified_outlined,
+                      color: isDark ? Colors.green[300] : Colors.green[700],
+                      size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text('Datos del Certificado',
+                          style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A)))),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ingrese los datos para el certificado de calibración:',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.white60 : Colors.black54),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: const ['Sí', 'No'].contains(empCtrl.text)
+                          ? empCtrl.text
+                          : null,
+                      decoration: _deco('EMP NB 23001', isDark),
+                      dropdownColor:
+                          isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                      items: ['Sí', 'No']
+                          .map(
+                              (v) => DropdownMenuItem(value: v, child: Text(v)))
+                          .toList(),
+                      onChanged: (v) {
+                        setDialogState(() => empCtrl.text = v ?? '');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                              child: CalibrationNumberField(
+                            style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A)),
+                            controller: indicarCtrl,
+                            column: 'indicar',
+                            decoration: _deco('Indicar (%)', isDark),
+                          )),
+                          const SizedBox(width: 12),
+                          Expanded(
+                              child: CalibrationNumberField(
+                            style: GoogleFonts.inter(
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1A1A1A)),
+                            controller: factorCtrl,
+                            column: 'factor',
+                            decoration: _deco('Factor Seguridad', isDark),
+                          )),
+                        ]),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: const ['Ninguna', 'Simple', 'Conservadora']
+                              .contains(regla)
+                          ? regla
+                          : null,
+                      decoration: _deco('Regla de Aceptación', isDark),
+                      dropdownColor:
+                          isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                      items: ['Ninguna', 'Simple', 'Conservadora']
+                          .map(
+                              (v) => DropdownMenuItem(value: v, child: Text(v)))
+                          .toList(),
+                      onChanged: (v) {
+                        setDialogState(() => regla = v ?? '');
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Cancelar',
+                      style: TextStyle(
+                          color: isDark ? Colors.white60 : Colors.black54)),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, {
+                    'emp': empCtrl.text,
+                    'indicar': indicarCtrl.text,
+                    'factor': factorCtrl.text,
+                    'regla_aceptacion': regla,
+                  }),
+                  child: const Text('Continuar'),
+                ),
               ],
             ),
-            content: SizedBox(
-              width: double.maxFinite,
-              // El diálogo queda fuera del teclado de la pantalla: lleva el
-              // suyo.
-              child: NumericKeypadHost(
-                  child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Ingrese los datos para el certificado de calibración:',
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? Colors.white60 : Colors.black54),
-                  ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: const ['Sí', 'No'].contains(empCtrl.text)
-                        ? empCtrl.text
-                        : null,
-                    decoration: _deco('EMP NB 23001', isDark),
-                    dropdownColor:
-                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                    items: ['Sí', 'No']
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) {
-                      setDialogState(() => empCtrl.text = v ?? '');
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Expanded(
-                        child: CalibrationNumberField(
-                      style: GoogleFonts.inter(
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                      controller: indicarCtrl,
-                      column: 'indicar',
-                      decoration: _deco('Indicar (%)', isDark),
-                    )),
-                    const SizedBox(width: 12),
-                    Expanded(
-                        child: CalibrationNumberField(
-                      style: GoogleFonts.inter(
-                          color:
-                              isDark ? Colors.white : const Color(0xFF1A1A1A)),
-                      controller: factorCtrl,
-                      column: 'factor',
-                      decoration: _deco('Factor Seguridad', isDark),
-                    )),
-                  ]),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: const ['Ninguna', 'Simple', 'Conservadora']
-                            .contains(regla)
-                        ? regla
-                        : null,
-                    decoration: _deco('Regla de Aceptación', isDark),
-                    dropdownColor:
-                        isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                    items: ['Ninguna', 'Simple', 'Conservadora']
-                        .map((v) => DropdownMenuItem(value: v, child: Text(v)))
-                        .toList(),
-                    onChanged: (v) {
-                      setDialogState(() => regla = v ?? '');
-                    },
-                  ),
-                ],
-              )),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancelar',
-                    style: TextStyle(
-                        color: isDark ? Colors.white60 : Colors.black54)),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(ctx, {
-                  'emp': empCtrl.text,
-                  'indicar': indicarCtrl.text,
-                  'factor': factorCtrl.text,
-                  'regla_aceptacion': regla,
-                }),
-                child: const Text('Continuar'),
-              ),
-            ],
           );
         },
       ),
@@ -685,6 +725,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
               _buildHeader(isDark),
               const SizedBox(height: 20),
               _buildResumenCard(seca, cod, isDark),
+              const SizedBox(height: 16),
+              _buildReview(provider),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -779,13 +821,151 @@ class _ExportacionStepState extends State<ExportacionStep> {
           const SizedBox(height: 16),
           _row('SECA', seca, isDark),
           const SizedBox(height: 8),
-          _row('Balanzas calibradas', '$_balanzasCount', isDark),
+          _row('Balanzas registradas', '$_balanzasCount', isDark),
           const SizedBox(height: 8),
-          _row('Fecha', DateFormat('dd MMM yyyy').format(DateTime.now()),
-              isDark),
+          _row('Fecha', _serviceDate(context), isDark),
         ],
       ),
     ).animate(delay: 200.ms).fadeIn();
+  }
+
+  String _serviceDate(BuildContext context) {
+    final raw = context
+        .read<ServiceSessionProvider>()
+        .session
+        ?.sessionInfo
+        .fechaServicio;
+    final date = DateTime.tryParse(raw ?? '');
+    return date == null ? (raw ?? '-') : DateFormat('dd MMM yyyy').format(date);
+  }
+
+  Widget _buildReview(ServiceSessionProvider provider) {
+    final colors = Theme.of(context).colorScheme;
+    final session = provider.session;
+    const labels = {
+      3: 'Instrumento',
+      4: 'Inspección visual',
+      5: 'Precarga y ajuste',
+      6: 'Excentricidad',
+      7: 'Repetibilidad',
+      8: 'Linealidad',
+      9: 'Condiciones finales',
+    };
+    final finalPhotos =
+        session?.condicionesFinales?.fotosFinalesPaths?.length ?? 0;
+    final loadPhotos = session?.linealidad?.fotosPaths.length ?? 0;
+    final patterns = (session?.equipos ?? const <EquipoInfo>[])
+        .where((e) => ServiceSessionProvider.isPatronType(e.tipo))
+        .length;
+    final otherBalances = _balanzasRegistradas
+        .where((r) =>
+            r['session_id']?.toString() != session?.sessionInfo.sessionId &&
+            (r['finalized_at']?.toString().isEmpty ?? true))
+        .toList();
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+            child: Text('Revisión de esta balanza',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+          ),
+          for (final entry in labels.entries) ...[
+            Builder(builder: (context) {
+              final issue = entry.key == 3 &&
+                      !(session?.metadata.balanzaConfirmed ?? false)
+                  ? provider.validateStep(3) ??
+                      'Confirma los datos del instrumento.'
+                  : provider.validateStep(entry.key);
+              return ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                leading: Icon(
+                    issue == null
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.error_outline_rounded,
+                    color: issue == null ? AppColors.success : colors.error),
+                title: Text(entry.value),
+                subtitle: issue == null ? null : Text(issue),
+                trailing: issue == null
+                    ? null
+                    : TextButton(
+                        onPressed: () => provider.goToStep(entry.key),
+                        child: const Text('Corregir'),
+                      ),
+              );
+            }),
+            if (entry.key != 9) const Divider(height: 1),
+          ],
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+                'Pesas patrón: $patterns  ·  Fotos de linealidad: '
+                '$loadPhotos  ·  Fotos finales: $finalPhotos',
+                style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
+          ),
+          if (otherBalances.isNotEmpty) ...[
+            const Divider(height: 24),
+            Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text('Otras balanzas del servicio',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700))),
+            for (final balance in otherBalances)
+              Builder(builder: (context) {
+                final other = ServiceSession.fromMap(balance);
+                final patterns = other.equipos
+                    .where((e) => ServiceSessionProvider.isPatronType(e.tipo))
+                    .length;
+                final loadPhotos = other.linealidad?.fotosPaths.length ?? 0;
+                final finalPhotos =
+                    other.condicionesFinales?.fotosFinalesPaths?.length ?? 0;
+                final missing = [
+                  ...CalibrationRecordValidator.missingTests(balance),
+                  if (loadPhotos == 0) 'Foto de linealidad',
+                  if (patterns == 0) 'Pesas patrón',
+                ];
+                return ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  title:
+                      Text(balance['cod_metrica']?.toString() ?? 'Sin código'),
+                  subtitle: Text(
+                    '${missing.isEmpty ? 'Pruebas registradas' : 'Faltan: ${missing.join(', ')}'}\n'
+                    'Pesas patrón: $patterns  ·  Fotos de linealidad: '
+                    '$loadPhotos  ·  Fotos finales: $finalPhotos',
+                  ),
+                  leading: Icon(
+                    missing.isEmpty
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.warning_amber_rounded,
+                    color:
+                        missing.isEmpty ? AppColors.success : AppColors.warning,
+                  ),
+                  trailing: TextButton(
+                    onPressed: () {
+                      final sessionId = balance['session_id']?.toString();
+                      if (sessionId != null && sessionId.isNotEmpty) {
+                        _reviewOtherBalance(provider, sessionId);
+                      }
+                    },
+                    child: const Text('Revisar'),
+                  ),
+                );
+              }),
+          ],
+        ]),
+      ),
+    );
   }
 
   Widget _row(String label, String value, bool isDark) {

@@ -233,7 +233,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         setState(() {
           _cargaCtrl.text = exc;
         });
-        _reflectCargaToIndicaciones();
+        _saveToProvider();
       }
     });
   }
@@ -272,30 +272,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
       _buildDefaultRows(n);
     });
     if (_cargaCtrl.text.isNotEmpty) {
-      _reflectCargaToIndicaciones();
-    }
-    _saveToProvider();
-  }
-
-  String _formatValueWithPrecision(String value) {
-    final v = double.tryParse(value);
-    if (v == null) return value;
-    try {
-      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
-      if (balanza == null) return value;
-      final d = SuggestionHelper.getDivisionForValue(balanza, v);
-      if (d == 0) return value;
-      final decimals = SuggestionHelper.getDecimalPlaces(d);
-      return v.toStringAsFixed(decimals);
-    } catch (_) {
-      return value;
-    }
-  }
-
-  void _reflectCargaToIndicaciones() {
-    final value = _formatValueWithPrecision(_cargaCtrl.text);
-    for (final row in _rows) {
-      row[0].text = value;
+      _saveToProvider();
     }
     _saveToProvider();
   }
@@ -418,7 +395,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                 controller: _cargaCtrl,
                 column: 'carga',
                 onChanged: (_) {
-                  _reflectCargaToIndicaciones();
+                  _saveToProvider();
                 },
                 decoration: _deco('Carga', isDark),
               ).animate(delay: 450.ms).fadeIn(),
@@ -458,15 +435,15 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
                                   padding: const EdgeInsets.only(top: 12),
                                   child: SizedBox(
                                       width: 56,
-                                      child: Row(children: [
-                                        Text('Pos ${i + 1}',
-                                            style: GoogleFonts.inter(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                                color: isDark
-                                                    ? Colors.white70
-                                                    : Colors.black87)),
-                                      ])),
+                                      child: Text('Pos ${i + 1}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.inter(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : Colors.black87))),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -851,7 +828,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
           return GestureDetector(
             onTap: () {
               _cargaCtrl.text = formatted;
-              _reflectCargaToIndicaciones();
+              _saveToProvider();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

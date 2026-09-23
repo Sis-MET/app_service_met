@@ -36,12 +36,17 @@ class ServiceNavPill extends StatelessWidget {
   /// Acción del botón atrás. Si es null, se muestra deshabilitado.
   final VoidCallback? onBack;
 
+  /// Si false, la píldora queda solo con el botón atrás: en el último paso no
+  /// hay a dónde seguir y un "Siguiente" apagado confunde.
+  final bool showNext;
+
   const ServiceNavPill({
     super.key,
     required this.label,
     this.actionColor = AppColors.actionPositive,
     this.onNext,
     this.onBack,
+    this.showNext = true,
   });
 
   @override
@@ -101,47 +106,49 @@ class ServiceNavPill extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 6),
+          if (showNext) const SizedBox(width: 6),
           // Dynamic action button
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: ScaleTransition(scale: animation, child: child),
-            ),
-            child: Material(
-              key: ValueKey<String>(label),
-              color:
-                  onNext != null ? AppColors.actionPositive : Colors.grey[400],
-              borderRadius: BorderRadius.circular(50),
-              child: InkWell(
-                onTap: onNext,
+          if (showNext)
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: animation, child: child),
+              ),
+              child: Material(
+                key: ValueKey<String>(label),
+                color: onNext != null
+                    ? AppColors.actionPositive
+                    : Colors.grey[400],
                 borderRadius: BorderRadius.circular(50),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        label,
-                        style: const TextStyle(
-                          color: AppColors.actionPositiveInk,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                child: InkWell(
+                  onTap: onNext,
+                  borderRadius: BorderRadius.circular(50),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 11),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: AppColors.actionPositiveInk,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      if (label == 'Siguiente') ...[
-                        const SizedBox(width: 6),
-                        const Icon(Icons.arrow_forward_ios_rounded,
-                            size: 14, color: AppColors.actionPositiveInk),
+                        if (label == 'Siguiente') ...[
+                          const SizedBox(width: 6),
+                          const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 14, color: AppColors.actionPositiveInk),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

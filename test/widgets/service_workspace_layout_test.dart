@@ -5,6 +5,35 @@ import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 
 void main() {
+  testWidgets('el último paso ofrece solo Atrás y permite volver',
+      (tester) async {
+    var back = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: Center(
+      child: ServiceNavPill(
+          label: 'Siguiente', showNext: false, onBack: () => back++),
+    ))));
+    expect(find.text('Siguiente'), findsNothing);
+    expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
+    await tester.tap(find.byTooltip('Anterior'));
+    expect(back, 1);
+  });
+
+  testWidgets('un paso incompleto conserva Siguiente deshabilitado',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: Center(
+      child: ServiceNavPill(label: 'Siguiente'),
+    ))));
+    expect(find.text('Siguiente'), findsOneWidget);
+    final button = tester.widget<InkWell>(find
+        .ancestor(of: find.text('Siguiente'), matching: find.byType(InkWell))
+        .first);
+    expect(button.onTap, isNull);
+  });
+
   testWidgets('la píldora queda encima de la barra de navegación de 3 botones',
       (tester) async {
     // La app dibuja detrás de la barra (edge-to-edge); con tres botones la

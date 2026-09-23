@@ -120,9 +120,18 @@ class NumericKeypadController extends ChangeNotifier {
   /// Cierra el teclado quitando el foco al campo.
   void close() => _active?.focusNode.unfocus();
 
-  static int _readingOrder(Rect a, Rect b) => (a.top - b.top).abs() > 1
-      ? a.top.compareTo(b.top)
-      : a.left.compareTo(b.left);
+  /// Orden de lectura: primero la fila y dentro de ella de izquierda a
+  /// derecha. Dos campos están en la misma fila si se cruzan en vertical: el
+  /// alto de un campo cambia con su ícono o su aviso de error, y entonces su
+  /// caja de texto no empieza a la misma altura que la del campo de al lado.
+  static int _readingOrder(Rect a, Rect b) {
+    final crossed = (a.bottom < b.bottom ? a.bottom : b.bottom) -
+        (a.top > b.top ? a.top : b.top);
+    final shorter = a.height < b.height ? a.height : b.height;
+    return crossed > shorter / 2
+        ? a.left.compareTo(b.left)
+        : a.top.compareTo(b.top);
+  }
 
   void _edit(TextEditingValue Function(TextEditingValue) change) {
     final field = _active;
@@ -389,10 +398,15 @@ class NumericKeypadHost extends StatefulWidget {
   const NumericKeypadHost({
     required this.child,
     this.onReadIndicator,
+    this.dockToScreen = false,
     super.key,
   });
 
   final Widget child;
+
+  /// Envuelve el diálogo completo y coloca el panel al pie de la pantalla,
+  /// fuera de su tarjeta. El diálogo debe permitir desplazar su contenido.
+  final bool dockToScreen;
 
   /// Lector del display para los campos marcados como lectura.
   final IndicatorReader? onReadIndicator;
@@ -426,22 +440,29 @@ class _NumericKeypadHostState extends State<NumericKeypadHost> {
           },
           child: child!,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Flexible(
-              // Tocar fuera de un campo cierra el teclado; los campos y
-              // botones atienden su toque antes.
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _keypad.close,
-                child: SingleChildScrollView(child: widget.child),
+        child: widget.dockToScreen
+            ? Column(
+                children: [
+                  Expanded(child: widget.child),
+                  NumericKeypadSlot(controller: _keypad),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(
+                    // Tocar fuera de un campo cierra el teclado; los campos y
+                    // botones atienden su toque antes.
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTap: _keypad.close,
+                      child: SingleChildScrollView(child: widget.child),
+                    ),
+                  ),
+                  NumericKeypadSlot(controller: _keypad, embedded: true),
+                ],
               ),
-            ),
-            NumericKeypadSlot(controller: _keypad, embedded: true),
-          ],
-        ),
       ),
     );
   }

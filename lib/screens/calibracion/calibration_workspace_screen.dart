@@ -24,6 +24,7 @@ import 'steps/condiciones_finales_step.dart';
 import 'steps/exportacion_step.dart';
 import 'widgets/indicator_reader_screen.dart';
 import 'widgets/save_blocked_dialog.dart';
+import 'widgets/calibration_number_field.dart';
 
 class CalibrationWorkspaceScreen extends StatefulWidget {
   final String userName;
@@ -53,6 +54,8 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
   /// ofrece leerlas con la cámara.
   late final NumericKeypadController _keypad;
   late final ServiceSessionProvider _provider;
+  final _fieldNavigator = CalibrationFieldNavigator();
+  String? _historySessionId;
 
   @override
   void initState() {
@@ -114,9 +117,59 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
   /// guardado hubiera fallado y los datos solo existían en pantalla.
   Future<bool> _commitStep(
       BuildContext ctx, ServiceSessionProvider provider, int step) async {
-    final error = provider.validateStep(step);
-    if (error != null) {
-      if (ctx.mounted) TopAlert.show(ctx, error, isError: true);
+    final issues = provider.stepIssues(step);
+    if (issues.isNotEmpty) {
+      if (ctx.mounted) {
+        await showModalBottomSheet<void>(
+          context: ctx,
+          isScrollControlled: true,
+          showDragHandle: true,
+          builder: (sheetContext) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('Datos pendientes',
+                    style: Theme.of(sheetContext).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text('Corrige estos datos antes de continuar.'),
+                const SizedBox(height: 12),
+                Flexible(
+                    child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: issues.length,
+                  itemBuilder: (_, index) {
+                    final issue = issues[index];
+                    return ListTile(
+                      leading: const Icon(Icons.error_outline_rounded,
+                          color: AppColors.actionNegative),
+                      title: Text(issue.message),
+                      trailing: issue.column == null
+                          ? null
+                          : const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 16),
+                      onTap: issue.column == null
+                          ? null
+                          : () async {
+                              Navigator.pop(sheetContext);
+                              await Future<void>.delayed(
+                                  const Duration(milliseconds: 100));
+                              if (mounted) {
+                                await _fieldNavigator.reveal(issue.column!);
+                              }
+                            },
+                    );
+                  },
+                )),
+                Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: const Text('Cerrar'))),
+              ]),
+            ),
+          ),
+        );
+      }
       return false;
     }
     if (!await provider.flushAutoSave()) {
@@ -173,6 +226,10 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
       return const Scaffold(
           body: Center(child: Text("Error al cargar la sesión")));
     }
+    if (_historySessionId != session.sessionInfo.sessionId) {
+      _fieldNavigator.clearHistory();
+      _historySessionId = session.sessionInfo.sessionId;
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -188,56 +245,82 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
     // Validate accessibility for steps
     bool hasSeca = session.metadata.secaConfirmed;
 
+    StepProgress progress(int index) {
+      final complete = switch (index) {
+        0 => (session.cliente?.nombreComercial?.isNotEmpty ?? false),
+        1 => (session.planta?.nombre?.isNotEmpty ?? false),
+        2 => session.metadata.secaConfirmed,
+        3 => session.metadata.balanzaConfirmed,
+        >= 4 && <= 9 => provider.validateStep(index) == null,
+        _ => false,
+      };
+      if (complete) return StepProgress.complete;
+      return index < provider.currentStep
+          ? StepProgress.review
+          : StepProgress.pending;
+    }
+
     final steps = [
       StepData(
           title: 'Cliente',
+          progress: progress(0),
           subtitle: session.cliente?.nombreComercial ?? 'Seleccione cliente',
           icon: Icons.business),
       StepData(
           title: 'Planta',
+          progress: progress(1),
           subtitle: session.planta?.nombre ?? 'Seleccione planta',
           icon: Icons.factory),
       StepData(
           title: 'SECA',
+          progress: progress(2),
           subtitle: session.sessionInfo.seca ?? 'Ingresar SECA',
           icon: Icons.qr_code),
       StepData(
           title: 'Instrumento',
+          progress: progress(3),
           subtitle: session.balanza?.codMetrica ?? 'Seleccionar balanza',
           icon: Icons.scale,
           isAccessible: hasSeca),
       StepData(
           title: 'Inspección',
+          progress: progress(4),
           subtitle: 'Visual',
           icon: Icons.visibility,
           isAccessible: hasSeca),
       StepData(
           title: 'Precarga/Ajuste',
+          progress: progress(5),
           subtitle: 'Datos',
           icon: Icons.settings,
           isAccessible: hasSeca),
       StepData(
           title: 'Excentricidad',
+          progress: progress(6),
           subtitle: 'Prueba',
           icon: Icons.center_focus_strong,
           isAccessible: hasSeca),
       StepData(
           title: 'Repetibilidad',
+          progress: progress(7),
           subtitle: 'Prueba',
           icon: Icons.repeat,
           isAccessible: hasSeca),
       StepData(
           title: 'Linealidad',
+          progress: progress(8),
           subtitle: 'Prueba',
           icon: Icons.show_chart,
           isAccessible: hasSeca),
       StepData(
           title: 'Final',
+          progress: progress(9),
           subtitle: 'Condiciones',
           icon: Icons.check_circle,
           isAccessible: hasSeca),
       StepData(
           title: 'Finalizar',
+          progress: progress(10),
           subtitle: 'Reporte',
           icon: Icons.download,
           isAccessible: hasSeca),
@@ -267,427 +350,453 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
         appBar: ServiceAppBar(
           title: 'Calibración',
           actions: [
-            SaveStatusIndicator(
-              status: provider.isSaving
-                  ? SaveStatus.saving
-                  : provider.lastSaveSuccessful
-                      ? SaveStatus.success
-                      : SaveStatus.error,
-            ),
+            if (_fieldNavigator.canUndoInStep(provider.currentStep))
+              IconButton(
+                tooltip: 'Deshacer última entrada',
+                onPressed: () =>
+                    _fieldNavigator.undoInStep(provider.currentStep),
+                icon: const Icon(Icons.undo_rounded),
+              ),
+            if (session.metadata.secaConfirmed)
+              SaveStatusIndicator(
+                status: provider.saveError != null
+                    ? SaveStatus.error
+                    : provider.isSaving
+                        ? SaveStatus.saving
+                        : provider.hasPendingSave
+                            ? SaveStatus.pending
+                            : SaveStatus.local,
+              ),
           ],
         ),
-        body: NumericKeypadScope(
-          controller: _keypad,
-          child: Column(
-            children: [
-              StepIndicator(
-                currentStep: provider.currentStep,
-                steps: steps,
-                onStepTapped: (index) {
-                  if (provider.canGoToStep(index)) {
-                    provider.goToStep(index);
-                  }
-                },
-              ),
-              if (provider.saveError != null)
-                _SaveErrorBanner(
-                  message: provider.saveError!,
-                  saving: provider.isSaving,
-                  onRetry: provider.flushAutoSave,
+        body: CalibrationFieldNavigationScope(
+          navigator: _fieldNavigator,
+          child: NumericKeypadScope(
+            controller: _keypad,
+            child: Column(
+              children: [
+                StepIndicator(
+                  currentStep: provider.currentStep,
+                  steps: steps,
+                  onStepTapped: (index) {
+                    if (provider.canGoToStep(index)) {
+                      provider.goToStep(index);
+                    }
+                  },
                 ),
-              Expanded(
-                child: Stack(
-                  children: [
-                    // Tocar fuera de un campo cierra el teclado numérico. Los
-                    // campos, botones y listas atienden su toque antes, y
-                    // desplazar la página no cuenta como toque.
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTap: _keypad.close,
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          const ClienteStep(),
-                          const PlantaStep(),
-                          const SecaStep(),
-                          const BalanzaStep(),
-                          const InspeccionVisualStep(),
-                          _scrollHide(const PrecargasAjusteStep()),
-                          _scrollHide(const ExcentricidadStep()),
-                          _scrollHide(const RepetibilidadStep()),
-                          _scrollHide(const LinealidadStep()),
-                          _scrollHide(const CondicionesFinalesStep()),
-                          _scrollHide(const ExportacionStep()),
-                        ],
-                      ),
-                    ),
-
-                    // Info button — visible on technical steps, hides on scroll
-                    // and while the numeric keypad is open.
-                    if (session.balanza != null && provider.currentStep >= 5)
-                      Positioned(
-                        bottom: ServiceNavPill.bottomOffset(context) + 68,
-                        right: 20,
-                        child: ValueListenableBuilder<bool>(
-                          valueListenable: _keypad.visibility,
-                          builder: (context, teclado, child) =>
-                              teclado ? const SizedBox.shrink() : child!,
-                          child: AnimatedOpacity(
-                            opacity: _infoButtonVisible ? 1.0 : 0.0,
-                            duration: const Duration(milliseconds: 200),
-                            child: AnimatedSlide(
-                              offset: _infoButtonVisible
-                                  ? Offset.zero
-                                  : const Offset(0, 0.3),
-                              duration: const Duration(milliseconds: 200),
-                              child: _buildBalanzaInfoButton(provider, isDark),
-                            ),
-                          ),
+                if (provider.saveError != null)
+                  _SaveErrorBanner(
+                    message: provider.saveError!,
+                    saving: provider.isSaving,
+                    onRetry: provider.flushAutoSave,
+                  ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      // Tocar fuera de un campo cierra el teclado numérico. Los
+                      // campos, botones y listas atienden su toque antes, y
+                      // desplazar la página no cuenta como toque.
+                      GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTap: _keypad.close,
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            const ClienteStep(),
+                            const PlantaStep(),
+                            const SecaStep(),
+                            const BalanzaStep(),
+                            const InspeccionVisualStep(),
+                            _scrollHide(const PrecargasAjusteStep()),
+                            _scrollHide(const ExcentricidadStep()),
+                            _scrollHide(const RepetibilidadStep()),
+                            _scrollHide(const LinealidadStep()),
+                            _scrollHide(const CondicionesFinalesStep()),
+                            _scrollHide(ExportacionStep(
+                              key: ValueKey(session.sessionInfo.sessionId),
+                            )),
+                          ],
                         ),
                       ),
 
-                    // Floating nav buttons — bottom-right, pill grouped. The
-                    // numeric keypad takes their place while it is open.
-                    Positioned(
-                      bottom: ServiceNavPill.bottomOffset(context),
-                      right: 20,
-                      child: ValueListenableBuilder<bool>(
-                        valueListenable: _keypad.visibility,
-                        builder: (ctx, teclado, _) {
-                          if (teclado) return const SizedBox.shrink();
-                          final step = provider.currentStep;
-                          final meta = provider.session?.metadata;
+                      // Info button — visible on technical steps, hides on scroll
+                      // and while the numeric keypad is open.
+                      if (session.balanza != null && provider.currentStep >= 5)
+                        Positioned(
+                          bottom: ServiceNavPill.bottomOffset(context) + 68,
+                          right: 20,
+                          child: ValueListenableBuilder<bool>(
+                            valueListenable: _keypad.visibility,
+                            builder: (context, teclado, child) =>
+                                teclado ? const SizedBox.shrink() : child!,
+                            child: AnimatedOpacity(
+                              opacity: _infoButtonVisible ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: AnimatedSlide(
+                                offset: _infoButtonVisible
+                                    ? Offset.zero
+                                    : const Offset(0, 0.3),
+                                duration: const Duration(milliseconds: 200),
+                                child:
+                                    _buildBalanzaInfoButton(provider, isDark),
+                              ),
+                            ),
+                          ),
+                        ),
 
-                          String label = 'Siguiente';
-                          Color actionColor = AppColors.actionPositive;
-                          VoidCallback? onNext;
+                      // Floating nav buttons — bottom-right, pill grouped. The
+                      // numeric keypad takes their place while it is open.
+                      Positioned(
+                        bottom: ServiceNavPill.bottomOffset(context),
+                        right: 20,
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: _keypad.visibility,
+                          builder: (ctx, teclado, _) {
+                            if (teclado) return const SizedBox.shrink();
+                            final step = provider.currentStep;
+                            final meta = provider.session?.metadata;
 
-                          if (step == 2 &&
-                              meta != null &&
-                              !meta.secaConfirmed) {
-                            label = 'Confirmar SECA';
-                            actionColor = AppColors.actionPositive;
-                            onNext = () async {
-                              if (!await provider.confirmSeca() &&
-                                  ctx.mounted) {
-                                TopAlert.show(ctx,
-                                    provider.saveError ?? 'No se pudo guardar.',
-                                    isError: true);
-                              }
-                            };
-                          } else if (step == 2 &&
-                              meta != null &&
-                              meta.secaConfirmed) {
-                            label = 'Siguiente';
-                            actionColor = AppColors.actionPositive;
-                            onNext = () async {
-                              if (provider.isQrMode) {
-                                final error =
-                                    await provider.autoSelectBalanzaFromQr();
+                            String label = 'Siguiente';
+                            Color actionColor = AppColors.actionPositive;
+                            VoidCallback? onNext;
+
+                            if (step == 2 &&
+                                meta != null &&
+                                !meta.secaConfirmed) {
+                              label = 'Confirmar SECA';
+                              actionColor = AppColors.actionPositive;
+                              onNext = () async {
+                                if (!await provider.confirmSeca() &&
+                                    ctx.mounted) {
+                                  TopAlert.show(
+                                      ctx,
+                                      provider.saveError ??
+                                          'No se pudo guardar.',
+                                      isError: true);
+                                }
+                              };
+                            } else if (step == 2 &&
+                                meta != null &&
+                                meta.secaConfirmed) {
+                              label = 'Siguiente';
+                              actionColor = AppColors.actionPositive;
+                              onNext = () async {
+                                if (provider.isQrMode) {
+                                  final error =
+                                      await provider.autoSelectBalanzaFromQr();
+                                  if (error != null) {
+                                    if (ctx.mounted) {
+                                      TopAlert.show(ctx, error, isError: true);
+                                    }
+                                    return;
+                                  }
+                                  if (ctx.mounted) {
+                                    TopAlert.show(ctx,
+                                        'Instrumento identificado automáticamente');
+                                  }
+                                }
+                                provider.nextStep();
+                              };
+                            } else if (step == 3 &&
+                                meta != null &&
+                                !meta.balanzaConfirmed) {
+                              label = 'Guardar Datos';
+                              actionColor = AppColors.actionPositive;
+                              onNext = () async {
+                                final error = provider.validateStep(3);
                                 if (error != null) {
                                   if (ctx.mounted) {
                                     TopAlert.show(ctx, error, isError: true);
                                   }
                                   return;
                                 }
-                                if (ctx.mounted) {
-                                  TopAlert.show(ctx,
-                                      'Instrumento identificado automáticamente');
+                                final duplicateError =
+                                    await provider.validateDuplicateBalanza();
+                                if (duplicateError != null) {
+                                  if (ctx.mounted) {
+                                    TopAlert.show(ctx, duplicateError,
+                                        isError: true);
+                                  }
+                                  return;
                                 }
-                              }
-                              provider.nextStep();
-                            };
-                          } else if (step == 3 &&
-                              meta != null &&
-                              !meta.balanzaConfirmed) {
-                            label = 'Guardar Datos';
-                            actionColor = AppColors.actionPositive;
-                            onNext = () async {
-                              final error = provider.validateStep(3);
-                              if (error != null) {
-                                if (ctx.mounted) {
-                                  TopAlert.show(ctx, error, isError: true);
-                                }
-                                return;
-                              }
-                              final duplicateError =
-                                  await provider.validateDuplicateBalanza();
-                              if (duplicateError != null) {
-                                if (ctx.mounted) {
-                                  TopAlert.show(ctx, duplicateError,
-                                      isError: true);
-                                }
-                                return;
-                              }
-                              if (!ctx.mounted) return;
-                              final session = provider.session;
-                              final b = session?.balanza;
-                              final eq = session?.equipos ?? [];
-                              final pesas = eq.where((e) {
-                                final t = e.tipo?.toLowerCase() ?? '';
-                                return t.contains('pesa') ||
-                                    t.contains('masa') ||
-                                    t.contains('patron') ||
-                                    t.contains('patr');
-                              }).toList();
-                              final otros = eq.where((e) {
-                                final t = e.tipo?.toLowerCase() ?? '';
-                                return !(t.contains('pesa') ||
-                                    t.contains('masa') ||
-                                    t.contains('patron') ||
-                                    t.contains('patr'));
-                              }).toList();
-                              final confirm = await showDialog<bool>(
-                                context: ctx,
-                                builder: (ctx2) {
-                                  final isDark = Theme.of(ctx2).brightness ==
-                                      Brightness.dark;
-                                  return AlertDialog(
-                                    title: Row(
-                                      children: [
-                                        Icon(Icons.info_outline,
-                                            color: isDark
-                                                ? Colors.amber[300]
-                                                : Colors.amber[800],
-                                            size: 22),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                            child: Text('Verificar datos',
-                                                style: TextStyle(
-                                                    fontSize: 17,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: isDark
-                                                        ? Colors.white
-                                                        : AppColors
-                                                            .textPrimaryLight))),
-                                      ],
-                                    ),
-                                    content: SingleChildScrollView(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
+                                if (!ctx.mounted) return;
+                                final session = provider.session;
+                                final b = session?.balanza;
+                                final eq = session?.equipos ?? [];
+                                final pesas = eq.where((e) {
+                                  final t = e.tipo?.toLowerCase() ?? '';
+                                  return t.contains('pesa') ||
+                                      t.contains('masa') ||
+                                      t.contains('patron') ||
+                                      t.contains('patr');
+                                }).toList();
+                                final otros = eq.where((e) {
+                                  final t = e.tipo?.toLowerCase() ?? '';
+                                  return !(t.contains('pesa') ||
+                                      t.contains('masa') ||
+                                      t.contains('patron') ||
+                                      t.contains('patr'));
+                                }).toList();
+                                final confirm = await showDialog<bool>(
+                                  context: ctx,
+                                  builder: (ctx2) {
+                                    final isDark = Theme.of(ctx2).brightness ==
+                                        Brightness.dark;
+                                    return AlertDialog(
+                                      title: Row(
                                         children: [
-                                          Text(
-                                              'Revise la información antes de guardar.',
+                                          Icon(Icons.info_outline,
+                                              color: isDark
+                                                  ? Colors.amber[300]
+                                                  : Colors.amber[800],
+                                              size: 22),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: Text('Verificar datos',
+                                                  style: TextStyle(
+                                                      fontSize: 17,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isDark
+                                                          ? Colors.white
+                                                          : AppColors
+                                                              .textPrimaryLight))),
+                                        ],
+                                      ),
+                                      content: SingleChildScrollView(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                                'Revise la información antes de guardar.',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: isDark
+                                                        ? Colors.white60
+                                                        : Colors.black54)),
+                                            const SizedBox(height: 12),
+                                            _summaryRow(
+                                                'RECA',
+                                                session?.sessionInfo.nReca ??
+                                                    '-',
+                                                isDark),
+                                            _summaryRow(
+                                                'Sticker',
+                                                session?.sessionInfo.sticker ??
+                                                    '-',
+                                                isDark),
+                                            const Divider(height: 16),
+                                            _summaryRow('Cód. Métrica',
+                                                b?.codMetrica ?? '-', isDark),
+                                            _summaryRow(
+                                                'Tipo', b?.tipo ?? '-', isDark),
+                                            _summaryRow('Marca',
+                                                b?.marca ?? '-', isDark),
+                                            _summaryRow('Modelo',
+                                                b?.modelo ?? '-', isDark),
+                                            _summaryRow('Serie',
+                                                b?.serie ?? '-', isDark),
+                                            const Divider(height: 16),
+                                            Text(
+                                                'Pesas Patrón (${pesas.length}): ${pesas.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : Colors.black87)),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                                'Ambiente (${otros.length}): ${otros.map((e) => e.codInstrumento ?? '?').join(', ')}',
+                                                style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: isDark
+                                                        ? Colors.white70
+                                                        : Colors.black87)),
+                                          ],
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx2, false),
+                                          child: Text('Cancelar',
                                               style: TextStyle(
-                                                  fontSize: 13,
                                                   color: isDark
                                                       ? Colors.white60
                                                       : Colors.black54)),
-                                          const SizedBox(height: 12),
-                                          _summaryRow(
-                                              'RECA',
-                                              session?.sessionInfo.nReca ?? '-',
-                                              isDark),
-                                          _summaryRow(
-                                              'Sticker',
-                                              session?.sessionInfo.sticker ??
-                                                  '-',
-                                              isDark),
-                                          const Divider(height: 16),
-                                          _summaryRow('Cód. Métrica',
-                                              b?.codMetrica ?? '-', isDark),
-                                          _summaryRow(
-                                              'Tipo', b?.tipo ?? '-', isDark),
-                                          _summaryRow(
-                                              'Marca', b?.marca ?? '-', isDark),
-                                          _summaryRow('Modelo',
-                                              b?.modelo ?? '-', isDark),
-                                          _summaryRow(
-                                              'Serie', b?.serie ?? '-', isDark),
-                                          const Divider(height: 16),
-                                          Text(
-                                              'Pesas Patrón (${pesas.length}): ${pesas.map((e) => e.codInstrumento ?? '?').join(', ')}',
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.black87)),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                              'Ambiente (${otros.length}): ${otros.map((e) => e.codInstrumento ?? '?').join(', ')}',
-                                              style: TextStyle(
-                                                  fontSize: 13,
-                                                  color: isDark
-                                                      ? Colors.white70
-                                                      : Colors.black87)),
-                                        ],
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx2, false),
-                                        child: Text('Cancelar',
-                                            style: TextStyle(
-                                                color: isDark
-                                                    ? Colors.white60
-                                                    : Colors.black54)),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx2, true),
-                                        child:
-                                            const Text('Confirmar y Guardar'),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              );
-                              if (confirm == true &&
-                                  !await provider.confirmBalanza() &&
-                                  ctx.mounted) {
-                                TopAlert.show(ctx,
-                                    provider.saveError ?? 'No se pudo guardar.',
-                                    isError: true);
-                              }
-                            };
-                          } else if (step == 5) {
-                            onNext = () async {
-                              if (!await _commitStep(ctx, provider, step)) {
-                                return;
-                              }
-                              if (provider.returnToCondicionesFinales) {
-                                provider.returnToCondicionesFinales = false;
-                                provider.goToStep(9);
-                              } else {
-                                provider.nextStep();
-                              }
-                            };
-                          } else if (step >= 3 && step <= 8) {
-                            // Instrumento ya confirmado, Inspección y las pruebas
-                            // de excentricidad, repetibilidad y linealidad.
-                            onNext = () async {
-                              if (!await _commitStep(ctx, provider, step)) {
-                                return;
-                              }
-                              provider.nextStep();
-                            };
-                          } else if (step == 9) {
-                            onNext = () async {
-                              provider.returnToCondicionesFinales = false;
-                              if (!await _commitStep(ctx, provider, step)) {
-                                return;
-                              }
-                              if (!ctx.mounted) return;
-                              final mismatch =
-                                  provider.validarCondicionesAmbientales();
-                              if (mismatch != null && ctx.mounted) {
-                                final isDark =
-                                    Theme.of(ctx).brightness == Brightness.dark;
-                                final accion = await showDialog<String>(
-                                  context: ctx,
-                                  builder: (ctx2) => AlertDialog(
-                                    title: Row(
-                                      children: [
-                                        Icon(Icons.warning_amber_rounded,
-                                            color: isDark
-                                                ? Colors.amber[300]
-                                                : Colors.amber[800],
-                                            size: 22),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                            child: Text(
-                                                'Valores ambientales fuera de rango',
-                                                style: TextStyle(
-                                                    fontSize: 17,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: isDark
-                                                        ? Colors.white
-                                                        : AppColors
-                                                            .textPrimaryLight))),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx2, true),
+                                          child:
+                                              const Text('Confirmar y Guardar'),
+                                        ),
                                       ],
-                                    ),
-                                    content: SingleChildScrollView(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            mismatch,
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                color: isDark
-                                                    ? Colors.white70
-                                                    : Colors.black87),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            'Puede editar las condiciones iniciales o ignorar y continuar.',
-                                            style: TextStyle(
-                                                fontSize: 13,
-                                                color: isDark
-                                                    ? Colors.white54
-                                                    : Colors.black54),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx2, 'editar'),
-                                        child: Text(
-                                            'Editar condiciones iniciales',
-                                            style: TextStyle(
-                                                color: isDark
-                                                    ? Colors.amber[300]
-                                                    : Colors.amber[800])),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx2, 'ignorar'),
-                                        child:
-                                            const Text('Ignorar y continuar'),
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  },
                                 );
-                                if (accion == 'editar') {
-                                  provider.returnToCondicionesFinales = true;
-                                  provider.goToStep(5);
+                                if (confirm == true &&
+                                    !await provider.confirmBalanza() &&
+                                    ctx.mounted) {
+                                  TopAlert.show(
+                                      ctx,
+                                      provider.saveError ??
+                                          'No se pudo guardar.',
+                                      isError: true);
+                                }
+                              };
+                            } else if (step == 5) {
+                              onNext = () async {
+                                if (!await _commitStep(ctx, provider, step)) {
                                   return;
                                 }
-                                if (accion == null) return;
-                              }
-                              // Solo se marca calibrada si lo escrito quedó en
-                              // la base; si no, la balanza sigue abierta.
-                              final cierre =
-                                  await provider.marcarBalanzaCompleta();
-                              if (cierre != null) {
-                                if (ctx.mounted) {
-                                  await showSaveBlockedDialog(ctx, cierre);
+                                if (provider.returnToCondicionesFinales) {
+                                  provider.returnToCondicionesFinales = false;
+                                  provider.goToStep(9);
+                                } else {
+                                  provider.nextStep();
                                 }
-                                return;
-                              }
-                              provider.nextStep();
-                            };
-                          } else {
-                            onNext = step < steps.length - 1 &&
-                                    provider.canGoToStep(step + 1)
-                                ? () => provider.nextStep()
-                                : null;
-                          }
+                              };
+                            } else if (step >= 3 && step <= 8) {
+                              // Instrumento ya confirmado, Inspección y las pruebas
+                              // de excentricidad, repetibilidad y linealidad.
+                              onNext = () async {
+                                if (!await _commitStep(ctx, provider, step)) {
+                                  return;
+                                }
+                                provider.nextStep();
+                              };
+                            } else if (step == 9) {
+                              onNext = () async {
+                                provider.returnToCondicionesFinales = false;
+                                if (!await _commitStep(ctx, provider, step)) {
+                                  return;
+                                }
+                                if (!ctx.mounted) return;
+                                final mismatch =
+                                    provider.validarCondicionesAmbientales();
+                                if (mismatch != null && ctx.mounted) {
+                                  final isDark = Theme.of(ctx).brightness ==
+                                      Brightness.dark;
+                                  final accion = await showDialog<String>(
+                                    context: ctx,
+                                    builder: (ctx2) => AlertDialog(
+                                      title: Row(
+                                        children: [
+                                          Icon(Icons.warning_amber_rounded,
+                                              color: isDark
+                                                  ? Colors.amber[300]
+                                                  : Colors.amber[800],
+                                              size: 22),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: Text(
+                                                  'Valores ambientales fuera de rango',
+                                                  style: TextStyle(
+                                                      fontSize: 17,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: isDark
+                                                          ? Colors.white
+                                                          : AppColors
+                                                              .textPrimaryLight))),
+                                        ],
+                                      ),
+                                      content: SingleChildScrollView(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              mismatch,
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: isDark
+                                                      ? Colors.white70
+                                                      : Colors.black87),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              'Puede editar las condiciones iniciales o ignorar y continuar.',
+                                              style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: isDark
+                                                      ? Colors.white54
+                                                      : Colors.black54),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx2, 'editar'),
+                                          child: Text(
+                                              'Editar condiciones iniciales',
+                                              style: TextStyle(
+                                                  color: isDark
+                                                      ? Colors.amber[300]
+                                                      : Colors.amber[800])),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(ctx2, 'ignorar'),
+                                          child:
+                                              const Text('Ignorar y continuar'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (accion == 'editar') {
+                                    provider.returnToCondicionesFinales = true;
+                                    provider.goToStep(5);
+                                    return;
+                                  }
+                                  if (accion == null) return;
+                                }
+                                // Solo se marca calibrada si lo escrito quedó en
+                                // la base; si no, la balanza sigue abierta.
+                                final cierre =
+                                    await provider.marcarBalanzaCompleta();
+                                if (cierre != null) {
+                                  if (ctx.mounted) {
+                                    await showSaveBlockedDialog(ctx, cierre);
+                                  }
+                                  return;
+                                }
+                                provider.nextStep();
+                              };
+                            } else {
+                              onNext = step < steps.length - 1 &&
+                                      provider.canGoToStep(step + 1)
+                                  ? () => provider.nextStep()
+                                  : null;
+                            }
 
-                          return ServiceNavPill(
-                            label: label,
-                            actionColor: actionColor,
-                            onNext: onNext,
-                            onBack: provider.currentStep > 0
-                                ? provider.previousStep
-                                : null,
-                          );
-                        },
+                            return ServiceNavPill(
+                              label: label,
+                              actionColor: actionColor,
+                              onNext: onNext,
+                              onBack: provider.currentStep > 0
+                                  ? provider.previousStep
+                                  : null,
+                              // El último paso es el reporte: desde ahí solo se
+                              // vuelve atrás.
+                              showNext: step < steps.length - 1,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              NumericKeypadSlot(controller: _keypad),
-            ],
+                NumericKeypadSlot(controller: _keypad),
+              ],
+            ),
           ),
         ),
       ),

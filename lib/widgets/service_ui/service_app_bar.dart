@@ -6,7 +6,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 
 /// Estado del guardado automático para el indicador del AppBar.
-enum SaveStatus { idle, saving, success, error }
+enum SaveStatus { idle, pending, saving, local, success, error }
 
 /// Indicador de estado de guardado (spinner / nube verde / error rojo),
 /// idéntico al usado en el AppBar de Calibración.
@@ -18,8 +18,14 @@ class SaveStatusIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget child;
+    final String description;
     switch (status) {
+      case SaveStatus.pending:
+        description = 'Cambios pendientes de guardar en este dispositivo';
+        child = const Icon(Icons.schedule_rounded, color: AppColors.warning);
+        break;
       case SaveStatus.saving:
+        description = 'Guardando en este dispositivo';
         child = const SizedBox(
           width: 20,
           height: 20,
@@ -27,25 +33,38 @@ class SaveStatusIndicator extends StatelessWidget {
         );
         break;
       case SaveStatus.error:
+        description = 'Error al guardar en este dispositivo';
         child = const Icon(
           Icons.error_outline_rounded,
           color: AppColors.actionNegative,
         );
         break;
+      case SaveStatus.local:
+        description = 'Guardado en este dispositivo';
+        child =
+            const Icon(Icons.save_outlined, color: AppColors.actionPositive);
+        break;
       case SaveStatus.success:
+        description = 'Guardado';
+        child = const Icon(Icons.cloud_done_outlined,
+            color: AppColors.actionPositive);
+        break;
       case SaveStatus.idle:
-        child = const Icon(
-          Icons.cloud_done_outlined,
-          color: AppColors.actionPositive,
-        );
+        description = 'Sin cambios pendientes';
+        child =
+            const Icon(Icons.save_outlined, color: AppColors.actionPositive);
         break;
     }
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(right: 16.0),
-        child: child,
-      ),
-    );
+    return Tooltip(
+        message: description,
+        child: Semantics(
+            label: description,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: child,
+              ),
+            )));
   }
 }
 

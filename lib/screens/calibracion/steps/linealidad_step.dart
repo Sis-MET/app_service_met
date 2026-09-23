@@ -169,7 +169,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
           _buildControllers(count);
           for (int i = 0; i < count; i++) {
             _cargaCtrls[i].text = linValues[i];
-            _indCtrls[i].text = linValues[i];
           }
         });
         _saveToProvider();
@@ -229,9 +228,6 @@ class _LinealidadStepState extends State<LinealidadStep> {
   }
 
   void _onCargaChanged(int i, String val) {
-    if (!_cargasValidadas || i < _cargasPatronValidadas) {
-      _indCtrls[i].text = _formatValueWithPrecision(val);
-    }
     _saveToProvider();
     setState(() {});
   }

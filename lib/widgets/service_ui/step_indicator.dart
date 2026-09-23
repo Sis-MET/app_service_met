@@ -11,13 +11,19 @@ class StepData {
   final IconData icon;
   final bool isAccessible;
 
+  /// Null conserva el progreso posicional usado por otros módulos.
+  final StepProgress? progress;
+
   const StepData({
     required this.title,
     required this.subtitle,
     required this.icon,
     this.isAccessible = true,
+    this.progress,
   });
 }
+
+enum StepProgress { pending, complete, review }
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
@@ -96,10 +102,14 @@ class StepIndicator extends StatelessWidget {
               // Subtitle sutil
               Expanded(
                 child: Text(
-                  step.subtitle,
+                  step.progress == StepProgress.review
+                      ? '${step.subtitle} · Revisar'
+                      : step.subtitle,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.black38,
+                    color: step.progress == StepProgress.review
+                        ? AppColors.warning
+                        : (isDark ? Colors.white38 : Colors.black38),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -122,43 +132,53 @@ class StepIndicator extends StatelessWidget {
           // ── Barra de progreso delgada segmentada ───────────────────
           Row(
             children: List.generate(steps.length, (i) {
-              final isCompleted = i < safeStep;
+              final isCompleted = steps[i].progress == StepProgress.complete ||
+                  (steps[i].progress == null && i < safeStep);
+              final needsReview = steps[i].progress == StepProgress.review;
               final isCurrent = i == safeStep;
               final isAccessible = steps[i].isAccessible;
 
               return Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    if (isAccessible && onStepTapped != null) {
-                      onStepTapped!(i);
-                    }
-                  },
-                  child: Container(
-                    height: 12, // Taller touch area
-                    color: Colors.transparent,
-                    alignment: Alignment.center,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      height: 3,
-                      margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? primaryColor
-                            : isCurrent
-                                ? AppColors.accentYellow
-                                : (isAccessible
-                                    ? (isDark
-                                        ? Colors.white24
-                                        : Colors.black.withOpacity(0.15))
-                                    : (isDark
-                                        ? Colors.white12
-                                        : Colors.black.withOpacity(0.05))),
-                        borderRadius: BorderRadius.circular(2),
+                child: Semantics(
+                    button: true,
+                    label: 'Paso ${i + 1}: ${steps[i].title}, '
+                        '${isCompleted ? 'completo' : needsReview ? 'requiere revisión' : 'pendiente'}',
+                    child: GestureDetector(
+                      onTap: () {
+                        if (isAccessible && onStepTapped != null) {
+                          onStepTapped!(i);
+                        }
+                      },
+                      child: Container(
+                        height: 36,
+                        color: Colors.transparent,
+                        alignment: Alignment.center,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          height: 3,
+                          margin: EdgeInsets.only(left: i == 0 ? 0 : 3),
+                          decoration: BoxDecoration(
+                            color: isCompleted
+                                ? primaryColor
+                                : needsReview
+                                    ? AppColors.warning
+                                    : isCurrent
+                                        ? AppColors.accentYellow
+                                        : (isAccessible
+                                            ? (isDark
+                                                ? Colors.white24
+                                                : Colors.black
+                                                    .withOpacity(0.15))
+                                            : (isDark
+                                                ? Colors.white12
+                                                : Colors.black
+                                                    .withOpacity(0.05))),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ),
+                    )),
               );
             }),
           ),

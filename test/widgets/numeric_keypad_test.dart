@@ -56,6 +56,113 @@ void main() {
     });
   });
 
+  group('orden de los campos', () {
+    testWidgets('sigue por la indicación, no por el retorno de su derecha',
+        (tester) async {
+      // Como en repetibilidad: la carga arriba y, debajo, la indicación (con
+      // su ícono de sugerencias, que la hace más alta) junto al retorno.
+      final carga = TextEditingController();
+      final indicacion = TextEditingController();
+      final retorno = TextEditingController();
+      addTearDown(carga.dispose);
+      addTearDown(indicacion.dispose);
+      addTearDown(retorno.dispose);
+
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: NumericKeypadHost(
+            child: Column(
+              children: [
+                CalibrationNumberField(
+                  key: const ValueKey('carga'),
+                  controller: carga,
+                  column: 'repetibilidad1',
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: CalibrationNumberField(
+                        key: const ValueKey('indicacion'),
+                        controller: indicacion,
+                        column: 'indicacion1_1',
+                        allowNegative: true,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 10),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          suffixIcon: InkWell(
+                            onTap: () {},
+                            child:
+                                const Icon(Icons.unfold_more_rounded, size: 20),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: CalibrationNumberField(
+                        key: const ValueKey('retorno'),
+                        controller: retorno,
+                        column: 'retorno1_1',
+                        allowNegative: true,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 10),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ));
+
+      await tester.tap(find.byKey(const ValueKey('carga')));
+      await tester.pumpAndSettle();
+      // El ícono baja la caja de texto de la indicación: su recuadro empieza
+      // más abajo que el del retorno, en la misma fila.
+      final cajaIndicacion = tester.getRect(find.descendant(
+          of: find.byKey(const ValueKey('indicacion')),
+          matching: find.byType(EditableText)));
+      final cajaRetorno = tester.getRect(find.descendant(
+          of: find.byKey(const ValueKey('retorno')),
+          matching: find.byType(EditableText)));
+      expect(cajaIndicacion.top, greaterThan(cajaRetorno.top + 1));
+
+      await tester.tap(find.byKey(const ValueKey('keypad-next')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.descendant(
+                of: find.byKey(const ValueKey('indicacion')),
+                matching: find.byType(TextField)))
+            .focusNode
+            ?.hasFocus,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('keypad-next')));
+      await tester.pumpAndSettle();
+      expect(
+          tester
+              .widget<TextField>(find.descendant(
+                  of: find.byKey(const ValueKey('retorno')),
+                  matching: find.byType(TextField)))
+              .focusNode
+              ?.hasFocus,
+          isTrue);
+      await tester.tap(find.byKey(const ValueKey('keypad-next')));
+      await tester.pumpAndSettle();
+      expect(find.byType(NumericKeypad), findsNothing);
+    });
+  });
+
   group('teclado en un formulario', () {
     late TextEditingController indicacion;
     late TextEditingController carga;
@@ -428,7 +535,8 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('funciona dentro de un AlertDialog, que mide anchos intrínsecos',
+    testWidgets(
+        'funciona dentro de un AlertDialog, que mide anchos intrínsecos',
         (tester) async {
       await abrirDialogo(tester);
 
