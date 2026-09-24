@@ -17,7 +17,7 @@ import 'saf_storage.dart';
 /// modo que exportar un servicio a la carpeta SAF del técnico es copiar una
 /// sola carpeta. Ver [SafStorage] y `ServiceExporter`.
 class FotoHelper {
-  /// Clave usada por versiones anteriores (≤ 6.3.1), cuando las fotos se
+  /// Clave usada por versiones anteriores (≤ 6.3.2), cuando las fotos se
   /// escribían en una carpeta pública con MANAGE_EXTERNAL_STORAGE.
   static const _legacyPrefsKey = 'calibracion_fotos_base_path';
 
