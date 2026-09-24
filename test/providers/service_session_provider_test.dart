@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:service_met/database/app_database.dart';
+import 'package:service_met/database/calibration_data_normalizer.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
@@ -271,6 +272,25 @@ void main() {
         ..remove('balanza_confirmed');
       expect(ServiceSession.fromMap(sinProgreso).metadata.balanzaConfirmed,
           isTrue);
+    });
+
+    test('las filas de la consulta del SECA se pueden subir tal cual',
+        () async {
+      // La pantalla de subida usa la misma consulta, que agrega columnas de
+      // progreso local (servicio_status); ninguna debe llegar al servidor.
+      final provider = await nuevaSesion();
+      final seca = provider.session!.sessionInfo.seca!;
+      completarBalanza(provider);
+      provider.updateExcentricidad(excentricidad('67'));
+      provider.updateRepetibilidad(repetibilidad());
+      expect(await provider.marcarBalanzaCompleta(), isNull);
+
+      final filas = await CalibrationRepository().getRegistrosPorSeca(seca);
+      expect(filas.single['servicio_status'], 'completed');
+      final subida = CalibrationDataNormalizer.normalizeForUpload(filas.single);
+      expect(subida.keys, isNot(contains('servicio_status')));
+      expect(subida.keys, isNot(contains('balanza_confirmed')));
+      expect(subida['cod_metrica'], '0032-11-001');
     });
 
     test('los intentos descartados se distinguen en la consulta del SECA',

@@ -26,6 +26,10 @@ class CalibrationDataNormalizer {
     'nombre_zip',
     'nombre_csv',
     'finalized_at',
+    // Progreso local (servicio_status) que la consulta por SECA agrega a
+    // cada fila; no son columnas de DATA_SERVICIOS_DATOS_CALIBRACION.
+    'servicio_status',
+    'balanza_confirmed',
     'directorio_zip',
     'estado_servicio_csv',
   };
