@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../database/calibration_data_normalizer.dart';
+import '../../models/service_session.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/foto_viewer.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/servicio_model.dart';
 import '../services/local_service_record_repository.dart';
@@ -42,6 +45,7 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
   late final Map<String, dynamic> _original;
   late final List<String> _editableKeys;
   late final List<String> _systemKeys;
+  late final List<FotoItem> _fotos;
   final Map<String, String> _values = {};
 
   String _query = '';
@@ -52,8 +56,19 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
     super.initState();
     _original = Map<String, dynamic>.from(widget.item);
 
+    // Las columnas de fotos guardan rutas del teléfono: se ven en la galería,
+    // no como texto editable (cambiar el texto rompía el enlace a la foto).
+    final fotoKeys = _original.keys
+        .where(CalibrationDataNormalizer.isLocalFileField)
+        .toList();
+    _fotos = [
+      for (final key in fotoKeys)
+        for (final path in ServiceSession.fotosFromColumn(_original[key]))
+          FotoItem(path: path, grupo: _grupoFoto(key)),
+    ];
     _editableKeys = _original.keys
-        .where((k) => !kLocalRecordSystemKeys.contains(k))
+        .where(
+            (k) => !kLocalRecordSystemKeys.contains(k) && !fotoKeys.contains(k))
         .toList();
     _systemKeys = _original.keys
         .where((k) => kLocalRecordSystemKeys.contains(k))
@@ -75,6 +90,13 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
     if (value == null) return '';
     return value.toString();
   }
+
+  String _grupoFoto(String key) => switch (key) {
+        'foto_balanza' => 'Balanza',
+        'linealidad_foto' => 'Linealidad',
+        'condiciones_finales_foto' => 'Condiciones finales',
+        _ => _formatearNombreCampo(key.replaceAll(RegExp(r'_?foto'), '')),
+      };
 
   String _formatearNombreCampo(String campo) {
     return campo
@@ -156,6 +178,8 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final visibleKeys = _visibleKeys;
+    final showFotos = _query.isEmpty && _fotos.isNotEmpty;
+    final offset = showFotos ? 1 : 0;
     final titulo = _stringify(_original['cod_metrica']).isNotEmpty
         ? _stringify(_original['cod_metrica'])
         : '${widget.servicio.nombreItem} ${widget.index + 1}';
@@ -237,8 +261,16 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                itemCount: visibleKeys.length + (_systemKeys.isEmpty ? 0 : 1),
-                itemBuilder: (context, i) {
+                itemCount:
+                    offset + visibleKeys.length + (_systemKeys.isEmpty ? 0 : 1),
+                itemBuilder: (context, index) {
+                  if (showFotos && index == 0) {
+                    return FotoGallerySection(
+                      fotos: _fotos,
+                      nombreBase: _stringify(_original['cod_metrica']),
+                    );
+                  }
+                  final i = index - offset;
                   if (i == visibleKeys.length) {
                     return _SystemFieldsSection(
                       keys: _systemKeys,

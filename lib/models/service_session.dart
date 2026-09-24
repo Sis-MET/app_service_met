@@ -55,6 +55,9 @@ class ServiceSession {
   static String _fotosToColumn(List<String>? fotos) =>
       fotos == null || fotos.isEmpty ? '' : jsonEncode(fotos);
 
+  /// Rutas de fotos guardadas en una columna `*_foto` / `foto_balanza`.
+  static List<String> fotosFromColumn(Object? value) => _fotosFromColumn(value);
+
   static List<String> _fotosFromColumn(Object? value) {
     final text = value?.toString().trim() ?? '';
     if (text.isEmpty) return const [];
