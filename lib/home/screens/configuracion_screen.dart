@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../../login/widgets/setup/connection_profile_selector.dart';
 import '../../providers/settings_provider.dart';
+import '../../screens/calidad/cumplimiento_screen.dart';
+import '../../screens/calidad/historial_versiones_screen.dart';
+import '../../screens/calidad/manual_screen.dart';
+import '../../screens/calidad/widgets/calidad_resumen_panel.dart';
 import '../../screens/respaldo/respaldo.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
@@ -207,6 +211,54 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                             title: 'Soporte técnico',
                             subtitle: 'Contactar al administrador del sistema',
                             onTap: () => _showComingSoon('Soporte técnico'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _sectionTitle(context, 'Calidad y normativa'),
+                    const SizedBox(height: 10),
+                    CalidadResumenPanel(
+                      onAbrir: (clausula) => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              CumplimientoScreen(clausulaInicial: clausula),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    AppPanel(
+                      padding: EdgeInsets.zero,
+                      child: Column(
+                        children: [
+                          _actionTile(
+                            context,
+                            icon: Icons.menu_book_outlined,
+                            title: 'Manual de uso',
+                            subtitle: 'Guía interactiva de la app, exportable '
+                                'en PDF',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ManualScreen(),
+                              ),
+                            ),
+                          ),
+                          _divider(context),
+                          _actionTile(
+                            context,
+                            icon: Icons.history_rounded,
+                            title: 'Historial de versiones',
+                            subtitle: 'Cambios por versión y su impacto en '
+                                'los registros',
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const HistorialVersionesScreen(),
+                              ),
+                            ),
                           ),
                         ],
                       ),
