@@ -141,7 +141,10 @@ class AppPanel extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      // Las filas táctiles (ListTile, InkWell) pintan su efecto en el
+      // Material más cercano; sin esta capa quedaría oculto bajo el fondo.
+      // No recorta: el contenido cercano a las esquinas debe verse entero.
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 }
