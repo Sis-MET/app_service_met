@@ -12,6 +12,8 @@ import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
 
 import 'controllers/ajuste_verificaciones_controller.dart';
 import 'models/ajuste_verificaciones_model.dart';
@@ -304,6 +306,22 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
         final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Ajuste de Verificaciones',
+          appBarActions: [
+            OpportunityActionButton(
+              contextBuilder: () => OpportunityServiceContext.fromSupport(
+                serviceName: 'Ajuste de verificaciones',
+                otst: widget.secaValue,
+                sessionId: widget.sessionId,
+                codMetrica: widget.codMetrica,
+                userName: widget.userName,
+                clienteNombre: widget.clienteNombre,
+                clienteRazonSocial: widget.clienteRazonSocial,
+                plantaNombre: widget.plantaNombre,
+                plantaDepartamento: widget.plantaDepartamento,
+                instrumentoData: widget.instrumentoData,
+              ),
+            ),
+          ],
           steps: _steps,
           stepWidgets: [
             _buildPaso(

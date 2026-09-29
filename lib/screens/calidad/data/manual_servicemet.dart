@@ -348,6 +348,61 @@ const manualServiceMet = ManualUso(
         ),
       ],
     ),
+    SeccionManual(
+      id: 'oportunidades',
+      grupo: GrupoManual.servicios,
+      titulo: 'Registrar una oportunidad comercial',
+      icono: Icons.business_center_outlined,
+      resumen: 'Enviar a Bitrix24 una necesidad del cliente sin dejar el '
+          'servicio.',
+      bloques: [
+        Parrafo('Si durante una calibración o un servicio de soporte detecta '
+            'una necesidad comercial (reemplazo de equipo o de indicador, '
+            'repuestos, reparación, accesorios, una cotización), regístrela '
+            'como oportunidad en CRM › Prospectos de Bitrix24. Es '
+            'opcional, no es un paso del servicio y no cambia ningún dato '
+            'del registro técnico.'),
+        Pasos('Registrar', [
+          Paso('En el encabezado del servicio, toque el maletín '
+              '("Registrar oportunidad").',
+              'Se abre "Nueva oportunidad" con el servicio, el cliente, la '
+                  'planta y el equipo ya cargados.'),
+          Paso('En "Empresa Bitrix24", busque y elija la empresa.',
+              'La app sugiere buscar con el nombre del cliente, pero en '
+                  'Bitrix24 puede figurar distinto: elija siempre la empresa '
+                  'correcta.'),
+          Paso('Elija el contacto, o deje "Sin contacto".'),
+          Paso('Revise la "Ciudad del prospecto".',
+              'En "Automática" se toma del departamento de la planta; elija '
+                  'otra si corresponde. Si no se puede deducir, la app pide '
+                  'elegirla.'),
+          Paso('Elija el "Tipo de oportunidad" y escriba la "Descripción".',
+              'El título se arma solo y puede editarse. Bitrix24 recibe además '
+                  'la línea (VENTA, SOPORTE TECNICO o CALIBRACIÓN) y el mes '
+                  'del servicio. La prioridad y las observaciones son '
+                  'opcionales.'),
+          Paso('Toque "Registrar oportunidad".',
+              'Al terminar vuelve al mismo paso del servicio, con el número '
+                  'de la oportunidad creada.'),
+        ]),
+        Pasos('Sin conexión', [
+          Paso('Si no hay conexión con el servidor o con Bitrix24, la '
+              'oportunidad queda guardada en el teléfono como pendiente.',
+              'También puede tocar "Guardar pendiente" y elegir la empresa '
+                  'más tarde.'),
+          Paso('Con conexión, abra Otros apartados › "Oportunidades '
+              'comerciales" y toque "Enviar" o "Enviar todas".',
+              'Las pendientes nunca se envían solas. Reenviar no duplica la '
+                  'oportunidad en Bitrix24.'),
+        ]),
+        Nota(
+          TipoNota.importante,
+          'La oportunidad llega a Bitrix24 con los datos del servicio y del '
+          'equipo. Describa solo lo que el cliente necesita; no copie '
+          'resultados de la calibración en la descripción.',
+        ),
+      ],
+    ),
 
     // ── Datos y registros ───────────────────────────────────────────────
     SeccionManual(

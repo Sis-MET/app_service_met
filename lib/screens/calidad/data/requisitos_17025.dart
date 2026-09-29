@@ -454,6 +454,9 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       estado: EstadoCumplimiento.porVerificar,
       evidencias: [
         'La lectura del indicador (ML Kit) procesa la imagen en el teléfono.',
+        'Bitrix24 (CRM) solo recibe oportunidades comerciales, a través de '
+            'la API interna (backend/src/bitrix); la app no guarda su '
+            'credencial ni le envía registros técnicos.',
       ],
       brecha: 'Firebase se inicializa al abrir la app; falta confirmar si se '
           'usa y qué datos envía.',

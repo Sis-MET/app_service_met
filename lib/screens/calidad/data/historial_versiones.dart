@@ -11,6 +11,10 @@ const cambiosSinLiberar = <String>[
   'Soporte técnico: teclado numérico propio y lectura del indicador con la '
       'cámara en excentricidad, repetibilidad y linealidad (también la carga '
       'sustitutiva), como en calibración. Atrás cierra primero el teclado.',
+  'Registro de oportunidades comerciales en Bitrix24 (CRM › Prospectos) '
+      'desde calibración y soporte, sin salir del servicio. Sin conexión '
+      'quedan pendientes en el teléfono y se envían a mano desde Otros '
+      'apartados. No modifica los registros técnicos.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

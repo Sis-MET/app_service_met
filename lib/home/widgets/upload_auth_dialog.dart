@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class UploadAuthDialog extends StatefulWidget {
   final String usuario;
   final String? message;
+  final String title;
 
   const UploadAuthDialog({
     super.key,
     required this.usuario,
     this.message,
+    this.title = 'Autenticar subida',
   });
 
   @override
@@ -31,7 +33,7 @@ class _UploadAuthDialogState extends State<UploadAuthDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Autenticar subida'),
+      title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,

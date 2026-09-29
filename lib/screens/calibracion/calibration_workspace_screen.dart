@@ -10,6 +10,8 @@ import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
 
 import 'steps/cliente_step.dart';
 import 'steps/planta_step.dart';
@@ -354,6 +356,13 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
           // sigue siendo el gesto o botón atrás del sistema, con PopScope.
           automaticallyImplyLeading: false,
           actions: [
+            // Oportunidad comercial: opcional, en cualquier paso y sin salir
+            // de la calibración (lee la sesión, no la modifica).
+            OpportunityActionButton(
+              beforeOpen: _keypad.close,
+              contextBuilder: () => OpportunityServiceContext.fromCalibration(
+                  _provider.session ?? session),
+            ),
             if (_fieldNavigator.canUndoInStep(provider.currentStep))
               IconButton(
                 tooltip: 'Deshacer última entrada',

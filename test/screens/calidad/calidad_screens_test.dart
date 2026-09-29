@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/home/screens/configuracion_screen.dart';
 import 'package:service_met/providers/settings_provider.dart';
 import 'package:service_met/screens/calidad/cumplimiento_screen.dart';
+import 'package:service_met/screens/calidad/data/manual_servicemet.dart';
 import 'package:service_met/screens/calidad/data/requisitos_17025.dart';
 import 'package:service_met/screens/calidad/historial_versiones_screen.dart';
 import 'package:service_met/screens/calidad/manual_screen.dart';
@@ -104,7 +105,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(siguiente);
       await tester.pumpAndSettle();
-      expect(find.text('2 de 14'), findsOneWidget);
+      expect(find.text('2 de ${manualServiceMet.secciones.length}'),
+          findsOneWidget);
     });
   });
 

@@ -14,6 +14,8 @@ import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
 
 import 'controllers/mnt_correctivo_controller.dart';
 import 'models/mnt_correctivo_model.dart';
@@ -322,6 +324,22 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
         final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Mantenimiento Correctivo',
+          appBarActions: [
+            OpportunityActionButton(
+              contextBuilder: () => OpportunityServiceContext.fromSupport(
+                serviceName: 'Mantenimiento correctivo',
+                otst: widget.secaValue,
+                sessionId: widget.sessionId,
+                codMetrica: widget.codMetrica,
+                userName: widget.userName,
+                clienteNombre: widget.clienteNombre,
+                clienteRazonSocial: widget.clienteRazonSocial,
+                plantaNombre: widget.plantaNombre,
+                plantaDepartamento: widget.plantaDepartamento,
+                instrumentoData: widget.instrumentoData,
+              ),
+            ),
+          ],
           steps: _steps,
           stepWidgets: [
             _buildPasoInfoGeneral(),
