@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/models/service_session.dart';
+import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
@@ -380,6 +381,8 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
           onNext: isLast ? _onFinalizar : _onSiguiente,
           onBack: _controller.currentStep > 0 ? _onAnterior : null,
           saveStatus: _saveStatus,
+          onReadIndicator: (ctx) =>
+              IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),
           balanzaInfo: buildServiceBalanzaInfo(
               widget.instrumentoData, widget.codMetrica),
         );

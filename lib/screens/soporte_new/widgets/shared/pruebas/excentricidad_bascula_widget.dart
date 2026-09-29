@@ -1,11 +1,11 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, curly_braces_in_flow_control_structures
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 
 class ExcentricidadBasculaWidget extends StatefulWidget {
   final BalanzaInfo balanza;
@@ -335,7 +335,7 @@ class _ExcentricidadBasculaWidgetState
   }
 
   Widget _cargaField(bool isDark) {
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _cargaCtrl,
@@ -344,10 +344,6 @@ class _ExcentricidadBasculaWidgetState
         _emit();
         setState(() {});
       },
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-      ],
       decoration: _deco('Carga aplicada', isDark),
     ).animate(delay: 200.ms).fadeIn();
   }
@@ -531,15 +527,11 @@ class _ExcentricidadBasculaWidgetState
 
   Widget _indicationField(int i, bool isDark) {
     final hasCarga = _cargaCtrl.text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _rows[i][0],
       onChanged: (_) => _emit(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: InputDecoration(
         isDense: true,
         contentPadding:
@@ -560,6 +552,8 @@ class _ExcentricidadBasculaWidgetState
               )
             : null,
       ),
+      allowNegative: true,
+      readable: true,
     );
   }
 
@@ -584,15 +578,12 @@ class _ExcentricidadBasculaWidgetState
     });
   }
 
-  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+  Widget _numField(TextEditingController ctrl, bool isDark) =>
+      CalibrationNumberField(
         style: GoogleFonts.inter(
             color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
         onChanged: (_) => _emit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-        ],
         decoration: InputDecoration(
           isDense: true,
           contentPadding:
@@ -606,6 +597,8 @@ class _ExcentricidadBasculaWidgetState
               borderSide: BorderSide(
                   color: isDark ? Colors.white12 : Colors.black12)),
         ),
+        allowNegative: true,
+        readable: true,
       );
 
   Widget _sectionHeader(String title, bool isDark) {

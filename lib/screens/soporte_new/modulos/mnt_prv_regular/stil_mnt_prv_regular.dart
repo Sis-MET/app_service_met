@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_regular_stil.dart';
 import 'package:service_met/models/service_session.dart';
+import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
@@ -363,268 +364,269 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        if (_controller.hasUnsavedChanges.value) {
-          final shouldPop = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Cambios sin guardar'),
-              content: const Text(
-                  '¿Desea salir? Los cambios no guardados se perderán.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(false),
-                  child: const Text('Cancelar'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(true),
-                  child: const Text('Salir'),
-                ),
-              ],
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final isLast = _controller.currentStep == _controller.totalSteps - 1;
+        return ServiceWorkspaceLayout(
+          title: 'Mnt Preventivo Regular',
+          steps: _steps,
+          stepWidgets: [
+            // ── Paso 0: Pruebas Metrológicas Iniciales ──────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Pruebas Metrológicas Iniciales',
+                subtitle: 'Antes del mantenimiento',
+              ),
+              PasoPruebasMetrologicas(
+                balanza: _balanzaInfo,
+                esInicial: true,
+                horaInicio: _controller.horaInicio,
+                retornoCero: _controller.retornoCeroInicial,
+                estabilidad: _controller.estabilidadInicial,
+                onRetornoCeroChanged: (v) {
+                  _controller.retornoCeroInicial = v;
+                  _controller.markChanged();
+                },
+                onEstabilidadChanged: (v) {
+                  _controller.estabilidadInicial = v;
+                  _controller.markChanged();
+                },
+                excentricidadActiva: _controller.excentricidadRealizada,
+                repetibilidadActiva: _controller.repetibilidadRealizada,
+                linealidadActiva: _controller.linealidadRealizada,
+                onExcentricidadActivaChanged: (v) {
+                  _controller.excentricidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onRepetibilidadActivaChanged: (v) {
+                  _controller.repetibilidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onLinealidadActivaChanged: (v) {
+                  _controller.linealidadRealizada = v;
+                  _controller.markChanged();
+                },
+                excentricidad: _controller.excentricidadInicial,
+                repetibilidad: _controller.repetibilidadInicial,
+                linealidad: _controller.linealidadInicial,
+                onExcentricidadChanged: (d) {
+                  _controller.excentricidadInicial = d;
+                  _controller.markChanged();
+                },
+                onRepetibilidadChanged: (d) {
+                  _controller.repetibilidadInicial = d;
+                  _controller.markChanged();
+                },
+                onLinealidadChanged: (d) {
+                  _controller.linealidadInicial = d;
+                  _controller.markChanged();
+                },
+              ),
             ),
-          );
-          if (shouldPop == true && context.mounted) {
-            Navigator.of(context).pop();
-          }
-        } else {
-          if (context.mounted) Navigator.of(context).pop();
-        }
+            // ── Paso 1: Entorno de Instalación ──────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Entorno de Instalación',
+                subtitle: 'Condiciones del entorno del equipo',
+              ),
+              PasoEntorno(
+                campos: _controller.camposEntorno,
+                onChanged: (i, v, s) =>
+                    _onCampoChanged(_controller.camposEntorno, i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
+              ),
+            ),
+            // ── Paso 2: Terminal ────────────────────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Terminal',
+                subtitle: 'Complete el estado de cada campo',
+              ),
+              PasoTerminal(
+                campos: _controller.camposTerminal,
+                onChanged: (i, v, s) =>
+                    _onCampoChanged(_controller.camposTerminal, i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
+              ),
+            ),
+            // ── Paso 3: Balanza ─────────────────────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Balanza',
+                subtitle: 'Complete el estado de cada campo',
+              ),
+              PasoBalanza(
+                campos: _controller.camposBalanza,
+                onChanged: (i, v, s) =>
+                    _onCampoChanged(_controller.camposBalanza, i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
+              ),
+            ),
+            // ── Paso 4: Caja Sumadora ───────────────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Caja Sumadora',
+                subtitle: 'Complete el estado de cada campo',
+              ),
+              PasoCajaSumadora(
+                campos: _controller.camposCajaSumadora,
+                onChanged: (i, v, s) =>
+                    _onCampoChanged(_controller.camposCajaSumadora, i, v, s),
+                seca: widget.secaValue,
+                codMetrica: widget.codMetrica,
+              ),
+            ),
+            // ── Paso 5: Pruebas Metrológicas Finales ────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Pruebas Metrológicas Finales',
+                subtitle: 'Después del mantenimiento',
+              ),
+              PasoPruebasMetrologicas(
+                balanza: _balanzaInfo,
+                esInicial: false,
+                retornoCero: _controller.retornoCeroFinal,
+                estabilidad: _controller.estabilidadFinal,
+                onRetornoCeroChanged: (v) {
+                  _controller.retornoCeroFinal = v;
+                  _controller.markChanged();
+                },
+                onEstabilidadChanged: (v) {
+                  _controller.estabilidadFinal = v;
+                  _controller.markChanged();
+                },
+                excentricidadActiva: _controller.excentricidadRealizada,
+                repetibilidadActiva: _controller.repetibilidadRealizada,
+                linealidadActiva: _controller.linealidadRealizada,
+                onExcentricidadActivaChanged: (v) {
+                  _controller.excentricidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onRepetibilidadActivaChanged: (v) {
+                  _controller.repetibilidadRealizada = v;
+                  _controller.markChanged();
+                },
+                onLinealidadActivaChanged: (v) {
+                  _controller.linealidadRealizada = v;
+                  _controller.markChanged();
+                },
+                excentricidad: _controller.excentricidadFinal,
+                repetibilidad: _controller.repetibilidadFinal,
+                linealidad: _controller.linealidadFinal,
+                onExcentricidadChanged: (d) {
+                  _controller.excentricidadFinal = d;
+                  _controller.markChanged();
+                },
+                onRepetibilidadChanged: (d) {
+                  _controller.repetibilidadFinal = d;
+                  _controller.markChanged();
+                },
+                onLinealidadChanged: (d) {
+                  _controller.linealidadFinal = d;
+                  _controller.markChanged();
+                },
+                copyTick: _copyTickFinales,
+                onCopiarDeIniciales: _onCopiarFinales,
+              ),
+            ),
+            // ── Paso 6: Estado Final ────────────────────────────────
+            _buildPaso(
+              const ServiceStepHeader(
+                title: 'Estado Final',
+                subtitle: 'Conclusión del servicio',
+              ),
+              PasoEstadoFinalWidget(
+                comentarioGeneral: _controller.comentarioGeneral,
+                recomendacion: _controller.recomendacion,
+                estadoFisico: _controller.estadoFisico,
+                estadoOperacional: _controller.estadoOperacional,
+                estadoMetrologico: _controller.estadoMetrologico,
+                onComentarioGeneralChanged: (v) {
+                  _controller.comentarioGeneral = v;
+                  _controller.markChanged();
+                },
+                onRecomendacionChanged: (v) {
+                  _controller.recomendacion = v;
+                  _controller.markChanged();
+                },
+                onEstadoFisicoChanged: (v) {
+                  _controller.estadoFisico = v;
+                  _controller.markChanged();
+                },
+                onEstadoOperacionalChanged: (v) {
+                  _controller.estadoOperacional = v;
+                  _controller.markChanged();
+                },
+                onEstadoMetrologicoChanged: (v) {
+                  _controller.estadoMetrologico = v;
+                  _controller.markChanged();
+                },
+                camposEstado: const [],
+                onCampoChanged: (i, v, s) {},
+                horaInicio: _controller.horaInicio,
+                horaFin: _controller.horaFin,
+                onRegistrarHoraFin: _onRegistrarHoraFin,
+                fechaProxServicio: _controller.fechaProxServicio,
+                onFechaProxServicioChanged: (v) {
+                  setState(() {
+                    _controller.fechaProxServicio = v;
+                    _controller.markChanged();
+                  });
+                },
+                recomendacionesOptions: _recomendacionesOptions,
+                useLegacyEstados: true,
+              ),
+            ),
+          ],
+          currentStep: _controller.currentStep,
+          onStepTapped: _onStepTapped,
+          nextLabel: isLast ? 'Finalizar' : 'Siguiente',
+          nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
+          onNext: isLast ? _onFinalizar : _onSiguiente,
+          onBack: _controller.currentStep > 0 ? _onAnterior : null,
+          saveStatus: _saveStatus,
+          canPop: false,
+          onPopBlocked: _confirmarSalida,
+          onReadIndicator: (ctx) =>
+              IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),
+          balanzaInfo: buildServiceBalanzaInfo(
+              widget.instrumentoData, widget.codMetrica),
+        );
       },
-      child: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          final isLast = _controller.currentStep == _controller.totalSteps - 1;
-          return ServiceWorkspaceLayout(
-            title: 'Mnt Preventivo Regular',
-            steps: _steps,
-            stepWidgets: [
-              // ── Paso 0: Pruebas Metrológicas Iniciales ──────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Pruebas Metrológicas Iniciales',
-                  subtitle: 'Antes del mantenimiento',
-                ),
-                PasoPruebasMetrologicas(
-                  balanza: _balanzaInfo,
-                  esInicial: true,
-                  horaInicio: _controller.horaInicio,
-                  retornoCero: _controller.retornoCeroInicial,
-                  estabilidad: _controller.estabilidadInicial,
-                  onRetornoCeroChanged: (v) {
-                    _controller.retornoCeroInicial = v;
-                    _controller.markChanged();
-                  },
-                  onEstabilidadChanged: (v) {
-                    _controller.estabilidadInicial = v;
-                    _controller.markChanged();
-                  },
-                  excentricidadActiva: _controller.excentricidadRealizada,
-                  repetibilidadActiva: _controller.repetibilidadRealizada,
-                  linealidadActiva: _controller.linealidadRealizada,
-                  onExcentricidadActivaChanged: (v) {
-                    _controller.excentricidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  onRepetibilidadActivaChanged: (v) {
-                    _controller.repetibilidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  onLinealidadActivaChanged: (v) {
-                    _controller.linealidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  excentricidad: _controller.excentricidadInicial,
-                  repetibilidad: _controller.repetibilidadInicial,
-                  linealidad: _controller.linealidadInicial,
-                  onExcentricidadChanged: (d) {
-                    _controller.excentricidadInicial = d;
-                    _controller.markChanged();
-                  },
-                  onRepetibilidadChanged: (d) {
-                    _controller.repetibilidadInicial = d;
-                    _controller.markChanged();
-                  },
-                  onLinealidadChanged: (d) {
-                    _controller.linealidadInicial = d;
-                    _controller.markChanged();
-                  },
-                ),
-              ),
-              // ── Paso 1: Entorno de Instalación ──────────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Entorno de Instalación',
-                  subtitle: 'Condiciones del entorno del equipo',
-                ),
-                PasoEntorno(
-                  campos: _controller.camposEntorno,
-                  onChanged: (i, v, s) =>
-                      _onCampoChanged(_controller.camposEntorno, i, v, s),
-                  seca: widget.secaValue,
-                  codMetrica: widget.codMetrica,
-                ),
-              ),
-              // ── Paso 2: Terminal ────────────────────────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Terminal',
-                  subtitle: 'Complete el estado de cada campo',
-                ),
-                PasoTerminal(
-                  campos: _controller.camposTerminal,
-                  onChanged: (i, v, s) =>
-                      _onCampoChanged(_controller.camposTerminal, i, v, s),
-                  seca: widget.secaValue,
-                  codMetrica: widget.codMetrica,
-                ),
-              ),
-              // ── Paso 3: Balanza ─────────────────────────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Balanza',
-                  subtitle: 'Complete el estado de cada campo',
-                ),
-                PasoBalanza(
-                  campos: _controller.camposBalanza,
-                  onChanged: (i, v, s) =>
-                      _onCampoChanged(_controller.camposBalanza, i, v, s),
-                  seca: widget.secaValue,
-                  codMetrica: widget.codMetrica,
-                ),
-              ),
-              // ── Paso 4: Caja Sumadora ───────────────────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Caja Sumadora',
-                  subtitle: 'Complete el estado de cada campo',
-                ),
-                PasoCajaSumadora(
-                  campos: _controller.camposCajaSumadora,
-                  onChanged: (i, v, s) =>
-                      _onCampoChanged(_controller.camposCajaSumadora, i, v, s),
-                  seca: widget.secaValue,
-                  codMetrica: widget.codMetrica,
-                ),
-              ),
-              // ── Paso 5: Pruebas Metrológicas Finales ────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Pruebas Metrológicas Finales',
-                  subtitle: 'Después del mantenimiento',
-                ),
-                PasoPruebasMetrologicas(
-                  balanza: _balanzaInfo,
-                  esInicial: false,
-                  retornoCero: _controller.retornoCeroFinal,
-                  estabilidad: _controller.estabilidadFinal,
-                  onRetornoCeroChanged: (v) {
-                    _controller.retornoCeroFinal = v;
-                    _controller.markChanged();
-                  },
-                  onEstabilidadChanged: (v) {
-                    _controller.estabilidadFinal = v;
-                    _controller.markChanged();
-                  },
-                  excentricidadActiva: _controller.excentricidadRealizada,
-                  repetibilidadActiva: _controller.repetibilidadRealizada,
-                  linealidadActiva: _controller.linealidadRealizada,
-                  onExcentricidadActivaChanged: (v) {
-                    _controller.excentricidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  onRepetibilidadActivaChanged: (v) {
-                    _controller.repetibilidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  onLinealidadActivaChanged: (v) {
-                    _controller.linealidadRealizada = v;
-                    _controller.markChanged();
-                  },
-                  excentricidad: _controller.excentricidadFinal,
-                  repetibilidad: _controller.repetibilidadFinal,
-                  linealidad: _controller.linealidadFinal,
-                  onExcentricidadChanged: (d) {
-                    _controller.excentricidadFinal = d;
-                    _controller.markChanged();
-                  },
-                  onRepetibilidadChanged: (d) {
-                    _controller.repetibilidadFinal = d;
-                    _controller.markChanged();
-                  },
-                  onLinealidadChanged: (d) {
-                    _controller.linealidadFinal = d;
-                    _controller.markChanged();
-                  },
-                  copyTick: _copyTickFinales,
-                  onCopiarDeIniciales: _onCopiarFinales,
-                ),
-              ),
-              // ── Paso 6: Estado Final ────────────────────────────────
-              _buildPaso(
-                const ServiceStepHeader(
-                  title: 'Estado Final',
-                  subtitle: 'Conclusión del servicio',
-                ),
-                PasoEstadoFinalWidget(
-                  comentarioGeneral: _controller.comentarioGeneral,
-                  recomendacion: _controller.recomendacion,
-                  estadoFisico: _controller.estadoFisico,
-                  estadoOperacional: _controller.estadoOperacional,
-                  estadoMetrologico: _controller.estadoMetrologico,
-                  onComentarioGeneralChanged: (v) {
-                    _controller.comentarioGeneral = v;
-                    _controller.markChanged();
-                  },
-                  onRecomendacionChanged: (v) {
-                    _controller.recomendacion = v;
-                    _controller.markChanged();
-                  },
-                  onEstadoFisicoChanged: (v) {
-                    _controller.estadoFisico = v;
-                    _controller.markChanged();
-                  },
-                  onEstadoOperacionalChanged: (v) {
-                    _controller.estadoOperacional = v;
-                    _controller.markChanged();
-                  },
-                  onEstadoMetrologicoChanged: (v) {
-                    _controller.estadoMetrologico = v;
-                    _controller.markChanged();
-                  },
-                  camposEstado: const [],
-                  onCampoChanged: (i, v, s) {},
-                  horaInicio: _controller.horaInicio,
-                  horaFin: _controller.horaFin,
-                  onRegistrarHoraFin: _onRegistrarHoraFin,
-                  fechaProxServicio: _controller.fechaProxServicio,
-                  onFechaProxServicioChanged: (v) {
-                    setState(() {
-                      _controller.fechaProxServicio = v;
-                      _controller.markChanged();
-                    });
-                  },
-                  recomendacionesOptions: _recomendacionesOptions,
-                  useLegacyEstados: true,
-                ),
-              ),
-            ],
-            currentStep: _controller.currentStep,
-            onStepTapped: _onStepTapped,
-            nextLabel: isLast ? 'Finalizar' : 'Siguiente',
-            nextColor:
-                isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
-            onNext: isLast ? _onFinalizar : _onSiguiente,
-            onBack: _controller.currentStep > 0 ? _onAnterior : null,
-            saveStatus: _saveStatus,
-            balanzaInfo: buildServiceBalanzaInfo(
-                widget.instrumentoData, widget.codMetrica),
-          );
-        },
-      ),
     );
+  }
+
+  /// Atrás con el teclado cerrado: confirma si hay cambios sin guardar.
+  Future<void> _confirmarSalida() async {
+    if (_controller.hasUnsavedChanges.value) {
+      final shouldPop = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Cambios sin guardar'),
+          content:
+              const Text('¿Desea salir? Los cambios no guardados se perderán.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Salir'),
+            ),
+          ],
+        ),
+      );
+      if (shouldPop == true && mounted) {
+        Navigator.of(context).pop();
+      }
+    } else {
+      if (mounted) Navigator.of(context).pop();
+    }
   }
 
   Widget _buildPaso(Widget header, Widget content) {

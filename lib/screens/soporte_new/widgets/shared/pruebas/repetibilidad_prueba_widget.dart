@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 
 class RepetibilidadPruebaWidget extends StatefulWidget {
   final BalanzaInfo balanza;
@@ -187,7 +187,7 @@ class _RepetibilidadPruebaWidgetState
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
+            child: CalibrationNumberField(
               style: GoogleFonts.inter(
                   color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
               controller: _cargaCtrl,
@@ -199,11 +199,6 @@ class _RepetibilidadPruebaWidgetState
                 _emit();
                 setState(() {});
               },
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-              ],
               decoration: _deco('Valor de carga', isDark),
             ),
           ),
@@ -278,15 +273,11 @@ class _RepetibilidadPruebaWidgetState
 
   Widget _indicationField(int medIdx, bool isDark) {
     final hasBase = _cargaCtrl.text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[medIdx],
       onChanged: (_) => _emit(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: _fieldDecoration(isDark,
         suffixIcon: hasBase
             ? InkWell(
@@ -296,6 +287,8 @@ class _RepetibilidadPruebaWidgetState
               )
             : null,
       ),
+      allowNegative: true,
+      readable: true,
     );
   }
 
@@ -320,16 +313,15 @@ class _RepetibilidadPruebaWidgetState
     });
   }
 
-  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+  Widget _numField(TextEditingController ctrl, bool isDark) =>
+      CalibrationNumberField(
         style: GoogleFonts.inter(
             color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
         onChanged: (_) => _emit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-        ],
         decoration: _fieldDecoration(isDark),
+        allowNegative: true,
+        readable: true,
       );
 
   Widget _sectionHeader(String title, bool isDark) {

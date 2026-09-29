@@ -283,6 +283,11 @@ const manualServiceMet = ManualUso(
       icono: Icons.document_scanner_outlined,
       resumen: 'Captura asistida de lecturas de displays de 7 segmentos.',
       bloques: [
+        Parrafo('Funciona en calibración y en las pruebas metrológicas de '
+            'soporte técnico (excentricidad, repetibilidad y linealidad, '
+            'incluida la carga sustitutiva): en indicaciones y retornos, el '
+            'teclado numérico de la app ofrece "Leer del indicador". Las '
+            'cargas se escriben a mano.'),
         Pasos(null, [
           Paso('Toque el campo de la lectura.',
               'Se abre el teclado numérico de la app.'),
@@ -327,6 +332,10 @@ const manualServiceMet = ManualUso(
         Pasos('Durante el servicio', [
           Paso('Complete cada paso del módulo con estados, fotos y '
               'comentarios.'),
+          Paso('En las pruebas metrológicas, escriba con el teclado de la app.',
+              '"Siguiente" pasa al campo que sigue; en indicaciones y retornos '
+                  'puede usar "Leer del indicador". Atrás o tocar fuera de un '
+                  'campo cierran el teclado sin borrar lo escrito.'),
           Paso('Use "Todo en buen estado" o "Marcar todo como No aplica" solo '
               'después de revisar cada punto.'),
           Paso('Al terminar, elija "SELECCIONAR OTRA BALANZA" o '

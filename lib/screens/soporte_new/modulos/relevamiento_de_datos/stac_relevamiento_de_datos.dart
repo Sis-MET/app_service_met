@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/controllers/relevamiento_de_datos_controller.dart';
@@ -412,6 +413,9 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
           onNext: isLast ? _onFinalizar : _onSiguiente,
           onBack: _controller.currentStep > 0 ? _onAnterior : null,
           saveStatus: _saveStatus,
+          onReadIndicator: (ctx) => IndicatorReaderScreen.read(ctx,
+              balanza: buildCalBalanzaInfo(
+                  widget.instrumentoData, widget.codMetrica)),
           balanzaInfo: buildServiceBalanzaInfo(
               widget.instrumentoData, widget.codMetrica),
         );

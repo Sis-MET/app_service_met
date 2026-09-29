@@ -63,10 +63,11 @@ class CalibrationFieldNavigationScope extends InheritedWidget {
       navigator != oldWidget.navigator;
 }
 
-/// Campo numérico de la calibración.
+/// Campo numérico de la calibración y de las pruebas de soporte técnico.
 ///
 /// Escribe con el teclado propio de la pantalla ([NumericKeypadScope]) o, si
-/// no hay uno, con el del sistema filtrado a un número con punto decimal.
+/// no hay uno, con el del sistema filtrado a un número con punto decimal. En
+/// soporte se usa sin [column]: sus registros los valida el servidor al subir.
 ///
 /// Con [column] valida lo escrito contra esa columna del servidor mientras se
 /// escribe y muestra el motivo debajo del campo: lo que aquí se acepta es lo

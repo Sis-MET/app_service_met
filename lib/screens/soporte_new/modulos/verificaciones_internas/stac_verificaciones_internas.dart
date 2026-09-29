@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
@@ -319,6 +320,9 @@ class _StacVerificacionesInternasState
               ? () => _goToStep(_controller.currentStep - 1)
               : null,
           saveStatus: _saveStatus,
+          onReadIndicator: (ctx) => IndicatorReaderScreen.read(ctx,
+              balanza: buildCalBalanzaInfo(
+                  widget.instrumentoData, widget.codMetrica)),
           balanzaInfo: buildServiceBalanzaInfo(
               widget.instrumentoData, widget.codMetrica),
         );

@@ -1,8 +1,8 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/utils/top_alert.dart';
@@ -754,15 +754,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   Widget _numField(TextEditingController ctrl, String label,
       {required bool isDark}) {
-    return TextField(
+    return CalibrationNumberField(
       controller: ctrl,
       onChanged: (_) => _saveToController(),
       style: GoogleFonts.inter(
           fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-      ],
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.inter(

@@ -825,70 +825,68 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     );
   }
 
+  /// Atrás con el teclado cerrado: pregunta antes de abandonar la precarga.
+  Future<void> _salirConConfirmacion() async {
+    final shouldPop = await _onWillPop();
+    if (shouldPop && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _onWillPop();
-        if (shouldPop && context.mounted) {
-          Navigator.of(context).pop();
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final step = _controller.currentStep;
+        final isLastStep = step == PrecargaController.totalSteps - 1;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        String nextLabel = 'Siguiente';
+        Color nextColor = const Color(0xFF498054);
+        VoidCallback? onNext;
+
+        if (step == 3 && !_controller.secaConfirmed) {
+          nextLabel = 'Confirmar OTST';
+          nextColor = const Color(0xFF1565C0);
+          onNext = () async {
+            final seca = _controller.suggestedSeca;
+            if (seca == null || seca.isEmpty) return;
+            final exists = await _controller.checkSecaExists(seca);
+            if (!mounted) return;
+            if (exists) {
+              final proceed = await _showOtstDuplicadaDialog(seca, isDark);
+              if (proceed != true || !mounted) return;
+            }
+            await _controller.confirmSeca();
+          };
+        } else if (step == 3 && _controller.secaConfirmed) {
+          nextLabel = 'Siguiente';
+          nextColor = const Color(0xFF498054);
+          onNext = () => _goToStep(step + 1);
+        } else if (isLastStep) {
+          nextLabel = 'Iniciar Servicio';
+          nextColor = const Color(0xFF3e7732);
+          onNext = _iniciarServicio;
+        } else {
+          nextLabel = 'Siguiente';
+          nextColor = const Color(0xFF498054);
+          onNext = () => _goToStep(step + 1);
         }
+
+        return ServiceWorkspaceLayout(
+          title: 'Soporte Técnico',
+          steps: _buildSteps(),
+          stepWidgets: _buildStepWidgets(),
+          currentStep: step,
+          onStepTapped: _goToStep,
+          nextLabel: nextLabel,
+          nextColor: nextColor,
+          onNext: onNext,
+          onBack: step > 0 ? () => _goToStep(step - 1) : _confirmExit,
+          showSaveStatus: false,
+          canPop: false,
+          onPopBlocked: _salirConConfirmacion,
+        );
       },
-      child: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          final step = _controller.currentStep;
-          final isLastStep = step == PrecargaController.totalSteps - 1;
-          final isDark = Theme.of(context).brightness == Brightness.dark;
-
-          String nextLabel = 'Siguiente';
-          Color nextColor = const Color(0xFF498054);
-          VoidCallback? onNext;
-
-          if (step == 3 && !_controller.secaConfirmed) {
-            nextLabel = 'Confirmar OTST';
-            nextColor = const Color(0xFF1565C0);
-            onNext = () async {
-              final seca = _controller.suggestedSeca;
-              if (seca == null || seca.isEmpty) return;
-              final exists = await _controller.checkSecaExists(seca);
-              if (!mounted) return;
-              if (exists) {
-                final proceed = await _showOtstDuplicadaDialog(seca, isDark);
-                if (proceed != true || !mounted) return;
-              }
-              await _controller.confirmSeca();
-            };
-          } else if (step == 3 && _controller.secaConfirmed) {
-            nextLabel = 'Siguiente';
-            nextColor = const Color(0xFF498054);
-            onNext = () => _goToStep(step + 1);
-          } else if (isLastStep) {
-            nextLabel = 'Iniciar Servicio';
-            nextColor = const Color(0xFF3e7732);
-            onNext = _iniciarServicio;
-          } else {
-            nextLabel = 'Siguiente';
-            nextColor = const Color(0xFF498054);
-            onNext = () => _goToStep(step + 1);
-          }
-
-          return ServiceWorkspaceLayout(
-            title: 'Soporte Técnico',
-            steps: _buildSteps(),
-            stepWidgets: _buildStepWidgets(),
-            currentStep: step,
-            onStepTapped: _goToStep,
-            nextLabel: nextLabel,
-            nextColor: nextColor,
-            onNext: onNext,
-            onBack: step > 0 ? () => _goToStep(step - 1) : _confirmExit,
-            showSaveStatus: false,
-          );
-        },
-      ),
     );
   }
 }

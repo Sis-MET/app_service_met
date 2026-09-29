@@ -73,8 +73,14 @@ class PasoPruebasMetrologicas extends StatelessWidget {
     this.onCopiarDeIniciales,
   });
 
+  // El contenido va en una capa aparte: al abrir el teclado numérico la
+  // pantalla pierde alto y, sin ella, se volvían a dibujar todas las
+  // casillas de las tres pruebas (como StepScrollView en la calibración).
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      RepaintBoundary(child: _contenido(context));
+
+  Widget _contenido(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(

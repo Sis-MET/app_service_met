@@ -8,6 +8,9 @@ const cambiosSinLiberar = <String>[
       'NB/ISO/IEC 17025, manual de uso interactivo e historial de versiones.',
   'Exportación en PDF de la matriz de cumplimiento, el manual y el '
       'historial de versiones.',
+  'Soporte técnico: teclado numérico propio y lectura del indicador con la '
+      'cámara en excentricidad, repetibilidad y linealidad (también la carga '
+      'sustitutiva), como en calibración. Atrás cierra primero el teclado.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

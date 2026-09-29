@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
+import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 
 /// Widget de prueba de excentricidad para soporte técnico.
 ///
@@ -356,7 +356,7 @@ class _ExcentricidadPruebaWidgetState
         ],
         _buildPlatformDiagram(isDark),
         const SizedBox(height: 16),
-        TextField(
+        CalibrationNumberField(
           style: GoogleFonts.inter(
               color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
           controller: _cargaCtrl,
@@ -364,10 +364,6 @@ class _ExcentricidadPruebaWidgetState
             _reflectCargaToIndicaciones();
             setState(() {});
           },
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))
-          ],
           decoration: _deco('Carga', isDark),
         ).animate(delay: 350.ms).fadeIn(),
         if (_cargaCtrl.text.isEmpty) _buildSuggestedLoadChips(isDark),
@@ -632,15 +628,11 @@ class _ExcentricidadPruebaWidgetState
 
   Widget _indicationField(int i, bool isDark) {
     final hasBase = _cargaCtrl.text.isNotEmpty;
-    return TextField(
+    return CalibrationNumberField(
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _rows[i][0],
       onChanged: (_) => _emit(),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [
-        FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-      ],
       decoration: InputDecoration(
         isDense: true,
         contentPadding:
@@ -661,6 +653,8 @@ class _ExcentricidadPruebaWidgetState
               )
             : null,
       ),
+      allowNegative: true,
+      readable: true,
     );
   }
 
@@ -685,15 +679,12 @@ class _ExcentricidadPruebaWidgetState
     });
   }
 
-  Widget _numField(TextEditingController ctrl, bool isDark) => TextField(
+  Widget _numField(TextEditingController ctrl, bool isDark) =>
+      CalibrationNumberField(
         style: GoogleFonts.inter(
             color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
         controller: ctrl,
         onChanged: (_) => _emit(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^-?\d*\.?\d*'))
-        ],
         decoration: InputDecoration(
           isDense: true,
           contentPadding:
@@ -707,6 +698,8 @@ class _ExcentricidadPruebaWidgetState
               borderSide: BorderSide(
                   color: isDark ? Colors.white12 : Colors.black12)),
         ),
+        allowNegative: true,
+        readable: true,
       );
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
