@@ -46,6 +46,19 @@ function authMiddleware(config) {
   };
 }
 
+function requireScope(scope) {
+  return (req, res, next) => {
+    const scopes = Array.isArray(req.auth?.scope) ? req.auth.scope : [];
+    if (!scopes.includes(scope)) {
+      return res.status(403).json({
+        error: 'INSUFFICIENT_SCOPE',
+        message: 'La sesión no permite esta operación. Ingrese su contraseña nuevamente.',
+      });
+    }
+    return next();
+  };
+}
+
 function createLoginLimiter({ maxAttempts = 8, windowMs = 15 * 60 * 1000 } = {}) {
   const attempts = new Map();
   return (req, res, next) => {
@@ -64,4 +77,4 @@ function createLoginLimiter({ maxAttempts = 8, windowMs = 15 * 60 * 1000 } = {})
   };
 }
 
-module.exports = { signJwt, verifyJwt, authMiddleware, createLoginLimiter };
+module.exports = { signJwt, verifyJwt, authMiddleware, requireScope, createLoginLimiter };

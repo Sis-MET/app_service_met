@@ -3,15 +3,34 @@
 const express = require('express');
 const cors = require('cors');
 const { sql, getPool } = require('./database');
-const { signJwt, authMiddleware, createLoginLimiter } = require('./security');
+const {
+  signJwt,
+  authMiddleware,
+  requireScope,
+  createLoginLimiter,
+} = require('./security');
 const { validateAgainstDatabase, uploadRecords } = require('./calibration-service');
 const {
   validateAgainstDatabase: validateSupportAgainstDatabase,
   uploadSupportRecords,
 } = require('./support-service');
 const { readBootstrap } = require('./bootstrap-service');
+const { createBitrixClient } = require('./bitrix/bitrix-client');
+const { createBitrixService } = require('./bitrix/bitrix-service');
+const { BITRIX_SCOPE, createBitrixRouter } = require('./bitrix/bitrix-routes');
 
-function createApp(config, schema, supportSchemas = new Map()) {
+function defaultBitrixService(bitrixConfig) {
+  if (!bitrixConfig?.enabled) return null;
+  const client = createBitrixClient({
+    webhookUrl: bitrixConfig.webhookUrl,
+    webhookSecret: bitrixConfig.webhookSecret,
+    timeoutMs: bitrixConfig.timeoutMs,
+    logRequests: bitrixConfig.logRequests,
+  });
+  return createBitrixService({ client, config: bitrixConfig });
+}
+
+function createApp(config, schema, supportSchemas = new Map(), options = {}) {
   const app = express();
   if (config.trustProxy) app.set('trust proxy', 1);
   app.disable('x-powered-by');
@@ -59,7 +78,10 @@ function createApp(config, schema, supportSchemas = new Map()) {
         return res.status(403).json({ error: 'ACCESS_DENIED', message: 'El usuario no está habilitado para ServiceMET.' });
       }
       const token = signJwt(
-        { sub: user.usuario, scope: ['calibracion:upload', 'soporte:upload', 'bootstrap:read'] },
+        {
+          sub: user.usuario,
+          scope: ['calibracion:upload', 'soporte:upload', 'bootstrap:read', BITRIX_SCOPE],
+        },
         config.jwtSecret,
         config.jwtTtlSeconds,
       );
@@ -198,6 +220,15 @@ function createApp(config, schema, supportSchemas = new Map()) {
       return next(error);
     }
   });
+
+  app.use('/api/bitrix', createBitrixRouter({
+    service: options.bitrixService !== undefined
+      ? options.bitrixService
+      : defaultBitrixService(config.bitrix),
+    bitrixConfig: config.bitrix,
+    requireAuth,
+    requireScope,
+  }));
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'NOT_FOUND', message: 'Ruta no encontrada.' });

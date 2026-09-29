@@ -2,6 +2,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { readBitrixConfig } = require('./bitrix/bitrix-config');
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, '..', '.env');
@@ -67,6 +68,9 @@ function getConfig() {
       .filter(Boolean),
     jwtSecret,
     jwtTtlSeconds: integer('JWT_TTL_SECONDS', 28800),
+    // Opcional: sin webhook la API funciona igual y las rutas de Bitrix
+    // responden 503. El webhook nunca se envía a Flutter.
+    bitrix: readBitrixConfig(process.env),
     database: {
       server: required('DB_HOST'),
       port: integer('DB_PORT', 1433),

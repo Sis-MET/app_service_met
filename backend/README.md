@@ -86,6 +86,27 @@ certificado; nunca desactive la validación TLS ni acepte cualquier certificado.
 - `POST /api/soporte/validar`: valida registros de los ocho módulos de soporte sin insertar.
 - `POST /api/soporte/subir`: inserta el lote de soporte y sus resúmenes en una transacción.
 
+### Oportunidades comerciales en Bitrix24
+
+Opcional. Crea cada oportunidad como **Lead**, que en el Bitrix24 en español
+aparece en **CRM › Prospectos**. Requiere `BITRIX_WEBHOOK_URL` en `.env` (ver
+[docs/bitrix24-configuracion.md](docs/bitrix24-configuracion.md)). Sin webhook
+la API funciona igual y estas rutas responden `503 BITRIX_NOT_CONFIGURED`.
+Todas exigen el JWT con el scope `bitrix:opportunity`.
+
+- `GET /api/bitrix/status`: etapa inicial resuelta y estado del mapeo de campos.
+- `GET /api/bitrix/companies?q=texto`: busca empresas por nombre (`crm.item.list`, 4).
+- `GET /api/bitrix/companies/:id/contacts`: contactos vinculados a la empresa.
+- `GET /api/bitrix/lead-stages` y `GET /api/bitrix/lead-sources`: etapas y fuentes de Prospectos.
+- `GET /api/bitrix/lead-fields`: campos de Prospectos, incluidos los personalizados.
+- `POST /api/bitrix/opportunities`: crea el prospecto (`crm.item.add`, 1).
+  Responde `201`, o `200` si el UUID ya estaba registrado.
+
+`pnpm bitrix:discover` verifica el webhook y muestra los IDs reales de etapas,
+fuentes y campos personalizados sin imprimir el secreto. El código vive en
+`src/bitrix/`: el cliente HTTP (único que conoce el webhook), `BitrixService`,
+el mapeo de campos (`bitrix-mapping.js`) y las rutas.
+
 Los endpoints de calibración y soporte requieren `Authorization: Bearer <token>`. La
 subida acepta `mode: "all"` o `mode: "valid_only"`. En ambos casos, todos los
 registros efectivamente elegidos se insertan o se revierten juntos.

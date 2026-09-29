@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "bitrix:discover": "node scripts/bitrix-discovery.js"
   },
   "engines": {
     "node": ">=18"

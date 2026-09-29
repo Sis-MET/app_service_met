@@ -8,11 +8,24 @@ const { loadTableSchema, loadSupportSchemas } = require('./schema');
 const { createApp } = require('./app');
 const { closePool } = require('./database');
 
+function logBitrixStatus(bitrix) {
+  for (const warning of bitrix.warnings) console.warn(`Bitrix24: ${warning}`);
+  if (bitrix.configError) {
+    console.warn(`Bitrix24 deshabilitado: ${bitrix.configError}`);
+  } else if (!bitrix.enabled) {
+    console.log('Bitrix24 deshabilitado: falta BITRIX_WEBHOOK_URL.');
+  } else {
+    // Solo el dominio del portal: la ruta del webhook contiene el secreto.
+    console.log(`Bitrix24 habilitado en ${new URL(bitrix.webhookUrl).host}.`);
+  }
+}
+
 async function main() {
   const config = getConfig();
   const schema = loadTableSchema();
   const supportSchemas = loadSupportSchemas();
   const app = createApp(config, schema, supportSchemas);
+  logBitrixStatus(config.bitrix);
   const server = config.tls.enabled
     ? https.createServer({
       pfx: fs.readFileSync(config.tls.pfxPath),
