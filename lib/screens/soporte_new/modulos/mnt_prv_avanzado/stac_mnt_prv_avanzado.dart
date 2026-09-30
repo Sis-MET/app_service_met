@@ -18,7 +18,10 @@ import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 class StacMntPrvAvanzado extends StatefulWidget {
   final String sessionId;
@@ -206,133 +209,105 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
     return campos.every((c) => c.value.isNotEmpty);
   }
 
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
         if (_controller.retornoCeroInicial.isEmpty) {
-          TopAlert.show(
-              context, 'Seleccione Retorno a Cero en Pruebas Iniciales',
-              isError: true);
-          return false;
+          return 'Seleccione Retorno a Cero en Pruebas Iniciales';
         }
         if (_controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Iniciales',
-              isError: true);
-          return false;
+          return 'Seleccione Estabilidad en Pruebas Iniciales';
         }
-        return true;
+        return _faltaEnPruebas(iniciales: true);
       case 1:
         if (!_camposCompletos(_controller.camposLozas)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Lozas y Fundaciones',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Lozas y Fundaciones';
         }
-        return true;
+        return null;
       case 2:
         if (!_camposCompletos(_controller.camposLimpieza)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Limpieza y Drenaje',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Limpieza y Drenaje';
         }
-        return true;
+        return null;
       case 3:
         if (!_camposCompletos(_controller.camposChequeo)) {
-          TopAlert.show(context, 'Complete todos los campos de Chequeo General',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Chequeo General';
         }
-        return true;
+        return null;
       case 4:
         if (!_camposCompletos(_controller.camposElectricas)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Verif. Eléctricas',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Verif. Eléctricas';
         }
-        return true;
+        return null;
       case 5:
         if (!_camposCompletos(_controller.camposProteccionCeldas)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Protección / Células',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Protección / Células';
         }
-        return true;
+        return null;
       case 6:
         if (!_camposCompletos(_controller.camposTerminalCalibracion)) {
-          TopAlert.show(
-              context, 'Complete todos los campos de Terminal / Calibración',
-              isError: true);
-          return false;
+          return 'Complete todos los campos de Terminal / Calibración';
         }
-        return true;
+        return null;
       case 7:
         if (_controller.retornoCeroFinal.isEmpty) {
-          TopAlert.show(context, 'Seleccione Retorno a Cero en Pruebas Finales',
-              isError: true);
-          return false;
+          return 'Seleccione Retorno a Cero en Pruebas Finales';
         }
         if (_controller.estabilidadFinal.isEmpty) {
-          TopAlert.show(context, 'Seleccione Estabilidad en Pruebas Finales',
-              isError: true);
-          return false;
+          return 'Seleccione Estabilidad en Pruebas Finales';
         }
-        return true;
+        return _faltaEnPruebas(iniciales: false);
       case 8:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el Comentario General',
-              isError: true);
-          return false;
+          return 'Complete el Comentario General';
         }
         if (_controller.recomendacion.isEmpty) {
-          TopAlert.show(context, 'Seleccione una Recomendación', isError: true);
-          return false;
+          return 'Seleccione una Recomendación';
         }
         if (_controller.fechaProxServicio.isEmpty) {
-          TopAlert.show(context, 'Seleccione la Fecha del Próximo Servicio',
-              isError: true);
-          return false;
+          return 'Seleccione la Fecha del Próximo Servicio';
         }
         if (_controller.estadoFisico.isEmpty ||
             _controller.estadoOperacional.isEmpty ||
             _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
-              isError: true);
-          return false;
+          return 'Complete todos los estados finales';
         }
         if (_controller.horaFin.isEmpty) {
-          TopAlert.show(context, 'Registre la Hora Final del servicio',
-              isError: true);
-          return false;
+          return 'Registre la Hora Final del servicio';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  void _onStepTapped(int step) {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    _controller.setCurrentStep(step);
-  }
+  String? _faltaEnPruebas({required bool iniciales}) => faltaEnPruebas(
+        momento: iniciales ? 'iniciales' : 'finales',
+        excentricidadRealizada: _controller.excentricidadRealizada,
+        excentricidad: iniciales
+            ? _controller.excentricidadInicial
+            : _controller.excentricidadFinal,
+        repetibilidadRealizada: _controller.repetibilidadRealizada,
+        repetibilidad: iniciales
+            ? _controller.repetibilidadInicial
+            : _controller.repetibilidadFinal,
+        linealidadRealizada: _controller.linealidadRealizada,
+        linealidad: iniciales
+            ? _controller.linealidadInicial
+            : _controller.linealidadFinal,
+      );
 
-  void _onAnterior() {
-    if (_controller.currentStep > 0) {
-      _controller.setCurrentStep(_controller.currentStep - 1);
-    }
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
-  void _onSiguiente() {
-    if (!_validateCurrentStep()) return;
-    if (_controller.currentStep < _controller.totalSteps - 1) {
-      _controller.setCurrentStep(_controller.currentStep + 1);
-    }
-  }
-
-  void _onFinalizar() {
-    if (!_validateCurrentStep()) return;
+  Future<void> _onFinalizar() async {
+    if (!await _pasos.listoParaFinalizar(context) || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -388,7 +363,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Mnt Preventivo Avanzado'),
+        appBar:
+            ServiceAppBar(title: 'Mnt Preventivo Avanzado', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -398,8 +374,8 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
         final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Mnt Preventivo Avanzado',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Mantenimiento preventivo avanzado',
                 otst: widget.secaValue,
@@ -683,14 +659,19 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
             ),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: _onStepTapped,
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
-          onNext: isLast ? _onFinalizar : _onSiguiente,
-          onBack: _controller.currentStep > 0 ? _onAnterior : null,
+          onNext: isLast
+              ? _onFinalizar
+              : () => _pasos.irA(context, _controller.currentStep + 1),
+          onBack: _controller.currentStep > 0
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
+              : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
-          canPop: false,
-          onPopBlocked: _confirmarSalida,
           onReadIndicator: (ctx) =>
               IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),
           balanzaInfo: buildServiceBalanzaInfo(
@@ -698,35 +679,6 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
         );
       },
     );
-  }
-
-  /// Atrás con el teclado cerrado: confirma si hay cambios sin guardar.
-  Future<void> _confirmarSalida() async {
-    if (_controller.hasUnsavedChanges.value) {
-      final shouldPop = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Cambios sin guardar'),
-          content:
-              const Text('¿Desea salir? Los cambios no guardados se perderán.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Salir'),
-            ),
-          ],
-        ),
-      );
-      if (shouldPop == true && mounted) {
-        Navigator.of(context).pop();
-      }
-    } else {
-      if (mounted) Navigator.of(context).pop();
-    }
   }
 
   Widget _buildPaso(Widget header, Widget content) {

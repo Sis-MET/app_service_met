@@ -14,7 +14,11 @@ import 'package:service_met/screens/calibracion/steps/condiciones_finales_step.d
 import 'package:service_met/screens/calibracion/steps/exportacion_step.dart';
 import 'package:service_met/screens/calibracion/steps/seca_step.dart';
 import 'package:service_met/theme/app_design.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import 'package:service_met/widgets/service_ui/service_options_menu.dart';
+import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
+import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // Conserva el paso preparado por la prueba al montar el workspace.
@@ -132,10 +136,12 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('el AppBar no muestra flecha; atrás del sistema sigue saliendo',
-      (tester) async {
+  /// Abre el workspace en [step] encima de una pantalla "abrir".
+  Future<ServiceSessionProvider> openWorkspace(
+      WidgetTester tester, int step) async {
     final provider = _WorkspaceProvider();
     await provider.createNewSession('tecnico');
+    provider.goToStep(step);
     addTearDown(provider.dispose);
     await tester
         .pumpWidget(ChangeNotifierProvider<ServiceSessionProvider>.value(
@@ -155,11 +161,150 @@ void main() {
     ));
     await tester.tap(find.text('abrir'));
     await tester.pumpAndSettle();
-    expect(find.byType(CalibrationWorkspaceScreen), findsOneWidget);
+    return provider;
+  }
+
+  testWidgets('sin flecha; Atrás retrocede un paso y nunca saca del módulo',
+      (tester) async {
+    final provider = await openWorkspace(tester, 2);
     expect(find.byType(AppBackButton), findsNothing);
     expect(find.byType(BackButton), findsNothing);
 
     await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(provider.currentStep, 1);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(provider.currentStep, 0);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(CalibrationWorkspaceScreen), findsOneWidget);
+    expect(find.textContaining('Es el primer paso'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('el panel ≡ muestra los 11 pasos y lleva a los habilitados',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final provider = await openWorkspace(tester, 2);
+    expect(find.byType(StepIndicator), findsNothing,
+        reason: 'sin barra de pasos bajo el AppBar');
+    expect(find.text('Paso 3 de 11 · SECA'), findsOneWidget);
+
+    await tester.tap(find.byTooltip(ServiceStepsButton.tooltip));
+    await tester.pumpAndSettle();
+    expect(find.text('0 de 11 pasos completos'), findsOneWidget);
+    expect(find.bySemanticsLabel('Paso 3 de 11: SECA, pendiente, paso actual'),
+        findsOneWidget);
+    // Sin cliente todavía, los pasos siguientes no se pueden abrir.
+    expect(find.bySemanticsLabel('Paso 4 de 11: Instrumento, bloqueado'),
+        findsOneWidget);
+    Finder enPanel(String text) =>
+        find.descendant(of: find.byType(Drawer), matching: find.text(text));
+    await tester.tap(enPanel('Instrumento'));
+    await tester.pumpAndSettle();
+    expect(provider.currentStep, 2);
+
+    await tester.tap(enPanel('Cliente'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
+    expect(provider.currentStep, 0);
+    expect(find.text('Paso 1 de 11 · Cliente'), findsOneWidget);
+    semantics.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('sin instrumento confirmado el panel no abre las pruebas',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    final provider = _WorkspaceProvider();
+    addTearDown(provider.dispose);
+    // Como tras "otra balanza": cliente, planta y SECA listos, instrumento
+    // todavía sin confirmar. Otra planta, para no sumar una balanza a la
+    // SECA de las demás pruebas.
+    await tester.runAsync(() async {
+      await provider.createNewSession('tecnico');
+      provider.updateCliente(ClienteInfo(id: '2', nombreComercial: 'Otro'));
+      provider.updatePlanta(PlantaInfo(codigo: '0099-11', nombre: 'Otra'));
+      expect(await provider.confirmSeca(), isTrue);
+    });
+    provider.goToStep(3);
+    await tester
+        .pumpWidget(ChangeNotifierProvider<ServiceSessionProvider>.value(
+      value: provider,
+      child: const MaterialApp(
+          home: CalibrationWorkspaceScreen(userName: 'tecnico')),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip(ServiceStepsButton.tooltip));
+    await tester.pumpAndSettle();
+    expect(
+        find.bySemanticsLabel('Paso 3 de 11: SECA, completo'), findsOneWidget);
+    expect(find.bySemanticsLabel('Paso 5 de 11: Inspección, bloqueado'),
+        findsOneWidget);
+    await tester.tap(find.descendant(
+        of: find.byType(Drawer), matching: find.text('Inspección')));
+    await tester.pumpAndSettle();
+    expect(provider.currentStep, 3);
+
+    semantics.dispose();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(provider.flushPendingSave);
+  });
+
+  testWidgets('con el panel ≡ abierto, Atrás solo lo cierra', (tester) async {
+    final provider = await openWorkspace(tester, 2);
+    await tester.tap(find.byTooltip(ServiceStepsButton.tooltip));
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(Drawer), findsNothing);
+    expect(provider.currentStep, 2, reason: 'no retrocede un paso');
+    expect(find.byType(CalibrationWorkspaceScreen), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('la oportunidad comercial está en el menú ⋮', (tester) async {
+    await openWorkspace(tester, 2);
+    expect(find.byIcon(Icons.handshake_outlined), findsNothing);
+    await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
+    await tester.pumpAndSettle();
+    expect(find.text(OpportunityMenuAction.title), findsOneWidget);
+    expect(find.text(ServiceOptionsMenu.exitLabel), findsOneWidget);
+    await tester.tapAt(const Offset(10, 400));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('se sale solo desde el menú ⋮, con confirmación', (tester) async {
+    await openWorkspace(tester, 4);
+
+    Future<void> elegirSalir() async {
+      await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(ServiceOptionsMenu.exitLabel));
+      await tester.pumpAndSettle();
+      expect(find.text('¿Salir de la calibración?'), findsOneWidget);
+    }
+
+    await elegirSalir();
+    await tester.tap(find.text('Seguir aquí'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CalibrationWorkspaceScreen), findsOneWidget);
+
+    await elegirSalir();
+    await tester.tap(find.text('Salir'));
     await tester.pumpAndSettle();
     expect(find.byType(CalibrationWorkspaceScreen), findsNothing);
     expect(find.text('abrir'), findsOneWidget);

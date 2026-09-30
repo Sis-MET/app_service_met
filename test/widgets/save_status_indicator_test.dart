@@ -55,12 +55,47 @@ void main() {
     expect(visible('error'), isFalse);
   });
 
-  testWidgets('ocupa siempre el mismo ancho', (tester) async {
+  double width(WidgetTester tester) =>
+      tester.getSize(find.byType(SaveStatusIndicator)).width;
+
+  testWidgets('sin nada que contar no ocupa lugar; al aparecer lo hace',
+      (tester) async {
     await show(tester, SaveStatus.idle);
-    final hidden = tester.getSize(find.byType(SaveStatusIndicator));
-    await show(tester, SaveStatus.saving);
-    await tester.pump(const Duration(milliseconds: 300));
+    expect(width(tester), SaveStatusIndicator.collapsedWidth);
+
+    await show(tester, SaveStatus.pending);
+    await tester.pump(const Duration(milliseconds: 100));
     expect(
-        tester.getSize(find.byType(SaveStatusIndicator)).width, hidden.width);
+      width(tester),
+      inExclusiveRange(SaveStatusIndicator.collapsedWidth,
+          SaveStatusIndicator.expandedWidth),
+      reason: 'el hueco se abre con una transición',
+    );
+    await tester.pump(SaveStatusIndicator.resize);
+    expect(width(tester), SaveStatusIndicator.expandedWidth);
+
+    // El check ocupa su lugar mientras se ve y luego lo devuelve.
+    await show(tester, SaveStatus.local);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(width(tester), SaveStatusIndicator.expandedWidth);
+    await tester.pump(SaveStatusIndicator.savedHold);
+    await tester.pumpAndSettle();
+    expect(width(tester), SaveStatusIndicator.collapsedWidth);
+  });
+
+  testWidgets('con "reducir animaciones" hace lugar sin transición',
+      (tester) async {
+    Future<void> reduced(SaveStatus status) => tester.pumpWidget(MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: MaterialApp(
+            home: Scaffold(
+              appBar: AppBar(actions: [SaveStatusIndicator(status: status)]),
+            ),
+          ),
+        ));
+    await reduced(SaveStatus.idle);
+    await reduced(SaveStatus.saving);
+    await tester.pump();
+    expect(width(tester), SaveStatusIndicator.expandedWidth);
   });
 }

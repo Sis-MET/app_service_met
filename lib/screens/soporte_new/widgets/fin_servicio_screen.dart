@@ -64,6 +64,18 @@ class FinServicioScreen extends StatefulWidget {
     this.tableName = '',
   });
 
+  /// "SELECCIONAR OTRA BALANZA": el resumen y el módulo de la balanza recién
+  /// finalizada, que queda debajo, se reemplazan por [next].
+  ///
+  /// Antes el módulo quedaba en la pila: "Salir" de la balanza nueva volvía a
+  /// él y se podía seguir escribiendo en un servicio ya finalizado.
+  static void replaceFinishedService(BuildContext context, Route<void> next) {
+    final navigator = Navigator.of(context);
+    final summary = ModalRoute.of(context);
+    if (summary != null) navigator.removeRouteBelow(summary);
+    navigator.pushReplacement(next);
+  }
+
   @override
   State<FinServicioScreen> createState() => _FinServicioScreenState();
 }
@@ -141,7 +153,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
       if (!mounted) return;
 
-      Navigator.pushReplacement(
+      FinServicioScreen.replaceFinishedService(
         context,
         MaterialPageRoute(
           builder: (_) => PrecargaScreenSop(

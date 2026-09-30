@@ -13,7 +13,8 @@ import 'package:service_met/screens/oportunidades/models/opportunity_service_con
 import 'package:service_met/screens/oportunidades/opportunity_form_screen.dart';
 import 'package:service_met/screens/oportunidades/services/bitrix_opportunity_api.dart';
 import 'package:service_met/screens/oportunidades/services/opportunity_repository.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,7 +44,7 @@ OpportunityServiceContext _support() => OpportunityServiceContext.fromSupport(
       },
     );
 
-/// Pantalla de soporte mínima, en el paso 2 de 2.
+/// Servicio de soporte mínimo, en el paso 2 de 2.
 class _SupportHost extends StatelessWidget {
   const _SupportHost();
 
@@ -60,7 +61,8 @@ class _SupportHost extends StatelessWidget {
         Center(child: Text('Contenido del paso 2')),
       ],
       currentStep: 1,
-      appBarActions: [OpportunityActionButton(contextBuilder: _support)],
+      menuActions: [OpportunityMenuAction(contextBuilder: _support)],
+      onExit: () async => true,
     );
   }
 }
@@ -104,12 +106,17 @@ void main() {
     );
   }
 
-  testWidgets('se abre desde el AppBar del servicio y vuelve al mismo paso',
+  testWidgets('se abre desde el menú ⋮ del servicio y vuelve al mismo paso',
       (tester) async {
     await pumpScreen(tester, const _SupportHost());
     expect(find.text('Contenido del paso 2'), findsOneWidget);
+    expect(find.byIcon(Icons.handshake_outlined), findsNothing,
+        reason: 'ya no ocupa lugar en el AppBar');
 
-    await tester.tap(find.byTooltip('Registrar oportunidad'));
+    await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.handshake_outlined), findsOneWidget);
+    await tester.tap(find.text(OpportunityMenuAction.title));
     await tester.pumpAndSettle();
 
     expect(find.text('Nueva oportunidad'), findsOneWidget);

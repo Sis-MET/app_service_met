@@ -15,6 +15,27 @@ const cambiosSinLiberar = <String>[
       'desde calibración y soporte, sin salir del servicio. Sin conexión '
       'quedan pendientes en el teléfono y se envían a mano desde Otros '
       'apartados. No modifica los registros técnicos.',
+  'Calibración y soporte técnico: título centrado con el paso actual debajo; '
+      '≡ abre la lista de pasos, marca los completos y lleva a cualquiera '
+      'habilitado (reemplaza a la barra de pasos). "Anterior" y el gesto '
+      'Atrás retroceden un paso y nunca sacan del servicio; ⋮ reúne '
+      '"Registrar oportunidad comercial" y "Salir (queda guardado)", que '
+      'guarda antes de cerrar.',
+  'Soporte técnico con la misma seguridad que la calibración: se avanza solo '
+      'con el paso completo y guardado en el teléfono; un paso adelante se '
+      'abre solo con los anteriores completos, y "Finalizar" revisa todos los '
+      'pasos y lleva al primero incompleto (antes revisaba solo el actual y se '
+      'podía finalizar con pasos saltados). Las pruebas de excentricidad, '
+      'repetibilidad y linealidad marcadas como realizadas se exigen con todas '
+      'sus lecturas.',
+  'Soporte técnico: Relevamiento de datos exige inspección, pruebas y cierre '
+      '(antes se podía finalizar vacío); al continuarlo recupera la '
+      'repetibilidad y las posiciones de excentricidad en su lugar. El panel ≡ '
+      'marca como completos los pasos llenos también al reabrir el servicio.',
+  'Soporte técnico: al elegir otra balanza se cierra el servicio recién '
+      'finalizado, que antes quedaba abierto debajo y aceptaba cambios.',
+  'Calibración: de Inspección en adelante los pasos se abren con el '
+      'instrumento confirmado.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

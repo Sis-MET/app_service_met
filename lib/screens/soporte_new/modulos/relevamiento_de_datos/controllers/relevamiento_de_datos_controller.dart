@@ -138,22 +138,60 @@ class RelevamientoDeDatosController extends BaseSoporteController {
           ? []
           : fotos.split(',').where((path) => path.isNotEmpty).toList();
     }
-    final positions = <session.PosicionData>[];
-    for (var i = 1; i <= 12; i++) {
-      final indication = row['indicacion$i']?.toString() ?? '';
-      if (indication.isEmpty) continue;
-      positions.add(session.PosicionData(
-        posicion: row['posicion$i']?.toString(),
-        indicacion: indication,
-        retorno: row['retorno$i']?.toString(),
-      ));
-    }
     excentricidad = session.ExcentricidadData(
       tipoPlataforma: row['tipo_plataforma']?.toString(),
       puntosIndicacion: row['puntos_ind']?.toString(),
       carga: row['carga']?.toString(),
-      posiciones: positions,
     );
+    // Todas las posiciones de la prueba, también las vacías: antes se
+    // saltaban y las siguientes se corrían de lugar.
+    var lastPosition = 0;
+    for (var i = 1; i <= 12; i++) {
+      if ((row['indicacion$i']?.toString() ?? '').isNotEmpty) lastPosition = i;
+    }
+    final positionCount =
+        lastPosition == 0 ? 0 : (excentricidad.puntosCount ?? lastPosition);
+    excentricidad = excentricidad.copyWith(posiciones: [
+      for (var i = 1; i <= positionCount && i <= 12; i++)
+        session.PosicionData(
+          posicion: row['posicion$i']?.toString(),
+          indicacion: row['indicacion$i']?.toString() ?? '',
+          retorno: row['retorno$i']?.toString(),
+        ),
+    ]);
+    // La repetibilidad se guardaba pero no se leía: al continuar volvía
+    // vacía. Una carga, con 3, 5 o 10 mediciones como en la pantalla.
+    final repeatLoad = row['repetibilidad1']?.toString() ?? '';
+    var lastReading = 0;
+    for (var j = 1; j <= 10; j++) {
+      if ((row['indicacion1_$j']?.toString() ?? '').isNotEmpty ||
+          (row['retorno1_$j']?.toString() ?? '').isNotEmpty) {
+        lastReading = j;
+      }
+    }
+    if (repeatLoad.isNotEmpty || lastReading > 0) {
+      final readings = lastReading <= 3
+          ? 3
+          : lastReading <= 5
+              ? 5
+              : 10;
+      String? value(String column) {
+        final text = row[column]?.toString() ?? '';
+        return text.isEmpty ? null : text;
+      }
+
+      repetibilidad = session.RepetibilidadData(cargas: [
+        session.CargaRepetibilidad(
+          carga: repeatLoad,
+          indicaciones: [
+            for (var j = 1; j <= readings; j++) value('indicacion1_$j'),
+          ],
+          retornos: [
+            for (var j = 1; j <= readings; j++) value('retorno1_$j'),
+          ],
+        ),
+      ]);
+    }
     final lines = <session.FilaLinealidad>[];
     for (var i = 1; i <= 12; i++) {
       final load = row['lin$i']?.toString() ?? '';

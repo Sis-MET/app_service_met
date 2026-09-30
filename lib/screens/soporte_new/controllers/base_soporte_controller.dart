@@ -204,6 +204,24 @@ abstract class BaseSoporteController extends ChangeNotifier
     await persistRecoveryProgress();
   }
 
+  /// Guarda lo pendiente antes de salir con "Salir (queda guardado)". False
+  /// si no se pudo guardar: la pantalla debe avisar antes de cerrar.
+  Future<bool> guardarAntesDeSalir() async {
+    _autoSaveTimer?.cancel();
+    await _flushForLifecycle();
+    return !hasUnsavedChanges.value;
+  }
+
+  /// Guarda ya lo que está en pantalla, sin esperar al autoguardado, como
+  /// al avanzar en la calibración. True si quedó en el teléfono; si no,
+  /// [lastSaveError] dice por qué, cuando el módulo lo informa.
+  Future<bool> guardarAhora() async {
+    _autoSaveTimer?.cancel();
+    await guardarSesion();
+    if (_lastSaveSuccessful && !_isDisposed) hasUnsavedChanges.value = false;
+    return _lastSaveSuccessful;
+  }
+
   void markChanged() {
     hasUnsavedChanges.value = true;
     _autoSaveTimer?.cancel();

@@ -9,14 +9,16 @@ import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/widgets/
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
-import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 class StacInstalacion extends StatefulWidget {
   final String sessionId;
@@ -170,76 +172,60 @@ class _StacInstalacionState extends State<StacInstalacion> {
     }
   }
 
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
         if (_controller.camposEstado.any((campo) => campo.value.isEmpty)) {
-          TopAlert.show(
-              context, 'Complete todas las condiciones de instalación',
-              isError: true);
-          return false;
+          return 'Complete todas las condiciones de instalación';
         }
-        return true;
+        return null;
       case 1:
         if (_controller.retornoCeroInicial.isEmpty ||
             _controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(context, 'Complete retorno a cero y estabilidad',
-              isError: true);
-          return false;
+          return 'Complete retorno a cero y estabilidad';
         }
-        return true;
+        return faltaEnPruebas(
+          momento: 'iniciales',
+          excentricidadRealizada: _controller.excentricidadRealizada,
+          excentricidad: _controller.excentricidadInicial,
+          repetibilidadRealizada: _controller.repetibilidadRealizada,
+          repetibilidad: _controller.repetibilidadInicial,
+          linealidadRealizada: _controller.linealidadRealizada,
+          linealidad: _controller.linealidadInicial,
+        );
       case 2:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el comentario general',
-              isError: true);
-          return false;
+          return 'Complete el comentario general';
         }
         if (_controller.recomendacion.isEmpty) {
-          TopAlert.show(context, 'Seleccione una recomendación', isError: true);
-          return false;
+          return 'Seleccione una recomendación';
         }
         if (_controller.estadoFisico.isEmpty ||
             _controller.estadoOperacional.isEmpty ||
             _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
-              isError: true);
-          return false;
+          return 'Complete todos los estados finales';
         }
         if (_controller.fechaProxServicio.isEmpty ||
             _controller.horaFin.isEmpty) {
-          TopAlert.show(
-            context,
-            'Registre la fecha del próximo servicio y la hora final',
-            isError: true,
-          );
-          return false;
+          return 'Registre la fecha del próximo servicio y la hora final';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  void _onStepTapped(int step) {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    _controller.setCurrentStep(step);
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
-  void _onAnterior() {
-    if (_controller.currentStep > 0) {
-      _controller.setCurrentStep(_controller.currentStep - 1);
-    }
-  }
-
-  void _onSiguiente() {
-    if (!_validateCurrentStep()) return;
-    if (_controller.currentStep < _controller.totalSteps - 1) {
-      _controller.setCurrentStep(_controller.currentStep + 1);
-    }
-  }
-
-  void _onFinalizar() {
-    if (!_validateCurrentStep()) return;
+  Future<void> _onFinalizar() async {
+    if (!await _pasos.listoParaFinalizar(context) || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -287,7 +273,7 @@ class _StacInstalacionState extends State<StacInstalacion> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Instalación'),
+        appBar: ServiceAppBar(title: 'Instalación', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -298,8 +284,8 @@ class _StacInstalacionState extends State<StacInstalacion> {
         final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Instalación',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Instalación',
                 otst: widget.secaValue,
@@ -435,11 +421,18 @@ class _StacInstalacionState extends State<StacInstalacion> {
             ),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: _onStepTapped,
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3E7732) : const Color(0xFF498054),
-          onNext: isLast ? _onFinalizar : _onSiguiente,
-          onBack: _controller.currentStep > 0 ? _onAnterior : null,
+          onNext: isLast
+              ? _onFinalizar
+              : () => _pasos.irA(context, _controller.currentStep + 1),
+          onBack: _controller.currentStep > 0
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
+              : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           onReadIndicator: (ctx) =>
               IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),

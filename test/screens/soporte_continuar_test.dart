@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:service_met/database/soporte_tecnico/database_helper_instalacion.dart';
+import 'package:service_met/database/soporte_tecnico/database_helper_relevamiento.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_verificaciones.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/soporte_new/modulos/instalacion/controllers/instalacion_controller.dart';
 import 'package:service_met/screens/soporte_new/modulos/instalacion/models/instalacion_model.dart';
+import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/controllers/relevamiento_de_datos_controller.dart';
+import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/models/relevamiento_de_datos_model.dart';
 import 'package:service_met/screens/soporte_new/modulos/verificaciones_internas/controllers/verificaciones_internas_controller.dart';
 import 'package:service_met/screens/soporte_new/modulos/verificaciones_internas/models/verificaciones_internas_model.dart';
 import 'package:service_met/screens/soporte_new/utils/pruebas_iniciales_columnas.dart';
@@ -49,9 +52,11 @@ void main() {
   Future<void> borrarBases() async {
     await DatabaseHelperVerificaciones().close();
     await DatabaseHelperInstalacion().close();
+    await DatabaseHelperRelevamiento().close();
     final dir = await getDatabasesPath();
     await deleteDatabase(p.join(dir, 'verificaciones_internas.db'));
     await deleteDatabase(p.join(dir, 'instalacion.db'));
+    await deleteDatabase(p.join(dir, 'relevamiento_de_datos.db'));
   }
 
   setUp(borrarBases);
@@ -81,8 +86,8 @@ void main() {
       expect(leidas.repetibilidad.cargas.single.indicaciones.take(3),
           ['100.0', '100.1', '100.0']);
       expect(leidas.linealidadRealizada, isTrue);
-      expect(leidas.linealidad.filas.map((f) => f.indicacion),
-          ['10.0', '20.1']);
+      expect(
+          leidas.linealidad.filas.map((f) => f.indicacion), ['10.0', '20.1']);
       expect(data['linealidad_inicial_cantidad_puntos'], 2);
     });
 
@@ -186,6 +191,58 @@ void main() {
       expect(continuado.camposEstado[1].fotos,
           ['/fotos/soporte/010.jpg', '/fotos/soporte/011.jpg']);
       expect(continuado.linealidadInicial.filas, hasLength(2));
+    });
+
+    test(
+        'Relevamiento recupera la repetibilidad y cada posición de '
+        'excentricidad en su lugar', () async {
+      // Antes la repetibilidad volvía vacía y una posición sin indicación
+      // corría a las siguientes: al continuar, la pantalla pedía datos que
+      // ya estaban escritos o los mostraba en otra posición.
+      RelevamientoDeDatosController abrir() {
+        final controller = RelevamientoDeDatosController(
+          model: RelevamientoDeDatosModel(
+            sessionId: _sessionId,
+            codMetrica: _codMetrica,
+          ),
+        )
+          ..secaValue = _otst
+          ..initCamposEstado();
+        addTearDown(controller.dispose);
+        return controller;
+      }
+
+      final original = abrir()
+        ..excentricidad = ExcentricidadData(
+          tipoPlataforma: 'Rectangular',
+          puntosIndicacion: 'Rectangular 3F',
+          carga: '50',
+          posiciones: [
+            PosicionData(posicion: '1', indicacion: '50.0', retorno: '0'),
+            PosicionData(posicion: '2', indicacion: '', retorno: '0'),
+            PosicionData(posicion: '3', indicacion: '50.1', retorno: '0'),
+          ],
+        )
+        ..repetibilidad = RepetibilidadData(cargas: [
+          CargaRepetibilidad(
+            carga: '100',
+            indicaciones: ['100.0', '100.1', '100.0', '99.9', '100.0'],
+            retornos: ['0', '0', '0', '0', '0'],
+          ),
+        ]);
+      await original.guardarSesion();
+      expect(original.lastSaveSuccessful, isTrue);
+
+      final continuado = abrir();
+      await continuado.restoreSession();
+
+      final posiciones = continuado.excentricidad.posiciones;
+      expect(posiciones.map((e) => e.indicacion), ['50.0', '', '50.1']);
+      final repetibilidad = continuado.repetibilidad.cargas.single;
+      expect(repetibilidad.carga, '100');
+      expect(repetibilidad.indicaciones,
+          ['100.0', '100.1', '100.0', '99.9', '100.0']);
+      expect(repetibilidad.retornos, ['0', '0', '0', '0', '0']);
     });
   });
 }

@@ -174,6 +174,20 @@ const manualServiceMet = ManualUso(
               'versiones.',
           'La versión instalada, al final de la pantalla.',
         ]),
+        Lista('Dentro de una calibración o un servicio de soporte', [
+          'Bajo el título se ve el paso actual ("Paso 3 de 11 · SECA").',
+          '≡, arriba a la izquierda, abre la lista de pasos: los completos '
+              'llevan ✓, los que quedaron sin completar llevan "!" y los que '
+              'todavía no se pueden abrir, un candado. Toque un paso para ir '
+              'a él.',
+          '"Anterior" y el gesto Atrás del teléfono retroceden un paso. '
+              'Nunca sacan del servicio: un gesto accidental no interrumpe el '
+              'trabajo.',
+          'Para salir a medias use ⋮ › "Salir (queda guardado)". Lo '
+              'registrado queda en el teléfono y se continúa desde Servicios.',
+          '⋮ › "Registrar oportunidad comercial" envía una oportunidad a '
+              'Bitrix24 sin dejar el servicio.',
+        ]),
       ],
     ),
     SeccionManual(
@@ -264,8 +278,8 @@ const manualServiceMet = ManualUso(
         Nota(
           TipoNota.importante,
           'Si aparece "Datos pendientes", corrija los campos listados antes de '
-          'continuar. Al salir con cambios sin guardar, la app pregunta '
-          '"Corregir" o "Salir sin guardar".',
+          'continuar. Si al salir (⋮ › "Salir (queda guardado)") no se pudo '
+          'guardar, la app pregunta "Corregir" o "Salir sin guardar".',
         ),
         Nota(
           TipoNota.norma,
@@ -330,12 +344,22 @@ const manualServiceMet = ManualUso(
               '"Verifique todos los datos precargados antes de iniciar".'),
         ]),
         Pasos('Durante el servicio', [
-          Paso('Complete cada paso del módulo con estados, fotos y '
-              'comentarios.'),
-          Paso('En las pruebas metrológicas, escriba con el teclado de la app.',
+          Paso(
+              'Complete cada paso del módulo con estados, fotos y '
+                  'comentarios.',
+              'Como en la calibración, se avanza solo con el paso completo y '
+                  'guardado en el teléfono, y un paso adelante se abre solo '
+                  'con los anteriores completos. Si falta algo, la app dice '
+                  'qué y lleva a ese paso.'),
+          Paso(
+              'En las pruebas metrológicas, escriba con el teclado de la app.',
               '"Siguiente" pasa al campo que sigue; en indicaciones y retornos '
                   'puede usar "Leer del indicador". Atrás o tocar fuera de un '
                   'campo cierran el teclado sin borrar lo escrito.'),
+          Paso(
+              'Registre todas las lecturas de cada prueba que realice.',
+              'Excentricidad, repetibilidad y linealidad se exigen completas. '
+                  'Si una prueba no se hizo, desmárquela; no la deje a medias.'),
           Paso('Use "Todo en buen estado" o "Marcar todo como No aplica" solo '
               'después de revisar cada punto.'),
           Paso('Al terminar, elija "SELECCIONAR OTRA BALANZA" o '
@@ -352,7 +376,7 @@ const manualServiceMet = ManualUso(
       id: 'oportunidades',
       grupo: GrupoManual.servicios,
       titulo: 'Registrar una oportunidad comercial',
-      icono: Icons.business_center_outlined,
+      icono: Icons.handshake_outlined,
       resumen: 'Enviar a Bitrix24 una necesidad del cliente sin dejar el '
           'servicio.',
       bloques: [
@@ -363,35 +387,42 @@ const manualServiceMet = ManualUso(
             'opcional, no es un paso del servicio y no cambia ningún dato '
             'del registro técnico.'),
         Pasos('Registrar', [
-          Paso('En el encabezado del servicio, toque el maletín '
-              '("Registrar oportunidad").',
+          Paso(
+              'En el encabezado del servicio, toque ⋮ › "Registrar '
+                  'oportunidad comercial".',
               'Se abre "Nueva oportunidad" con el servicio, el cliente, la '
                   'planta y el equipo ya cargados.'),
-          Paso('En "Empresa Bitrix24", busque y elija la empresa.',
+          Paso(
+              'En "Empresa Bitrix24", busque y elija la empresa.',
               'La app sugiere buscar con el nombre del cliente, pero en '
                   'Bitrix24 puede figurar distinto: elija siempre la empresa '
                   'correcta.'),
           Paso('Elija el contacto, o deje "Sin contacto".'),
-          Paso('Revise la "Ciudad del prospecto".',
+          Paso(
+              'Revise la "Ciudad del prospecto".',
               'En "Automática" se toma del departamento de la planta; elija '
                   'otra si corresponde. Si no se puede deducir, la app pide '
                   'elegirla.'),
-          Paso('Elija el "Tipo de oportunidad" y escriba la "Descripción".',
+          Paso(
+              'Elija el "Tipo de oportunidad" y escriba la "Descripción".',
               'El título se arma solo y puede editarse. Bitrix24 recibe además '
                   'la línea (VENTA, SOPORTE TECNICO o CALIBRACIÓN) y el mes '
                   'del servicio. La prioridad y las observaciones son '
                   'opcionales.'),
-          Paso('Toque "Registrar oportunidad".',
+          Paso(
+              'Toque "Registrar oportunidad".',
               'Al terminar vuelve al mismo paso del servicio, con el número '
                   'de la oportunidad creada.'),
         ]),
         Pasos('Sin conexión', [
-          Paso('Si no hay conexión con el servidor o con Bitrix24, la '
-              'oportunidad queda guardada en el teléfono como pendiente.',
+          Paso(
+              'Si no hay conexión con el servidor o con Bitrix24, la '
+                  'oportunidad queda guardada en el teléfono como pendiente.',
               'También puede tocar "Guardar pendiente" y elegir la empresa '
                   'más tarde.'),
-          Paso('Con conexión, abra Otros apartados › "Oportunidades '
-              'comerciales" y toque "Enviar" o "Enviar todas".',
+          Paso(
+              'Con conexión, abra Otros apartados › "Oportunidades '
+                  'comerciales" y toque "Enviar" o "Enviar todas".',
               'Las pendientes nunca se envían solas. Reenviar no duplica la '
                   'oportunidad en Bitrix24.'),
         ]),

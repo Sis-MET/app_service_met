@@ -13,7 +13,10 @@ import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/ajuste_verificaciones_controller.dart';
 import 'models/ajuste_verificaciones_model.dart';
@@ -172,83 +175,71 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
     }
   }
 
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
         if (_controller.retornoCeroInicial.isEmpty ||
             _controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(
-            context,
-            'Complete retorno a cero y estabilidad de las pruebas iniciales',
-            isError: true,
-          );
-          return false;
+          return 'Complete retorno a cero y estabilidad de las pruebas iniciales';
         }
-        return true;
+        return _faltaEnPruebas(iniciales: true);
       case 1:
         if (_controller.retornoCeroFinal.isEmpty ||
             _controller.estabilidadFinal.isEmpty) {
-          TopAlert.show(
-            context,
-            'Complete retorno a cero y estabilidad de las pruebas finales',
-            isError: true,
-          );
-          return false;
+          return 'Complete retorno a cero y estabilidad de las pruebas finales';
         }
-        return true;
+        return _faltaEnPruebas(iniciales: false);
       case 2:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el comentario general',
-              isError: true);
-          return false;
+          return 'Complete el comentario general';
         }
         if (_controller.recomendacion.isEmpty) {
-          TopAlert.show(context, 'Seleccione una recomendación', isError: true);
-          return false;
+          return 'Seleccione una recomendación';
         }
         if (_controller.fechaProxServicio.isEmpty) {
-          TopAlert.show(context, 'Seleccione la fecha del próximo servicio',
-              isError: true);
-          return false;
+          return 'Seleccione la fecha del próximo servicio';
         }
         if (_controller.estadoFisico.isEmpty ||
             _controller.estadoOperacional.isEmpty ||
             _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
-              isError: true);
-          return false;
+          return 'Complete todos los estados finales';
         }
         if (_controller.horaFin.isEmpty) {
-          TopAlert.show(context, 'Registre la hora final del servicio',
-              isError: true);
-          return false;
+          return 'Registre la hora final del servicio';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  void _onStepTapped(int step) {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    _controller.setCurrentStep(step);
-  }
+  String? _faltaEnPruebas({required bool iniciales}) => faltaEnPruebas(
+        momento: iniciales ? 'iniciales' : 'finales',
+        excentricidadRealizada: _controller.excentricidadRealizada,
+        excentricidad: iniciales
+            ? _controller.excentricidadInicial
+            : _controller.excentricidadFinal,
+        repetibilidadRealizada: _controller.repetibilidadRealizada,
+        repetibilidad: iniciales
+            ? _controller.repetibilidadInicial
+            : _controller.repetibilidadFinal,
+        linealidadRealizada: _controller.linealidadRealizada,
+        linealidad: iniciales
+            ? _controller.linealidadInicial
+            : _controller.linealidadFinal,
+      );
 
-  void _onAnterior() {
-    if (_controller.currentStep > 0) {
-      _controller.setCurrentStep(_controller.currentStep - 1);
-    }
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
-  void _onSiguiente() {
-    if (!_validateCurrentStep()) return;
-    if (_controller.currentStep < _controller.totalSteps - 1) {
-      _controller.setCurrentStep(_controller.currentStep + 1);
-    }
-  }
-
-  void _onFinalizar() {
-    if (!_validateCurrentStep()) return;
+  Future<void> _onFinalizar() async {
+    if (!await _pasos.listoParaFinalizar(context) || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -295,7 +286,8 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Ajuste de Verificaciones'),
+        appBar:
+            ServiceAppBar(title: 'Ajuste de Verificaciones', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -306,8 +298,8 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
         final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Ajuste de Verificaciones',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Ajuste de verificaciones',
                 otst: widget.secaValue,
@@ -393,11 +385,18 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
             ),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: _onStepTapped,
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3E7732) : const Color(0xFF498054),
-          onNext: isLast ? _onFinalizar : _onSiguiente,
-          onBack: _controller.currentStep > 0 ? _onAnterior : null,
+          onNext: isLast
+              ? _onFinalizar
+              : () => _pasos.irA(context, _controller.currentStep + 1),
+          onBack: _controller.currentStep > 0
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
+              : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           onReadIndicator: (ctx) =>
               IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),

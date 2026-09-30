@@ -15,7 +15,10 @@ import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/mnt_correctivo_controller.dart';
 import 'models/mnt_correctivo_model.dart';
@@ -61,7 +64,6 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   late final BalanzaInfo _balanzaInfo;
   final int _copyTickFinales = 0;
   int _formRefreshTick = 0;
-  bool _isSaving = false;
   bool _isImporting = false;
   bool _isLoading = true;
 
@@ -190,95 +192,67 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     }
   }
 
-  /// Guarda el servicio y devuelve si quedó en el teléfono. Si no, avisa por
-  /// qué: antes el fallo no se veía y la pantalla seguía como si nada.
-  Future<bool> _saveCurrentStep() async {
-    if (_isSaving) return false;
-    setState(() => _isSaving = true);
-    var saved = false;
-    Object? error;
-    try {
-      await _controller.guardarSesion();
-      saved = _controller.lastSaveSuccessful;
-    } catch (e) {
-      error = e;
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-    if (!saved && mounted) {
-      final motivo = _controller.lastSaveError ?? error;
-      TopAlert.show(
-        context,
-        'No se pudo guardar en el teléfono${motivo == null ? '' : ': $motivo'}'
-        '\nLo escrito sigue en pantalla; intente de nuevo.',
-        isError: true,
-      );
-    }
-    return saved;
-  }
-
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
         if (_controller.reporteFalla.isEmpty) {
-          TopAlert.show(context, 'Complete el reporte de falla', isError: true);
-          return false;
+          return 'Complete el reporte de falla';
         }
         if (_controller.evaluacion.isEmpty ||
             _controller.trabajoRealizado.isEmpty) {
-          TopAlert.show(
-              context, 'Complete la evaluacion tecnica y el trabajo realizado',
-              isError: true);
-          return false;
+          return 'Complete la evaluacion tecnica y el trabajo realizado';
         }
         for (final campo in _controller.camposEstado) {
           if (campo.value.isEmpty) {
-            TopAlert.show(context, 'Complete todos los campos de inspección',
-                isError: true);
-            return false;
+            return 'Complete todos los campos de inspección';
           }
         }
-        return true;
+        return null;
+      case 1:
+        if (_controller.retornoCeroFinal.isEmpty ||
+            _controller.estabilidadFinal.isEmpty) {
+          return 'Complete retorno a cero y estabilidad de las pruebas finales';
+        }
+        return faltaEnPruebas(
+          momento: 'finales',
+          excentricidadRealizada: _controller.excentricidadRealizada,
+          excentricidad: _controller.excentricidadFinal,
+          repetibilidadRealizada: _controller.repetibilidadRealizada,
+          repetibilidad: _controller.repetibilidadFinal,
+          linealidadRealizada: _controller.linealidadRealizada,
+          linealidad: _controller.linealidadFinal,
+        );
       case 2:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el comentario general',
-              isError: true);
-          return false;
+          return 'Complete el comentario general';
         }
         if (_controller.estadoFisico.isEmpty ||
             _controller.estadoOperacional.isEmpty ||
             _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
-              isError: true);
-          return false;
+          return 'Complete todos los estados finales';
         }
         if (_controller.recomendacion.isEmpty ||
             _controller.fechaProxServicio.isEmpty ||
             _controller.horaFin.isEmpty) {
-          TopAlert.show(context,
-              'Complete la recomendacion, fecha del proximo servicio y hora final',
-              isError: true);
-          return false;
+          return 'Complete la recomendacion, fecha del proximo servicio y hora final';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  Future<void> _goToStep(int step) async {
-    final adelante = step > _controller.currentStep;
-    if (adelante && !_validateCurrentStep()) return;
-    final saved = await _saveCurrentStep();
-    // Hacia adelante solo con lo escrito guardado. Hacia atrás no se pierde
-    // nada: sigue en pantalla y se vuelve a intentar al avanzar.
-    if (!saved && adelante) return;
-    if (mounted) _controller.setCurrentStep(step);
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
   Future<void> _finalizar() async {
-    if (!_validateCurrentStep()) return;
-    if (!await _saveCurrentStep()) return;
+    if (!await _pasos.listoParaFinalizar(context)) return;
     if (!mounted) return;
     Navigator.push(
       context,
@@ -314,7 +288,8 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Mantenimiento Correctivo'),
+        appBar:
+            ServiceAppBar(title: 'Mantenimiento Correctivo', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -324,8 +299,8 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
         final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Mantenimiento Correctivo',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Mantenimiento correctivo',
                 otst: widget.secaValue,
@@ -347,15 +322,18 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
             _buildPasoEstadoFinal(),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: (step) => _goToStep(step),
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
           onNext: isLast
               ? _finalizar
-              : () => _goToStep(_controller.currentStep + 1),
+              : () => _pasos.irA(context, _controller.currentStep + 1),
           onBack: _controller.currentStep > 0
-              ? () => _goToStep(_controller.currentStep - 1)
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
               : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           onReadIndicator: (ctx) =>
               IndicatorReaderScreen.read(ctx, balanza: _balanzaInfo),

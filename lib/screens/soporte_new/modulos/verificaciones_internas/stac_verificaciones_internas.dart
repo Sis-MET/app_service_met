@@ -9,14 +9,16 @@ import 'package:service_met/screens/soporte_new/widgets/shared/bulk_estado_toggl
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_avanzado/widgets/steps/paso_pruebas_metrologicas.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
-import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/verificaciones_internas_controller.dart';
 import 'models/verificaciones_internas_model.dart';
@@ -61,7 +63,6 @@ class StacVerificacionesInternas extends StatefulWidget {
 class _StacVerificacionesInternasState
     extends State<StacVerificacionesInternas> {
   late VerificacionesInternasController _controller;
-  bool _isSaving = false;
   bool _isLoading = true;
   BulkEstadoMode _bulkEstadoMode = BulkEstadoMode.none;
 
@@ -200,66 +201,60 @@ class _StacVerificacionesInternasState
     }
   }
 
-  Future<void> _saveCurrentStep() async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
-    try {
-      await _controller.guardarSesion();
-    } catch (e) {
-      if (mounted) {
-        TopAlert.show(context, 'Error al guardar: $e', isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
-        if (_controller.camposEstado.any((field) => field.value.isEmpty) ||
-            _controller.retornoCeroInicial.isEmpty ||
-            _controller.estabilidadInicial.isEmpty) {
-          TopAlert.show(context, 'Complete retorno a cero y estabilidad',
-              isError: true);
-          return false;
+        if (_controller.camposEstado.any((field) => field.value.isEmpty)) {
+          return 'Complete el estado de cada punto de la inspección visual';
         }
-        return true;
+        if (_controller.retornoCeroInicial.isEmpty ||
+            _controller.estabilidadInicial.isEmpty) {
+          return 'Complete retorno a cero y estabilidad';
+        }
+        return null;
+      case 1:
+        return faltaEnPruebas(
+          momento: 'iniciales',
+          excentricidadRealizada: _controller.excentricidadRealizada,
+          excentricidad: _controller.excentricidadInicial,
+          repetibilidadRealizada: _controller.repetibilidadRealizada,
+          repetibilidad: _controller.repetibilidadInicial,
+          linealidadRealizada: _controller.linealidadRealizada,
+          linealidad: _controller.linealidadInicial,
+        );
       case 2:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el comentario general',
-              isError: true);
-          return false;
+          return 'Complete el comentario general';
+        }
+        if (_controller.recomendacion.isEmpty) {
+          return 'Seleccione una recomendación';
         }
         if (_controller.estadoFisico.isEmpty ||
             _controller.estadoOperacional.isEmpty ||
             _controller.estadoMetrologico.isEmpty) {
-          TopAlert.show(context, 'Complete todos los estados finales',
-              isError: true);
-          return false;
+          return 'Complete todos los estados finales';
         }
         if (_controller.fechaProxServicio.isEmpty ||
             _controller.horaFin.isEmpty) {
-          TopAlert.show(
-              context, 'Registre la fecha del próximo servicio y la hora final',
-              isError: true);
-          return false;
+          return 'Registre la fecha del próximo servicio y la hora final';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  Future<void> _goToStep(int step) async {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    await _saveCurrentStep();
-    if (mounted) _controller.setCurrentStep(step);
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
   Future<void> _finalizar() async {
-    if (!_validateCurrentStep()) return;
-    await _saveCurrentStep();
+    if (!await _pasos.listoParaFinalizar(context)) return;
     if (!mounted) return;
     Navigator.push(
       context,
@@ -295,7 +290,8 @@ class _StacVerificacionesInternasState
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Verificaciones Internas'),
+        appBar:
+            ServiceAppBar(title: 'Verificaciones Internas', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -305,8 +301,8 @@ class _StacVerificacionesInternasState
         final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Verificaciones Internas',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Verificaciones internas',
                 otst: widget.secaValue,
@@ -328,15 +324,18 @@ class _StacVerificacionesInternasState
             _buildPasoEstadoFinal(),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: (step) => _goToStep(step),
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
           onNext: isLast
               ? _finalizar
-              : () => _goToStep(_controller.currentStep + 1),
+              : () => _pasos.irA(context, _controller.currentStep + 1),
           onBack: _controller.currentStep > 0
-              ? () => _goToStep(_controller.currentStep - 1)
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
               : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           onReadIndicator: (ctx) => IndicatorReaderScreen.read(ctx,
               balanza: buildCalBalanzaInfo(

@@ -279,14 +279,14 @@ class _EmptyState extends StatelessWidget {
     return AppPanel(
       child: Column(
         children: [
-          const Icon(Icons.business_center_outlined,
+          const Icon(Icons.handshake_outlined,
               size: 36, color: AppColors.shimmerGold),
           const SizedBox(height: 12),
           Text('Sin oportunidades', style: AppDesign.titleStyle(context)),
           const SizedBox(height: 6),
           Text(
-            'Durante una calibración o un servicio de soporte, toque el '
-            'maletín del encabezado para registrar una oportunidad.',
+            'Durante una calibración o un servicio de soporte, toque ⋮ › '
+            '"Registrar oportunidad comercial" para registrar una oportunidad.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),

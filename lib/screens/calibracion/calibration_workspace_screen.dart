@@ -10,8 +10,10 @@ import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/widgets/service_ui/service_options_menu.dart';
+import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
 
 import 'steps/cliente_step.dart';
 import 'steps/planta_step.dart';
@@ -57,6 +59,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
   late final NumericKeypadController _keypad;
   late final ServiceSessionProvider _provider;
   final _fieldNavigator = CalibrationFieldNavigator();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   String? _historySessionId;
 
   @override
@@ -184,14 +187,35 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
     return true;
   }
 
-  Future<void> _onPopBlocked(ServiceSessionProvider provider) async {
-    // Atrás primero cierra el teclado, como con el del sistema.
+  /// Atrás del sistema (gesto o botón): primero cierra el panel de pasos o el
+  /// teclado, como con los del sistema; después retrocede un paso, igual que
+  /// "Anterior". Nunca sale de la calibración: en el primer paso solo avisa
+  /// cómo salir.
+  void _onSystemBack(ServiceSessionProvider provider) {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold != null && scaffold.isDrawerOpen) {
+      scaffold.closeDrawer();
+      return;
+    }
     if (_keypad.visible) {
       _keypad.close();
       return;
     }
-    final error = provider.saveError;
-    if (error == null) return;
+    if (provider.currentStep > 0) {
+      provider.previousStep();
+      return;
+    }
+    ServiceOptionsMenu.showFirstStepHint(context);
+  }
+
+  /// "Salir (queda guardado)" del menú ⋮, ya confirmado: guarda lo pendiente
+  /// y, solo si no se pudo, pregunta antes de cerrar. Devuelve si se puede
+  /// cerrar la pantalla.
+  Future<bool> _guardarParaSalir(ServiceSessionProvider provider) async {
+    _keypad.close();
+    if (await provider.flushAutoSave()) return true;
+    final error = provider.saveError ?? 'No se pudo guardar.';
+    if (!mounted) return false;
     final salir = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -212,7 +236,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
         ],
       ),
     );
-    if (salir == true && mounted) Navigator.of(context).pop();
+    return salir == true;
   }
 
   @override
@@ -244,8 +268,13 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
       });
     }
 
-    // Validate accessibility for steps
-    bool hasSeca = session.metadata.secaConfirmed;
+    // Un paso se abre desde el panel ≡ solo si sus anteriores lo permiten
+    // (cliente, planta y SECA confirmado). De Inspección en adelante, además,
+    // con el instrumento confirmado, como con "Guardar Datos": si no, tras
+    // "otra balanza" se podían escribir lecturas sin balanza elegida.
+    bool open(int index) =>
+        provider.canGoToStep(index) &&
+        (index <= 3 || session.metadata.balanzaConfirmed);
 
     StepProgress progress(int index) {
       final complete = switch (index) {
@@ -272,60 +301,62 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
           title: 'Planta',
           progress: progress(1),
           subtitle: session.planta?.nombre ?? 'Seleccione planta',
-          icon: Icons.factory),
+          icon: Icons.factory,
+          isAccessible: open(1)),
       StepData(
           title: 'SECA',
           progress: progress(2),
           subtitle: session.sessionInfo.seca ?? 'Ingresar SECA',
-          icon: Icons.qr_code),
+          icon: Icons.qr_code,
+          isAccessible: open(2)),
       StepData(
           title: 'Instrumento',
           progress: progress(3),
           subtitle: session.balanza?.codMetrica ?? 'Seleccionar balanza',
           icon: Icons.scale,
-          isAccessible: hasSeca),
+          isAccessible: open(3)),
       StepData(
           title: 'Inspección',
           progress: progress(4),
           subtitle: 'Visual',
           icon: Icons.visibility,
-          isAccessible: hasSeca),
+          isAccessible: open(4)),
       StepData(
           title: 'Precarga/Ajuste',
           progress: progress(5),
           subtitle: 'Datos',
           icon: Icons.settings,
-          isAccessible: hasSeca),
+          isAccessible: open(5)),
       StepData(
           title: 'Excentricidad',
           progress: progress(6),
           subtitle: 'Prueba',
           icon: Icons.center_focus_strong,
-          isAccessible: hasSeca),
+          isAccessible: open(6)),
       StepData(
           title: 'Repetibilidad',
           progress: progress(7),
           subtitle: 'Prueba',
           icon: Icons.repeat,
-          isAccessible: hasSeca),
+          isAccessible: open(7)),
       StepData(
           title: 'Linealidad',
           progress: progress(8),
           subtitle: 'Prueba',
           icon: Icons.show_chart,
-          isAccessible: hasSeca),
+          isAccessible: open(8)),
       StepData(
           title: 'Final',
           progress: progress(9),
           subtitle: 'Condiciones',
           icon: Icons.check_circle,
-          isAccessible: hasSeca),
+          isAccessible: open(9)),
       StepData(
           title: 'Finalizar',
           progress: progress(10),
           subtitle: 'Reporte',
           icon: Icons.download,
-          isAccessible: hasSeca),
+          isAccessible: open(10)),
     ];
 
     // Sync page controller if provider step changed externally
@@ -336,33 +367,42 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
       _pageController.jumpToPage(provider.currentStep);
     }
 
-    return ValueListenableBuilder<bool>(
-      valueListenable: _keypad.visibility,
-      builder: (context, teclado, child) => PopScope(
-        canPop: !teclado && provider.saveError == null,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) _onPopBlocked(provider);
-        },
-        // Sin SafeArea abajo: los pasos pasan por detrás de la barra de
-        // navegación, como en el inicio. La píldora, el botón de información
-        // y el teclado se ubican encima de ella.
-        child: child!,
-      ),
+    // Atrás del sistema nunca cierra: retrocede entre los pasos (ver
+    // _onSystemBack); se sale con el menú ⋮. Sin SafeArea abajo: los pasos
+    // pasan por detrás de la barra de navegación, como en el inicio. La
+    // píldora, el botón de información y el teclado se ubican encima de ella.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _onSystemBack(provider);
+      },
       child: Scaffold(
+        key: _scaffoldKey,
+        // Los 11 pasos están en el panel ≡: marca los completos y lleva a
+        // cualquiera habilitado. Al abrirlo se cierran el teclado numérico y
+        // el del sistema.
+        drawer: ServiceStepsDrawer(
+          title: 'Calibración',
+          steps: steps,
+          currentStep: provider.currentStep,
+          onStepSelected: (index) {
+            if (open(index)) provider.goToStep(index);
+          },
+        ),
+        onDrawerChanged: (isOpen) {
+          if (!isOpen) return;
+          _keypad.close();
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
         appBar: ServiceAppBar(
           title: 'Calibración',
-          // Entre pasos se navega con la píldora de abajo; una flecha arriba
-          // que saca del servicio se confundía con "paso anterior". Salir
-          // sigue siendo el gesto o botón atrás del sistema, con PopScope.
-          automaticallyImplyLeading: false,
+          subtitle:
+              ServiceStepsDrawer.progressLabel(steps, provider.currentStep),
+          centerTitle: true,
+          // Sin flecha: entre pasos se navega con la píldora, el panel ≡ o el
+          // gesto Atrás, y se sale con el menú ⋮.
+          leading: const ServiceStepsButton(),
           actions: [
-            // Oportunidad comercial: opcional, en cualquier paso y sin salir
-            // de la calibración (lee la sesión, no la modifica).
-            OpportunityActionButton(
-              beforeOpen: _keypad.close,
-              contextBuilder: () => OpportunityServiceContext.fromCalibration(
-                  _provider.session ?? session),
-            ),
             if (_fieldNavigator.canUndoInStep(provider.currentStep))
               IconButton(
                 tooltip: 'Deshacer última entrada',
@@ -380,6 +420,21 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                             ? SaveStatus.pending
                             : SaveStatus.local,
               ),
+            // Oportunidad comercial (opcional, en cualquier paso y sin salir
+            // de la calibración: lee la sesión, no la modifica) y la única
+            // salida a medias, explícita y confirmada.
+            ServiceOptionsMenu(
+              serviceName: 'la calibración',
+              onOpened: _keypad.close,
+              onExit: () => _guardarParaSalir(provider),
+              actions: [
+                OpportunityMenuAction(
+                  contextBuilder: () =>
+                      OpportunityServiceContext.fromCalibration(
+                          _provider.session ?? session),
+                ),
+              ],
+            ),
           ],
         ),
         body: CalibrationFieldNavigationScope(
@@ -388,15 +443,6 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
             controller: _keypad,
             child: Column(
               children: [
-                StepIndicator(
-                  currentStep: provider.currentStep,
-                  steps: steps,
-                  onStepTapped: (index) {
-                    if (provider.canGoToStep(index)) {
-                      provider.goToStep(index);
-                    }
-                  },
-                ),
                 if (provider.saveError != null)
                   _SaveErrorBanner(
                     message: provider.saveError!,

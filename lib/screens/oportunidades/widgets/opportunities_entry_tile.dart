@@ -42,7 +42,7 @@ class _OpportunitiesEntryTileState extends State<OpportunitiesEntryTile> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
         leading: const Icon(
-          Icons.business_center_outlined,
+          Icons.handshake_outlined,
           color: AppColors.shimmerGold,
         ),
         title: const Text('Oportunidades comerciales'),

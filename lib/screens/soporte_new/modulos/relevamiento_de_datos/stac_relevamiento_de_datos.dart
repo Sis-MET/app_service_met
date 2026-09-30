@@ -15,7 +15,10 @@ import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 class StacRelevamientoDeDatos extends StatefulWidget {
   final String sessionId;
@@ -176,23 +179,75 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
     _controller.dec3 = data['dec3']?.toString() ?? '';
   }
 
-  void _onStepTapped(int step) {
-    _controller.setCurrentStep(step);
-  }
+  bool _completos(int desde, int hasta) => _controller.camposEstado
+      .sublist(desde, hasta)
+      .every((campo) => campo.value.isNotEmpty);
 
-  void _onAnterior() {
-    if (_controller.currentStep > 0) {
-      _controller.setCurrentStep(_controller.currentStep - 1);
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente", "Finalizar" y el panel ≡ de pasos.
+  ///
+  /// Los estados físico, operacional y metrológico no se exigen: la tabla
+  /// de relevamiento no los guarda.
+  String? _stepIssue(int step) {
+    switch (step) {
+      case 0:
+        return _completos(0, 6)
+            ? null
+            : 'Complete todos los campos de Terminal';
+      case 1:
+        return _completos(6, 12)
+            ? null
+            : 'Complete todos los campos de Plataforma';
+      case 2:
+        if (!_completos(12, 15)) {
+          return 'Complete todos los campos de Celdas';
+        }
+        if (!_completos(15, 19)) {
+          return 'Seleccione todas las condiciones de instalación';
+        }
+        return null;
+      case 3:
+        if (_controller.retornoCero.isEmpty ||
+            _controller.estabilidad.isEmpty) {
+          return 'Complete retorno a cero y estabilidad';
+        }
+        return faltaEnPruebas(
+          momento: 'finales',
+          excentricidadRealizada: _controller.excentricidadRealizada,
+          excentricidad: _controller.excentricidad,
+          repetibilidadRealizada: _controller.repetibilidadRealizada,
+          repetibilidad: _controller.repetibilidad,
+          linealidadRealizada: _controller.linealidadRealizada,
+          linealidad: _controller.linealidad,
+        );
+      case 4:
+        if (_controller.comentarioGeneral.isEmpty) {
+          return 'Complete el comentario general';
+        }
+        if (_controller.recomendacion.isEmpty) {
+          return 'Seleccione una recomendación';
+        }
+        if (_controller.fechaProxServicio.isEmpty) {
+          return 'Seleccione la fecha del próximo servicio';
+        }
+        if (_controller.horaFin.isEmpty) {
+          return 'Registre la hora final del servicio';
+        }
+        return null;
+      default:
+        return null;
     }
   }
 
-  void _onSiguiente() {
-    if (_controller.currentStep < _controller.totalSteps - 1) {
-      _controller.setCurrentStep(_controller.currentStep + 1);
-    }
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
-  void _onFinalizar() {
+  Future<void> _onFinalizar() async {
+    if (!await _pasos.listoParaFinalizar(context) || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -245,8 +300,8 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
         final isLast = _controller.currentStep == _controller.totalSteps - 1;
         return ServiceWorkspaceLayout(
           title: 'Relevamiento de Datos',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Relevamiento de datos',
                 otst: widget.secaValue,
@@ -425,11 +480,18 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
             ),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: _onStepTapped,
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
-          onNext: isLast ? _onFinalizar : _onSiguiente,
-          onBack: _controller.currentStep > 0 ? _onAnterior : null,
+          onNext: isLast
+              ? _onFinalizar
+              : () => _pasos.irA(context, _controller.currentStep + 1),
+          onBack: _controller.currentStep > 0
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
+              : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           onReadIndicator: (ctx) => IndicatorReaderScreen.read(ctx,
               balanza: buildCalBalanzaInfo(

@@ -4,14 +4,15 @@ import 'package:intl/intl.dart';
 import 'package:service_met/screens/soporte_new/utils/balanza_info_helper.dart';
 import 'package:service_met/screens/soporte_new/widgets/fin_servicio_screen.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/paso_estado_final_widget.dart';
-import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_action_button.dart';
+import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
+import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/diagnostico_controller.dart';
 import 'models/diagnostico_model.dart';
@@ -54,7 +55,6 @@ class StacDiagnostico extends StatefulWidget {
 
 class _StacDiagnosticoState extends State<StacDiagnostico> {
   late DiagnosticoController _controller;
-  bool _isSaving = false;
   bool _isLoading = true;
 
   static const _steps = [
@@ -171,59 +171,40 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
     }
   }
 
-  Future<void> _saveCurrentStep() async {
-    if (_isSaving) return;
-    setState(() => _isSaving = true);
-    try {
-      await _controller.guardarSesion();
-    } catch (e) {
-      if (mounted) {
-        TopAlert.show(context, 'Error al guardar: $e', isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
-  bool _validateCurrentStep() {
-    switch (_controller.currentStep) {
+  /// Qué le falta al paso [step] para darlo por completo; null si nada. Lo
+  /// usan "Siguiente" y el panel ≡ de pasos.
+  String? _stepIssue(int step) {
+    switch (step) {
       case 0:
         if (_controller.reporteFalla.isEmpty) {
-          TopAlert.show(context, 'Complete el reporte de falla', isError: true);
-          return false;
+          return 'Complete el reporte de falla';
         }
         if (_controller.evaluacion.isEmpty) {
-          TopAlert.show(context, 'Complete la evaluacion tecnica',
-              isError: true);
-          return false;
+          return 'Complete la evaluacion tecnica';
         }
-        return true;
+        return null;
       case 1:
         if (_controller.comentarioGeneral.isEmpty) {
-          TopAlert.show(context, 'Complete el comentario general',
-              isError: true);
-          return false;
+          return 'Complete el comentario general';
         }
         if (_controller.horaFin.isEmpty) {
-          TopAlert.show(context, 'Registre la hora final del servicio',
-              isError: true);
-          return false;
+          return 'Registre la hora final del servicio';
         }
-        return true;
+        return null;
       default:
-        return true;
+        return null;
     }
   }
 
-  Future<void> _goToStep(int step) async {
-    if (step > _controller.currentStep && !_validateCurrentStep()) return;
-    await _saveCurrentStep();
-    if (mounted) _controller.setCurrentStep(step);
-  }
+  /// Adelante solo con lo anterior completo y guardado; ver [PasosSoporte].
+  late final _pasos = PasosSoporte(
+    controller: _controller,
+    total: _steps.length,
+    falta: _stepIssue,
+  );
 
   Future<void> _finalizar() async {
-    if (!_validateCurrentStep()) return;
-    await _saveCurrentStep();
+    if (!await _pasos.listoParaFinalizar(context)) return;
     if (!mounted) return;
     Navigator.push(
       context,
@@ -259,7 +240,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: ServiceAppBar(title: 'Diagnostico'),
+        appBar: ServiceAppBar(title: 'Diagnostico', centerTitle: true),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -269,8 +250,8 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
         final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Diagnóstico',
-          appBarActions: [
-            OpportunityActionButton(
+          menuActions: [
+            OpportunityMenuAction(
               contextBuilder: () => OpportunityServiceContext.fromSupport(
                 serviceName: 'Diagnóstico',
                 otst: widget.secaValue,
@@ -291,15 +272,18 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
             _buildPasoEstadoFinal(),
           ],
           currentStep: _controller.currentStep,
-          onStepTapped: (step) => _goToStep(step),
+          onStepTapped: (paso) => _pasos.irA(context, paso),
+          stepIssue: _stepIssue,
           nextLabel: isLast ? 'Finalizar' : 'Siguiente',
           nextColor: isLast ? const Color(0xFF3e7732) : const Color(0xFF498054),
           onNext: isLast
               ? _finalizar
-              : () => _goToStep(_controller.currentStep + 1),
+              : () => _pasos.irA(context, _controller.currentStep + 1),
           onBack: _controller.currentStep > 0
-              ? () => _goToStep(_controller.currentStep - 1)
+              ? () => _pasos.irA(context, _controller.currentStep - 1)
               : null,
+          // Salir es explícito (menú ⋮); Atrás solo retrocede entre pasos.
+          onExit: () => salirGuardando(context, _controller),
           saveStatus: _saveStatus,
           balanzaInfo: buildServiceBalanzaInfo(
               widget.instrumentoData, widget.codMetrica),

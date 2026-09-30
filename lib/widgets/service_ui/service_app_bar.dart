@@ -15,8 +15,9 @@ enum SaveStatus { idle, pending, saving, local, success, error }
 /// Solo aparece mientras hay algo que contar: un punto que late con cambios
 /// pendientes, un anillo fino mientras guarda y un check que se dibuja al
 /// terminar y luego se retira. Un error queda visible hasta resolverse.
-/// Ocupa siempre el mismo hueco para que las otras acciones no se muevan con
-/// cada autoguardado.
+/// Sin nada que contar no ocupa lugar: al aparecer se abre paso y las
+/// acciones de su izquierda se deslizan para hacerle lugar; al retirarse
+/// vuelven a su sitio.
 class SaveStatusIndicator extends StatefulWidget {
   final SaveStatus status;
 
@@ -24,6 +25,14 @@ class SaveStatusIndicator extends StatefulWidget {
 
   /// Cuánto se muestra el check antes de retirarse.
   static const savedHold = Duration(milliseconds: 1100);
+
+  /// Ancho con un estado a la vista (28 del glifo + 12 de margen) y en
+  /// reposo (un respiro para la acción que queda junto al borde).
+  static const expandedWidth = 40.0;
+  static const collapsedWidth = 4.0;
+
+  /// Lo que tarda en abrirse o cerrarse el hueco.
+  static const resize = Duration(milliseconds: 260);
 
   @override
   State<SaveStatusIndicator> createState() => _SaveStatusIndicatorState();
@@ -125,7 +134,7 @@ class _SaveStatusIndicatorState extends State<SaveStatusIndicator> {
       ),
     );
 
-    return Padding(
+    final content = Padding(
       padding: const EdgeInsets.only(right: 12),
       child: Center(
         child: description == null
@@ -138,6 +147,24 @@ class _SaveStatusIndicatorState extends State<SaveStatusIndicator> {
                   child: indicator,
                 ),
               ),
+      ),
+    );
+
+    // El glifo queda anclado al borde derecho: al abrirse el hueco aparece
+    // desde el borde y empuja a las acciones vecinas; al cerrarse, se va.
+    return AnimatedContainer(
+      duration: reduceMotion ? Duration.zero : SaveStatusIndicator.resize,
+      curve: Curves.easeOutCubic,
+      width: glyph == null
+          ? SaveStatusIndicator.collapsedWidth
+          : SaveStatusIndicator.expandedWidth,
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.centerRight,
+          minWidth: SaveStatusIndicator.expandedWidth,
+          maxWidth: SaveStatusIndicator.expandedWidth,
+          child: content,
+        ),
       ),
     );
   }
@@ -262,9 +289,16 @@ class _CheckPainter extends CustomPainter {
 }
 
 /// AppBar plano estilo Calibración: elevation 0, fondo = scaffold,
-/// título Poppins 20 w700, iconTheme según brillo.
+/// título Poppins 17 w600 en una línea, iconTheme según brillo.
 class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+
+  /// Segunda línea, más chica (p. ej., "Paso 3 de 11 · SECA").
+  final String? subtitle;
+
+  /// Título centrado, entre ≡ y las acciones, en los servicios.
+  final bool centerTitle;
+
   final List<Widget>? actions;
   final Widget? leading;
   final bool automaticallyImplyLeading;
@@ -272,6 +306,8 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ServiceAppBar({
     super.key,
     required this.title,
+    this.subtitle,
+    this.centerTitle = false,
     this.actions,
     this.leading,
     this.automaticallyImplyLeading = true,
@@ -289,6 +325,23 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
             ? const Center(child: AppBackButton())
             : null);
 
+    // Una sola línea y del mismo tamaño en todas las pantallas: un título
+    // largo ("Mnt Preventivo Avanzado") se corta con "…" en vez de partirse
+    // en dos renglones o empujar las acciones.
+    final titleText = Text(
+      title,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: GoogleFonts.poppins(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.2,
+        color: isDark ? Colors.white : AppDesign.ink,
+        height: 1.2,
+      ),
+    );
+
     return AppBar(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       surfaceTintColor: Colors.transparent,
@@ -305,16 +358,31 @@ class ServiceAppBar extends StatelessWidget implements PreferredSizeWidget {
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
         systemStatusBarContrastEnforced: false,
       ),
-      title: Text(
-        title,
-        style: GoogleFonts.poppins(
-          fontSize: 20,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.35,
-          color: isDark ? Colors.white : AppDesign.ink,
-          height: 1.1,
-        ),
-      ),
+      centerTitle: centerTitle,
+      title: subtitle == null
+          ? titleText
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: centerTitle
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
+              children: [
+                titleText,
+                const SizedBox(height: 1),
+                Text(
+                  subtitle!,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white60 : AppDesign.muted,
+                    height: 1.25,
+                  ),
+                ),
+              ],
+            ),
       actions: actions,
     );
   }
