@@ -149,9 +149,13 @@ reportes lo que llega desde campo:
 1. En Bitrix24, abrir la configuración del CRM y la lista de **Fuentes**
    (según la versión: *CRM → ⚙ Configuración → Configuración del CRM →
    Listas de selección / Estados y listas desplegables → Fuentes*).
-2. Agregar la fuente `ServiceMET` y guardar.
+2. Agregar la fuente `ServiceMET` y guardar. Debe hacerlo un administrador:
+   el webhook no puede crearla (Bitrix24 responde "Access denied").
 3. Ejecutar `pnpm bitrix:discover`: en el paso 4 aparece con su ID (del tipo
    `UC_XXXXXX`). Copiarlo en `BITRIX_LEAD_SOURCE_ID`.
+
+Sin fuente configurada, Bitrix24 asigna la primera de su lista (en METRICA,
+"Email"), lo que confunde los reportes.
 
 ## 7. Campos personalizados (cuando existan)
 
@@ -204,8 +208,9 @@ queda en el comentario.
 2. En la app, cerrar sesión e ingresar de nuevo (el nuevo token incluye el
    permiso `bitrix:opportunity`; si no, la app pide la contraseña al primer
    uso).
-3. Abrir una calibración o un servicio de soporte, tocar el maletín
-   (**Registrar oportunidad**) y completar el formulario.
+3. Abrir una calibración o un servicio de soporte, tocar ⋮ ›
+   **Registrar oportunidad comercial** en el encabezado y completar el
+   formulario.
 
 ## Duplicados
 
