@@ -762,9 +762,7 @@ class _ResumenServicio extends StatelessWidget {
     final equipo = [service.equipmentType, service.brand, service.model]
         .whereType<String>()
         .join(' · ');
-    final origen = service.serviceType == OpportunityServiceType.soporte
-        ? '${service.serviceType.label} · ${service.serviceName}'
-        : service.serviceName;
+    final origen = service.serviceLabel;
     return AppPanel(
       padding: const EdgeInsets.all(16),
       child: Column(

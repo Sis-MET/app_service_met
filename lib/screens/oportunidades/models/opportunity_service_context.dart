@@ -3,13 +3,21 @@ import 'package:service_met/models/service_session.dart';
 
 enum OpportunityServiceType {
   calibracion('Calibración'),
-  soporte('Soporte técnico');
+  soporte('Soporte técnico'),
+
+  /// Formulario llenado fuera de un servicio: el técnico elige el cliente,
+  /// la planta y el instrumento desde Servicios.
+  directo('Registro directo');
 
   final String label;
   const OpportunityServiceType(this.label);
 
-  static OpportunityServiceType fromName(String? value) =>
-      value == soporte.name ? soporte : calibracion;
+  static OpportunityServiceType fromName(String? value) {
+    for (final type in values) {
+      if (type.name == value) return type;
+    }
+    return calibracion;
+  }
 }
 
 /// Lo que ServiceMET ya sabe del servicio en curso, normalizado para que un
@@ -177,6 +185,39 @@ class OpportunityServiceContext {
     );
   }
 
+  /// Sin servicio en curso: el técnico eligió [cliente], [planta] e
+  /// [instrumento] en la selección rápida. Son filas de la precarga
+  /// (`clientes`, `plantas` y `getBalanzasPorPrefix`); la planta y el
+  /// instrumento pueden faltar.
+  factory OpportunityServiceContext.directo({
+    required String userName,
+    required Map<String, dynamic> cliente,
+    Map<String, dynamic>? planta,
+    Map<String, dynamic>? instrumento,
+    DateTime? now,
+  }) {
+    String? de(Map<String, dynamic>? row, String key) => row?[key]?.toString();
+    final base = OpportunityServiceContext.fromSupport(
+      serviceName: OpportunityServiceType.directo.label,
+      otst: '',
+      codMetrica: de(instrumento, 'cod_metrica') ?? '',
+      userName: userName,
+      clienteNombre: de(cliente, 'cliente'),
+      clienteRazonSocial: de(cliente, 'razonsocial'),
+      plantaNombre: de(planta, 'planta'),
+      plantaDepartamento: de(planta, 'dep'),
+      clienteId: de(cliente, 'codigo_cliente'),
+      plantaCodigo: de(planta, 'codigo_planta'),
+      plantaDireccion: de(planta, 'dir'),
+      instrumentoData: instrumento,
+      now: now,
+    );
+    return OpportunityServiceContext.fromJson({
+      ...base.toJson(),
+      'serviceType': OpportunityServiceType.directo.name,
+    });
+  }
+
   factory OpportunityServiceContext.fromJson(Map<String, dynamic> json) {
     String? s(String key) => _text(json[key]?.toString());
     return OpportunityServiceContext(
@@ -235,9 +276,16 @@ class OpportunityServiceContext {
         'capturedAt': capturedAt.toUtc().toIso8601String(),
       };
 
-  /// "SECA" en calibración y "OTST" en soporte.
+  /// "SECA" en calibración y "OTST" en soporte. Un registro directo no
+  /// tiene ninguna de las dos ([seca] es null).
   String get secaLabel =>
       serviceType == OpportunityServiceType.soporte ? 'OTST' : 'SECA';
+
+  /// Servicio de origen en una línea: "Calibración", "Soporte técnico ·
+  /// Instalación" o "Registro directo".
+  String get serviceLabel => serviceType == OpportunityServiceType.soporte
+      ? '${serviceType.label} · $serviceName'
+      : serviceName;
 
   /// Cliente tal como lo conoce ServiceMET (solo referencia para Bitrix).
   String? get clientDisplay => clientName ?? clientLegalName;
