@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { readBitrixConfig } = require('./bitrix/bitrix-config');
+const { readExtrasConfig } = require('./extras/extras-service');
 
 function loadEnvFile() {
   const envPath = path.join(__dirname, '..', '.env');
@@ -71,6 +72,8 @@ function getConfig() {
     // Opcional: sin webhook la API funciona igual y las rutas de Bitrix
     // responden 503. El webhook nunca se envía a Flutter.
     bitrix: readBitrixConfig(process.env),
+    // Base de los formularios adicionales (RIM y oportunidades de Bitrix24).
+    extras: readExtrasConfig(process.env),
     database: {
       server: required('DB_HOST'),
       port: integer('DB_PORT', 1433),

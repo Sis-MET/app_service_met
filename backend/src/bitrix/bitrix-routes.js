@@ -14,9 +14,18 @@ const BITRIX_SCOPE = 'bitrix:opportunity';
  * @param {object} options.bitrixConfig Configuración leída de `.env`.
  * @param {Function} options.requireAuth Middleware JWT de la API.
  * @param {Function} options.requireScope Fábrica de middleware de scope.
+ * @param {Function} [options.onOpportunityRegistered] Recibe la oportunidad
+ *   validada y `{ leadId, stageId, user }` cuando ya está en Bitrix24.
  * @param {object} [options.logger]
  */
-function createBitrixRouter({ service, bitrixConfig, requireAuth, requireScope, logger = console }) {
+function createBitrixRouter({
+  service,
+  bitrixConfig,
+  requireAuth,
+  requireScope,
+  onOpportunityRegistered,
+  logger = console,
+}) {
   const router = express.Router();
   router.use(requireAuth, requireScope(BITRIX_SCOPE));
 
@@ -70,6 +79,19 @@ function createBitrixRouter({ service, bitrixConfig, requireAuth, requireScope, 
     const result = await service.createOpportunity(req.body, { user: req.auth.sub });
     if (result.warnings?.length) {
       for (const warning of result.warnings) logger.warn?.(`[Bitrix] ${warning}`);
+    }
+    if (onOpportunityRegistered && result.opportunity) {
+      try {
+        await onOpportunityRegistered(result.opportunity, {
+          leadId: result.leadId,
+          stageId: result.stageId,
+          user: req.auth.sub,
+        });
+      } catch (error) {
+        // El prospecto ya existe en Bitrix24; reenviar la oportunidad vuelve
+        // a intentar esta copia.
+        logger.warn?.(`[Extras] no se registró la oportunidad ${result.leadId} en form_bitrix: ${error.message}`);
+      }
     }
     res.status(result.duplicate ? 200 : 201).json({
       leadId: result.leadId,

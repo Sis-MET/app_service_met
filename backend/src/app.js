@@ -18,6 +18,8 @@ const { readBootstrap } = require('./bootstrap-service');
 const { createBitrixClient } = require('./bitrix/bitrix-client');
 const { createBitrixService } = require('./bitrix/bitrix-service');
 const { BITRIX_SCOPE, createBitrixRouter } = require('./bitrix/bitrix-routes');
+const { defaultExtrasService } = require('./extras/extras-service');
+const { EXTRAS_SCOPE, createExtrasRouter } = require('./extras/extras-routes');
 
 function defaultBitrixService(bitrixConfig) {
   if (!bitrixConfig?.enabled) return null;
@@ -80,7 +82,13 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
       const token = signJwt(
         {
           sub: user.usuario,
-          scope: ['calibracion:upload', 'soporte:upload', 'bootstrap:read', BITRIX_SCOPE],
+          scope: [
+            'calibracion:upload',
+            'soporte:upload',
+            'bootstrap:read',
+            BITRIX_SCOPE,
+            EXTRAS_SCOPE,
+          ],
         },
         config.jwtSecret,
         config.jwtTtlSeconds,
@@ -221,6 +229,12 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
     }
   });
 
+  // Formularios adicionales (RIM y copia de las oportunidades de Bitrix24),
+  // en la base servicios_extras.
+  const extrasService = options.extrasService !== undefined
+    ? options.extrasService
+    : defaultExtrasService(config);
+
   app.use('/api/bitrix', createBitrixRouter({
     service: options.bitrixService !== undefined
       ? options.bitrixService
@@ -228,7 +242,20 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
     bitrixConfig: config.bitrix,
     requireAuth,
     requireScope,
+    // La oportunidad ya está en Bitrix24: la copia en form_bitrix no debe
+    // hacer fallar la respuesta.
+    onOpportunityRegistered: extrasService
+      ? (opportunity, registered) => extrasService.saveBitrixOpportunity(opportunity, registered)
+      : undefined,
   }));
+
+  if (extrasService) {
+    app.use('/api/extras', createExtrasRouter({
+      service: extrasService,
+      requireAuth,
+      requireScope,
+    }));
+  }
 
   app.use((_req, res) => {
     res.status(404).json({ error: 'NOT_FOUND', message: 'Ruta no encontrada.' });

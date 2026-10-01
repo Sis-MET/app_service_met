@@ -107,6 +107,36 @@ fuentes y campos personalizados sin imprimir el secreto. El código vive en
 `src/bitrix/`: el cliente HTTP (único que conoce el webhook), `BitrixService`,
 el mapeo de campos (`bitrix-mapping.js`) y las rutas.
 
+### Formularios adicionales (`servicios_extras`)
+
+Los formularios que el técnico llena dentro de un servicio y que no pertenecen
+a las tablas de DataMET se guardan en la base `servicios_extras`, en la misma
+instancia de SQL Server:
+
+- `dbo.form_rim`: recepción de instrumentos de pesaje (RIM), con el estado
+  físico, el inventario, los datos de la recepción y la firma del cliente
+  (PNG en `firma_cliente`).
+- `dbo.form_bitrix`: copia de cada oportunidad comercial registrada en
+  Bitrix24, con el número de prospecto.
+
+Antes de habilitarlos, un administrador debe ejecutar una sola vez
+`sql/012_create_servicios_extras.sql`: crea la base y las dos tablas, y da al
+login de la API solo `SELECT` e `INSERT`. Si la base tiene otro nombre,
+configure `EXTRAS_DB_NAME` en `.env`. Mientras el script no se ejecute, la
+subida del RIM responde `503 EXTRAS_NOT_READY` y el RIM queda pendiente en el
+teléfono.
+
+- `POST /api/extras/rim`: registra un RIM. Exige el JWT con el scope
+  `extras:upload`. Responde `201`, o `200` si el UUID ya estaba registrado
+  (reenviar no duplica). El servidor impone `fecha_reg`, `reg_usuario` (usuario
+  del token) y `reg_por` (su nombre en `data_users`); `emitido_en` es la hora
+  del teléfono al emitir.
+
+Cuando `POST /api/bitrix/opportunities` crea (o reconoce) un prospecto, la API
+inserta además su fila en `form_bitrix`. Si esa copia falla, la oportunidad
+responde igual y el servidor lo registra como advertencia; reenviarla vuelve a
+intentarlo. El código vive en `src/extras/`.
+
 Los endpoints de calibración y soporte requieren `Authorization: Bearer <token>`. La
 subida acepta `mode: "all"` o `mode: "valid_only"`. En ambos casos, todos los
 registros efectivamente elegidos se insertan o se revierten juntos.

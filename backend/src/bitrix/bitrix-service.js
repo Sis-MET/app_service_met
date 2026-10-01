@@ -302,6 +302,7 @@ function createBitrixService({ client, config, now = () => Date.now() }) {
             stageId: existing.stageId ? String(existing.stageId) : null,
             mappedFields: [],
             warnings: [],
+            opportunity,
           };
         }
       }
@@ -338,6 +339,8 @@ function createBitrixService({ client, config, now = () => Date.now() }) {
         stageId: target.stageId,
         mappedFields: mapped,
         warnings,
+        // La oportunidad validada, para dejar constancia en form_bitrix.
+        opportunity,
       };
     });
   }
