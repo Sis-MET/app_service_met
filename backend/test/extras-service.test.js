@@ -220,6 +220,27 @@ test('rechaza un RIM incompleto indicando cada campo', () => {
   );
 });
 
+test('acepta un RIM emitido fuera de un servicio (registro directo)', async () => {
+  const db = fakeDatabase();
+  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const directo = rim({
+    service: {
+      ...rim().service,
+      serviceType: 'directo',
+      serviceName: 'Registro directo',
+      seca: null,
+      sessionId: null,
+    },
+  });
+  await service.saveRim(directo, { user: 'aquispe' });
+  const values = Object.fromEntries(db.calls[0].params.map((param) => [param.name, param.value]));
+  assert.equal(values.tipo_servicio, 'directo');
+  assert.equal(values.servicio, 'Registro directo');
+  assert.equal(values.seca_otst, null);
+  assert.equal(values.session_id, null);
+  assert.equal(values.cod_metrica, '0103-11-005');
+});
+
 test('la firma debe ser un PNG de tamaño razonable', () => {
   const field = (overrides) => {
     try {

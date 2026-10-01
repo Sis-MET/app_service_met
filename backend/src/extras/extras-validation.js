@@ -21,7 +21,7 @@ const MAX_SIGNATURE_BYTES = 1024 * 1024;
 const MAX_INVENTORY_ITEMS = 60;
 const MAX_OTHER_ITEMS = 30;
 
-const SERVICE_TYPES = Object.freeze(['calibracion', 'soporte']);
+const SERVICE_TYPES = Object.freeze(['calibracion', 'soporte', 'directo']);
 const COMPONENT_STATES = Object.freeze(['present', 'missing', 'na']);
 const DAMAGE_LEVELS = Object.freeze(['excellent', 'good', 'fair', 'poor', 'critical']);
 const CLEANLINESS_LEVELS = Object.freeze(['clean', 'light', 'moderate', 'heavy']);
@@ -91,7 +91,7 @@ function validateRim(input) {
   } else {
     service.serviceType = String(rawService.serviceType ?? '').trim();
     if (!SERVICE_TYPES.includes(service.serviceType)) {
-      fail('service.serviceType', 'El tipo de servicio debe ser calibracion o soporte.');
+      fail('service.serviceType', 'El tipo de servicio debe ser calibracion, soporte o directo.');
     }
     for (const [field, max] of Object.entries(SERVICE_TEXT_FIELDS)) {
       const value = cleanText(rawService[field], max);

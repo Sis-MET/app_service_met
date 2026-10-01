@@ -8,11 +8,14 @@
                        número de prospecto asignado.
 
   Son formularios que el técnico llena dentro de una calibración o de un
-  servicio de soporte, pero que no pertenecen a las tablas de DataMET: por eso
-  viven en una base aparte, en la misma instancia de SQL Server.
+  servicio de soporte, o directamente desde la pestaña Servicios, pero que no
+  pertenecen a las tablas de DataMET: por eso viven en una base aparte, en la
+  misma instancia de SQL Server.
 
   Ejecutar con una cuenta administradora (crea una base). Puede ejecutarse de
-  nuevo: no recrea lo que ya existe ni duplica permisos.
+  nuevo: no recrea lo que ya existe ni duplica permisos. Si las tablas se
+  crearon con una versión anterior de este script, actualiza la restricción
+  de tipo_servicio para admitir los registros directos.
 
   Permisos: el login de la API (ServiceMET) recibe SELECT e INSERT sobre las
   dos tablas. Deliberadamente NO recibe UPDATE, DELETE, ALTER ni CONTROL: un
@@ -68,7 +71,7 @@ BEGIN
     [app_version]            nvarchar(30)      NULL,
 
     -- Servicio durante el cual se emitió.
-    [tipo_servicio]          nvarchar(20)      NOT NULL,  -- calibracion | soporte
+    [tipo_servicio]          nvarchar(20)      NOT NULL,  -- calibracion | soporte | directo
     [servicio]               nvarchar(100)     NULL,
     [seca_otst]              nvarchar(60)      NULL,
     [session_id]             nvarchar(60)      NULL,
@@ -119,7 +122,7 @@ BEGIN
     CONSTRAINT [PK_form_rim] PRIMARY KEY CLUSTERED ([n]),
     CONSTRAINT [UQ_form_rim_uuid] UNIQUE ([uuid]),
     CONSTRAINT [CK_form_rim_tipo_servicio]
-      CHECK ([tipo_servicio] IN (N'calibracion', N'soporte'))
+      CHECK ([tipo_servicio] IN (N'calibracion', N'soporte', N'directo'))
   );
   CREATE INDEX [IX_form_rim_cod_metrica]
     ON [dbo].[form_rim] ([cod_metrica], [emitido_en]);
@@ -145,7 +148,7 @@ BEGIN
     [creado_en]               datetimeoffset(0) NULL,
     [app_version]             nvarchar(30)      NULL,
 
-    [tipo_servicio]           nvarchar(20)      NOT NULL,  -- calibracion | soporte
+    [tipo_servicio]           nvarchar(20)      NOT NULL,  -- calibracion | soporte | directo
     [servicio]                nvarchar(100)     NULL,
     [seca_otst]               nvarchar(60)      NULL,
     [session_id]              nvarchar(60)      NULL,
@@ -181,7 +184,7 @@ BEGIN
     CONSTRAINT [PK_form_bitrix] PRIMARY KEY CLUSTERED ([n]),
     CONSTRAINT [UQ_form_bitrix_uuid] UNIQUE ([uuid]),
     CONSTRAINT [CK_form_bitrix_tipo_servicio]
-      CHECK ([tipo_servicio] IN (N'calibracion', N'soporte'))
+      CHECK ([tipo_servicio] IN (N'calibracion', N'soporte', N'directo'))
   );
   CREATE INDEX [IX_form_bitrix_lead] ON [dbo].[form_bitrix] ([bitrix_lead_id]);
   CREATE INDEX [IX_form_bitrix_seca_otst] ON [dbo].[form_bitrix] ([seca_otst]);
@@ -189,6 +192,34 @@ BEGIN
 END
 ELSE
   PRINT N'La tabla dbo.form_bitrix ya existe.';
+
+-- Tablas creadas antes de los registros directos (formularios llenados fuera
+-- de un servicio): se amplía la restricción de tipo_servicio.
+IF EXISTS (
+  SELECT 1 FROM sys.check_constraints
+  WHERE [name] = N'CK_form_rim_tipo_servicio'
+    AND [parent_object_id] = OBJECT_ID(N'dbo.form_rim')
+    AND [definition] NOT LIKE N'%directo%'
+)
+BEGIN
+  ALTER TABLE [dbo].[form_rim] DROP CONSTRAINT [CK_form_rim_tipo_servicio];
+  ALTER TABLE [dbo].[form_rim] ADD CONSTRAINT [CK_form_rim_tipo_servicio]
+    CHECK ([tipo_servicio] IN (N'calibracion', N'soporte', N'directo'));
+  PRINT N'dbo.form_rim admite ahora tipo_servicio = directo.';
+END
+
+IF EXISTS (
+  SELECT 1 FROM sys.check_constraints
+  WHERE [name] = N'CK_form_bitrix_tipo_servicio'
+    AND [parent_object_id] = OBJECT_ID(N'dbo.form_bitrix')
+    AND [definition] NOT LIKE N'%directo%'
+)
+BEGIN
+  ALTER TABLE [dbo].[form_bitrix] DROP CONSTRAINT [CK_form_bitrix_tipo_servicio];
+  ALTER TABLE [dbo].[form_bitrix] ADD CONSTRAINT [CK_form_bitrix_tipo_servicio]
+    CHECK ([tipo_servicio] IN (N'calibracion', N'soporte', N'directo'));
+  PRINT N'dbo.form_bitrix admite ahora tipo_servicio = directo.';
+END
 
 COMMIT TRANSACTION;
 GO

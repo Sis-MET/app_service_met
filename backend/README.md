@@ -126,6 +126,12 @@ configure `EXTRAS_DB_NAME` en `.env`. Mientras el script no se ejecute, la
 subida del RIM responde `503 EXTRAS_NOT_READY` y el RIM queda pendiente en el
 teléfono.
 
+Un formulario puede venir de una calibración, de un soporte o de un
+**registro directo** (llenado desde la pestaña Servicios, sin servicio en
+curso): `tipo_servicio` vale `calibracion`, `soporte` o `directo`. Si las
+tablas se crearon antes de admitir `directo`, vuelva a ejecutar el script 012:
+actualiza la restricción sin tocar los datos.
+
 - `POST /api/extras/rim`: registra un RIM. Exige el JWT con el scope
   `extras:upload`. Responde `201`, o `200` si el UUID ya estaba registrado
   (reenviar no duplica). El servidor impone `fecha_reg`, `reg_usuario` (usuario

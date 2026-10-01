@@ -9,6 +9,8 @@ const SOURCE_DESCRIPTION = 'ServiceMET';
 const SERVICE_TYPES = Object.freeze({
   calibracion: 'Calibración',
   soporte: 'Soporte técnico',
+  // Formulario llenado fuera de un servicio, desde la pestaña Servicios.
+  directo: 'Registro directo',
 });
 
 const PRIORITIES = Object.freeze({ baja: 'Baja', media: 'Media', alta: 'Alta' });
@@ -136,7 +138,7 @@ function validateOpportunity(input) {
   } else {
     service.serviceType = String(rawService.serviceType ?? '').trim();
     if (!SERVICE_TYPES[service.serviceType]) {
-      fail('service.serviceType', 'El tipo de servicio debe ser calibracion o soporte.');
+      fail('service.serviceType', 'El tipo de servicio debe ser calibracion, soporte o directo.');
     }
     for (const [field, max] of Object.entries(SERVICE_TEXT_FIELDS)) {
       const value = cleanText(rawService[field], max);

@@ -157,6 +157,34 @@ test('crea el prospecto (Lead) con empresa, contacto y clave de origen', async (
   assert.match(fields.comments, /Registrado por: Ing\. Ana Quispe \(usuario aquispe\)/);
 });
 
+test('acepta una oportunidad registrada fuera de un servicio, sin equipo', async () => {
+  const client = fakeClient(handlers());
+  const service = createBitrixService({ client, config: config() });
+  const result = await service.createOpportunity(opportunity({
+    contactId: null,
+    service: {
+      serviceType: 'directo',
+      serviceName: 'Registro directo',
+      clientName: 'Coca-Cola Embol S.A.',
+      plantDepartment: 'LA PAZ',
+      technician: 'Ing. Ana Quispe',
+      serviceDate: '2026-10-02',
+    },
+  }), { user: 'aquispe' });
+  assert.equal(result.leadId, 9876);
+  // La oportunidad validada vuelve para dejar constancia en form_bitrix.
+  assert.equal(result.opportunity.service.serviceType, 'directo');
+
+  const { fields } = client.calls.find((call) => call.method === 'crm.item.add').params;
+  assert.match(fields.comments, /Tipo de servicio: Registro directo/);
+  assert.doesNotMatch(fields.comments, /SECA|OTST|Código métrica/);
+
+  await assert.rejects(
+    service.createOpportunity(opportunity({ service: { serviceType: 'venta' } })),
+    (error) => error.details.some((detail) => detail.field === 'service.serviceType'),
+  );
+});
+
 test('no duplica: si el UUID ya existe devuelve el prospecto registrado', async () => {
   const client = fakeClient(handlers({
     'crm.item.list': () => ({ result: { items: [{ id: 4321, stageId: 'NEW' }] } }),
