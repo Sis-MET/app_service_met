@@ -155,8 +155,8 @@ const manualServiceMet = ManualUso(
           'Inicio: resumen de la actividad local, pendientes de subir y '
               'servicios guardados en el teléfono.',
           'Servicios: aquí se empieza una calibración o un servicio de '
-              'soporte, y se revisan y envían los formularios adicionales '
-              '(RIM y oportunidades comerciales).',
+              'soporte, y se llenan, revisan y envían los formularios '
+              'adicionales (RIM y oportunidades comerciales).',
           'Precarga: descarga de datos para trabajar sin conexión y '
               'vencimientos.',
         ]),
@@ -388,18 +388,29 @@ const manualServiceMet = ManualUso(
             'repuestos, reparación, accesorios, una cotización), regístrela '
             'como oportunidad en CRM › Prospectos de Bitrix24. Es '
             'opcional, no es un paso del servicio y no cambia ningún dato '
-            'del registro técnico.'),
-        Pasos('Registrar', [
+            'del registro técnico. También puede registrarla sin estar en un '
+            'servicio, desde la pestaña Servicios.'),
+        Pasos('Abrir el formulario', [
           Paso(
-              'En el encabezado del servicio, toque ⋮ › "Registrar '
-                  'oportunidad comercial".',
+              'Dentro de un servicio: toque ⋮ › "Registrar oportunidad '
+                  'comercial".',
               'Se abre "Nueva oportunidad" con el servicio, el cliente, la '
                   'planta y el equipo ya cargados.'),
           Paso(
-              'En "Empresa Bitrix24", busque y elija la empresa.',
-              'La app sugiere buscar con el nombre del cliente, pero en '
-                  'Bitrix24 puede figurar distinto: elija siempre la empresa '
-                  'correcta.'),
+              'Fuera de un servicio: en Servicios › "Oportunidades '
+                  'comerciales", toque "Nueva oportunidad" y elija el '
+                  'cliente.',
+              'La planta y el instrumento son opcionales. Con "Escanear QR '
+                  'del instrumento" se completan los tres de una vez.'),
+        ]),
+        Pasos('Registrar', [
+          Paso(
+              'Revise "Empresa Bitrix24".',
+              'Si ya eligió antes una empresa para ese cliente, la app la '
+                  'propone. Para cambiarla o elegirla, tóquela y búsquela: '
+                  'en Bitrix24 puede figurar con otro nombre. Si la deja '
+                  'vacía, al registrar se usa la que coincida exactamente '
+                  'con el nombre o la razón social del cliente.'),
           Paso('Elija el contacto, o deje "Sin contacto".'),
           Paso(
               'Revise la "Ciudad del prospecto".',
@@ -419,15 +430,26 @@ const manualServiceMet = ManualUso(
         ]),
         Pasos('Sin conexión', [
           Paso(
-              'Si no hay conexión con el servidor o con Bitrix24, la '
-                  'oportunidad queda guardada en el teléfono como pendiente.',
-              'También puede tocar "Guardar pendiente" y elegir la empresa '
-                  'más tarde.'),
+              'Registre la oportunidad igual: toque "Registrar oportunidad".',
+              'Sin conexión con el servidor o con Bitrix24 queda guardada en '
+                  'el teléfono como pendiente, con el cliente de ServiceMET. '
+                  'No hace falta elegir la empresa.'),
           Paso(
-              'Con conexión, abra Servicios › "Oportunidades comerciales" y '
-                  'toque "Enviar" o "Enviar todas".',
-              'Las pendientes nunca se envían solas. Reenviar no duplica la '
-                  'oportunidad en Bitrix24.'),
+              'Cuando el teléfono recupera la conexión con el servidor, la '
+                  'app la completa y la envía sola.',
+              'Usa la empresa que ya se eligió antes para ese cliente o una '
+                  'coincidencia exacta de nombre. La app avisa cuántas envió. '
+                  'Reenviar no duplica la oportunidad en Bitrix24.'),
+          Paso(
+              'Si la app avisa que una oportunidad necesita empresa, abra '
+                  'Servicios › "Oportunidades comerciales" y toque "Elegir '
+                  'empresa".',
+              'Pasa cuando no hay una coincidencia exacta o hay más de una '
+                  'empresa con ese nombre: la app no adivina.'),
+          Paso(
+              'Si la sesión con el servidor venció, toque "Enviar todas" e '
+                  'ingrese su contraseña.',
+              'La app nunca pide la contraseña por su cuenta.'),
         ]),
         Nota(
           TipoNota.importante,
@@ -451,13 +473,26 @@ const manualServiceMet = ManualUso(
             'balanza presente un problema que impida concluir la calibración '
             'o el servicio de soporte, antes de pasar a otra balanza. No es '
             'un paso del servicio y no cambia sus datos.'),
+        Pasos('Abrir el formulario', [
+          Paso(
+              'Dentro de un servicio, con la balanza ya elegida: toque ⋮ › '
+                  '"Emitir RIM (recepción de instrumento)".',
+              'El cliente, la planta y el instrumento se toman del servicio: '
+                  'no se vuelven a escribir.'),
+          Paso(
+              'Fuera de un servicio: en Servicios › "Recepción de '
+                  'instrumentos (RIM)", toque "Nuevo RIM".',
+              'Elija el cliente, la planta y el instrumento, o use "Escanear '
+                  'QR del instrumento" para completar los tres. Si el '
+                  'instrumento no figura, toque "El instrumento no está en '
+                  'la lista" y escriba sus datos: recibe un código '
+                  'provisional, como una balanza nueva.'),
+        ]),
         Pasos('Emitir', [
           Paso(
-              'Con la balanza ya elegida, toque ⋮ › "Emitir RIM (recepción de '
-                  'instrumento)".',
-              'Se abre "Recepción de instrumento" con el código del RIM, el '
-                  'servicio, el cliente, la planta y el instrumento ya '
-                  'cargados: no se vuelven a escribir.'),
+              'Revise el resumen de "Recepción de instrumento".',
+              'Muestra el código del RIM, el servicio de origen, el cliente, '
+                  'la planta y el instrumento.'),
           Paso(
               'Paso 1, "Estado físico": marque el inventario de componentes.',
               'Cada componente puede quedar "Presente", "Faltante" o "N/A"; '

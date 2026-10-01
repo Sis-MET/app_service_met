@@ -12,9 +12,8 @@ const cambiosSinLiberar = <String>[
       'cámara en excentricidad, repetibilidad y linealidad (también la carga '
       'sustitutiva), como en calibración. Atrás cierra primero el teclado.',
   'Registro de oportunidades comerciales en Bitrix24 (CRM › Prospectos) '
-      'desde calibración y soporte, sin salir del servicio. Sin conexión '
-      'quedan pendientes en el teléfono y se envían a mano desde Servicios › '
-      'Oportunidades comerciales. No modifica los registros técnicos.',
+      'desde calibración y soporte, sin salir del servicio. No modifica '
+      'los registros técnicos.',
   'Calibración y soporte técnico: título centrado con el paso actual debajo; '
       '≡ abre la lista de pasos, marca los completos y lleva a cualquiera '
       'habilitado (reemplaza a la barra de pasos). "Anterior" y el gesto '
@@ -52,6 +51,17 @@ const cambiosSinLiberar = <String>[
   'Servidor: base servicios_extras con las tablas form_rim (RIM con la firma '
       'del cliente) y form_bitrix (copia de cada oportunidad registrada en '
       'Bitrix24). Requiere el script 012.',
+  'RIM y oportunidades también fuera de un servicio: en Servicios, "Nuevo '
+      'RIM" y "Nueva oportunidad" abren una selección rápida de cliente, '
+      'planta e instrumento (o el código QR del instrumento). El RIM admite '
+      'un instrumento no registrado, con código provisional. Estos registros '
+      'se guardan como "Registro directo".',
+  'Oportunidades sin conexión: se registran con el cliente de ServiceMET y '
+      'quedan pendientes. Al volver la conexión con el servidor la app les '
+      'asigna la empresa de Bitrix24 (la elegida antes para ese cliente o una '
+      'coincidencia exacta de nombre) y las envía sola; si no hay una '
+      'coincidencia segura, pide que el técnico la elija. Reemplaza al botón '
+      '"Guardar pendiente".',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
