@@ -13,8 +13,8 @@ const cambiosSinLiberar = <String>[
       'sustitutiva), como en calibración. Atrás cierra primero el teclado.',
   'Registro de oportunidades comerciales en Bitrix24 (CRM › Prospectos) '
       'desde calibración y soporte, sin salir del servicio. Sin conexión '
-      'quedan pendientes en el teléfono y se envían a mano desde Otros '
-      'apartados. No modifica los registros técnicos.',
+      'quedan pendientes en el teléfono y se envían a mano desde Servicios › '
+      'Oportunidades comerciales. No modifica los registros técnicos.',
   'Calibración y soporte técnico: título centrado con el paso actual debajo; '
       '≡ abre la lista de pasos, marca los completos y lleva a cualquiera '
       'habilitado (reemplaza a la barra de pasos). "Anterior" y el gesto '
@@ -36,6 +36,22 @@ const cambiosSinLiberar = <String>[
       'finalizado, que antes quedaba abierto debajo y aceptaba cambios.',
   'Calibración: de Inspección en adelante los pasos se abren con el '
       'instrumento confirmado.',
+  'Recepción de instrumentos de pesaje (RIM) desde calibración y soporte: ⋮ › '
+      '"Emitir RIM (recepción de instrumento)". El cliente, la planta y el '
+      'instrumento se toman del servicio; el técnico registra el inventario, '
+      'los daños, la suciedad y el motivo, y el cliente firma en la pantalla. '
+      'El RIM queda guardado en el teléfono, con su PDF, y no se modifica: si '
+      'tiene un error se anula con motivo.',
+  'La app sugiere el RIM cuando el servicio de una balanza se corta: al '
+      'salir a medias y al descartar un servicio pendiente. Después de '
+      'emitirlo, "Cambiar de balanza" cierra esa balanza sin concluirla y '
+      'permite seguir con otra en la misma SECA u OTST.',
+  'Servicios reúne los formularios adicionales: "Recepción de instrumentos '
+      '(RIM)" y "Oportunidades comerciales" (antes en Precarga), con sus '
+      'pendientes de enviar.',
+  'Servidor: base servicios_extras con las tablas form_rim (RIM con la firma '
+      'del cliente) y form_bitrix (copia de cada oportunidad registrada en '
+      'Bitrix24). Requiere el script 012.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

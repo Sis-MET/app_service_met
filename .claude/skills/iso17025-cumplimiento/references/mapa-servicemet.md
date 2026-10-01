@@ -58,6 +58,16 @@ Otros puntos:
 - Informes PDF: `lib/home/utils/pdf_generator.dart`. CSV y exportaciones:
   `lib/utils/service_exporter.dart`, `lib/home/utils/export_helper.dart`.
 - Pruebas: `test/` (Flutter) y `backend/test/` (`node --test`).
+- Formularios adicionales (no son tablas de DataMET; se llenan dentro de un
+  servicio, desde el menu de tres puntos, y se revisan en Servicios):
+  - RIM, recepcion de instrumentos de pesaje con firma del cliente:
+    `lib/screens/rim/`. Local en `servicios_extras.db` > `form_rim`
+    (`services/rim_store.dart`): solo insercion, sin edicion ni borrado;
+    anulacion con usuario, fecha y motivo. Servidor: base `servicios_extras`
+    (`backend/sql/012_create_servicios_extras.sql`, `backend/src/extras/`),
+    solo `SELECT` e `INSERT`.
+  - Oportunidades de Bitrix24: `lib/screens/oportunidades/`; copia en
+    `servicios_extras.form_bitrix`.
 - Calidad y normativa (Ajustes): `lib/screens/calidad/`, con el tablero de
   cumplimiento, el manual de uso y el historial de versiones, sus datos en
   `data/` y la exportación a PDF en `services/calidad_pdf.dart`.

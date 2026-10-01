@@ -155,7 +155,8 @@ const manualServiceMet = ManualUso(
           'Inicio: resumen de la actividad local, pendientes de subir y '
               'servicios guardados en el teléfono.',
           'Servicios: aquí se empieza una calibración o un servicio de '
-              'soporte.',
+              'soporte, y se revisan y envían los formularios adicionales '
+              '(RIM y oportunidades comerciales).',
           'Precarga: descarga de datos para trabajar sin conexión y '
               'vencimientos.',
         ]),
@@ -187,6 +188,8 @@ const manualServiceMet = ManualUso(
               'registrado queda en el teléfono y se continúa desde Servicios.',
           '⋮ › "Registrar oportunidad comercial" envía una oportunidad a '
               'Bitrix24 sin dejar el servicio.',
+          '⋮ › "Emitir RIM (recepción de instrumento)" deja constancia, con '
+              'la firma del cliente, del estado en que se recibe una balanza.',
         ]),
       ],
     ),
@@ -421,8 +424,8 @@ const manualServiceMet = ManualUso(
               'También puede tocar "Guardar pendiente" y elegir la empresa '
                   'más tarde.'),
           Paso(
-              'Con conexión, abra Otros apartados › "Oportunidades '
-                  'comerciales" y toque "Enviar" o "Enviar todas".',
+              'Con conexión, abra Servicios › "Oportunidades comerciales" y '
+                  'toque "Enviar" o "Enviar todas".',
               'Las pendientes nunca se envían solas. Reenviar no duplica la '
                   'oportunidad en Bitrix24.'),
         ]),
@@ -431,6 +434,99 @@ const manualServiceMet = ManualUso(
           'La oportunidad llega a Bitrix24 con los datos del servicio y del '
           'equipo. Describa solo lo que el cliente necesita; no copie '
           'resultados de la calibración en la descripción.',
+        ),
+      ],
+    ),
+    SeccionManual(
+      id: 'rim',
+      grupo: GrupoManual.servicios,
+      titulo: 'Recepción de instrumentos (RIM)',
+      icono: Icons.inventory_2_outlined,
+      resumen: 'Dejar constancia, con la firma del cliente, del estado de una '
+          'balanza cuyo servicio no se puede concluir.',
+      bloques: [
+        Parrafo('El RIM (recepción de instrumentos de pesaje) registra en qué '
+            'estado se recibe una balanza: qué componentes la acompañan, qué '
+            'daños y suciedad presenta y por qué se recibe. Emítalo cuando la '
+            'balanza presente un problema que impida concluir la calibración '
+            'o el servicio de soporte, antes de pasar a otra balanza. No es '
+            'un paso del servicio y no cambia sus datos.'),
+        Pasos('Emitir', [
+          Paso(
+              'Con la balanza ya elegida, toque ⋮ › "Emitir RIM (recepción de '
+                  'instrumento)".',
+              'Se abre "Recepción de instrumento" con el código del RIM, el '
+                  'servicio, el cliente, la planta y el instrumento ya '
+                  'cargados: no se vuelven a escribir.'),
+          Paso(
+              'Paso 1, "Estado físico": marque el inventario de componentes.',
+              'Cada componente puede quedar "Presente", "Faltante" o "N/A"; '
+                  '"Marcar todos" los marca de una vez. En celdas y patas '
+                  'anote la cantidad. Con "Agregar otro componente" incluya '
+                  'lo que no esté en la lista.'),
+          Paso(
+              'Elija el estado general, los daños detectados con su ubicación '
+                  'y el nivel de suciedad.',
+              'El estado general y el nivel de suciedad son obligatorios.'),
+          Paso('Paso 2, "Recepción y firma": escriba el "Motivo de la '
+              'recepción" e indique si se realizaron pruebas de '
+              'funcionamiento.'),
+          Paso(
+              'Escriba el nombre de quien entrega el instrumento y revise el '
+                  '"Lugar de recepción".',
+              'El representante de Métrica es el usuario con sesión iniciada; '
+                  'no se escribe.'),
+          Paso(
+              'Toque "Tocar para firmar" y entregue el teléfono al cliente.',
+              'La pantalla gira a horizontal. El cliente firma con el dedo; '
+                  '"Limpiar" borra el trazo y "Aceptar firma" lo guarda.'),
+          Paso(
+              'Toque "Emitir RIM" y confirme.',
+              'El RIM queda guardado en el teléfono. Desde "RIM emitido" '
+                  'puede ver o compartir el PDF.'),
+        ]),
+        Pasos('Después de emitir', [
+          Paso('"Seguir con esta balanza" vuelve al paso en el que estaba.',
+              'Use esta opción si el servicio todavía puede continuar.'),
+          Paso(
+              '"Cambiar de balanza" cierra esta balanza sin concluir el '
+                  'servicio.',
+              'Lo registrado se conserva en el teléfono, pero no se sube como '
+                  'servicio terminado. La app vuelve a la selección del '
+                  'instrumento con el mismo cliente, planta y SECA u OTST.'),
+        ]),
+        Lista('Cuándo lo sugiere la app', [
+          'Al salir de un servicio a medias (⋮ › "Salir (queda guardado)"), '
+              'si la balanza todavía no tiene RIM.',
+          'Al elegir "Descartar y crear otro" en una calibración o un '
+              'servicio de soporte pendiente.',
+        ]),
+        Pasos('Subir, consultar y anular', [
+          Paso('Abra Servicios › "Recepción de instrumentos (RIM)".',
+              'Los RIM aparecen en "Por subir", "Subidos" y "Anulados".'),
+          Paso(
+              'Con conexión, toque "Subir" o "Subir todos".',
+              'Los RIM nunca se suben solos. Volver a subir no duplica el RIM '
+                  'en el servidor.'),
+          Paso('"PDF" guarda, comparte o imprime el documento.',
+              'Se guarda en la carpeta ServiceMET/RIM.'),
+          Paso(
+              'Si un RIM tiene un error, toque "Anular" y escriba el motivo.',
+              'El RIM no se borra: queda marcado como anulado y no se sube. '
+                  'Emita otro desde el servicio. Un RIM ya subido no se anula '
+                  'en la app: consulte a Calidad.'),
+        ]),
+        Nota(
+          TipoNota.importante,
+          'Un RIM emitido no se puede modificar: es lo que el cliente firmó. '
+          'Revise los datos antes de pedir la firma.',
+        ),
+        Nota(
+          TipoNota.norma,
+          'Al recibir un ítem se registran las anomalías y las desviaciones '
+          'de las condiciones especificadas. Un registro no se sobrescribe: '
+          'se conserva el original junto con su corrección.',
+          referencia: '7.4.3 y 7.5.2',
         ),
       ],
     ),

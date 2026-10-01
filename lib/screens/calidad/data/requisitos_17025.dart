@@ -189,6 +189,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       evidencias: [
         'La eliminación pide confirmación.',
         'La API del servidor no puede borrar: solo tiene permiso de inserción.',
+        'Los RIM (recepción de instrumentos) ya funcionan así: una vez '
+            'emitidos no se editan ni se borran; se anulan con motivo, usuario '
+            'y fecha, y siguen visibles (lib/screens/rim/services/'
+            'rim_store.dart).',
       ],
       brecha: '"Eliminar registro" lo borra de forma permanente del teléfono, '
           'y un script administrativo borra registros ya subidos sin guardar '
@@ -371,6 +375,9 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'ni borra.',
         'El servidor impone fecha, usuario y estado; la app no puede '
             'falsearlos.',
+        'La base servicios_extras (RIM y copia de oportunidades) da a la API '
+            'solo consulta e inserción (backend/sql/'
+            '012_create_servicios_extras.sql).',
       ],
     ),
     Requisito(
