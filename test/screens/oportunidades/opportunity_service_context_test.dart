@@ -96,6 +96,45 @@ void main() {
     expect(context.serviceDate, '2026-09-29', reason: 'fecha local de hoy');
   });
 
+  test('lleva los códigos de DataMET y la dirección de la planta para el RIM',
+      () {
+    final calibracion = OpportunityServiceContext.fromCalibration(
+      ServiceSession(
+        sessionInfo: SessionInfo(seca: '1523-C01-26', sessionId: '0003'),
+        cliente: ClienteInfo(codigoCliente: '0072', nombreComercial: 'EMBOL'),
+        planta: PlantaInfo(
+          codigo: '0072-11',
+          nombre: 'Planta Viacha',
+          direccion: 'Carretera a Viacha km 14',
+        ),
+        metadata: SessionMetadata(),
+      ),
+      now: now,
+    );
+    expect(calibracion.clientCode, '0072');
+    expect(calibracion.plantCode, '0072-11');
+    expect(calibracion.plantAddress, 'Carretera a Viacha km 14');
+
+    final soporte = OpportunityServiceContext.fromSupport(
+      serviceName: 'Diagnóstico',
+      otst: '26-0090-11-S02',
+      codMetrica: '0090-11-014',
+      userName: 'Tec. Luis Mamani',
+      clienteId: '0090',
+      plantaCodigo: '0090-11',
+      plantaDireccion: ' ',
+      now: now,
+    );
+    expect(soporte.clientCode, '0090');
+    expect(soporte.plantCode, '0090-11');
+    expect(soporte.plantAddress, isNull);
+
+    final leido = OpportunityServiceContext.fromJson(calibracion.toJson());
+    expect(leido.clientCode, '0072');
+    expect(leido.plantCode, '0072-11');
+    expect(leido.plantAddress, 'Carretera a Viacha km 14');
+  });
+
   test('el borrador conserva todo al guardarse y leerse como JSON', () {
     final draft = OpportunityDraft(
       uuid: newOpportunityUuid(),

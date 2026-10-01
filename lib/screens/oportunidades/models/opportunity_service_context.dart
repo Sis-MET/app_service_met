@@ -29,6 +29,12 @@ class OpportunityServiceContext {
   final String? clientLegalName;
   final String? plantName;
   final String? plantDepartment;
+
+  /// Códigos de DataMET y dirección de la planta. Bitrix24 no los usa; los
+  /// necesita la recepción de instrumentos (RIM).
+  final String? clientCode;
+  final String? plantCode;
+  final String? plantAddress;
   final String? metricCode;
   final String? equipmentType;
   final String? brand;
@@ -60,6 +66,9 @@ class OpportunityServiceContext {
     this.clientLegalName,
     this.plantName,
     this.plantDepartment,
+    this.clientCode,
+    this.plantCode,
+    this.plantAddress,
     this.metricCode,
     this.equipmentType,
     this.brand,
@@ -90,6 +99,9 @@ class OpportunityServiceContext {
       clientLegalName: _text(session.cliente?.razonSocial),
       plantName: _text(session.planta?.nombre),
       plantDepartment: _text(session.planta?.departamento),
+      clientCode: _text(session.cliente?.codigoCliente),
+      plantCode: _text(session.planta?.codigo),
+      plantAddress: _text(session.planta?.direccion),
       metricCode: _text(balanza?.codMetrica) ?? _text(info.codMetrica),
       equipmentType: _text(balanza?.tipo),
       brand: _text(balanza?.marca),
@@ -122,6 +134,9 @@ class OpportunityServiceContext {
     String? clienteRazonSocial,
     String? plantaNombre,
     String? plantaDepartamento,
+    String? clienteId,
+    String? plantaCodigo,
+    String? plantaDireccion,
     Map<String, dynamic>? instrumentoData,
     DateTime? now,
   }) {
@@ -141,6 +156,9 @@ class OpportunityServiceContext {
       clientLegalName: _text(clienteRazonSocial),
       plantName: _text(plantaNombre),
       plantDepartment: _text(plantaDepartamento),
+      clientCode: _text(clienteId),
+      plantCode: _text(plantaCodigo),
+      plantAddress: _text(plantaDireccion),
       metricCode: value('cod_metrica') ?? _text(codMetrica),
       equipmentType: value('tipo_instrumento') ?? value('instrumento'),
       brand: value('marca'),
@@ -172,6 +190,9 @@ class OpportunityServiceContext {
       clientLegalName: s('clientLegalName'),
       plantName: s('plantName'),
       plantDepartment: s('plantDepartment'),
+      clientCode: s('clientCode'),
+      plantCode: s('plantCode'),
+      plantAddress: s('plantAddress'),
       metricCode: s('metricCode'),
       equipmentType: s('equipmentType'),
       brand: s('brand'),
@@ -186,7 +207,8 @@ class OpportunityServiceContext {
     );
   }
 
-  /// Mismas claves que valida `POST /api/bitrix/opportunities` (`service`).
+  /// Mismas claves que valida `POST /api/bitrix/opportunities` (`service`),
+  /// que ignora las que no conoce, y `POST /api/extras/rim`.
   Map<String, dynamic> toJson() => {
         'serviceType': serviceType.name,
         'serviceName': serviceName,
@@ -196,6 +218,9 @@ class OpportunityServiceContext {
         'clientLegalName': clientLegalName,
         'plantName': plantName,
         'plantDepartment': plantDepartment,
+        'clientCode': clientCode,
+        'plantCode': plantCode,
+        'plantAddress': plantAddress,
         'metricCode': metricCode,
         'equipmentType': equipmentType,
         'brand': brand,
