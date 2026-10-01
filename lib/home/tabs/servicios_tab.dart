@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../../models/service_session.dart';
 import '../../repositories/calibration_repository.dart';
 import '../../screens/calibracion/calibration_workspace_screen.dart';
+import '../../screens/oportunidades/models/opportunity_service_context.dart';
+import '../../screens/oportunidades/widgets/opportunities_entry_tile.dart';
+import '../../screens/rim/rim_flow.dart';
+import '../../screens/rim/widgets/rim_entry_tile.dart';
 import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
@@ -22,10 +27,40 @@ const _stepNames = [
   'Exportación',
 ];
 
-class ServiciosTab extends StatelessWidget {
+class ServiciosTab extends StatefulWidget {
   final String userName;
 
   const ServiciosTab({super.key, required this.userName});
+
+  @override
+  State<ServiciosTab> createState() => _ServiciosTabState();
+}
+
+class _ServiciosTabState extends State<ServiciosTab> {
+  String get userName => widget.userName;
+
+  /// Cambia al volver de un servicio, para que los accesos a los
+  /// formularios vuelvan a contar sus pendientes.
+  int _formulariosVersion = 0;
+
+  void _refrescarFormularios() {
+    if (mounted) setState(() => _formulariosVersion++);
+  }
+
+  Future<void> _openSoporte() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PrecargaScreenSop(
+          userName: userName,
+          clienteId: '',
+          plantaCodigo: '',
+          tableName: '',
+        ),
+      ),
+    );
+    _refrescarFormularios();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,17 +113,24 @@ class ServiciosTab extends StatelessWidget {
                     'Diagnóstico, instalación y mantenimiento de balanzas y básculas de camiones.',
                 actionLabel: 'Abrir soporte',
                 color: AppColors.shimmerGold,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PrecargaScreenSop(
-                      userName: userName,
-                      clienteId: '',
-                      plantaCodigo: '',
-                      tableName: '',
-                    ),
-                  ),
-                ),
+                onTap: _openSoporte,
+              ),
+              const SizedBox(height: 28),
+              Text(
+                'Formularios adicionales',
+                style: AppDesign.titleStyle(context),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Se llenan dentro de un servicio, desde el menú ⋮, y aquí se '
+                'revisan y se envían.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 14),
+              RimEntryTile(key: ValueKey('rim-$_formulariosVersion')),
+              const SizedBox(height: 12),
+              OpportunitiesEntryTile(
+                key: ValueKey('oportunidades-$_formulariosVersion'),
               ),
               const SizedBox(height: 22),
               AppPanel(
@@ -118,6 +160,11 @@ class ServiciosTab extends StatelessWidget {
   }
 
   Future<void> _openCalibration(BuildContext context) async {
+    await _startCalibration(context);
+    _refrescarFormularios();
+  }
+
+  Future<void> _startCalibration(BuildContext context) async {
     final pending =
         await CalibrationRepository().getServiciosIncompletos(userName);
     if (!context.mounted) return;
@@ -186,6 +233,14 @@ class ServiciosTab extends StatelessWidget {
       }
 
       if (action == 'new') {
+        // La balanza queda sin calibrar: si fue por un problema del
+        // instrumento, corresponde dejar el RIM antes de descartarla.
+        final service = _pendingServiceContext(last);
+        if (service != null &&
+            (!context.mounted ||
+                !await RimFlow.sugerirAntesDeDescartar(context, service))) {
+          return;
+        }
         final seca = last['seca']?.toString() ?? '';
         final sessionId = last['session_id']?.toString() ?? '';
         if (seca.isNotEmpty && sessionId.isNotEmpty) {
@@ -219,6 +274,19 @@ class ServiciosTab extends StatelessWidget {
           builder: (_) => CalibrationWorkspaceScreen(userName: userName),
         ),
       );
+    }
+  }
+
+  /// Lo que la calibración pendiente [row] sabe del servicio, para su RIM.
+  /// Null si la fila no se puede leer: entonces no se sugiere el RIM.
+  OpportunityServiceContext? _pendingServiceContext(Map<String, dynamic> row) {
+    try {
+      return OpportunityServiceContext.fromCalibration(
+        ServiceSession.fromMap(row),
+      );
+    } catch (error) {
+      debugPrint('No se pudo leer la calibración pendiente: $error');
+      return null;
     }
   }
 

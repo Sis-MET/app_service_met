@@ -430,7 +430,7 @@ class _OpportunityCard extends StatelessWidget {
   }
 }
 
-/// Número de oportunidades sin enviar, para el acceso en Otros apartados.
+/// Número de oportunidades sin enviar, para el acceso en Servicios.
 Future<int> countUnsentOpportunities() async {
   try {
     return await PendingOpportunityStore().countUnsent();

@@ -4,7 +4,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
 import '../pending_opportunities_screen.dart';
 
-/// Acceso a "Oportunidades" desde Otros apartados, con el número de
+/// Acceso a "Oportunidades" desde Servicios, con el número de
 /// oportunidades que esperan ser enviadas a Bitrix24.
 class OpportunitiesEntryTile extends StatefulWidget {
   const OpportunitiesEntryTile({super.key});

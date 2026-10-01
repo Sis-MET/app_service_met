@@ -108,7 +108,7 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
       case OpportunitySubmitOutcome.savedPending:
         Navigator.of(context).pop(OpportunityFormOutcome(
           '${result.error?.message ?? 'Bitrix24 no está disponible.'} '
-          'La oportunidad quedó pendiente; envíela desde Otros apartados › '
+          'La oportunidad quedó pendiente; envíela desde Servicios › '
           'Oportunidades comerciales.',
         ));
       case OpportunitySubmitOutcome.failed:
@@ -123,10 +123,10 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
     if (record == null || !mounted) return;
     Navigator.of(context).pop(OpportunityFormOutcome(
       record.draft.hasCompany
-          ? 'Oportunidad guardada como pendiente. Envíela desde Otros '
-              'apartados › Oportunidades comerciales.'
+          ? 'Oportunidad guardada como pendiente. Envíela desde Servicios › '
+              'Oportunidades comerciales.'
           : 'Oportunidad guardada como pendiente. Elija la empresa y envíela '
-              'desde Otros apartados › Oportunidades comerciales.',
+              'desde Servicios › Oportunidades comerciales.',
     ));
   }
 
@@ -159,7 +159,7 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
       _controller.storedLocally
           ? const OpportunityFormOutcome(
               'La oportunidad quedó guardada en el teléfono; puede revisarla '
-              'en Otros apartados › Oportunidades comerciales.',
+              'en Servicios › Oportunidades comerciales.',
             )
           : null,
     );

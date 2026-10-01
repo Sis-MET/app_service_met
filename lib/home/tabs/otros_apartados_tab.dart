@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/oportunidades/widgets/opportunities_entry_tile.dart';
 import '../../screens/precarga/descarga_de_datos.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
@@ -133,8 +132,6 @@ class OtrosApartadosTab extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
-              const OpportunitiesEntryTile(),
               const SizedBox(height: 18),
               AppPanel(
                 padding: const EdgeInsets.all(16),
