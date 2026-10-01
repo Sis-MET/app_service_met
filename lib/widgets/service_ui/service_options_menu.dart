@@ -19,6 +19,33 @@ class ServiceMenuAction {
   });
 }
 
+/// Sugerencia que acompaña a la confirmación de salida: algo que conviene
+/// hacer antes de dejar el servicio a medias (p. ej., emitir el RIM de una
+/// balanza que no permite concluirlo).
+class ServiceExitSuggestion {
+  final IconData icon;
+
+  /// Por qué conviene, en una o dos líneas.
+  final String message;
+
+  /// Texto del botón.
+  final String label;
+
+  /// Si la sugerencia corresponde ahora. Sin él, se muestra siempre.
+  final Future<bool> Function()? applies;
+
+  /// Se llama con la confirmación ya cerrada y sin salir del servicio.
+  final void Function(BuildContext context) onSelected;
+
+  const ServiceExitSuggestion({
+    required this.icon,
+    required this.message,
+    required this.label,
+    required this.onSelected,
+    this.applies,
+  });
+}
+
 /// Menú ⋮ del AppBar de un servicio: sus [actions] y, al final, la única
 /// forma de salir a medias, "Salir (queda guardado)".
 ///
@@ -40,6 +67,9 @@ class ServiceOptionsMenu extends StatelessWidget {
   /// Opciones sobre la salida, en este orden.
   final List<ServiceMenuAction> actions;
 
+  /// Se ofrece dentro de la confirmación de salida, cuando corresponde.
+  final ServiceExitSuggestion? exitSuggestion;
+
   /// Al abrir el menú (p. ej., cerrar el teclado numérico).
   final VoidCallback? onOpened;
 
@@ -48,6 +78,7 @@ class ServiceOptionsMenu extends StatelessWidget {
     required this.onExit,
     this.serviceName = 'el servicio',
     this.actions = const [],
+    this.exitSuggestion,
     this.onOpened,
   });
 
@@ -60,17 +91,48 @@ class ServiceOptionsMenu extends StatelessWidget {
   }
 
   Future<void> _exit(BuildContext context) async {
+    var suggestion = exitSuggestion;
+    if (suggestion?.applies != null) {
+      var applies = false;
+      try {
+        applies = await suggestion!.applies!();
+      } catch (_) {
+        // Sin poder comprobarlo no se sugiere nada: salir no debe fallar.
+      }
+      if (!applies) suggestion = null;
+      if (!context.mounted) return;
+    }
+    // true: salir; false: la sugerencia; null: seguir en el servicio.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text('¿Salir de $serviceName?'),
-        content: const Text(
-          'Lo registrado queda guardado en este teléfono y podrá continuar '
-          'desde Servicios.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Lo registrado queda guardado en este teléfono y podrá continuar '
+              'desde Servicios.',
+            ),
+            if (suggestion != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                suggestion.message,
+                style: Theme.of(dialogContext).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                icon: Icon(suggestion.icon),
+                label: Text(suggestion.label),
+              ),
+            ],
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Seguir aquí'),
           ),
           FilledButton(
@@ -80,7 +142,12 @@ class ServiceOptionsMenu extends StatelessWidget {
         ],
       ),
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!context.mounted) return;
+    if (confirmed == false) {
+      suggestion?.onSelected(context);
+      return;
+    }
+    if (confirmed != true) return;
     final canClose = await onExit();
     if (canClose && context.mounted) Navigator.of(context).pop();
   }

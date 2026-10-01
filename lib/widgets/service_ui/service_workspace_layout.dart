@@ -72,6 +72,9 @@ class ServiceWorkspaceLayout extends StatefulWidget {
   /// Opciones del menú ⋮, sobre "Salir (queda guardado)" (requiere [onExit]).
   final List<ServiceMenuAction> menuActions;
 
+  /// Sugerencia dentro de la confirmación de salida (requiere [onExit]).
+  final ServiceExitSuggestion? exitSuggestion;
+
   /// Si se provee, muestra el FAB ámbar con la ficha del instrumento.
   final ServiceBalanzaInfo? balanzaInfo;
 
@@ -115,6 +118,7 @@ class ServiceWorkspaceLayout extends StatefulWidget {
     this.showSaveStatus = true,
     this.appBarActions,
     this.menuActions = const [],
+    this.exitSuggestion,
     this.balanzaInfo,
     this.hideBackButton = false,
     this.onReadIndicator,
@@ -290,6 +294,7 @@ class _ServiceWorkspaceLayoutState extends State<ServiceWorkspaceLayout> {
                   ServiceOptionsMenu(
                     onExit: widget.onExit!,
                     actions: widget.menuActions,
+                    exitSuggestion: widget.exitSuggestion,
                     onOpened: _keypad.close,
                   ),
                 ],
