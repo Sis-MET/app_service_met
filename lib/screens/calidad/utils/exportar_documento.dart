@@ -35,13 +35,31 @@ Future<String> versionInstalada() async {
 
 enum _Destino { guardar, compartir, imprimir }
 
-/// Pregunta qué hacer con el documento, lo genera y lo guarda, comparte o
-/// envía a imprimir.
+/// Pregunta qué hacer con el documento de calidad, lo genera y lo guarda,
+/// comparte o envía a imprimir.
 Future<void> exportarDocumentoCalidad(
   BuildContext context, {
   required String titulo,
   required String nombreArchivo,
   required Future<Uint8List> Function(String appVersion) generar,
+}) =>
+    exportarPdf(
+      context,
+      titulo: titulo,
+      carpeta: carpetaCalidad,
+      fileName: '${nombreArchivo}_'
+          '${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf',
+      generar: () async => generar(await versionInstalada()),
+    );
+
+/// Pregunta qué hacer con un PDF generado en el teléfono, lo genera y lo
+/// guarda en `ServiceMET/{carpeta}`, lo comparte o lo envía a imprimir.
+Future<void> exportarPdf(
+  BuildContext context, {
+  required String titulo,
+  required String carpeta,
+  required String fileName,
+  required Future<Uint8List> Function() generar,
 }) async {
   final destino = await showModalBottomSheet<_Destino>(
     context: context,
@@ -52,19 +70,13 @@ Future<void> exportarDocumentoCalidad(
         top: Radius.circular(AppDesign.radiusLarge),
       ),
     ),
-    builder: (sheetContext) => _HojaExportar(titulo: titulo),
+    builder: (sheetContext) => _HojaExportar(titulo: titulo, carpeta: carpeta),
   );
   if (destino == null || !context.mounted) return;
 
-  final fileName = '${nombreArchivo}_'
-      '${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.pdf';
-
   final Uint8List bytes;
   try {
-    bytes = await _conProgreso(
-      context,
-      () async => generar(await versionInstalada()),
-    );
+    bytes = await _conProgreso(context, generar);
   } catch (e) {
     if (context.mounted) {
       TopAlert.show(context, 'No se pudo generar el PDF: $e', isError: true);
@@ -76,7 +88,7 @@ Future<void> exportarDocumentoCalidad(
   try {
     switch (destino) {
       case _Destino.guardar:
-        await _guardar(context, fileName, bytes);
+        await _guardar(context, carpeta, fileName, bytes);
       case _Destino.compartir:
         await SharePlus.instance.share(ShareParams(
           files: [
@@ -101,6 +113,7 @@ Future<void> exportarDocumentoCalidad(
 
 Future<void> _guardar(
   BuildContext context,
+  String carpeta,
   String fileName,
   Uint8List bytes,
 ) async {
@@ -114,7 +127,7 @@ Future<void> _guardar(
   }
 
   final result = await ServiceExporter.exportDocument(
-    codigoServicio: carpetaCalidad,
+    codigoServicio: carpeta,
     fileName: fileName,
     mimeType: ServiceExporter.pdfMime,
     bytes: bytes,
@@ -164,9 +177,10 @@ Future<T> _conProgreso<T>(
 }
 
 class _HojaExportar extends StatelessWidget {
-  const _HojaExportar({required this.titulo});
+  const _HojaExportar({required this.titulo, required this.carpeta});
 
   final String titulo;
+  final String carpeta;
 
   @override
   Widget build(BuildContext context) {
@@ -190,7 +204,7 @@ class _HojaExportar extends StatelessWidget {
               context,
               icono: Icons.save_alt_rounded,
               titulo: 'Guardar PDF',
-              detalle: 'En la carpeta ServiceMET/$carpetaCalidad',
+              detalle: 'En la carpeta ServiceMET/$carpeta',
               destino: _Destino.guardar,
             ),
             _opcion(
