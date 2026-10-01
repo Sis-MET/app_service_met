@@ -15,7 +15,7 @@ import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
-import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/soporte_new/utils/menu_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
 import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
@@ -81,6 +81,30 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
         subtitle: 'Conclusión del servicio',
         icon: Icons.assignment_turned_in_outlined),
   ];
+
+  /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.
+  late final _menu = SoporteMenu(
+    controller: _controller,
+    userName: widget.userName,
+    clienteId: widget.clienteId,
+    plantaCodigo: widget.plantaCodigo,
+    otst: widget.secaValue,
+    contextBuilder: () => OpportunityServiceContext.fromSupport(
+      serviceName: 'Mantenimiento correctivo',
+      otst: widget.secaValue,
+      sessionId: widget.sessionId,
+      codMetrica: widget.codMetrica,
+      userName: widget.userName,
+      clienteNombre: widget.clienteNombre,
+      clienteRazonSocial: widget.clienteRazonSocial,
+      plantaNombre: widget.plantaNombre,
+      plantaDepartamento: widget.plantaDepartamento,
+      clienteId: widget.clienteId,
+      plantaCodigo: widget.plantaCodigo,
+      plantaDireccion: widget.plantaDireccion,
+      instrumentoData: widget.instrumentoData,
+    ),
+  );
 
   @override
   void initState() {
@@ -299,22 +323,8 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
         final isLast = _controller.currentStep == _steps.length - 1;
         return ServiceWorkspaceLayout(
           title: 'Mantenimiento Correctivo',
-          menuActions: [
-            OpportunityMenuAction(
-              contextBuilder: () => OpportunityServiceContext.fromSupport(
-                serviceName: 'Mantenimiento correctivo',
-                otst: widget.secaValue,
-                sessionId: widget.sessionId,
-                codMetrica: widget.codMetrica,
-                userName: widget.userName,
-                clienteNombre: widget.clienteNombre,
-                clienteRazonSocial: widget.clienteRazonSocial,
-                plantaNombre: widget.plantaNombre,
-                plantaDepartamento: widget.plantaDepartamento,
-                instrumentoData: widget.instrumentoData,
-              ),
-            ),
-          ],
+          menuActions: _menu.actions,
+          exitSuggestion: _menu.exitSuggestion,
           steps: _steps,
           stepWidgets: [
             _buildPasoInfoGeneral(),

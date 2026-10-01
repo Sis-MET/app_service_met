@@ -1278,6 +1278,31 @@ class ServiceSessionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Deja sin concluir la balanza en curso (p. ej., tras emitir su RIM) y
+  /// pasa a elegir otra con el mismo cliente, planta y SECA.
+  ///
+  /// Lo registrado se conserva en el teléfono; la sesión queda descartada,
+  /// como con "Descartar y crear otro": no vuelve a ofrecerse como pendiente
+  /// ni se sube como balanza calibrada. Devuelve el motivo si no se pudo
+  /// guardar; en ese caso la balanza sigue abierta.
+  Future<String?> interrumpirBalanza() async {
+    final session = _session;
+    if (session == null) return 'No hay una calibración en curso.';
+    if (!await flushAutoSave()) return saveError ?? 'No se pudo guardar.';
+    final seca = session.sessionInfo.seca;
+    final sessionId = session.sessionInfo.sessionId;
+    final userName = session.sessionInfo.userName;
+    if (seca != null && sessionId != null && userName != null) {
+      try {
+        await _repository.markServicioAbandonado(seca, sessionId, userName);
+      } catch (e) {
+        return 'No se pudo cerrar la balanza: $e';
+      }
+    }
+    await resetearParaNuevaBalanza();
+    return null;
+  }
+
   // --- Finalización ---
 
   Future<List<Map<String, dynamic>>> getRegistrosCompletos(String seca,

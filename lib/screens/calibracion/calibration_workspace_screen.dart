@@ -14,6 +14,7 @@ import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
 import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
+import 'package:service_met/screens/rim/rim_flow.dart';
 
 import 'steps/cliente_step.dart';
 import 'steps/planta_step.dart';
@@ -239,6 +240,19 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
     return salir == true;
   }
 
+  /// "Cambiar de balanza" tras emitir el RIM: la balanza en curso queda sin
+  /// concluir y se vuelve al paso Instrumento, con la misma SECA.
+  Future<void> _cambiarBalanza(BuildContext context) async {
+    _keypad.close();
+    final error = await _provider.interrumpirBalanza();
+    if (!context.mounted) return;
+    TopAlert.show(
+      context,
+      error ?? 'Balanza cerrada sin concluir. Seleccione la siguiente.',
+      isError: error != null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ServiceSessionProvider>();
@@ -420,14 +434,29 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                             ? SaveStatus.pending
                             : SaveStatus.local,
               ),
-            // Oportunidad comercial (opcional, en cualquier paso y sin salir
-            // de la calibración: lee la sesión, no la modifica) y la única
-            // salida a medias, explícita y confirmada.
+            // RIM y oportunidad comercial (opcionales, en cualquier paso y
+            // sin salir de la calibración: leen la sesión, no la modifican) y
+            // la única salida a medias, explícita y confirmada. Al salir con
+            // una balanza sin terminar se sugiere el RIM.
             ServiceOptionsMenu(
               serviceName: 'la calibración',
               onOpened: _keypad.close,
               onExit: () => _guardarParaSalir(provider),
+              exitSuggestion: rimExitSuggestion(
+                contextBuilder: () => OpportunityServiceContext.fromCalibration(
+                    _provider.session ?? session),
+                onCambiarBalanza: _cambiarBalanza,
+                enCurso: () =>
+                    (_provider.session?.metadata.balanzaConfirmed ?? false) &&
+                    _provider.currentStep < 10,
+              ),
               actions: [
+                RimMenuAction(
+                  contextBuilder: () =>
+                      OpportunityServiceContext.fromCalibration(
+                          _provider.session ?? session),
+                  onCambiarBalanza: _cambiarBalanza,
+                ),
                 OpportunityMenuAction(
                   contextBuilder: () =>
                       OpportunityServiceContext.fromCalibration(

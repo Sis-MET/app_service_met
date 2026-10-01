@@ -308,6 +308,41 @@ void main() {
       expect(fila['servicio_status'], 'abandoned');
     });
 
+    test(
+        'interrumpir una balanza la deja descartada, con sus datos, y abre '
+        'otra en la misma SECA', () async {
+      final provider = await nuevaSesion();
+      completarBalanza(provider);
+      provider.updateExcentricidad(excentricidad('67'));
+      final seca = provider.session!.sessionInfo.seca!;
+      final interrumpida = provider.session!.sessionInfo.sessionId!;
+
+      expect(await provider.interrumpirBalanza(), isNull);
+
+      // La sesión nueva conserva cliente, planta y SECA, sin instrumento.
+      final nueva = provider.session!;
+      expect(nueva.sessionInfo.seca, seca);
+      expect(nueva.sessionInfo.sessionId, isNot(interrumpida));
+      expect(nueva.cliente?.nombreComercial, 'Cliente');
+      expect(nueva.planta?.codigo, '0032-11');
+      expect(nueva.balanza, isNull);
+      expect(nueva.metadata.balanzaConfirmed, isFalse);
+      expect(provider.currentStep, 3);
+
+      // Lo registrado sigue en el teléfono, sin darse por calibrado.
+      final fila = (await provider.getRegistrosCompletos(seca))
+          .singleWhere((r) => r['session_id'] == interrumpida);
+      expect(fila['servicio_status'], 'abandoned');
+      expect(fila['cod_metrica'], '0032-11-001');
+      expect(fila['carga']?.toString(), isNotEmpty);
+      expect(fila['estado_servicio_bal'] ?? '', isNot('Balanza Calibrada'));
+      // Y no vuelve a ofrecerse como calibración pendiente.
+      final pendientes =
+          await CalibrationRepository().getServiciosIncompletos('tecnico');
+      expect(pendientes.map((r) => r['session_id']),
+          isNot(contains(interrumpida)));
+    });
+
     test('abrir una balanza finalizada no borra su marca de finalizada',
         () async {
       final provider = await nuevaSesion();

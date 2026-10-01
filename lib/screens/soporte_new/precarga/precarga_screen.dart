@@ -11,6 +11,8 @@ import 'package:service_met/screens/soporte_new/modulos/mnt_prv_avanzado/stac_mn
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/stil_mnt_prv_regular.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/stac_relevamiento_de_datos.dart';
 import 'package:service_met/screens/soporte_new/modulos/verificaciones_internas/stac_verificaciones_internas.dart';
+import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
+import 'package:service_met/screens/rim/rim_flow.dart';
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
 import 'package:service_met/screens/soporte_new/services/support_legacy_recovery_service.dart';
 import 'package:service_met/screens/soporte_new/utils/support_module_catalog.dart';
@@ -115,7 +117,91 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     if (module == null) return true;
     final currentStep =
         int.tryParse(session['current_step']?.toString() ?? '') ?? 0;
-    final action = await showDialog<String>(
+    String? action;
+    // Se repite si, al descartar, el técnico abre el RIM y lo cancela: el
+    // servicio sigue pendiente y vuelve a elegir.
+    while (true) {
+      if (!mounted) return false;
+      action = await _askPendingAction(session, module, currentStep);
+      if (action != 'discard' || !mounted) break;
+      // La balanza queda sin atender: si fue por un problema del
+      // instrumento, corresponde dejar el RIM antes de descartarla.
+      if (await RimFlow.sugerirAntesDeDescartar(
+        context,
+        _pendingServiceContext(session, module),
+      )) {
+        break;
+      }
+    }
+
+    if (action == null) return false;
+    if (action == 'discard') {
+      try {
+        await recoveryDb.markSessionAbandoned(
+          moduleKey,
+          session['session_id']?.toString() ?? '',
+        );
+        return true;
+      } catch (error) {
+        if (mounted) {
+          TopAlert.show(
+            context,
+            'No se pudo descartar el servicio pendiente: $error',
+            isError: true,
+          );
+        }
+        return false;
+      }
+    }
+
+    final destination = _getRecoveryDestination(session);
+    if (destination == null || !mounted) return false;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+    );
+    return false;
+  }
+
+  /// Lo que la sesión pendiente [row] sabe del servicio, para su RIM.
+  OpportunityServiceContext _pendingServiceContext(
+    Map<String, dynamic> row,
+    SupportModuleDefinition module,
+  ) {
+    String? text(String key) => row[key]?.toString();
+    Map<String, dynamic>? instrumentoData;
+    try {
+      final decoded = jsonDecode(text('instrumento_data') ?? '{}');
+      if (decoded is Map) {
+        instrumentoData = Map<String, dynamic>.from(decoded);
+      }
+    } catch (_) {}
+    final name = module.serviceName;
+    return OpportunityServiceContext.fromSupport(
+      serviceName: name.isEmpty
+          ? name
+          : name[0] + name.substring(1).toLowerCase(),
+      otst: text('otst') ?? '',
+      sessionId: text('session_id'),
+      codMetrica: text('cod_metrica') ?? '',
+      userName: widget.userName,
+      clienteNombre: text('cliente_nombre'),
+      clienteRazonSocial: text('cliente_razon_social'),
+      plantaNombre: text('planta_nombre'),
+      plantaDepartamento: text('planta_departamento'),
+      clienteId: text('cliente_id'),
+      plantaCodigo: text('planta_codigo'),
+      plantaDireccion: text('planta_direccion'),
+      instrumentoData: instrumentoData,
+    );
+  }
+
+  Future<String?> _askPendingAction(
+    Map<String, dynamic> session,
+    SupportModuleDefinition module,
+    int currentStep,
+  ) {
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
@@ -152,34 +238,6 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
         ],
       ),
     );
-
-    if (action == null) return false;
-    if (action == 'discard') {
-      try {
-        await recoveryDb.markSessionAbandoned(
-          moduleKey,
-          session['session_id']?.toString() ?? '',
-        );
-        return true;
-      } catch (error) {
-        if (mounted) {
-          TopAlert.show(
-            context,
-            'No se pudo descartar el servicio pendiente: $error',
-            isError: true,
-          );
-        }
-        return false;
-      }
-    }
-
-    final destination = _getRecoveryDestination(session);
-    if (destination == null || !mounted) return false;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => destination),
-    );
-    return false;
   }
 
   Widget _recoveryDetail(String label, Object? value) {
