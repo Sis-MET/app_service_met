@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/app_colors.dart';
-import '../../../theme/app_design.dart';
+import '../../registro_directo/widgets/formulario_entry_card.dart';
+import '../rim_flow.dart';
 import '../rim_list_screen.dart';
 
-/// Acceso a los RIM desde Servicios, con el número de los que esperan ser
-/// subidos al servidor.
+/// Acceso a los RIM desde Servicios: emitir uno nuevo sin estar dentro de un
+/// servicio y abrir la lista, con el número de los que esperan ser subidos.
 class RimEntryTile extends StatefulWidget {
-  const RimEntryTile({super.key});
+  /// Técnico con sesión iniciada: recibe los instrumentos que se emiten
+  /// desde aquí.
+  final String userName;
+
+  const RimEntryTile({super.key, required this.userName});
 
   @override
   State<RimEntryTile> createState() => _RimEntryTileState();
@@ -35,36 +39,23 @@ class _RimEntryTileState extends State<RimEntryTile> {
     await _refresh();
   }
 
+  Future<void> _nuevo() async {
+    await RimFlow.nuevoDirecto(context, userName: widget.userName);
+    await _refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AppPanel(
-      padding: EdgeInsets.zero,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-        leading: const Icon(
-          Icons.inventory_2_outlined,
-          color: AppColors.shimmerGold,
-        ),
-        title: const Text('Recepción de instrumentos (RIM)'),
-        subtitle: Text(
-          _unsent == 0
-              ? 'Emitidos en los servicios, con la firma del cliente.'
-              : '$_unsent pendiente(s) de subir al servidor.',
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_unsent > 0)
-              Badge(
-                label: Text('$_unsent'),
-                backgroundColor: AppColors.warning,
-              ),
-            const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
-        onTap: _open,
-      ),
+    return FormularioEntryCard(
+      icon: RimMenuAction.menuIcon,
+      title: 'Recepción de instrumentos (RIM)',
+      subtitle: _unsent == 0
+          ? 'Constancia del estado de una balanza, con la firma del cliente.'
+          : '$_unsent pendiente(s) de subir al servidor.',
+      pending: _unsent,
+      onOpenList: _open,
+      newLabel: 'Nuevo RIM',
+      onNew: _nuevo,
     );
   }
 }

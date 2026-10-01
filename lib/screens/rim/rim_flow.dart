@@ -8,6 +8,7 @@ import '../../widgets/service_ui/service_options_menu.dart';
 import '../calidad/utils/exportar_documento.dart';
 import '../oportunidades/models/opportunity_service_context.dart';
 import '../oportunidades/widgets/opportunity_password_prompt.dart';
+import '../registro_directo/seleccion_rapida_screen.dart';
 import 'models/rim_documento.dart';
 import 'rim_form_screen.dart';
 import 'services/rim_pdf.dart';
@@ -68,6 +69,21 @@ class RimFlow {
     } catch (_) {
       return false;
     }
+  }
+
+  /// RIM fuera de un servicio: el técnico elige el cliente, la planta y el
+  /// instrumento en la selección rápida y pasa al formulario de siempre.
+  static Future<RimRegistro?> nuevoDirecto(
+    BuildContext context, {
+    required String userName,
+  }) async {
+    final service = await SeleccionRapidaScreen.open(
+      context,
+      proposito: PropositoSeleccion.rim,
+      userName: userName,
+    );
+    if (service == null || !context.mounted) return null;
+    return emitir(context, serviceContext: service);
   }
 
   /// Abre el formulario del RIM para el instrumento de [serviceContext]. Al

@@ -5,6 +5,7 @@ import '../../models/service_session.dart';
 import '../../repositories/calibration_repository.dart';
 import '../../screens/calibracion/calibration_workspace_screen.dart';
 import '../../screens/oportunidades/models/opportunity_service_context.dart';
+import '../../screens/oportunidades/services/opportunity_auto_sync.dart';
 import '../../screens/oportunidades/widgets/opportunities_entry_tile.dart';
 import '../../screens/rim/rim_flow.dart';
 import '../../screens/rim/widgets/rim_entry_tile.dart';
@@ -45,6 +46,20 @@ class _ServiciosTabState extends State<ServiciosTab> {
 
   void _refrescarFormularios() {
     if (mounted) setState(() => _formulariosVersion++);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Lo que se envía solo también cambia los pendientes.
+    OpportunityAutoSync.instance.lastReport.addListener(_refrescarFormularios);
+  }
+
+  @override
+  void dispose() {
+    OpportunityAutoSync.instance.lastReport
+        .removeListener(_refrescarFormularios);
+    super.dispose();
   }
 
   Future<void> _openSoporte() async {
@@ -122,15 +137,19 @@ class _ServiciosTabState extends State<ServiciosTab> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Se llenan dentro de un servicio, desde el menú ⋮, y aquí se '
-                'revisan y se envían.',
+                'Llénelos directamente desde aquí o, dentro de un servicio, '
+                'desde el menú ⋮. Aquí también se revisan y se envían.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 14),
-              RimEntryTile(key: ValueKey('rim-$_formulariosVersion')),
+              RimEntryTile(
+                key: ValueKey('rim-$_formulariosVersion'),
+                userName: userName,
+              ),
               const SizedBox(height: 12),
               OpportunitiesEntryTile(
                 key: ValueKey('oportunidades-$_formulariosVersion'),
+                userName: userName,
               ),
               const SizedBox(height: 22),
               AppPanel(

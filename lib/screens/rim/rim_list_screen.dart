@@ -199,9 +199,9 @@ class _RimListScreenState extends State<RimListScreen> {
                       AppDesign.pagePadding, 8, AppDesign.pagePadding, 40),
                   children: [
                     Text(
-                      'Recepciones de instrumentos de pesaje emitidas durante '
-                      'los servicios. Se suben al servidor solo cuando usted '
-                      'lo indica.',
+                      'Recepciones de instrumentos de pesaje emitidas desde '
+                      'los servicios o desde esta pestaña. Se suben al '
+                      'servidor solo cuando usted lo indica.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     if (_loadError != null) ...[
@@ -279,8 +279,9 @@ class _EmptyState extends StatelessWidget {
           Text('Sin RIM emitidos', style: AppDesign.titleStyle(context)),
           const SizedBox(height: 6),
           Text(
-            'Durante una calibración o un servicio de soporte, con la '
-            'balanza ya elegida, toque ⋮ › "${RimMenuAction.title}".',
+            'Use "Nuevo RIM" en Servicios o, durante una calibración o un '
+            'servicio de soporte con la balanza ya elegida, toque ⋮ › '
+            '"${RimMenuAction.title}".',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
