@@ -152,12 +152,13 @@ void main() {
     expect(form.titleController.text, 'Cambio de indicador báscula 2');
   });
 
-  test('guardar pendiente no exige empresa, registrar sí', () async {
+  test('con datos incompletos no registra ni llama a la API', () async {
     final form = controller();
     addTearDown(form.dispose);
     expect(await form.submit(), isNull);
-    expect(
-        form.fieldErrors.keys, containsAll(['company', 'type', 'description']));
+    expect(form.fieldErrors.keys, containsAll(['type', 'description']));
+    expect(form.fieldErrors.containsKey('company'), isFalse,
+        reason: 'la empresa se busca sola al registrar');
     expect(pending, isEmpty, reason: 'no llama a la API con datos incompletos');
   });
 

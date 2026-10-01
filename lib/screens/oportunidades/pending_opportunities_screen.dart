@@ -10,12 +10,16 @@ import '../../utils/top_alert.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import 'models/opportunity_draft.dart';
 import 'opportunity_form_screen.dart';
+import 'services/bitrix_company_matcher.dart';
+import 'services/opportunity_auto_sync.dart';
 import 'services/opportunity_repository.dart';
 import 'services/pending_opportunity_store.dart';
 import 'widgets/opportunity_password_prompt.dart';
 
 /// Oportunidades guardadas en el teléfono: las pendientes de enviar a
-/// Bitrix24 (se reenvían a mano, nunca solas) y las últimas enviadas.
+/// Bitrix24 y las últimas enviadas. Las pendientes se completan y envían
+/// solas al volver la conexión; aquí también se envían a mano y se elige la
+/// empresa de las que no tienen una coincidencia segura.
 class PendingOpportunitiesScreen extends StatefulWidget {
   /// Solo para pruebas.
   final OpportunityRepository Function()? repositoryBuilder;
@@ -49,11 +53,14 @@ class _PendingOpportunitiesScreenState
         loggedUser: loggedServiceMetUser,
       );
     }
+    // Lo que la sincronización automática envía se refleja en la lista.
+    OpportunityAutoSync.instance.lastReport.addListener(_load);
     _load();
   }
 
   @override
   void dispose() {
+    OpportunityAutoSync.instance.lastReport.removeListener(_load);
     _repository.close();
     super.dispose();
   }
@@ -109,40 +116,32 @@ class _PendingOpportunitiesScreenState
     await _load();
   }
 
+  /// Completa y envía todo lo pendiente: busca la empresa de las que no la
+  /// tienen y registra cada una en Bitrix24.
   Future<void> _sendAll() async {
-    final sendable = _items.where((item) => item.canSendDirectly).toList();
-    if (sendable.isEmpty) return;
+    if (!_items.any((item) => item.canSync)) return;
     setState(() => _sendingAll = true);
-    var sent = 0;
-    String? stopReason;
+    OpportunitySyncReport? report;
     try {
-      for (final record in sendable) {
-        if (!mounted) return;
-        final result = await _sendOne(record);
-        if (result == null) break;
-        if (result.outcome == OpportunitySubmitOutcome.sent) {
-          sent++;
-        } else if (result.error?.retryable ?? false) {
-          // Sin conexión no tiene sentido seguir intentando las demás.
-          stopReason = result.error!.message;
-          break;
-        }
-      }
+      report = await _repository.syncPending(
+        onAuthRequired: (error) => askOpportunityPassword(context, error),
+      );
+    } catch (error) {
+      if (mounted) TopAlert.show(context, '$error', isError: true);
     } finally {
       if (mounted) setState(() => _sendingAll = false);
     }
     if (!mounted) return;
-    final pending = sendable.length - sent;
-    TopAlert.show(
-      context,
-      [
-        '$sent de ${sendable.length} enviada(s) a Bitrix24.',
-        if (stopReason != null) stopReason,
-        if (pending > 0 && stopReason == null)
-          'Revise las que quedaron con error.',
-      ].join(' '),
-      isError: pending > 0,
-    );
+    if (report != null) {
+      TopAlert.show(
+        context,
+        report.message ?? 'No había oportunidades por enviar.',
+        isError: report.needCompany > 0 ||
+            report.rejected > 0 ||
+            report.authRequired ||
+            report.offline != null,
+      );
+    }
     await _load();
   }
 
@@ -188,7 +187,7 @@ class _PendingOpportunitiesScreenState
   Widget build(BuildContext context) {
     final unsent = _items.where((item) => !item.isSent).toList();
     final sent = _items.where((item) => item.isSent).toList();
-    final canSendAll = unsent.any((item) => item.canSendDirectly);
+    final canSendAll = unsent.any((item) => item.canSync);
 
     return PopScope(
       canPop: !_busy,
@@ -219,9 +218,11 @@ class _PendingOpportunitiesScreenState
                       AppDesign.pagePadding, 8, AppDesign.pagePadding, 40),
                   children: [
                     Text(
-                      'Oportunidades comerciales registradas durante los '
-                      'servicios. Las pendientes se envían a Bitrix24 solo '
-                      'cuando usted lo indica.',
+                      'Oportunidades comerciales registradas desde los '
+                      'servicios o desde esta pestaña. Las pendientes se '
+                      'completan y envían solas a Bitrix24 cuando hay '
+                      'conexión con el servidor; también puede enviarlas '
+                      'ahora.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     if (_loadError != null) ...[
@@ -285,8 +286,9 @@ class _EmptyState extends StatelessWidget {
           Text('Sin oportunidades', style: AppDesign.titleStyle(context)),
           const SizedBox(height: 6),
           Text(
-            'Durante una calibración o un servicio de soporte, toque ⋮ › '
-            '"Registrar oportunidad comercial" para registrar una oportunidad.',
+            'Use "Nueva oportunidad" en Servicios o, durante una calibración '
+            'o un servicio de soporte, toque ⋮ › "Registrar oportunidad '
+            'comercial".',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -374,11 +376,26 @@ class _OpportunityCard extends StatelessWidget {
                       .whereType<String>()
                       .where((part) => part.isNotEmpty)
                       .join(' · ')
-                  : 'Falta elegir la empresa de Bitrix24',
+                  // Sin motivo todavía no se buscó: no hubo conexión.
+                  : record.lastError == null
+                      ? 'Empresa de Bitrix24 por buscar: se completa sola al '
+                          'tener conexión'
+                      : 'Falta elegir la empresa de Bitrix24',
               style: TextStyle(
-                color: draft.hasCompany ? null : AppColors.actionNegative,
+                color: draft.hasCompany || record.lastError == null
+                    ? null
+                    : AppColors.actionNegative,
               ),
             ),
+            if (draft.hasCompany &&
+                draft.companySource != null &&
+                draft.companySource != CompanySource.manual)
+              Text(
+                draft.companySource == CompanySource.remembered
+                    ? 'Empresa usada antes para este cliente'
+                    : 'Empresa vinculada por coincidencia exacta',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             const SizedBox(height: 2),
             Text(serviceLine, style: Theme.of(context).textTheme.bodySmall),
             if (record.isSent && record.sentAt != null)
@@ -418,7 +435,7 @@ class _OpportunityCard extends StatelessWidget {
                         ? 'Enviar'
                         : record.status == OpportunityStatus.error
                             ? 'Revisar y enviar'
-                            : 'Completar y enviar'),
+                            : 'Elegir empresa'),
                   ),
                 ],
               ),

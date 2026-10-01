@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import '../data/tipos_oportunidad.dart';
+import '../services/bitrix_company_matcher.dart' show CompanySource;
+import 'bitrix_crm.dart';
 import 'opportunity_service_context.dart';
 
 /// UUID v4 con `Random.secure()`. Identifica la oportunidad en el teléfono y
@@ -23,6 +25,10 @@ class OpportunityDraft {
   final OpportunityServiceContext service;
   final int? companyId;
   final String? companyName;
+
+  /// Cómo se asignó la empresa; null en las oportunidades anteriores a esta
+  /// versión (todas elegidas a mano) o si todavía no tiene empresa.
+  final CompanySource? companySource;
   final int? contactId;
   final String? contactName;
   final String typeKey;
@@ -56,6 +62,7 @@ class OpportunityDraft {
     this.city,
     this.companyId,
     this.companyName,
+    this.companySource,
     this.contactId,
     this.contactName,
     this.priority,
@@ -66,10 +73,33 @@ class OpportunityDraft {
 
   bool get hasCompany => companyId != null;
 
+  /// La misma oportunidad con la empresa de Bitrix24 ya resuelta. El
+  /// contacto se elige con la empresa a la vista, así que queda vacío.
+  OpportunityDraft withCompany(BitrixCompany company, CompanySource source) =>
+      OpportunityDraft(
+        uuid: uuid,
+        service: service,
+        companyId: company.id,
+        companyName: company.title,
+        companySource: source,
+        typeKey: typeKey,
+        typeLabel: typeLabel,
+        typeLine: typeLine,
+        city: city,
+        title: title,
+        description: description,
+        priority: priority,
+        notes: notes,
+        createdAt: createdAt,
+        createdBy: createdBy,
+        appVersion: appVersion,
+      );
+
   Map<String, dynamic> toJson() => {
         'uuid': uuid,
         'companyId': companyId,
         'companyName': companyName,
+        'companySource': companySource?.name,
         'contactId': contactId,
         'contactName': contactName,
         'opportunityType': {
@@ -100,6 +130,7 @@ class OpportunityDraft {
       service: OpportunityServiceContext.fromJson(service),
       companyId: (json['companyId'] as num?)?.toInt(),
       companyName: json['companyName']?.toString(),
+      companySource: CompanySource.fromName(json['companySource']?.toString()),
       contactId: (json['contactId'] as num?)?.toInt(),
       contactName: json['contactName']?.toString(),
       typeKey: type['key']?.toString() ?? OpportunityTypeCatalog.otro.key,
@@ -174,4 +205,10 @@ class PendingOpportunity {
       (status == OpportunityStatus.pending ||
           status == OpportunityStatus.sending) &&
       draft.hasCompany;
+
+  /// La sincronización automática la toma: está por enviar y el servidor no
+  /// la rechazó. Sin empresa, primero se busca la que corresponde al cliente.
+  bool get canSync =>
+      status == OpportunityStatus.pending ||
+      status == OpportunityStatus.sending;
 }

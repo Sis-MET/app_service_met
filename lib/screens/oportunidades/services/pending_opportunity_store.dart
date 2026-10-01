@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+import '../models/bitrix_crm.dart';
 import '../models/opportunity_draft.dart';
 
 /// Oportunidades comerciales guardadas en el teléfono: las pendientes de
@@ -14,6 +15,10 @@ import '../models/opportunity_draft.dart';
 class PendingOpportunityStore {
   static const databaseName = 'oportunidades_bitrix.db';
   static const table = 'pending_bitrix_opportunities';
+
+  /// Empresa de Bitrix24 que el técnico eligió para cada cliente de
+  /// ServiceMET, para proponerla también sin conexión.
+  static const linksTable = 'bitrix_company_links';
 
   static Future<Database>? _shared;
 
@@ -75,6 +80,15 @@ class PendingOpportunityStore {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_${table}_status ON $table (status)',
     );
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $linksTable (
+        client_key TEXT PRIMARY KEY,
+        client_name TEXT,
+        company_id INTEGER NOT NULL,
+        company_name TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    ''');
     // Una versión de desarrollo creó la tabla antes de que las oportunidades
     // fueran prospectos (Leads) y no tiene la columna.
     final columns = await db.rawQuery('PRAGMA table_info($table)');
@@ -207,6 +221,44 @@ class PendingOpportunityStore {
       limit: sentLimit,
     );
     return [...unsent, ...sent].map(_fromRow).toList(growable: false);
+  }
+
+  /// Empresa recordada para [clientKey]
+  /// ([BitrixCompanyMatcher.clientKey]); null si no hay ninguna.
+  Future<BitrixCompany?> companyLink(String clientKey) async {
+    final db = await _db;
+    final rows = await db.query(
+      linksTable,
+      where: 'client_key = ?',
+      whereArgs: [clientKey],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return BitrixCompany(
+      id: rows.first['company_id'] as int,
+      title: rows.first['company_name'].toString(),
+    );
+  }
+
+  /// Recuerda la empresa de un cliente. Es una preferencia del teléfono, no
+  /// un registro: la última elección reemplaza a la anterior.
+  Future<void> rememberCompany(
+    String clientKey, {
+    required BitrixCompany company,
+    String? clientName,
+  }) async {
+    final db = await _db;
+    await db.insert(
+      linksTable,
+      {
+        'client_key': clientKey,
+        'client_name': clientName,
+        'company_id': company.id,
+        'company_name': company.title,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> countUnsent() async {

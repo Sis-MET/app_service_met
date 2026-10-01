@@ -259,13 +259,17 @@ void main() {
     expect((await store.byUuid(draft.uuid))!.status, OpportunityStatus.pending);
   });
 
-  test(
-      'guardar pendiente no llama a la API y permite elegir la empresa después',
-      () async {
+  test('sin empresa ni cliente no llama a la API y pide elegirla', () async {
     final repo = repository((_) async => json(201, {'leadId': 1}));
-    final record = await repo.savePending(_draft(companyId: null));
-    expect(record.status, OpportunityStatus.pending);
-    expect(record.canSendDirectly, isFalse);
+
+    final result = await repo.submit(_draft(companyId: null));
+
+    expect(result.outcome, OpportunitySubmitOutcome.failed);
+    expect(result.error!.code, OpportunityRepository.companyNotResolved);
+    expect(result.error!.details.single.field, 'companyId');
+    // Queda en el teléfono para elegir la empresa después.
+    expect(result.record!.status, OpportunityStatus.pending);
+    expect(result.record!.canSendDirectly, isFalse);
     expect(requests, isEmpty);
   });
 
@@ -273,7 +277,8 @@ void main() {
     final repo = repository((_) async => json(201, {'leadId': 5}));
     final sent = _draft();
     await repo.submit(sent);
-    final pending = await repo.savePending(_draft());
+    final pending =
+        await store.save(_draft(), status: OpportunityStatus.pending);
 
     expect(await repo.discard(sent.uuid), isFalse);
     expect(await repo.discard(pending.uuid), isTrue);

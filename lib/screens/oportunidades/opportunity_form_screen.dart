@@ -13,6 +13,7 @@ import 'data/tipos_oportunidad.dart';
 import 'models/bitrix_crm.dart';
 import 'models/opportunity_draft.dart';
 import 'models/opportunity_service_context.dart';
+import 'services/bitrix_company_matcher.dart';
 import 'services/opportunity_repository.dart';
 import 'widgets/bitrix_company_picker.dart';
 import 'widgets/opportunity_password_prompt.dart';
@@ -106,28 +107,18 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
           leadId: id,
         ));
       case OpportunitySubmitOutcome.savedPending:
+        final sinEmpresa = !(result.record?.draft.hasCompany ?? true);
         Navigator.of(context).pop(OpportunityFormOutcome(
           '${result.error?.message ?? 'Bitrix24 no está disponible.'} '
-          'La oportunidad quedó pendiente; envíela desde Servicios › '
-          'Oportunidades comerciales.',
+          'La oportunidad quedó pendiente: con conexión '
+          '${sinEmpresa ? 'se buscará la empresa del cliente y ' : ''}'
+          'se enviará sola. Puede verla en Servicios › Oportunidades '
+          'comerciales.',
         ));
       case OpportunitySubmitOutcome.failed:
         // Se queda en el formulario: el error se muestra arriba del botón.
         break;
     }
-  }
-
-  Future<void> _savePending() async {
-    FocusScope.of(context).unfocus();
-    final record = await _controller.savePending();
-    if (record == null || !mounted) return;
-    Navigator.of(context).pop(OpportunityFormOutcome(
-      record.draft.hasCompany
-          ? 'Oportunidad guardada como pendiente. Envíela desde Servicios › '
-              'Oportunidades comerciales.'
-          : 'Oportunidad guardada como pendiente. Elija la empresa y envíela '
-              'desde Servicios › Oportunidades comerciales.',
-    ));
   }
 
   Future<void> _cancel() async {
@@ -224,38 +215,21 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppDesign.pagePadding, 8, AppDesign.pagePadding, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: OutlinedButton(
-                    style: AppDesign.neutralButtonStyle(context),
-                    onPressed: controller.busy ? null : _savePending,
-                    child: const Text(
-                      'Guardar pendiente',
+            // Un solo botón: con conexión la registra en Bitrix24; sin
+            // conexión la deja pendiente y la app la envía sola después.
+            child: FilledButton(
+              style: AppDesign.positiveButtonStyle(),
+              onPressed: controller.busy ? null : _submit,
+              child: controller.busy
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const Text(
+                      'Registrar oportunidad',
                       textAlign: TextAlign.center,
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 3,
-                  child: FilledButton(
-                    style: AppDesign.positiveButtonStyle(),
-                    onPressed: controller.busy ? null : _submit,
-                    child: controller.busy
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.4),
-                          )
-                        : const Text(
-                            'Registrar oportunidad',
-                            textAlign: TextAlign.center,
-                          ),
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -276,9 +250,7 @@ class _ServiceSummary extends StatelessWidget {
         .whereType<String>()
         .join(' - ');
     final when = DateFormat('dd/MM/yyyy HH:mm').format(service.capturedAt);
-    final label = service.serviceType == OpportunityServiceType.soporte
-        ? '${service.serviceType.label} · ${service.serviceName}'
-        : service.serviceName;
+    final label = service.serviceLabel;
     return AppPanel(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -391,6 +363,24 @@ class _CompanyField extends StatelessWidget {
             child: Text(
               'En ServiceMET: $reference. Elija la empresa exacta de Bitrix24; '
               'el nombre puede ser distinto.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+        if (company == null || controller.companySource != CompanySource.manual)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              switch (controller.companySource) {
+                CompanySource.remembered =>
+                  'Es la empresa que usó antes para este cliente. Cámbiela si '
+                      'no corresponde.',
+                CompanySource.exact =>
+                  'Empresa vinculada por coincidencia exacta con el cliente. '
+                      'Cámbiela si no corresponde.',
+                _ => 'Si no la elige, al registrar se usa la que coincida '
+                    'exactamente con el cliente. Sin conexión, la oportunidad '
+                    'queda pendiente y se completa y envía sola después.',
+              },
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),

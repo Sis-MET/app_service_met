@@ -6,6 +6,7 @@ import '../data/tipos_oportunidad.dart';
 import '../models/bitrix_crm.dart';
 import '../models/opportunity_draft.dart';
 import '../models/opportunity_service_context.dart';
+import '../services/bitrix_company_matcher.dart';
 import '../services/bitrix_opportunity_api.dart';
 import '../services/opportunity_repository.dart';
 
@@ -46,6 +47,7 @@ class OpportunityFormController extends ChangeNotifier {
   String? _version;
 
   BitrixCompany? _company;
+  CompanySource? _companySource;
   BitrixContact? _contact;
   List<BitrixContact> _contacts = const [];
   bool _loadingContacts = false;
@@ -104,6 +106,7 @@ class OpportunityFormController extends ChangeNotifier {
           id: draft.companyId!,
           title: draft.companyName ?? 'Empresa #${draft.companyId}',
         );
+        _companySource = draft.companySource ?? CompanySource.manual;
       }
       if (draft.contactId != null) {
         _contact = BitrixContact(
@@ -116,11 +119,15 @@ class OpportunityFormController extends ChangeNotifier {
     }
     unawaited(_loadMetadata());
     unawaited(_loadFormOptions());
+    unawaited(_loadRememberedCompany());
   }
 
   // ── Lectura ────────────────────────────────────────────────────────────
 
   BitrixCompany? get company => _company;
+
+  /// Cómo se asignó [company]; null sin empresa.
+  CompanySource? get companySource => _company == null ? null : _companySource;
   BitrixContact? get contact => _contact;
   List<BitrixContact> get contacts => _contacts;
   bool get loadingContacts => _loadingContacts;
@@ -161,7 +168,8 @@ class OpportunityFormController extends ChangeNotifier {
   /// Hay algo escrito o elegido que se perdería al cancelar.
   bool get isDirty =>
       !_storedLocally &&
-      (_company != null ||
+      // Una empresa propuesta por la app no es algo que el técnico pierda.
+      ((_company != null && _companySource == CompanySource.manual) ||
           _type != null ||
           descriptionController.text.trim().isNotEmpty ||
           notesController.text.trim().isNotEmpty);
@@ -244,9 +252,22 @@ class OpportunityFormController extends ChangeNotifier {
     }
   }
 
-  void selectCompany(BitrixCompany company) {
+  void selectCompany(BitrixCompany company) =>
+      _setCompany(company, CompanySource.manual);
+
+  /// Sin elegir todavía: propone la empresa que el técnico ya usó para este
+  /// cliente. Se lee del teléfono, así que también sirve sin conexión.
+  Future<void> _loadRememberedCompany() async {
+    if (_company != null) return;
+    final remembered = await _repository.rememberedCompany(serviceContext);
+    if (_disposed || remembered == null || _company != null) return;
+    _setCompany(remembered, CompanySource.remembered);
+  }
+
+  void _setCompany(BitrixCompany company, CompanySource source) {
     final changed = _company?.id != company.id;
     _company = company;
+    _companySource = source;
     _fieldErrors = Map.of(_fieldErrors)..remove('company');
     if (changed) {
       _contact = null;
@@ -362,6 +383,7 @@ class OpportunityFormController extends ChangeNotifier {
       service: serviceContext,
       companyId: _company?.id,
       companyName: _company?.title,
+      companySource: companySource,
       contactId: _contact?.id,
       contactName: _contact?.fullName,
       typeKey: type.key,
@@ -378,7 +400,9 @@ class OpportunityFormController extends ChangeNotifier {
     );
   }
 
-  bool _validate({required bool requireCompany}) {
+  /// La empresa no se exige aquí: si falta, al registrar se busca la del
+  /// cliente y, sin conexión, la oportunidad queda pendiente.
+  bool _validate() {
     final errors = <String, String>{};
     if (_type == null) errors['type'] = 'Seleccione el tipo de oportunidad.';
     final title = titleController.text.trim();
@@ -396,13 +420,9 @@ class OpportunityFormController extends ChangeNotifier {
     if (notesController.text.trim().length > notesMaxLength) {
       errors['notes'] = 'Máximo $notesMaxLength caracteres.';
     }
-    if (requireCompany && _company == null) {
-      errors['company'] = 'Seleccione la empresa de Bitrix24.';
-    }
     // Sin departamento no hay de dónde deducirla; con uno desconocido, el
     // servidor lo informa.
-    if (requireCompany &&
-        cityRequired &&
+    if (cityRequired &&
         _city == null &&
         _plain(serviceContext.plantDepartment).isEmpty) {
       errors['city'] = 'Elija la ciudad del prospecto.';
@@ -414,9 +434,13 @@ class OpportunityFormController extends ChangeNotifier {
 
   /// Registra en Bitrix24. Devuelve null si falta completar algo o si ya se
   /// está enviando (doble toque).
+  ///
+  /// Sin empresa elegida usa la del cliente si hay una coincidencia segura;
+  /// sin conexión, la oportunidad queda pendiente y se completa y envía sola
+  /// más tarde.
   Future<OpportunitySubmitResult?> submit() async {
     if (_busy) return null;
-    if (!_validate(requireCompany: true)) {
+    if (!_validate()) {
       _notify();
       return null;
     }
@@ -434,28 +458,6 @@ class OpportunityFormController extends ChangeNotifier {
       return result;
     } catch (error) {
       _formError = 'No se pudo guardar la oportunidad: $error';
-      return null;
-    } finally {
-      _busy = false;
-      _notify();
-    }
-  }
-
-  /// Guarda sin enviar; la empresa puede elegirse después.
-  Future<PendingOpportunity?> savePending() async {
-    if (_busy) return null;
-    if (!_validate(requireCompany: false)) {
-      _notify();
-      return null;
-    }
-    _busy = true;
-    _notify();
-    try {
-      final record = await _repository.savePending(buildDraft());
-      _storedLocally = true;
-      return record;
-    } catch (error) {
-      _formError = 'No se pudo guardar en el teléfono: $error';
       return null;
     } finally {
       _busy = false;

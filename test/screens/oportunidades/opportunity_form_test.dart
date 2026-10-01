@@ -134,7 +134,7 @@ void main() {
     expect(find.text('Contenido del paso 2'), findsOneWidget);
   });
 
-  testWidgets('sin empresa de Bitrix24 no registra y explica qué falta',
+  testWidgets('con datos incompletos no registra y explica qué falta',
       (tester) async {
     final requests = <http.Request>[];
     late Future<OpportunityFormOutcome?> result;
@@ -160,7 +160,6 @@ void main() {
     await tester.tap(find.text('Registrar oportunidad'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Seleccione la empresa de Bitrix24.'), findsOneWidget);
     expect(find.text('Seleccione el tipo de oportunidad.'), findsOneWidget);
     expect(find.text('Describa la oportunidad detectada.'), findsOneWidget);
     expect(find.text('Nueva oportunidad'), findsOneWidget);

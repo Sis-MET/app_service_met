@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../../login/services/connection_profile_service.dart';
 import '../../repositories/calibration_repository.dart';
 import '../../screens/calibracion/calibration_workspace_screen.dart';
+import '../../screens/oportunidades/services/opportunity_auto_sync.dart';
+import '../../screens/oportunidades/services/opportunity_repository.dart';
 import '../../screens/precarga/descarga_de_datos.dart';
 import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../services/notification_service.dart';
@@ -45,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     NotificationService().pendingTap.removeListener(_handleNotificationTap);
+    // La sincronización sigue viva: otro inicio puede haberla tomado ya.
+    OpportunityAutoSync.instance.lastReport.removeListener(_onOpportunitySync);
     _pageController.dispose();
     super.dispose();
   }
@@ -56,6 +62,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused && _userReady) {
       NotificationService().refresh(userName);
     }
+    // Al volver puede haber conexión: se completan y envían las
+    // oportunidades comerciales pendientes.
+    if (state == AppLifecycleState.resumed && _userReady) {
+      OpportunityAutoSync.instance.schedule();
+    }
   }
 
   void _onUserReady() {
@@ -63,6 +74,47 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _userReady = true;
     NotificationService().refresh(userName);
     _handleNotificationTap();
+    _startOpportunitySync();
+  }
+
+  /// Las oportunidades registradas sin conexión se completan y envían solas
+  /// cuando el servidor vuelve a estar al alcance.
+  void _startOpportunitySync() {
+    final ConnectionProfileService profiles;
+    try {
+      profiles = context.read<ConnectionProfileService>();
+    } catch (_) {
+      return;
+    }
+    final sync = OpportunityAutoSync.instance;
+    sync.lastReport.addListener(_onOpportunitySync);
+    sync.start(apiUrl: () => profiles.perfilSeleccionado?.apiUrl);
+  }
+
+  /// Lo que pide atención (elegir una empresa, ingresar la contraseña) se
+  /// avisa una vez por sesión; lo enviado, cada vez.
+  bool _opportunityAttentionShown = false;
+
+  void _onOpportunitySync() {
+    final OpportunitySyncReport? report =
+        OpportunityAutoSync.instance.lastReport.value;
+    if (report == null || !mounted) return;
+    final needsAttention = report.needCompany > 0 || report.authRequired;
+    if (report.sent == 0 && (!needsAttention || _opportunityAttentionShown)) {
+      return;
+    }
+    if (needsAttention) _opportunityAttentionShown = true;
+    final message = report.message;
+    if (message == null) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        content: Text(needsAttention
+            ? '$message Revíselas en Servicios › Oportunidades comerciales.'
+            : message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 6),
+      ),
+    );
   }
 
   /// Abre el destino de la notificación tocada. Solo desde el inicio: si el
