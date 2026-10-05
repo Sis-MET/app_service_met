@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../theme/app_design.dart';
+import '../../../../theme/app_icons.dart';
 
 class ServicioIncompletoDialog extends StatelessWidget {
   final VoidCallback onConfirmSalir;
@@ -17,7 +18,7 @@ class ServicioIncompletoDialog extends StatelessWidget {
     return AlertDialog(
       title: const Row(
         children: [
-          Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+          Icon(AppIcons.advertencia, color: Colors.orange, size: 28),
           SizedBox(width: 8),
           Text('Servicio incompleto'),
         ],

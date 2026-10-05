@@ -22,6 +22,7 @@ import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/mnt_correctivo_controller.dart';
 import 'models/mnt_correctivo_model.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacMntCorrectivo extends StatefulWidget {
   final String sessionId;
@@ -71,15 +72,15 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
     StepData(
         title: 'Info General',
         subtitle: 'Reporte y trabajos',
-        icon: Icons.info_outline),
+        icon: AppIcons.info),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Metrológicas',
-        icon: Icons.task_alt_outlined),
+        icon: AppIcons.tareaLista),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.
@@ -461,7 +462,7 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.upload_file_rounded),
+                  : const Icon(AppIcons.subirArchivo),
               label: Text(_isImporting
                   ? 'Importando diagnostico...'
                   : 'Importar diagnostico (CSV)'),

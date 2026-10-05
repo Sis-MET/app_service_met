@@ -20,6 +20,7 @@ import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 // Conserva el paso preparado por la prueba al montar el workspace.
 class _WorkspaceProvider extends ServiceSessionProvider {
@@ -276,7 +277,7 @@ void main() {
 
   testWidgets('la oportunidad comercial está en el menú ⋮', (tester) async {
     await openWorkspace(tester, 2);
-    expect(find.byIcon(Icons.handshake_outlined), findsNothing);
+    expect(find.byIcon(AppIcons.oportunidad), findsNothing);
     await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
     await tester.pumpAndSettle();
     expect(find.text(OpportunityMenuAction.title), findsOneWidget);

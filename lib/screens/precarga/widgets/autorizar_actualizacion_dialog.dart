@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_icons.dart';
 
 /// Pide la contraseña para autorizar una actualización de la precarga.
 ///
@@ -39,7 +40,7 @@ class _AutorizarActualizacionDialogState
         autofocus: true,
         decoration: const InputDecoration(
           labelText: 'Contraseña',
-          prefixIcon: Icon(Icons.lock_outline_rounded),
+          prefixIcon: Icon(AppIcons.bloqueado),
         ),
         onSubmitted: (_) => _confirmar(),
       ),

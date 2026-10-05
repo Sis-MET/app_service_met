@@ -22,6 +22,7 @@ import 'package:service_met/screens/soporte_new/utils/menu_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
 import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
+import '../../../../theme/app_icons.dart';
 
 class StilMntPrvRegular extends StatefulWidget {
   final String sessionId;
@@ -80,31 +81,31 @@ class _StilMntPrvRegularState extends State<StilMntPrvRegular> {
     StepData(
         title: 'Pruebas Iniciales',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
-        icon: Icons.science_outlined),
+        icon: AppIcons.laboratorio),
     StepData(
         title: 'Entorno de Instalación',
         subtitle: 'Vibración, Polvo, Temperatura, Humedad',
-        icon: Icons.thermostat_outlined),
+        icon: AppIcons.temperatura),
     StepData(
         title: 'Terminal',
         subtitle: 'Campos de inspección',
-        icon: Icons.computer_outlined),
+        icon: AppIcons.computadora),
     StepData(
         title: 'Balanza',
         subtitle: 'Campos de inspección',
-        icon: Icons.balance_outlined),
+        icon: AppIcons.balanza),
     StepData(
         title: 'Caja Sumadora',
         subtitle: 'Campos de inspección',
-        icon: Icons.electrical_services_outlined),
+        icon: AppIcons.electrico),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
-        icon: Icons.task_alt_outlined),
+        icon: AppIcons.tareaLista),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.

@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/campo_estado.dart';
+import '../../../../theme/app_icons.dart';
 
 /// Modos del bloque de acciones masivas sobre los campos de inspección.
 ///
@@ -47,8 +48,8 @@ class BulkEstadoToggleCard extends StatelessWidget {
     required this.subtitleInactive,
     required this.value,
     required this.onChanged,
-    this.activeIcon = Icons.check_circle_outline_rounded,
-    this.inactiveIcon = Icons.checklist_rounded,
+    this.activeIcon = AppIcons.completo,
+    this.inactiveIcon = AppIcons.lista,
     this.activeColor = const Color(0xFF46824B),
   });
 
@@ -87,8 +88,9 @@ class BulkEstadoToggleCard extends StatelessWidget {
             child: Icon(
               value ? activeIcon : inactiveIcon,
               size: 20,
-              color:
-                  value ? activeColor : (isDark ? Colors.white38 : Colors.black38),
+              color: value
+                  ? activeColor
+                  : (isDark ? Colors.white38 : Colors.black38),
             ),
           ),
           const SizedBox(width: 12),
@@ -153,7 +155,8 @@ class BulkEstadoToggles extends StatelessWidget {
         BulkEstadoToggleCard(
           title: buenEstadoTitle,
           subtitleActive: 'Todos los campos marcados como "Bueno"',
-          subtitleInactive: 'Active para aplicar "Buen estado" a todos los campos',
+          subtitleInactive:
+              'Active para aplicar "Buen estado" a todos los campos',
           value: mode == BulkEstadoMode.buenEstado,
           onChanged: (v) => onModeChanged(
             v ? BulkEstadoMode.buenEstado : BulkEstadoMode.none,
@@ -164,8 +167,8 @@ class BulkEstadoToggles extends StatelessWidget {
           title: noAplicaTitle,
           subtitleActive: 'Todos los campos marcados como "No aplica"',
           subtitleInactive: 'Active cuando la inspección no corresponde',
-          activeIcon: Icons.block_rounded,
-          inactiveIcon: Icons.block_outlined,
+          activeIcon: AppIcons.bloquear,
+          inactiveIcon: AppIcons.bloquear,
           activeColor: const Color(0xFF6B7280),
           value: mode == BulkEstadoMode.noAplica,
           onChanged: (v) => onModeChanged(

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import '../../../../../theme/app_icons.dart';
 
 /// Widget de prueba de excentricidad para soporte técnico.
 ///
@@ -34,8 +35,7 @@ class ExcentricidadPruebaWidget extends StatefulWidget {
       _ExcentricidadPruebaWidgetState();
 }
 
-class _ExcentricidadPruebaWidgetState
-    extends State<ExcentricidadPruebaWidget> {
+class _ExcentricidadPruebaWidgetState extends State<ExcentricidadPruebaWidget> {
   static const _plataformas = [
     'Cuadrada',
     'Rectangular',
@@ -154,8 +154,7 @@ class _ExcentricidadPruebaWidgetState
 
   static final _puntosIndicacionRegex = RegExp(r'^(\w+)\s+(\d+)([FAID])$');
 
-  void _parsePuntosIndicacion(
-      String? value, String? tipoPlataformaFromData) {
+  void _parsePuntosIndicacion(String? value, String? tipoPlataformaFromData) {
     if (value == null || value.trim().isEmpty) return;
 
     final match = _puntosIndicacionRegex.firstMatch(value.trim());
@@ -186,8 +185,7 @@ class _ExcentricidadPruebaWidgetState
           ? tipoPlataformaFromData
           : null;
       final options = _getPuntosOptions();
-      _puntosIndicacion =
-          options.contains(value.trim()) ? value.trim() : null;
+      _puntosIndicacion = options.contains(value.trim()) ? value.trim() : null;
     }
   }
 
@@ -504,8 +502,7 @@ class _ExcentricidadPruebaWidgetState
                                 boxShadow: _selectedPosition == i + 1
                                     ? [
                                         BoxShadow(
-                                          color:
-                                              Colors.teal.withOpacity(0.4),
+                                          color: Colors.teal.withOpacity(0.4),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
@@ -558,13 +555,13 @@ class _ExcentricidadPruebaWidgetState
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _dirBtn('atras', Icons.arrow_upward, 'Atrás', isDark),
+        _dirBtn('atras', AppIcons.arriba, 'Atrás', isDark),
         const SizedBox(width: 6),
-        _dirBtn('frente', Icons.arrow_downward, 'Frente', isDark),
+        _dirBtn('frente', AppIcons.abajo, 'Frente', isDark),
         const SizedBox(width: 6),
-        _dirBtn('izquierda', Icons.arrow_back, 'Izq', isDark),
+        _dirBtn('izquierda', AppIcons.atras, 'Izq', isDark),
         const SizedBox(width: 6),
-        _dirBtn('derecha', Icons.arrow_forward, 'Der', isDark),
+        _dirBtn('derecha', AppIcons.adelante, 'Der', isDark),
       ],
     );
   }
@@ -605,8 +602,7 @@ class _ExcentricidadPruebaWidgetState
             Text(label,
                 style: TextStyle(
                     fontSize: 11,
-                    fontWeight:
-                        selected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
                     color: selected
                         ? Colors.white
                         : (isDark ? Colors.white70 : Colors.black54))),
@@ -635,21 +631,20 @@ class _ExcentricidadPruebaWidgetState
       onChanged: (_) => _emit(),
       decoration: InputDecoration(
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: const Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child:
+                    const Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -691,12 +686,12 @@ class _ExcentricidadPruebaWidgetState
               const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white24 : Colors.black26)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : Colors.black12)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         ),
         allowNegative: true,
         readable: true,
@@ -704,16 +699,16 @@ class _ExcentricidadPruebaWidgetState
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
 
   Widget _buildSuggestedLoadChips(bool isDark) {
@@ -729,7 +724,8 @@ class _ExcentricidadPruebaWidgetState
           final pmax = rangos[index]['capMax']!;
           final d = rangos[index]['d']!;
 
-          final suggested = SuggestionHelper.roundToNearestMultiple(pmax / 3, d);
+          final suggested =
+              SuggestionHelper.roundToNearestMultiple(pmax / 3, d);
           final decimals = SuggestionHelper.getDecimalPlaces(d);
           final formatted = suggested.toStringAsFixed(decimals);
           final unidad = _getBalanceUnit();
@@ -742,19 +738,16 @@ class _ExcentricidadPruebaWidgetState
               setState(() {});
             },
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.teal.withOpacity(isDark ? 0.15 : 0.1),
-                border:
-                    Border.all(color: Colors.teal.withOpacity(0.3)),
+                border: Border.all(color: Colors.teal.withOpacity(0.3)),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.teal),
+                  const Icon(AppIcons.consejo, size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (⅓ $label)',
@@ -908,8 +901,7 @@ class _PlatformPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.5;
       canvas.drawRRect(
-          RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(8)),
-          ip);
+          RRect.fromRectAndRadius(r.inflate(6), const Radius.circular(8)), ip);
 
       tp.paint(canvas, pos - Offset(tp.width / 2, tp.height / 2));
     }

@@ -7,6 +7,7 @@ import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/indicator_reader_screen.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
+import '../../../../../theme/app_icons.dart';
 
 class LinealidadPruebaWidget extends StatefulWidget {
   final BalanzaInfo balanza;
@@ -263,9 +264,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            _cargasValidadas
-                ? Icons.check_circle_outline_rounded
-                : Icons.info_outline_rounded,
+            _cargasValidadas ? AppIcons.completo : AppIcons.info,
             size: 18,
             color: Colors.teal,
           ),
@@ -299,20 +298,20 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
               spacing: 4,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded,
+                  icon: const Icon(AppIcons.agregarCirculo,
                       color: Colors.teal, size: 22),
                   onPressed: _addRow,
                   tooltip: 'Agregar fila',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded,
+                  icon: const Icon(AppIcons.quitarCirculo,
                       color: Colors.teal, size: 22),
                   onPressed: _removeRow,
                   tooltip: 'Eliminar ultima fila',
                 ),
                 if (_cargasValidadas)
                   IconButton(
-                    icon: const Icon(Icons.refresh_rounded,
+                    icon: const Icon(AppIcons.actualizar,
                         color: Colors.teal, size: 22),
                     onPressed: _resetValidation,
                     tooltip: 'Volver a validar cargas',
@@ -329,7 +328,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _cargasValidadas ? null : _validatePatronLoads,
-                icon: const Icon(Icons.verified_outlined, size: 18),
+                icon: const Icon(AppIcons.verificado, size: 18),
                 label: const Text('Validar cargas'),
               ),
             ),
@@ -337,7 +336,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
-                icon: const Icon(Icons.calculate_outlined, size: 18),
+                icon: const Icon(AppIcons.calcular, size: 18),
                 label: const Text('Carga sustitutiva'),
               ),
             ),
@@ -368,8 +367,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.format_list_numbered_rounded,
-              size: 18, color: Colors.teal),
+          const Icon(AppIcons.listaNumerada, size: 18, color: Colors.teal),
           const SizedBox(width: 8),
           Text(
             '$used/$_maxPuntos cargas',
@@ -511,8 +509,8 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: const Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child:
+                    const Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -779,7 +777,7 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
                         onPressed: indicacionCtrl.text.trim().isEmpty
                             ? null
                             : () => Navigator.pop(ctx, _fmt(acumulado)),
-                        icon: const Icon(Icons.check_rounded),
+                        icon: const Icon(AppIcons.listo),
                         label: const Text('Guardar carga sustitutiva'),
                       ),
                     ),

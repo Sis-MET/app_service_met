@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/pruebas_metrologicas_widget.dart';
+import '../../../../../../theme/app_icons.dart';
 
 class PasoPruebasInicialesFinales extends StatelessWidget {
   final PruebasMetrologicas pruebasIniciales;
@@ -33,7 +34,7 @@ class PasoPruebasInicialesFinales extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 16),
               child: ElevatedButton.icon(
                 onPressed: onCopiar,
-                icon: const Icon(Icons.copy),
+                icon: const Icon(AppIcons.copiar),
                 label: const Text('Copiar iniciales a finales'),
               ),
             ),

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../models/service_session.dart';
 import '../../repositories/calibration_repository.dart';
@@ -12,6 +11,7 @@ import '../../screens/rim/widgets/rim_entry_tile.dart';
 import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 const _stepNames = [
   'Cliente',
@@ -103,14 +103,14 @@ class _ServiciosTabState extends State<ServiciosTab> {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: AppStatusPill(
-                  icon: Icons.work_outline_rounded,
+                  icon: AppIcons.trabajo,
                   label: '2 módulos disponibles',
                   color: AppColors.actionPositive,
                 ),
               ),
               const SizedBox(height: 28),
               _ServiceModuleCard(
-                icon: FontAwesomeIcons.scaleBalanced,
+                icon: AppIcons.balanza,
                 title: 'Calibración',
                 eyebrow: 'METROLOGÍA',
                 description:
@@ -121,7 +121,7 @@ class _ServiciosTabState extends State<ServiciosTab> {
               ),
               const SizedBox(height: 14),
               _ServiceModuleCard(
-                icon: FontAwesomeIcons.screwdriverWrench,
+                icon: AppIcons.soporte,
                 title: 'Soporte técnico',
                 eyebrow: 'MANTENIMIENTO',
                 description:
@@ -158,7 +158,7 @@ class _ServiciosTabState extends State<ServiciosTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
-                      Icons.lightbulb_outline_rounded,
+                      AppIcons.consejo,
                       color: AppColors.shimmerGold,
                     ),
                     const SizedBox(width: 12),
@@ -196,7 +196,7 @@ class _ServiciosTabState extends State<ServiciosTab> {
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
           icon: const Icon(
-            Icons.pending_actions_rounded,
+            AppIcons.pendiente,
             color: AppColors.warning,
           ),
           title: const Text('Calibración pendiente'),
@@ -378,7 +378,7 @@ class _ServiceModuleCard extends StatelessWidget {
                   color: color.withOpacity(0.13),
                   borderRadius: AppDesign.mediumRadius,
                 ),
-                child: Center(child: FaIcon(icon, color: color, size: 22)),
+                child: Center(child: Icon(icon, color: color, size: 22)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -406,7 +406,7 @@ class _ServiceModuleCard extends StatelessWidget {
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: onTap,
-            icon: const Icon(Icons.arrow_forward_rounded),
+            icon: const Icon(AppIcons.adelante),
             label: Text(actionLabel),
           ),
         ],

@@ -7,6 +7,7 @@ import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../../theme/app_icons.dart';
 
 class ClienteStep extends StatefulWidget {
   final PrecargaController controller;
@@ -104,7 +105,8 @@ class _ClienteStepState extends State<ClienteStep> {
     // Sincronizar clientes filtrados si cargaron asíncronamente
     final currentAll = c.clientes;
     if (_searchController.text.isEmpty &&
-        (_filteredClientes == null || _filteredClientes!.length != currentAll.length)) {
+        (_filteredClientes == null ||
+            _filteredClientes!.length != currentAll.length)) {
       _filteredClientes = currentAll;
     }
 
@@ -182,7 +184,7 @@ class _ClienteStepState extends State<ClienteStep> {
         children: [
           _modeTab(
             label: 'Existente',
-            icon: Icons.person_search_rounded,
+            icon: AppIcons.buscarPersona,
             isActive: !_isNewClient,
             isDark: isDark,
             onTap: () {
@@ -195,7 +197,7 @@ class _ClienteStepState extends State<ClienteStep> {
           ),
           _modeTab(
             label: 'Nuevo',
-            icon: Icons.person_add_rounded,
+            icon: AppIcons.agregarPersona,
             isActive: _isNewClient,
             isDark: isDark,
             onTap: () {
@@ -291,7 +293,7 @@ class _ClienteStepState extends State<ClienteStep> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.qr_code_scanner,
+              const Icon(AppIcons.escanearQr,
                   size: 18, color: Color(0xFF04376E)),
               const SizedBox(width: 6),
               Text(
@@ -331,7 +333,7 @@ class _ClienteStepState extends State<ClienteStep> {
               color: const Color(0xFF04376E).withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.qr_code_scanner,
+            child: const Icon(AppIcons.escanearQr,
                 size: 28, color: Color(0xFF04376E)),
           ),
           const SizedBox(width: 14),
@@ -381,7 +383,7 @@ class _ClienteStepState extends State<ClienteStep> {
           GestureDetector(
             onTap: () => setState(() => _showQrBanner = false),
             child: Icon(
-              Icons.close_rounded,
+              AppIcons.cerrar,
               size: 20,
               color: isDark ? Colors.white38 : Colors.black38,
             ),
@@ -391,8 +393,7 @@ class _ClienteStepState extends State<ClienteStep> {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2);
   }
 
-  Widget _buildExistingClientSection(
-      PrecargaController provider, bool isDark) {
+  Widget _buildExistingClientSection(PrecargaController provider, bool isDark) {
     final list = _filteredClientes ?? [];
 
     return Column(
@@ -426,7 +427,7 @@ class _ClienteStepState extends State<ClienteStep> {
               hintStyle: GoogleFonts.inter(
                   color: isDark ? Colors.white38 : Colors.black38,
                   fontSize: 14),
-              prefixIcon: Icon(Icons.search_rounded,
+              prefixIcon: Icon(AppIcons.buscar,
                   color: isDark ? Colors.white54 : Colors.black38, size: 20),
               suffixIcon: _isSearching
                   ? const Padding(
@@ -438,16 +439,16 @@ class _ClienteStepState extends State<ClienteStep> {
                       ),
                     )
                   : !_isSearchEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.close_rounded,
-                          size: 18,
-                          color: isDark ? Colors.white54 : Colors.black38),
-                      onPressed: () {
-                        _searchController.clear();
-                        _onSearchChanged('');
-                      },
-                    )
-                  : null,
+                      ? IconButton(
+                          icon: Icon(AppIcons.cerrar,
+                              size: 18,
+                              color: isDark ? Colors.white54 : Colors.black38),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                      : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -475,7 +476,7 @@ class _ClienteStepState extends State<ClienteStep> {
             padding: const EdgeInsets.symmetric(vertical: 40),
             child: Column(
               children: [
-                Icon(Icons.search_off_rounded,
+                Icon(AppIcons.sinResultados,
                     size: 48, color: isDark ? Colors.white24 : Colors.black26),
                 const SizedBox(height: 12),
                 Text(
@@ -496,119 +497,122 @@ class _ClienteStepState extends State<ClienteStep> {
               padding: const EdgeInsets.only(bottom: 8),
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-              final cliente = list[index];
-              final isSelected = provider.selectedCliente != null &&
-                  (provider.selectedCliente!['cliente_id'] ==
-                          cliente['cliente_id'] ||
-                      provider.selectedCliente!['nombre'] == cliente['nombre']);
-              final nombre = cliente['nombre'] ?? 'Cliente sin nombre';
-              final razon = cliente['razonsocial'] ?? '';
-              final initials =
-                  nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
+                final cliente = list[index];
+                final isSelected = provider.selectedCliente != null &&
+                    (provider.selectedCliente!['cliente_id'] ==
+                            cliente['cliente_id'] ||
+                        provider.selectedCliente!['nombre'] ==
+                            cliente['nombre']);
+                final nombre = cliente['nombre'] ?? 'Cliente sin nombre';
+                final razon = cliente['razonsocial'] ?? '';
+                final initials =
+                    nombre.isNotEmpty ? nombre[0].toUpperCase() : '?';
 
-              return GestureDetector(
-                onTap: () {
-                  provider.selectCliente(cliente);
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? (isDark
-                            ? const Color(0xFFf9e300).withOpacity(0.08)
-                            : const Color(0xFFFFFDE6))
-                        : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
+                return GestureDetector(
+                  onTap: () {
+                    provider.selectCliente(cliente);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFFf9e300)
-                          : (isDark
-                              ? Colors.white12
-                              : const Color(0xFFE2E8F0)),
-                      width: isSelected ? 1.5 : 1,
+                          ? (isDark
+                              ? const Color(0xFFf9e300).withOpacity(0.08)
+                              : const Color(0xFFFFFDE6))
+                          : (isDark ? const Color(0xFF2A2A2A) : Colors.white),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFf9e300)
+                            : (isDark
+                                ? Colors.white12
+                                : const Color(0xFFE2E8F0)),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFf9e300)
+                                : (isDark
+                                    ? Colors.white12
+                                    : const Color(0xFFF0F2F5)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              initials,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: isSelected
+                                    ? const Color(0xFF1A1A1A)
+                                    : (isDark
+                                        ? Colors.white60
+                                        : Colors.black45),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                nombre,
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: isSelected
+                                      ? (isDark
+                                          ? const Color(0xFFf9e300)
+                                          : const Color(0xFF5A4E00))
+                                      : (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1A)),
+                                ),
+                              ),
+                              if (razon.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  razon,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.white38
+                                        : Colors.black45,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (isSelected)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFf9e300),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(AppIcons.listo,
+                                size: 14, color: Color(0xFF1A1A1A)),
+                          ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFFf9e300)
-                              : (isDark
-                                  ? Colors.white12
-                                  : const Color(0xFFF0F2F5)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            initials,
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: isSelected
-                                  ? const Color(0xFF1A1A1A)
-                                  : (isDark ? Colors.white60 : Colors.black45),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              nombre,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                                color: isSelected
-                                    ? (isDark
-                                        ? const Color(0xFFf9e300)
-                                        : const Color(0xFF5A4E00))
-                                    : (isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A1A)),
-                              ),
-                            ),
-                            if (razon.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                razon,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? Colors.white38
-                                      : Colors.black45,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (isSelected)
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFf9e300),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.check_rounded,
-                              size: 14, color: Color(0xFF1A1A1A)),
-                        ),
-                    ],
-                  ),
-                ),
-              )
-                  .animate(delay: Duration(milliseconds: 40 * index))
-                  .fadeIn()
-                  .slideX(begin: 0.05);
+                )
+                    .animate(delay: Duration(milliseconds: 40 * index))
+                    .fadeIn()
+                    .slideX(begin: 0.05);
               },
             ),
           ),
@@ -616,8 +620,7 @@ class _ClienteStepState extends State<ClienteStep> {
     );
   }
 
-  Widget _buildNewClientSection(
-      PrecargaController provider, bool isDark) {
+  Widget _buildNewClientSection(PrecargaController provider, bool isDark) {
     return Column(
       key: const ValueKey('new'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -626,7 +629,7 @@ class _ClienteStepState extends State<ClienteStep> {
           controller: _nombreComercialController,
           label: 'Nombre Comercial',
           hint: 'Ej. Empresa ABC',
-          icon: Icons.business_rounded,
+          icon: AppIcons.empresa,
           isDark: isDark,
           required: true,
           onChanged: (value) {
@@ -644,7 +647,7 @@ class _ClienteStepState extends State<ClienteStep> {
           controller: _razonSocialController,
           label: 'Razón Social',
           hint: 'Ej. Empresa ABC S.A.C.',
-          icon: Icons.assignment_rounded,
+          icon: AppIcons.formulario,
           isDark: isDark,
           onChanged: (value) {
             provider.selectCliente({
@@ -667,8 +670,7 @@ class _ClienteStepState extends State<ClienteStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 18, color: Colors.amber[600]),
+              Icon(AppIcons.info, size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -728,8 +730,7 @@ class _ClienteStepState extends State<ClienteStep> {
     );
   }
 
-  Widget _buildSelectedClientCard(
-      Map<String, dynamic> cliente, bool isDark) {
+  Widget _buildSelectedClientCard(Map<String, dynamic> cliente, bool isDark) {
     final nombre = cliente['nombre'] ?? 'Cliente sin nombre';
     final razon = cliente['razonsocial'] ?? '';
     final isNew = cliente['isNew'] == true;
@@ -752,8 +753,8 @@ class _ClienteStepState extends State<ClienteStep> {
               color: const Color(0xFFf9e300),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.check_rounded,
-                color: Color(0xFF1A1A1A), size: 24),
+            child:
+                const Icon(AppIcons.listo, color: Color(0xFF1A1A1A), size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(

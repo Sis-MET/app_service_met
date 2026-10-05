@@ -19,6 +19,7 @@ import 'package:service_met/screens/soporte_new/utils/menu_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
 import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacInstalacion extends StatefulWidget {
   final String sessionId;
@@ -66,17 +67,17 @@ class _StacInstalacionState extends State<StacInstalacion> {
     StepData(
       title: 'Condiciones',
       subtitle: 'Entorno y montaje',
-      icon: Icons.domain_outlined,
+      icon: AppIcons.empresa,
     ),
     StepData(
       title: 'Pruebas',
       subtitle: 'Metrología inicial',
-      icon: Icons.science_outlined,
+      icon: AppIcons.laboratorio,
     ),
     StepData(
       title: 'Estado Final',
       subtitle: 'Cierre del servicio',
-      icon: Icons.assignment_turned_in_outlined,
+      icon: AppIcons.formularioCompleto,
     ),
   ];
 

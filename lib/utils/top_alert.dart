@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_icons.dart';
 
 class TopAlert {
-  static void show(BuildContext context, String message, {bool isError = false}) {
+  static void show(BuildContext context, String message,
+      {bool isError = false}) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
 
@@ -37,7 +39,8 @@ class _TopAlertWidget extends StatefulWidget {
   State<_TopAlertWidget> createState() => _TopAlertWidgetState();
 }
 
-class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProviderStateMixin {
+class _TopAlertWidgetState extends State<_TopAlertWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<Offset> _slideAnimation;
   bool _isDismissing = false;
@@ -51,7 +54,8 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
       reverseDuration: const Duration(milliseconds: 250),
     );
 
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.06, curve: Curves.easeOutCubic),
@@ -127,14 +131,13 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 9),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            widget.isError
-                                ? Icons.error_rounded
-                                : Icons.check_circle_rounded,
+                            widget.isError ? AppIcons.error : AppIcons.completo,
                             color: color,
                             size: 16,
                           ),
@@ -156,7 +159,7 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                           GestureDetector(
                             onTap: _dismiss,
                             child: Icon(
-                              Icons.close_rounded,
+                              AppIcons.cerrar,
                               size: 15,
                               color: textColor.withOpacity(0.4),
                             ),
@@ -167,7 +170,8 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                     AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {
-                        final progress = 1.0 - ((_controller.value - 0.06) / 0.94).clamp(0.0, 1.0);
+                        final progress = 1.0 -
+                            ((_controller.value - 0.06) / 0.94).clamp(0.0, 1.0);
                         return ClipRRect(
                           borderRadius: const BorderRadius.only(
                             bottomLeft: Radius.circular(50),
@@ -176,7 +180,8 @@ class _TopAlertWidgetState extends State<_TopAlertWidget> with SingleTickerProvi
                           child: LinearProgressIndicator(
                             value: _isDismissing ? 0.0 : progress,
                             backgroundColor: Colors.transparent,
-                            valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.35)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                color.withOpacity(0.35)),
                             minHeight: 2,
                           ),
                         );

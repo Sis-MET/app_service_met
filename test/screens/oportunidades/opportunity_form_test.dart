@@ -18,6 +18,7 @@ import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 const _apiUrl = 'https://192.168.1.5:3100';
 
@@ -54,7 +55,7 @@ class _SupportHost extends StatelessWidget {
       title: 'Instalación',
       steps: const [
         StepData(title: 'Condiciones', subtitle: 'Paso 1', icon: Icons.info),
-        StepData(title: 'Pruebas', subtitle: 'Paso 2', icon: Icons.scale),
+        StepData(title: 'Pruebas', subtitle: 'Paso 2', icon: AppIcons.balanza),
       ],
       stepWidgets: const [
         Center(child: Text('Contenido del paso 1')),
@@ -110,12 +111,12 @@ void main() {
       (tester) async {
     await pumpScreen(tester, const _SupportHost());
     expect(find.text('Contenido del paso 2'), findsOneWidget);
-    expect(find.byIcon(Icons.handshake_outlined), findsNothing,
+    expect(find.byIcon(AppIcons.oportunidad), findsNothing,
         reason: 'ya no ocupa lugar en el AppBar');
 
     await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.handshake_outlined), findsOneWidget);
+    expect(find.byIcon(AppIcons.oportunidad), findsOneWidget);
     await tester.tap(find.text(OpportunityMenuAction.title));
     await tester.pumpAndSettle();
 

@@ -10,6 +10,7 @@ import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../theme/app_icons.dart';
 
 class ClienteStep extends StatefulWidget {
   const ClienteStep({super.key});
@@ -206,7 +207,7 @@ class _ClienteStepState extends State<ClienteStep> {
         children: [
           _modeTab(
             label: 'Existente',
-            icon: Icons.person_search_rounded,
+            icon: AppIcons.buscarPersona,
             isActive: !_isNewClient,
             isDark: isDark,
             onTap: () {
@@ -220,7 +221,7 @@ class _ClienteStepState extends State<ClienteStep> {
           ),
           _modeTab(
             label: 'Nuevo',
-            icon: Icons.person_add_rounded,
+            icon: AppIcons.agregarPersona,
             isActive: _isNewClient,
             isDark: isDark,
             onTap: () {
@@ -311,7 +312,7 @@ class _ClienteStepState extends State<ClienteStep> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.qr_code_scanner,
+              Icon(AppIcons.escanearQr,
                   size: 18, color: const Color(0xFFFFFFFF)),
               const SizedBox(width: 6),
               Text(
@@ -351,7 +352,7 @@ class _ClienteStepState extends State<ClienteStep> {
               color: const Color(0xFF04376E).withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.qr_code_scanner,
+            child: const Icon(AppIcons.escanearQr,
                 size: 28, color: Color(0xFFFFFFFF)),
           ),
           const SizedBox(width: 14),
@@ -401,7 +402,7 @@ class _ClienteStepState extends State<ClienteStep> {
           GestureDetector(
             onTap: () => setState(() => _showQrBanner = false),
             child: Icon(
-              Icons.close_rounded,
+              AppIcons.cerrar,
               size: 20,
               color: isDark ? Colors.white38 : Colors.black38,
             ),
@@ -442,11 +443,11 @@ class _ClienteStepState extends State<ClienteStep> {
               hintStyle: GoogleFonts.inter(
                   color: isDark ? Colors.white38 : Colors.black38,
                   fontSize: 14),
-              prefixIcon: Icon(Icons.search_rounded,
+              prefixIcon: Icon(AppIcons.buscar,
                   color: isDark ? Colors.white54 : Colors.black38, size: 20),
               suffixIcon: !_isSearchEmpty
                   ? IconButton(
-                      icon: Icon(Icons.close_rounded,
+                      icon: Icon(AppIcons.cerrar,
                           size: 18,
                           color: isDark ? Colors.white54 : Colors.black38),
                       onPressed: () {
@@ -516,7 +517,7 @@ class _ClienteStepState extends State<ClienteStep> {
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Icon(Icons.error_outline_rounded,
+          Icon(AppIcons.error,
               size: 48, color: isDark ? Colors.red[300] : Colors.red[400]),
           const SizedBox(height: 12),
           Text(
@@ -545,7 +546,7 @@ class _ClienteStepState extends State<ClienteStep> {
             onPressed: () {
               _loadClientes();
             },
-            icon: const Icon(Icons.refresh_rounded, size: 16),
+            icon: const Icon(AppIcons.actualizar, size: 16),
             label: Text(
               'Reintentar',
               style: GoogleFonts.inter(fontSize: 13),
@@ -561,7 +562,7 @@ class _ClienteStepState extends State<ClienteStep> {
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         children: [
-          Icon(Icons.search_off_rounded,
+          Icon(AppIcons.sinResultados,
               size: 48, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 12),
           Text(
@@ -699,12 +700,12 @@ class _ClienteStepState extends State<ClienteStep> {
                             color: Color(0xFFf9e300),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_rounded,
+                          child: const Icon(AppIcons.listo,
                               size: 14, color: Color(0xFF1A1A1A)),
                         )
                       : Icon(
                           key: const ValueKey('arrow'),
-                          Icons.chevron_right_rounded,
+                          AppIcons.siguiente,
                           size: 20,
                           color: isDark ? Colors.white24 : Colors.black26,
                         ),
@@ -726,7 +727,7 @@ class _ClienteStepState extends State<ClienteStep> {
           controller: _nombreComercialController,
           label: 'Nombre Comercial',
           hint: 'Ej. Empresa ABC',
-          icon: Icons.business_rounded,
+          icon: AppIcons.empresa,
           isDark: isDark,
           required: true,
           onChanged: (value) {
@@ -742,7 +743,7 @@ class _ClienteStepState extends State<ClienteStep> {
           controller: _razonSocialController,
           label: 'Razón Social',
           hint: 'Ej. Empresa ABC S.A.S.',
-          icon: Icons.assignment_rounded,
+          icon: AppIcons.formulario,
           isDark: isDark,
           onChanged: (value) {
             provider.updateCliente(ClienteInfo(
@@ -764,8 +765,7 @@ class _ClienteStepState extends State<ClienteStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 18, color: Colors.amber[600]),
+              Icon(AppIcons.info, size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -926,7 +926,7 @@ class _ClienteStepState extends State<ClienteStep> {
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              isNew ? Icons.person_add_rounded : Icons.check_rounded,
+              isNew ? AppIcons.agregarPersona : AppIcons.listo,
               color: isNew ? Colors.white : const Color(0xFF1A1A1A),
               size: 22,
             ),

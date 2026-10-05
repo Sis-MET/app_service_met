@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../../../theme/app_icons.dart';
 
 /// Tarjeta con el interruptor "Realizar prueba" que permite al usuario
 /// omitir una prueba metrológica en los módulos de soporte técnico.
@@ -51,9 +52,7 @@ class PruebaSkipCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              realizada
-                  ? Icons.science_outlined
-                  : Icons.do_not_disturb_alt_outlined,
+              realizada ? AppIcons.laboratorio : AppIcons.noAplica,
               size: 20,
               color: realizada
                   ? activeColor
@@ -122,7 +121,7 @@ class PruebaOmitidaCard extends StatelessWidget {
       child: Column(
         children: [
           Icon(
-            Icons.do_not_disturb_alt_outlined,
+            AppIcons.noAplica,
             size: 44,
             color: isDark ? Colors.white24 : Colors.black26,
           ),
@@ -184,7 +183,7 @@ class PruebaCopiarCard extends StatelessWidget {
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: onCopiar,
-            icon: const Icon(Icons.content_copy_rounded, size: 18),
+            icon: const Icon(AppIcons.copiar, size: 18),
             label: Text(
               'Copiar Inicial a Final',
               style: GoogleFonts.inter(

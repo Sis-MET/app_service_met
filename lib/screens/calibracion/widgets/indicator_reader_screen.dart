@@ -11,6 +11,7 @@ import '../../../theme/app_colors.dart';
 import '../utils/indicator_frame.dart';
 import '../utils/indicator_reading.dart';
 import '../utils/seven_segment_reader.dart';
+import '../../../theme/app_icons.dart';
 
 /// Lee el display de la balanza con la cámara.
 ///
@@ -309,9 +310,7 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
             tooltip: _torch ? 'Apagar linterna' : 'Encender linterna',
             onPressed: camera == null ? null : _toggleTorch,
             icon: Icon(
-              _torch
-                  ? Icons.flashlight_off_rounded
-                  : Icons.flashlight_on_rounded,
+              _torch ? AppIcons.linternaApagada : AppIcons.linterna,
             ),
           ),
         ],
@@ -505,9 +504,7 @@ class _ReadingPanel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    stable
-                        ? Icons.check_circle_rounded
-                        : Icons.hourglass_top_rounded,
+                    stable ? AppIcons.completo : AppIcons.espera,
                     size: 16,
                     color: stable ? AppColors.actionPositive : Colors.white60,
                   ),
@@ -590,8 +587,7 @@ class _CameraError extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.no_photography_outlined,
-              color: Colors.white70, size: 40),
+          const Icon(AppIcons.sinFotos, color: Colors.white70, size: 40),
           const SizedBox(height: 12),
           Text(
             message,

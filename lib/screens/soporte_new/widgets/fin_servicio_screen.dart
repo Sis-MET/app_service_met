@@ -9,6 +9,7 @@ import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
+import '../../../theme/app_icons.dart';
 
 class FinServicioConfig {
   final String tableNameDefault;
@@ -287,7 +288,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                   height: 50,
                   child: OutlinedButton.icon(
                     onPressed: _isFinalizando ? null : _seleccionarOtraBalanza,
-                    icon: const Icon(Icons.add_circle_outline_rounded),
+                    icon: const Icon(AppIcons.agregarCirculo),
                     label: const Text('SELECCIONAR OTRA BALANZA',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
@@ -307,7 +308,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
                                 strokeWidth: 2.5,
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                     AppColors.actionPositiveInk)))
-                        : const Icon(Icons.check_circle_outline_rounded),
+                        : const Icon(AppIcons.completo),
                     label: const Text('FINALIZAR SERVICIO',
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16)),
@@ -368,7 +369,7 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.summarize_rounded,
+              Icon(AppIcons.resumen,
                   color: isDark ? Colors.white54 : Colors.black54, size: 20),
               const SizedBox(width: 10),
               Text(

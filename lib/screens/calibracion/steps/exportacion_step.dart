@@ -14,6 +14,7 @@ import 'package:service_met/screens/calibracion/widgets/save_blocked_dialog.dart
 import 'package:service_met/widgets/numeric_keypad.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class ExportacionStep extends StatefulWidget {
   const ExportacionStep({super.key});
@@ -151,7 +152,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
     final corregir = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.fact_check_outlined, color: AppColors.warning),
+        icon: const Icon(AppIcons.verificacion, color: AppColors.warning),
         title: const Text('Faltan datos de esta balanza'),
         content: SingleChildScrollView(
           child: Column(
@@ -328,7 +329,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded,
+            Icon(AppIcons.advertencia,
                 color: isDark ? Colors.amber[300] : Colors.amber[800],
                 size: 22),
             const SizedBox(width: 8),
@@ -426,7 +427,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
           return AlertDialog(
             title: Row(
               children: [
-                Icon(Icons.thermostat,
+                Icon(AppIcons.temperatura,
                     color: isDark ? Colors.green[300] : Colors.green[700],
                     size: 22),
                 const SizedBox(width: 8),
@@ -457,7 +458,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     controller: searchCtrl,
                     decoration: InputDecoration(
                       hintText: 'Buscar por código o tipo...',
-                      prefixIcon: const Icon(Icons.search_rounded),
+                      prefixIcon: const Icon(AppIcons.buscar),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -548,8 +549,8 @@ class _ExportacionStepState extends State<ExportacionStep> {
                                     children: [
                                       Icon(
                                         isSelected
-                                            ? Icons.check_circle
-                                            : Icons.circle_outlined,
+                                            ? AppIcons.completo
+                                            : AppIcons.circulo,
                                         color: isSelected
                                             ? (isDark
                                                 ? Colors.tealAccent
@@ -642,7 +643,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
               scrollable: true,
               title: Row(
                 children: [
-                  Icon(Icons.verified_outlined,
+                  Icon(AppIcons.verificado,
                       color: isDark ? Colors.green[300] : Colors.green[700],
                       size: 22),
                   const SizedBox(width: 8),
@@ -789,7 +790,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: () => _seleccionarOtraBalanza(provider),
-                  icon: const Icon(Icons.add_circle_outline_rounded),
+                  icon: const Icon(AppIcons.agregarCirculo),
                   label: const Text('SELECCIONAR OTRA BALANZA',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -801,7 +802,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                 height: 50,
                 child: FilledButton.icon(
                   onPressed: () => _finalizar(provider),
-                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  icon: const Icon(AppIcons.completo),
                   label: const Text('FINALIZAR SERVICIO',
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -861,7 +862,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
         children: [
           Row(
             children: [
-              Icon(Icons.summarize_rounded,
+              Icon(AppIcons.resumen,
                   color: isDark ? Colors.white54 : Colors.black54, size: 20),
               const SizedBox(width: 10),
               Text(
@@ -938,9 +939,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                 dense: true,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                 leading: Icon(
-                    issue == null
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.error_outline_rounded,
+                    issue == null ? AppIcons.completo : AppIcons.error,
                     color: issue == null ? AppColors.success : colors.error),
                 title: Text(entry.value),
                 subtitle: issue == null ? null : Text(issue),
@@ -1007,9 +1006,7 @@ class _ExportacionStepState extends State<ExportacionStep> {
                     '$loadPhotos  ·  Fotos finales: $finalPhotos',
                   ),
                   leading: Icon(
-                    ok
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.warning_amber_rounded,
+                    ok ? AppIcons.completo : AppIcons.advertencia,
                     color: ok ? AppColors.success : AppColors.warning,
                   ),
                   trailing: TextButton(

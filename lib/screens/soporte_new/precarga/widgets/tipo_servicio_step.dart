@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../../theme/app_icons.dart';
 
 class TipoServicioStep extends StatelessWidget {
   final List<ServicioInfo> servicios;
@@ -88,9 +89,7 @@ class TipoServicioStep extends StatelessWidget {
     required int index,
   }) {
     final cardBg = isSelected
-        ? (isDark
-            ? item.color.withOpacity(0.18)
-            : item.color.withOpacity(0.08))
+        ? (isDark ? item.color.withOpacity(0.18) : item.color.withOpacity(0.08))
         : (isDark ? const Color(0xFF2A2A2A) : Colors.white);
 
     final borderColor = isSelected
@@ -188,7 +187,7 @@ class TipoServicioStep extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.check_rounded,
+                            AppIcons.listo,
                             size: 14,
                             color: Colors.white,
                           ),
@@ -222,6 +221,9 @@ class TipoServicioStep extends StatelessWidget {
           ],
         ),
       ),
-    ).animate(delay: Duration(milliseconds: 40 * index)).fadeIn().slideY(begin: 0.1);
+    )
+        .animate(delay: Duration(milliseconds: 40 * index))
+        .fadeIn()
+        .slideY(begin: 0.1);
   }
 }

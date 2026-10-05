@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/registro_directo/widgets/formulario_entry_card.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   testWidgets(
@@ -16,7 +17,7 @@ void main() {
         body: Padding(
           padding: const EdgeInsets.all(20),
           child: FormularioEntryCard(
-            icon: Icons.handshake_outlined,
+            icon: AppIcons.oportunidad,
             title: 'Oportunidades comerciales',
             subtitle: '3 pendiente(s) de enviar a Bitrix24.',
             pending: 3,

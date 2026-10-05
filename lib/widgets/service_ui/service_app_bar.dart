@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 /// Estado del guardado automático para el indicador del AppBar.
 enum SaveStatus { idle, pending, saving, local, success, error }
@@ -104,7 +105,7 @@ class _SaveStatusIndicatorState extends State<SaveStatusIndicator> {
       _SaveGlyph.saving => const _SavingRing(key: ValueKey('saving')),
       _SaveGlyph.saved => const _DrawnCheck(key: ValueKey('saved')),
       _SaveGlyph.error => const Icon(
-          Icons.error_outline_rounded,
+          AppIcons.error,
           key: ValueKey('error'),
           size: 17,
           color: AppColors.actionNegative,

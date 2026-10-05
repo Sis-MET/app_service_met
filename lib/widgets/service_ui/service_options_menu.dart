@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_design.dart';
 import '../../utils/top_alert.dart';
+import '../../theme/app_icons.dart';
 
 /// Opción del menú ⋮ de un servicio que no es salir, p. ej., registrar una
 /// oportunidad comercial.
@@ -170,7 +171,7 @@ class ServiceOptionsMenu extends StatelessWidget {
     // que abre la opción no se cierran junto con él.
     return PopupMenuButton<int>(
       tooltip: tooltip,
-      icon: const Icon(Icons.more_vert_rounded),
+      icon: const Icon(AppIcons.masVertical),
       shape: RoundedRectangleBorder(borderRadius: AppDesign.mediumRadius),
       clipBehavior: Clip.antiAlias,
       onOpened: onOpened,
@@ -185,7 +186,7 @@ class ServiceOptionsMenu extends StatelessWidget {
           ),
         PopupMenuItem<int>(
           value: _exitValue,
-          child: row(Icons.logout_rounded, exitLabel),
+          child: row(AppIcons.salir, exitLabel),
         ),
       ],
     );

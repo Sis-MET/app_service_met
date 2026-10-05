@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 /// Explica por qué no se pudo cerrar la balanza. Un diálogo y no un aviso
 /// pasajero: el mensaje dice qué dato corregir y no debe perderse.
@@ -10,7 +11,7 @@ Future<void> showSaveBlockedDialog(BuildContext context, String message) {
     builder: (ctx) => AlertDialog(
       title: const Row(
         children: [
-          Icon(Icons.cloud_off_rounded, color: AppColors.actionNegative),
+          Icon(AppIcons.sinConexion, color: AppColors.actionNegative),
           SizedBox(width: 8),
           Expanded(child: Text('La balanza no se cerró')),
         ],

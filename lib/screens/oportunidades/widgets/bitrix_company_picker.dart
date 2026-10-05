@@ -7,6 +7,7 @@ import '../../../theme/app_design.dart';
 import '../../../widgets/service_ui/input_decoration.dart';
 import '../controllers/opportunity_form_controller.dart';
 import '../models/bitrix_crm.dart';
+import '../../../theme/app_icons.dart';
 
 /// Busca y elige la empresa de Bitrix24. El cliente de ServiceMET solo sirve
 /// para sugerir la búsqueda: el técnico siempre elige explícitamente, porque
@@ -103,12 +104,12 @@ class _CompanyPickerSheetState extends State<_CompanyPickerSheet> {
                 decoration: serviceInputDeco(
                   'Buscar por nombre',
                   isDark,
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: const Icon(AppIcons.buscar),
                   suffixIcon: _query.text.isEmpty
                       ? null
                       : IconButton(
                           tooltip: 'Limpiar',
-                          icon: const Icon(Icons.close_rounded),
+                          icon: const Icon(AppIcons.cerrar),
                           onPressed: () {
                             _query.clear();
                             controller.search('');
@@ -124,8 +125,7 @@ class _CompanyPickerSheetState extends State<_CompanyPickerSheet> {
                   children: [
                     for (final word in controller.searchSuggestions)
                       ActionChip(
-                        avatar:
-                            const Icon(Icons.manage_search_rounded, size: 16),
+                        avatar: const Icon(AppIcons.buscarTexto, size: 16),
                         label: Text(word),
                         onPressed: () => _searchWord(controller, word),
                       ),
@@ -156,20 +156,20 @@ class _CompanyPickerSheetState extends State<_CompanyPickerSheet> {
     final error = controller.searchError;
     if (error != null) {
       return _Message(
-        icon: Icons.cloud_off_rounded,
+        icon: AppIcons.sinConexion,
         color: AppColors.actionNegative,
         text: error,
       );
     }
     if (results == null) {
       return const _Message(
-        icon: Icons.business_outlined,
+        icon: AppIcons.empresa,
         text: 'Escriba al menos 2 letras del nombre de la empresa.',
       );
     }
     if (results.items.isEmpty) {
       return const _Message(
-        icon: Icons.search_off_rounded,
+        icon: AppIcons.sinResultados,
         text: 'Sin resultados. Pruebe con otra palabra del nombre; en Bitrix24 '
             'la empresa puede figurar con su razón social o una abreviatura.',
       );
@@ -198,15 +198,14 @@ class _CompanyPickerSheetState extends State<_CompanyPickerSheet> {
         ].join(' · ');
         return ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: const Icon(Icons.business_rounded),
+          leading: const Icon(AppIcons.empresa),
           title: Text(
             company.title,
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           subtitle: Text(details),
           trailing: company.id == selectedId
-              ? const Icon(Icons.check_circle_rounded,
-                  color: AppColors.actionPositive)
+              ? const Icon(AppIcons.completo, color: AppColors.actionPositive)
               : null,
           onTap: () => Navigator.of(context).pop(company),
         );

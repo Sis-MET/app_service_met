@@ -14,6 +14,7 @@ import 'models/rim_documento.dart';
 import 'rim_flow.dart';
 import 'services/rim_repository.dart';
 import 'services/rim_store.dart';
+import '../../theme/app_icons.dart';
 
 /// RIM emitidos en este teléfono: los pendientes de subir al servidor (se
 /// suben a mano, nunca solos), los ya subidos y los anulados.
@@ -185,7 +186,7 @@ class _RimListScreenState extends State<RimListScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.cloud_upload_outlined),
+                    : const Icon(AppIcons.subir),
                 label: const Text('Subir todos'),
               ),
           ],
@@ -273,8 +274,7 @@ class _EmptyState extends StatelessWidget {
     return AppPanel(
       child: Column(
         children: [
-          const Icon(Icons.inventory_2_outlined,
-              size: 36, color: AppColors.shimmerGold),
+          const Icon(AppIcons.rim, size: 36, color: AppColors.shimmerGold),
           const SizedBox(height: 12),
           Text('Sin RIM emitidos', style: AppDesign.titleStyle(context)),
           const SizedBox(height: 6),
@@ -310,28 +310,28 @@ class _RimCard extends StatelessWidget {
 
   (String, Color, IconData) get _status {
     if (registro.anulado) {
-      return ('Anulado', AppColors.actionNegative, Icons.block_rounded);
+      return ('Anulado', AppColors.actionNegative, AppIcons.bloquear);
     }
     return switch (registro.estado) {
       RimEstadoSubida.sent => (
           'Subido · N.º ${registro.serverN}',
           AppColors.success,
-          Icons.check_circle_rounded,
+          AppIcons.completo,
         ),
       RimEstadoSubida.error => (
           'Con error',
           AppColors.actionNegative,
-          Icons.error_outline_rounded,
+          AppIcons.error,
         ),
       RimEstadoSubida.sending => (
           'Subida sin confirmar',
           AppColors.warning,
-          Icons.help_outline_rounded,
+          AppIcons.ayuda,
         ),
       RimEstadoSubida.pending => (
           'Por subir',
           AppColors.warning,
-          Icons.schedule_rounded,
+          AppIcons.hora,
         ),
     };
   }
@@ -413,7 +413,7 @@ class _RimCard extends StatelessWidget {
               children: [
                 TextButton.icon(
                   onPressed: enabled ? onPdf : null,
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  icon: const Icon(AppIcons.documento),
                   label: const Text('PDF'),
                 ),
                 if (registro.canAnular && onAnular != null)
@@ -430,7 +430,7 @@ class _RimCard extends StatelessWidget {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.cloud_upload_outlined),
+                        : const Icon(AppIcons.subir),
                     label: const Text('Subir'),
                   ),
               ],

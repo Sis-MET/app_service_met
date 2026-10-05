@@ -6,6 +6,7 @@ import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/estado_general_widget.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import '../../../../theme/app_icons.dart';
 
 class PasoEstadoFinalWidget extends StatelessWidget {
   final String comentarioGeneral;
@@ -106,7 +107,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: Icon(
-                    Icons.calendar_today,
+                    AppIcons.calendario,
                     color: meses == 3
                         ? Colors.green
                         : meses == 6
@@ -121,7 +122,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
                     'Fecha: $fechaCalculada',
                     style: const TextStyle(fontSize: 12),
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  trailing: const Icon(AppIcons.siguiente, size: 16),
                   onTap: () {
                     onFechaProxServicioChanged?.call(fechaCalculada);
                     Navigator.of(ctx).pop();
@@ -160,7 +161,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
             readOnly: true,
             style: textStyle,
             decoration: serviceInputDeco('Hora de Inicio', isDark).copyWith(
-              prefixIcon: const Icon(Icons.access_time),
+              prefixIcon: const Icon(AppIcons.hora),
             ),
           ),
           const SizedBox(height: 16),
@@ -261,7 +262,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
                 color: Colors.green.withOpacity(isDark ? 0.2 : 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.event_repeat,
+              child: const Icon(AppIcons.proximaFecha,
                   size: 20, color: Colors.green),
             ),
             const SizedBox(width: 12),
@@ -299,7 +300,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            const Icon(AppIcons.desplegar, color: Colors.grey),
           ],
         ),
       ),
@@ -327,8 +328,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
               color: Colors.blue.withOpacity(isDark ? 0.2 : 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.access_time_rounded,
-                size: 20, color: Colors.blue),
+            child: const Icon(AppIcons.hora, size: 20, color: Colors.blue),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -367,7 +367,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
           if (onRegistrarHoraFin != null) ...[
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.update_rounded, color: Colors.blue),
+              icon: const Icon(AppIcons.proximaFecha, color: Colors.blue),
               tooltip: 'Registrar hora actual',
               onPressed: onRegistrarHoraFin,
             ),
@@ -407,7 +407,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
           Row(
             children: [
               Icon(
-                completado ? Icons.check_circle : Icons.warning,
+                completado ? AppIcons.completo : AppIcons.advertencia,
                 color: color,
               ),
               const SizedBox(width: 12),
@@ -438,7 +438,7 @@ class PasoEstadoFinalWidget extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            completed ? Icons.check_circle : Icons.radio_button_unchecked,
+            completed ? AppIcons.completo : AppIcons.circulo,
             color: completed ? Colors.green : Colors.grey,
             size: 20,
           ),

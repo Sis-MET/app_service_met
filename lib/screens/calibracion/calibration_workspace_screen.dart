@@ -30,6 +30,7 @@ import 'steps/exportacion_step.dart';
 import 'widgets/indicator_reader_screen.dart';
 import 'widgets/save_blocked_dialog.dart';
 import 'widgets/calibration_number_field.dart';
+import '../../theme/app_icons.dart';
 
 class CalibrationWorkspaceScreen extends StatefulWidget {
   final String userName;
@@ -146,13 +147,12 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                   itemBuilder: (_, index) {
                     final issue = issues[index];
                     return ListTile(
-                      leading: const Icon(Icons.error_outline_rounded,
+                      leading: const Icon(AppIcons.error,
                           color: AppColors.actionNegative),
                       title: Text(issue.message),
                       trailing: issue.column == null
                           ? null
-                          : const Icon(Icons.arrow_forward_ios_rounded,
-                              size: 16),
+                          : const Icon(AppIcons.siguiente, size: 16),
                       onTap: issue.column == null
                           ? null
                           : () async {
@@ -310,66 +310,66 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
           title: 'Cliente',
           progress: progress(0),
           subtitle: session.cliente?.nombreComercial ?? 'Seleccione cliente',
-          icon: Icons.business),
+          icon: AppIcons.empresa),
       StepData(
           title: 'Planta',
           progress: progress(1),
           subtitle: session.planta?.nombre ?? 'Seleccione planta',
-          icon: Icons.factory,
+          icon: AppIcons.planta,
           isAccessible: open(1)),
       StepData(
           title: 'SECA',
           progress: progress(2),
           subtitle: session.sessionInfo.seca ?? 'Ingresar SECA',
-          icon: Icons.qr_code,
+          icon: AppIcons.qr,
           isAccessible: open(2)),
       StepData(
           title: 'Instrumento',
           progress: progress(3),
           subtitle: session.balanza?.codMetrica ?? 'Seleccionar balanza',
-          icon: Icons.scale,
+          icon: AppIcons.balanza,
           isAccessible: open(3)),
       StepData(
           title: 'Inspección',
           progress: progress(4),
           subtitle: 'Visual',
-          icon: Icons.visibility,
+          icon: AppIcons.ver,
           isAccessible: open(4)),
       StepData(
           title: 'Precarga/Ajuste',
           progress: progress(5),
           subtitle: 'Datos',
-          icon: Icons.settings,
+          icon: AppIcons.ajustes,
           isAccessible: open(5)),
       StepData(
           title: 'Excentricidad',
           progress: progress(6),
           subtitle: 'Prueba',
-          icon: Icons.center_focus_strong,
+          icon: AppIcons.enfocar,
           isAccessible: open(6)),
       StepData(
           title: 'Repetibilidad',
           progress: progress(7),
           subtitle: 'Prueba',
-          icon: Icons.repeat,
+          icon: AppIcons.repetir,
           isAccessible: open(7)),
       StepData(
           title: 'Linealidad',
           progress: progress(8),
           subtitle: 'Prueba',
-          icon: Icons.show_chart,
+          icon: AppIcons.grafico,
           isAccessible: open(8)),
       StepData(
           title: 'Final',
           progress: progress(9),
           subtitle: 'Condiciones',
-          icon: Icons.check_circle,
+          icon: AppIcons.completo,
           isAccessible: open(9)),
       StepData(
           title: 'Finalizar',
           progress: progress(10),
           subtitle: 'Reporte',
-          icon: Icons.download,
+          icon: AppIcons.descargar,
           isAccessible: open(10)),
     ];
 
@@ -422,7 +422,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                 tooltip: 'Deshacer última entrada',
                 onPressed: () =>
                     _fieldNavigator.undoInStep(provider.currentStep),
-                icon: const Icon(Icons.undo_rounded),
+                icon: const Icon(AppIcons.deshacer),
               ),
             if (session.metadata.secaConfirmed)
               SaveStatusIndicator(
@@ -634,7 +634,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                                     return AlertDialog(
                                       title: Row(
                                         children: [
-                                          Icon(Icons.info_outline,
+                                          Icon(AppIcons.info,
                                               color: isDark
                                                   ? Colors.amber[300]
                                                   : Colors.amber[800],
@@ -774,7 +774,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
                                     builder: (ctx2) => AlertDialog(
                                       title: Row(
                                         children: [
-                                          Icon(Icons.warning_amber_rounded,
+                                          Icon(AppIcons.advertencia,
                                               color: isDark
                                                   ? Colors.amber[300]
                                                   : Colors.amber[800],
@@ -936,7 +936,7 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
         ],
       ),
       child: IconButton(
-        icon: const Icon(Icons.info_outline, color: Colors.black87, size: 22),
+        icon: const Icon(AppIcons.info, color: Colors.black87, size: 22),
         onPressed: () {
           final b = provider.session?.balanza;
           final eq = provider.session?.equipos ?? [];
@@ -1218,7 +1218,7 @@ class _SaveErrorBanner extends StatelessWidget {
           children: [
             const Padding(
               padding: EdgeInsets.only(top: 2),
-              child: Icon(Icons.cloud_off_rounded,
+              child: Icon(AppIcons.sinConexion,
                   color: AppColors.actionNegative, size: 20),
             ),
             const SizedBox(width: 10),

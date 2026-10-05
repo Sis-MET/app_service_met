@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:service_met/screens/soporte_new/utils/estado_maps.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import '../../../../theme/app_icons.dart';
 
 /// Mapa legacy del módulo antiguo: Bueno / Aceptable / Malo / No aplica.
 const Map<String, Color> _legacyEstadoColorMap = {
@@ -11,10 +12,10 @@ const Map<String, Color> _legacyEstadoColorMap = {
 };
 
 const Map<String, IconData> _legacyEstadoIconMap = {
-  'Bueno': Icons.check_circle,
-  'Aceptable': Icons.warning,
-  'Malo': Icons.error,
-  'No aplica': Icons.block,
+  'Bueno': AppIcons.completo,
+  'Aceptable': AppIcons.advertencia,
+  'Malo': AppIcons.error,
+  'No aplica': AppIcons.bloquear,
 };
 
 class EstadoGeneralWidget extends StatelessWidget {
@@ -61,8 +62,8 @@ class EstadoGeneralWidget extends StatelessWidget {
     );
   }
 
-  Widget _dropdown(String label, String value, ValueChanged<String> onChanged,
-      bool isDark) {
+  Widget _dropdown(
+      String label, String value, ValueChanged<String> onChanged, bool isDark) {
     final colorMap = useLegacyEstados ? _legacyEstadoColorMap : estadoColorMap;
     final iconMap = useLegacyEstados ? _legacyEstadoIconMap : estadoIconMap;
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   testWidgets('acepta un tipo de equipo que no pertenece al catalogo',
@@ -15,7 +16,7 @@ void main() {
           body: EditableSuggestionField(
             controller: controller,
             label: 'Tipo de Equipo',
-            icon: Icons.scale,
+            icon: AppIcons.balanza,
             options: const ['BALANZA', 'BASCULA'],
             onChanged: (value) => savedValue = value,
             isDark: false,
@@ -42,7 +43,7 @@ void main() {
           body: EditableSuggestionField(
             controller: controller,
             label: 'Tipo de Equipo',
-            icon: Icons.scale,
+            icon: AppIcons.balanza,
             options: const ['BALANZA', 'BASCULA'],
             onChanged: (value) => savedValue = value,
             isDark: false,

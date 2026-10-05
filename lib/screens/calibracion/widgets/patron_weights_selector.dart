@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../models/service_session.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
+import '../../../theme/app_icons.dart';
 
 /// Selección de patrones del servicio. El catálogo se confirma como un conjunto;
 /// cerrar el selector conserva las pesas y cantidades que ya estaban guardadas.
@@ -94,7 +95,7 @@ class PatronWeightsSelector extends StatelessWidget {
                           .where(
                               (e) => e.codInstrumento != weight.codInstrumento)
                           .toList()),
-                      icon: const Icon(Icons.close_rounded, size: 20),
+                      icon: const Icon(AppIcons.cerrar, size: 20),
                     ),
                   ]),
                   Text(weight.tipo ?? 'Pesa patrón',
@@ -118,7 +119,7 @@ class PatronWeightsSelector extends StatelessWidget {
                           style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 17)),
                       const SizedBox(width: 12),
-                      const Icon(Icons.edit_outlined, size: 18),
+                      const Icon(AppIcons.editar, size: 18),
                     ]),
                   ),
                 ]),
@@ -130,7 +131,7 @@ class PatronWeightsSelector extends StatelessWidget {
               style: TextStyle(color: colors.error)),
           TextButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(AppIcons.actualizar),
               label: const Text('Reintentar')),
         ] else
           FilledButton.icon(
@@ -142,8 +143,7 @@ class PatronWeightsSelector extends StatelessWidget {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(
-                    selected.isEmpty ? Icons.add_rounded : Icons.tune_rounded),
+                : Icon(selected.isEmpty ? AppIcons.agregar : AppIcons.filtros),
             label: Text(loading
                 ? 'Cargando pesas…'
                 : selected.isEmpty
@@ -232,7 +232,7 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                     IconButton(
                         tooltip: 'Cancelar selección',
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close_rounded)),
+                        icon: const Icon(AppIcons.cerrar)),
                   ]),
                 ),
                 Expanded(
@@ -256,12 +256,12 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                                 onChanged: (_) => setState(() {}),
                                 decoration: InputDecoration(
                                   hintText: 'Buscar código o tipo de pesa',
-                                  prefixIcon: const Icon(Icons.search_rounded),
+                                  prefixIcon: const Icon(AppIcons.buscar),
                                   suffixIcon: query.isEmpty
                                       ? null
                                       : IconButton(
                                           tooltip: 'Limpiar búsqueda',
-                                          icon: const Icon(Icons.close_rounded),
+                                          icon: const Icon(AppIcons.cerrar),
                                           onPressed: () =>
                                               setState(_search.clear)),
                                   filled: true,
@@ -300,7 +300,7 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 32),
                         child: Column(children: [
-                          Icon(Icons.search_off_rounded,
+                          Icon(AppIcons.sinResultados,
                               size: 40, color: colors.onSurfaceVariant),
                           const SizedBox(height: 12),
                           Text(
@@ -428,7 +428,7 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                             elevation: const WidgetStatePropertyAll(0)),
                         onPressed: () =>
                             Navigator.pop(context, List<EquipoInfo>.of(_draft)),
-                        icon: const Icon(Icons.check_rounded),
+                        icon: const Icon(AppIcons.listo),
                         label: Text('Confirmar selección (${_draft.length})'),
                       )),
                 ),
@@ -448,7 +448,7 @@ class _WeightIcon extends StatelessWidget {
         decoration: BoxDecoration(
             color: AppColors.accentYellow.withOpacity(.15),
             borderRadius: BorderRadius.circular(12)),
-        child: const Icon(Icons.scale_outlined, size: 24),
+        child: const Icon(AppIcons.balanza, size: 24),
       );
 }
 

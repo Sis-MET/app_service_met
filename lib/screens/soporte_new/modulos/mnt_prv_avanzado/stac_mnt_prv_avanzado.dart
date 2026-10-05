@@ -22,6 +22,7 @@ import 'package:service_met/screens/soporte_new/utils/menu_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
 import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacMntPrvAvanzado extends StatefulWidget {
   final String sessionId;
@@ -80,39 +81,39 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
     StepData(
         title: 'Pruebas Iniciales',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
-        icon: Icons.science_outlined),
+        icon: AppIcons.laboratorio),
     StepData(
         title: 'Lozas y Fundaciones',
         subtitle: 'Campos de inspección',
-        icon: Icons.foundation_outlined),
+        icon: AppIcons.cimientos),
     StepData(
         title: 'Limpieza y Drenaje',
         subtitle: 'Campos de inspección',
-        icon: Icons.cleaning_services_outlined),
+        icon: AppIcons.limpieza),
     StepData(
         title: 'Chequeo General',
         subtitle: 'Campos de inspección',
-        icon: Icons.checklist_outlined),
+        icon: AppIcons.lista),
     StepData(
         title: 'Verif. Eléctricas',
         subtitle: 'Campos de inspección',
-        icon: Icons.electrical_services_outlined),
+        icon: AppIcons.electrico),
     StepData(
         title: 'Protección / Células',
         subtitle: 'Rayos + Células de carga',
-        icon: Icons.flash_on_outlined),
+        icon: AppIcons.flash),
     StepData(
         title: 'Terminal / Calibración',
         subtitle: 'Terminal + Balanza apta',
-        icon: Icons.computer_outlined),
+        icon: AppIcons.computadora),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Excentricidad, Repetibilidad, Linealidad',
-        icon: Icons.task_alt_outlined),
+        icon: AppIcons.tareaLista),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.
@@ -525,14 +526,14 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 seccion1: const SeccionData(
                   title: 'PROTECCIÓN CONTRA RAYOS',
                   subtitle: 'Sistema de protección y conexión a tierra',
-                  icon: Icons.flash_on_outlined,
+                  icon: AppIcons.flash,
                   color: Colors.orange,
                   count: 4,
                 ),
                 seccion2: const SeccionData(
                   title: 'VERIFICACIONES DE CÉLULAS',
                   subtitle: 'Células de carga, lubricación y protectores',
-                  icon: Icons.grain_outlined,
+                  icon: AppIcons.suciedad,
                   color: Colors.indigo,
                   count: 7,
                 ),
@@ -553,14 +554,14 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 seccion1: const SeccionData(
                   title: 'TERMINAL',
                   subtitle: 'Carcasa, display, teclado, pila, etc.',
-                  icon: Icons.computer_outlined,
+                  icon: AppIcons.computadora,
                   color: Colors.purple,
                   count: 8,
                 ),
                 seccion2: const SeccionData(
                   title: 'CALIBRACIÓN',
                   subtitle: 'Balanza apta para verificación NB23001',
-                  icon: Icons.tune_outlined,
+                  icon: AppIcons.filtros,
                   color: Colors.green,
                   count: 1,
                 ),

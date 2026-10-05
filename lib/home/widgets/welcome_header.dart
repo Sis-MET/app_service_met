@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 class WelcomeHeader extends StatelessWidget {
   final String userName;
@@ -61,7 +62,7 @@ class WelcomeHeader extends StatelessWidget {
             IconButton.outlined(
               tooltip: 'Configuración',
               onPressed: onSettings,
-              icon: const Icon(Icons.settings_outlined, size: 20),
+              icon: const Icon(AppIcons.ajustes, size: 20),
               style: IconButton.styleFrom(
                 foregroundColor: dark ? Colors.white : AppDesign.ink,
                 backgroundColor: AppColors.accentYellow.withOpacity(0.07),
@@ -92,7 +93,7 @@ class WelcomeHeader extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: AppStatusPill(
-            icon: Icons.calendar_today_outlined,
+            icon: AppIcons.calendario,
             label: formattedDate,
             color: dark ? Colors.white70 : AppDesign.muted,
           ),

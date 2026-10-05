@@ -8,6 +8,7 @@ import 'models/version_app.dart';
 import 'services/calidad_pdf.dart';
 import 'utils/exportar_documento.dart';
 import 'widgets/calidad_ui.dart';
+import '../../theme/app_icons.dart';
 
 /// Historial de versiones liberadas (control de cambios, 7.11.2).
 class HistorialVersionesScreen extends StatefulWidget {
@@ -70,7 +71,7 @@ class _HistorialVersionesScreenState extends State<HistorialVersionesScreen> {
       subtitulo: 'Qué cambió en cada versión y cómo afecta a los registros.',
       acciones: [
         CalidadAccion(
-          icono: Icons.picture_as_pdf_outlined,
+          icono: AppIcons.documento,
           tooltip: 'Exportar historial',
           onPressed: _exportar,
         ),
@@ -80,12 +81,12 @@ class _HistorialVersionesScreenState extends State<HistorialVersionesScreen> {
         runSpacing: 8,
         children: [
           AppStatusPill(
-            icon: Icons.phone_android_rounded,
+            icon: AppIcons.telefono,
             label: 'Instalada: ${_instalada ?? '…'}',
             color: AppColors.actionPositive,
           ),
           AppStatusPill(
-            icon: Icons.history_rounded,
+            icon: AppIcons.historial,
             label: '${versiones.length} versiones registradas',
             color: AppColors.shimmerGold,
           ),
@@ -120,7 +121,7 @@ class _HistorialVersionesScreenState extends State<HistorialVersionesScreen> {
         FilledButton.icon(
           style: AppDesign.positiveButtonStyle(),
           onPressed: _exportar,
-          icon: const Icon(Icons.picture_as_pdf_outlined),
+          icon: const Icon(AppIcons.documento),
           label: const Text('Exportar historial en PDF'),
         ),
       ],
@@ -183,7 +184,7 @@ class _SinLiberar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const CalidadIcono(Icons.construction_rounded, color: ambar),
+              const CalidadIcono(AppIcons.herramientas, color: ambar),
               const SizedBox(width: 12),
               Expanded(
                 child: Text('Próxima versión',
@@ -194,7 +195,7 @@ class _SinLiberar extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          for (final c in cambios) _Item(c, icono: Icons.add_rounded),
+          for (final c in cambios) _Item(c, icono: AppIcons.agregar),
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
@@ -293,7 +294,7 @@ class _VersionNodo extends StatelessWidget {
                         AnimatedRotation(
                           turns: abierta ? 0.5 : 0,
                           duration: const Duration(milliseconds: 200),
-                          child: Icon(Icons.expand_more_rounded,
+                          child: Icon(AppIcons.desplegar,
                               color: cs.onSurfaceVariant),
                         ),
                       ],
@@ -367,7 +368,7 @@ class _VersionNodo extends StatelessWidget {
             const SizedBox(height: 6),
             for (final n in v.nuevo)
               _Item(n,
-                  icono: Icons.add_circle_outline_rounded,
+                  icono: AppIcons.agregarCirculo,
                   color: AppColors.actionPositive),
             const SizedBox(height: 6),
           ],
@@ -375,9 +376,7 @@ class _VersionNodo extends StatelessWidget {
             Text('CORREGIDO', style: etiqueta),
             const SizedBox(height: 6),
             for (final c in v.corregido)
-              _Item(c,
-                  icono: Icons.build_circle_outlined,
-                  color: const Color(0xFF3D7BD9)),
+              _Item(c, icono: AppIcons.soporte, color: const Color(0xFF3D7BD9)),
             const SizedBox(height: 6),
           ],
           Container(
@@ -404,9 +403,7 @@ class _VersionNodo extends StatelessWidget {
           Row(
             children: [
               Icon(
-                v.validacion == null
-                    ? Icons.pending_actions_rounded
-                    : Icons.task_alt_rounded,
+                v.validacion == null ? AppIcons.pendiente : AppIcons.tareaLista,
                 size: 18,
                 color: v.validacion == null
                     ? const Color(0xFFB07F00)

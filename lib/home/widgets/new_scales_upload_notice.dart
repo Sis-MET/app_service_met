@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> showNewScalesUploadNotice(
   BuildContext context,
@@ -10,7 +11,7 @@ Future<void> showNewScalesUploadNotice(
     context: context,
     builder: (dialogContext) => AlertDialog(
       icon: const Icon(
-        Icons.add_business_outlined,
+        AppIcons.agregarEmpresa,
         color: Colors.orange,
         size: 36,
       ),

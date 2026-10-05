@@ -62,6 +62,9 @@ const cambiosSinLiberar = <String>[
       'coincidencia exacta de nombre) y las envía sola; si no hay una '
       'coincidencia segura, pide que el técnico la elija. Reemplaza al botón '
       '"Guardar pendiente".',
+  'Íconos nuevos en toda la app: una sola familia de línea fina y '
+      'redondeada en lugar de los íconos de Material y Font Awesome. No '
+      'cambia ningún flujo ni ningún dato.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class InfoCard extends StatelessWidget {
   final bool isDark;
@@ -34,7 +35,7 @@ class InfoCard extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.info_outline,
+            AppIcons.info,
             color: accent,
             size: 24,
           ),

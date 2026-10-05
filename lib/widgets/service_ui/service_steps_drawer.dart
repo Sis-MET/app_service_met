@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import 'step_indicator.dart';
+import '../../theme/app_icons.dart';
 
 /// Panel lateral de un servicio con todos sus pasos, que se abre con ≡ en el
 /// AppBar (como la lista de conversaciones de la app de Claude).
@@ -275,7 +276,7 @@ class _StepBadge extends StatelessWidget {
     if (locked) {
       return circle(
         border: ring,
-        child: Icon(Icons.lock_outline_rounded, size: 14, color: muted),
+        child: Icon(AppIcons.bloqueado, size: 14, color: muted),
       );
     }
     return switch (progress) {
@@ -283,14 +284,14 @@ class _StepBadge extends StatelessWidget {
           fill: AppColors.actionPositive,
           border: current ? AppColors.accentYellow : null,
           borderWidth: 2,
-          child: const Icon(Icons.check_rounded,
+          child: const Icon(AppIcons.listo,
               size: 17, color: AppColors.actionPositiveInk),
         ),
       StepProgress.review => circle(
           fill: AppColors.warning.withOpacity(0.14),
           border: AppColors.warning,
-          child: const Icon(Icons.priority_high_rounded,
-              size: 16, color: AppColors.warning),
+          child:
+              const Icon(AppIcons.urgente, size: 16, color: AppColors.warning),
         ),
       StepProgress.pending => circle(
           border: current ? AppColors.accentYellow : ring,
@@ -318,7 +319,7 @@ class ServiceStepsButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       tooltip: tooltip,
-      icon: const Icon(Icons.menu_rounded),
+      icon: const Icon(AppIcons.menu),
       onPressed: () => Scaffold.of(context).openDrawer(),
     );
   }

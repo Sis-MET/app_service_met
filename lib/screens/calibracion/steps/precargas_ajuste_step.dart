@@ -8,6 +8,7 @@ import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
+import '../../../theme/app_icons.dart';
 
 class PrecargasAjusteStep extends StatefulWidget {
   const PrecargasAjusteStep({super.key});
@@ -183,13 +184,13 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 children: [
                   if (_rows.length < _maxRows)
                     IconButton(
-                        icon: Icon(Icons.add_circle_rounded,
+                        icon: Icon(AppIcons.agregarCirculo,
                             color: isDark
                                 ? const Color(0xFF81C784)
                                 : const Color(0xFF2E7D32)),
                         onPressed: _addRow),
                   IconButton(
-                      icon: Icon(Icons.remove_circle_rounded,
+                      icon: Icon(AppIcons.quitarCirculo,
                           color: isDark
                               ? const Color(0xFFE57373)
                               : const Color(0xFFD32F2F)),
@@ -224,8 +225,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                   decoration: _deco('Tipo de Ajuste', isDark),
                   hint: const Text('Seleccione'),
                   borderRadius: BorderRadius.circular(12),
-                  dropdownColor:
-                      isDark ? AppColors.cardDark : Colors.white,
+                  dropdownColor: isDark ? AppColors.cardDark : Colors.white,
                   items: const [
                     DropdownMenuItem(value: 'Interno', child: Text('Interno')),
                     DropdownMenuItem(value: 'Externo', child: Text('Externo')),
@@ -241,8 +241,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                 if (_ajusteExterno) ...[
                   const SizedBox(height: 10),
                   TextField(
-                    style: GoogleFonts.inter(
-                        color: cs.onSurface),
+                    style: GoogleFonts.inter(color: cs.onSurface),
                     controller: _cargasCtrl,
                     onChanged: (_) => _saveToProvider(),
                     decoration:
@@ -333,7 +332,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
                     ? IconButton(
                         tooltip: 'Valores sugeridos',
                         onPressed: () => _showSuggestedValues(i, isDark),
-                        icon: Icon(Icons.unfold_more_rounded,
+                        icon: Icon(AppIcons.expandir,
                             color: isDark
                                 ? AppColors.accentYellow
                                 : const Color(0xFF5A4E00),
@@ -351,8 +350,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
   Widget _buildHoraField(bool isDark) {
     final cs = Theme.of(context).colorScheme;
     return TextField(
-      style: GoogleFonts.inter(
-          color: cs.onSurface),
+      style: GoogleFonts.inter(color: cs.onSurface),
       controller: _horaCtrl,
       readOnly: true,
       decoration: InputDecoration(
@@ -368,9 +366,8 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: IconButton(
-          icon: Icon(Icons.access_time_filled_rounded,
-              color:
-                   isDark ? AppColors.accentYellow : const Color(0xFF5A4E00)),
+          icon: Icon(AppIcons.hora,
+              color: isDark ? AppColors.accentYellow : const Color(0xFF5A4E00)),
           onPressed: () {
             _horaCtrl.text = _currentTime();
             _saveToProvider();
@@ -413,9 +410,7 @@ class _PrecargasAjusteStepState extends State<PrecargasAjusteStep> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(title,
           style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: cs.onSurface)),
+              fontSize: 16, fontWeight: FontWeight.bold, color: cs.onSurface)),
     ).animate().fadeIn();
   }
 

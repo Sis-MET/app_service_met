@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../theme/app_icons.dart';
 
 class SetupLoading extends StatelessWidget {
   final bool isDark;
@@ -43,7 +44,7 @@ class SetupLoading extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.sync_rounded,
+                      AppIcons.actualizar,
                       color: foreground,
                     ),
                   ),

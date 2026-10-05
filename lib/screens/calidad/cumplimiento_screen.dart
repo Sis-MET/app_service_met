@@ -9,6 +9,7 @@ import 'models/cumplimiento.dart';
 import 'services/calidad_pdf.dart';
 import 'utils/exportar_documento.dart';
 import 'widgets/calidad_ui.dart';
+import '../../theme/app_icons.dart';
 
 /// Tablero de cumplimiento NB/ISO/IEC 17025 (7.5, 7.11 y 8.4): resumen,
 /// avance por cláusula y cada requisito con su evidencia, brecha y acción.
@@ -73,7 +74,7 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
           'información y control de registros.',
       acciones: [
         CalidadAccion(
-          icono: Icons.picture_as_pdf_outlined,
+          icono: AppIcons.documento,
           tooltip: 'Exportar matriz',
           onPressed: _exportar,
         ),
@@ -83,12 +84,12 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
         runSpacing: 8,
         children: [
           AppStatusPill(
-            icon: Icons.verified_outlined,
+            icon: AppIcons.verificado,
             label: 'Evaluado en v${_evaluacion.version}',
             color: AppColors.actionPositive,
           ),
           AppStatusPill(
-            icon: Icons.event_outlined,
+            icon: AppIcons.calendario,
             label: DateFormat('dd/MM/yyyy').format(_evaluacion.fecha),
             color: AppColors.shimmerGold,
           ),
@@ -105,7 +106,7 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
           trailing: _hayFiltros
               ? TextButton.icon(
                   onPressed: _limpiar,
-                  icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+                  icon: const Icon(AppIcons.sinFiltro, size: 18),
                   label: const Text('Limpiar'),
                 )
               : null,
@@ -287,7 +288,7 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
               child: seleccionada
-                  ? const Icon(Icons.check_circle_rounded,
+                  ? const Icon(AppIcons.completo,
                       key: ValueKey('sel'), color: AppColors.actionPositive)
                   : Text(
                       '${(resumen.avance * 100).round()}%',
@@ -314,12 +315,12 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: 'Buscar requisito, cláusula o evidencia',
-            prefixIcon: const Icon(Icons.search_rounded),
+            prefixIcon: const Icon(AppIcons.buscar),
             suffixIcon: _consulta.isEmpty
                 ? null
                 : IconButton(
                     tooltip: 'Borrar búsqueda',
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(AppIcons.cerrar),
                     onPressed: () => setState(() {
                       _consulta = '';
                       _busqueda.clear();
@@ -398,7 +399,7 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
     return AppPanel(
       child: Column(
         children: [
-          Icon(Icons.search_off_rounded, size: 36, color: cs.onSurfaceVariant),
+          Icon(AppIcons.sinResultados, size: 36, color: cs.onSurfaceVariant),
           const SizedBox(height: 10),
           Text('Ningún requisito coincide con los filtros.',
               textAlign: TextAlign.center,
@@ -425,7 +426,7 @@ class _CumplimientoScreenState extends State<CumplimientoScreen> {
         FilledButton.icon(
           style: AppDesign.positiveButtonStyle(),
           onPressed: _exportar,
-          icon: const Icon(Icons.picture_as_pdf_outlined),
+          icon: const Icon(AppIcons.documento),
           label: const Text('Exportar matriz en PDF'),
         ),
       ],
@@ -515,7 +516,7 @@ class _RequisitoCard extends StatelessWidget {
                       AnimatedRotation(
                         turns: abierto ? 0.5 : 0,
                         duration: const Duration(milliseconds: 200),
-                        child: Icon(Icons.expand_more_rounded,
+                        child: Icon(AppIcons.desplegar,
                             color: cs.onSurfaceVariant),
                       ),
                     ],
@@ -567,7 +568,7 @@ class _RequisitoCard extends StatelessWidget {
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(top: 2),
-                    child: Icon(Icons.check_rounded,
+                    child: Icon(AppIcons.listo,
                         size: 16, color: AppColors.actionPositive),
                   ),
                   const SizedBox(width: 8),

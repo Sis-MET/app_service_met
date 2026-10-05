@@ -15,6 +15,7 @@ import '../services/calibration_upload_api_service.dart';
 import '../services/upload_record_deduplicator.dart';
 import '../widgets/upload_auth_dialog.dart';
 import '../widgets/new_scales_upload_notice.dart';
+import '../../theme/app_icons.dart';
 
 class CalibrationUploadScreen extends StatefulWidget {
   final String seca;
@@ -280,7 +281,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
           IconButton(
             onPressed: _working ? null : _load,
             tooltip: 'Actualizar',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(AppIcons.actualizar),
           ),
         ],
       ),
@@ -294,7 +295,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   _messageCard(
-                    icon: Icons.error_outline_rounded,
+                    icon: AppIcons.error,
                     color: Colors.red,
                     text: _error!,
                   ),
@@ -302,7 +303,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                 if (_duplicateCount > 0) ...[
                   const SizedBox(height: 12),
                   _messageCard(
-                    icon: Icons.content_copy_rounded,
+                    icon: AppIcons.copiar,
                     color: Colors.orange,
                     text: 'Se encontraron $_duplicateCount registro(s) '
                         'local(es) duplicado(s). Se subirá solamente la '
@@ -312,7 +313,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                 if (_incompleteRecords.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   _messageCard(
-                    icon: Icons.rule_rounded,
+                    icon: AppIcons.lista,
                     color: Colors.red,
                     text: 'Estas balanzas no tienen todas sus pruebas '
                         'guardadas en el teléfono. Revíselas antes de '
@@ -322,7 +323,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                 const SizedBox(height: 20),
                 if (_pendingRecords.isEmpty)
                   _messageCard(
-                    icon: Icons.cloud_done_outlined,
+                    icon: AppIcons.nubeLista,
                     color: Colors.green,
                     text: _uploadedCount > 0
                         ? 'Todas las balanzas completas de esta SECA ya fueron subidas.'
@@ -330,7 +331,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                   )
                 else if (_validation == null)
                   _messageCard(
-                    icon: Icons.fact_check_outlined,
+                    icon: AppIcons.verificacion,
                     color: colors.primary,
                     text:
                         'Primero se comprobarán tipos, longitudes, formatos y duplicados. Esta acción no escribe datos en el servidor.',
@@ -393,7 +394,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         leading: Icon(
-          record.valid ? Icons.check_circle_outline : Icons.cancel_outlined,
+          record.valid ? AppIcons.completo : AppIcons.cancelar,
           color: color,
         ),
         title: Text(record.codMetrica ?? 'Balanza sin código',
@@ -427,27 +428,27 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     if (validation == null) {
       return FilledButton.icon(
         onPressed: _validate,
-        icon: const Icon(Icons.fact_check_outlined),
+        icon: const Icon(AppIcons.verificacion),
         label: const Text('VALIDAR DATOS'),
       );
     }
     if (validation.invalidCount == 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: false),
-        icon: const Icon(Icons.cloud_upload_outlined),
+        icon: const Icon(AppIcons.subir),
         label: Text('SUBIR LOTE COMPLETO (${validation.validCount})'),
       );
     }
     if (validation.validCount > 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: true),
-        icon: const Icon(Icons.cloud_upload_outlined),
+        icon: const Icon(AppIcons.subir),
         label: Text('SUBIR SOLO VÁLIDOS (${validation.validCount})'),
       );
     }
     return OutlinedButton.icon(
       onPressed: _validate,
-      icon: const Icon(Icons.refresh_rounded),
+      icon: const Icon(AppIcons.actualizar),
       label: const Text('VALIDAR NUEVAMENTE'),
     );
   }

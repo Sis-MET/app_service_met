@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class UserCard extends StatelessWidget {
   final bool isDark;
@@ -27,10 +28,12 @@ class UserCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.05) : primary.withOpacity(0.05),
+        color:
+            isDark ? Colors.white.withOpacity(0.05) : primary.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.1) : primary.withOpacity(0.1),
+          color:
+              isDark ? Colors.white.withOpacity(0.1) : primary.withOpacity(0.1),
         ),
       ),
       child: Column(
@@ -40,11 +43,13 @@ class UserCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withOpacity(0.1) : primary.withOpacity(0.1),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.person,
+                  AppIcons.persona,
                   color: isDark ? Colors.white70 : primary,
                   size: 24,
                 ),
@@ -59,7 +64,8 @@ class UserCard extends StatelessWidget {
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                        color:
+                            isDark ? Colors.white : AppColors.textPrimaryLight,
                       ),
                     ),
                     Text(
@@ -73,7 +79,7 @@ class UserCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.swap_horiz),
+                icon: const Icon(AppIcons.cambiar),
                 color: isDark ? Colors.white70 : primary,
                 tooltip: 'Cambiar usuario',
                 onPressed: onShowUserSelector,

@@ -7,6 +7,7 @@ import '../../services/notifications/notification_snapshot_loader.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
+import '../../theme/app_icons.dart';
 
 enum VencimientosTab { patrones, balanzas }
 
@@ -55,7 +56,7 @@ class _VencimientosScreenState extends State<VencimientosScreen> {
             IconButton(
               onPressed: () => setState(() => _data = _load()),
               tooltip: 'Actualizar',
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(AppIcons.actualizar),
             ),
           ],
         ),
@@ -67,14 +68,14 @@ class _VencimientosScreenState extends State<VencimientosScreen> {
             }
             if (snapshot.hasError) {
               return _Message(
-                icon: Icons.error_outline_rounded,
+                icon: AppIcons.error,
                 text: 'No se pudo leer la precarga: ${snapshot.error}',
               );
             }
             final data = snapshot.data!;
             if (!data.precarga) {
               return const _Message(
-                icon: Icons.cloud_download_outlined,
+                icon: AppIcons.descargarNube,
                 text: 'Descarga la precarga para ver los vencimientos de '
                     'patrones y balanzas.',
               );
@@ -140,7 +141,7 @@ class _PatronesList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) {
       return const _Message(
-        icon: Icons.verified_outlined,
+        icon: AppIcons.verificado,
         text: 'Todos los patrones activos tienen la calibración al día.',
       );
     }
@@ -179,7 +180,7 @@ class _PlantasList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (plantas.isEmpty) {
       return const _Message(
-        icon: Icons.event_available_outlined,
+        icon: AppIcons.fechaLista,
         text: 'No hay balanzas de clientes por vencer en los próximos días.',
       );
     }
@@ -202,7 +203,7 @@ class _PlantasList extends StatelessWidget {
             shape: const Border(),
             collapsedShape: const Border(),
             initiallyExpanded: index == 1,
-            leading: const Icon(Icons.business_outlined),
+            leading: const Icon(AppIcons.empresa),
             title: Text(
               planta.cliente,
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -245,7 +246,7 @@ class _DueTile extends StatelessWidget {
     final vence = item.item.vence;
     return ListTile(
       leading: Icon(
-        item.vencido ? Icons.error_outline_rounded : Icons.schedule_rounded,
+        item.vencido ? AppIcons.error : AppIcons.hora,
         color: color,
       ),
       title: Text(title),

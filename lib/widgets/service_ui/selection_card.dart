@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 /// Tarjeta de selección estilo Calibración:
 /// seleccionada → fondo amarillo suave + borde `#f9e300`;
@@ -115,7 +116,7 @@ class ServiceSelectionCard extends StatelessWidget {
                     color: AppColors.actionPositive,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_rounded,
+                  child: const Icon(AppIcons.listo,
                       size: 16, color: AppColors.actionPositiveInk),
                 ),
             ],

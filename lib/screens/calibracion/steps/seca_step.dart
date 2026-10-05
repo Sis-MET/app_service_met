@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../theme/app_icons.dart';
 
 class SecaStep extends StatefulWidget {
   const SecaStep({super.key});
@@ -133,7 +134,7 @@ class _SecaStepState extends State<SecaStep> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline_rounded,
+              Icon(AppIcons.info,
                   color: isDark ? Colors.white54 : Colors.black54, size: 20),
               const SizedBox(width: 10),
               Text(
@@ -350,7 +351,7 @@ class _SecaStepState extends State<SecaStep> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_rounded,
+                  const Icon(AppIcons.completo,
                       color: Color(0xFF1A1A1A), size: 18),
                   const SizedBox(width: 8),
                   Text(
@@ -382,7 +383,7 @@ class _SecaStepState extends State<SecaStep> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.key_rounded,
+                  Icon(AppIcons.clave,
                       color: isDark ? Colors.white54 : Colors.black45,
                       size: 16),
                   const SizedBox(width: 8),
@@ -422,8 +423,7 @@ class _SecaStepState extends State<SecaStep> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline_rounded,
-                    color: Colors.amber[600], size: 20),
+                Icon(AppIcons.info, color: Colors.amber[600], size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -464,7 +464,7 @@ class _SecaStepState extends State<SecaStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.help_outline_rounded,
+              Icon(AppIcons.ayuda,
                   color: isDark ? Colors.white54 : Colors.black54, size: 20),
               const SizedBox(width: 12),
               Expanded(

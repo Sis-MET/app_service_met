@@ -15,6 +15,7 @@ import 'services/opportunity_auto_sync.dart';
 import 'services/opportunity_repository.dart';
 import 'services/pending_opportunity_store.dart';
 import 'widgets/opportunity_password_prompt.dart';
+import '../../theme/app_icons.dart';
 
 /// Oportunidades guardadas en el teléfono: las pendientes de enviar a
 /// Bitrix24 y las últimas enviadas. Las pendientes se completan y envían
@@ -204,7 +205,7 @@ class _PendingOpportunitiesScreenState
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.cloud_upload_outlined),
+                    : const Icon(AppIcons.subir),
                 label: const Text('Enviar todas'),
               ),
           ],
@@ -280,7 +281,7 @@ class _EmptyState extends StatelessWidget {
     return AppPanel(
       child: Column(
         children: [
-          const Icon(Icons.handshake_outlined,
+          const Icon(AppIcons.oportunidad,
               size: 36, color: AppColors.shimmerGold),
           const SizedBox(height: 12),
           Text('Sin oportunidades', style: AppDesign.titleStyle(context)),
@@ -317,22 +318,22 @@ class _OpportunityCard extends StatelessWidget {
         OpportunityStatus.sent => (
             'Prospecto #${record.bitrixLeadId}',
             AppColors.success,
-            Icons.check_circle_rounded,
+            AppIcons.completo,
           ),
         OpportunityStatus.error => (
             'Con error',
             AppColors.actionNegative,
-            Icons.error_outline_rounded,
+            AppIcons.error,
           ),
         OpportunityStatus.sending => (
             'Envío sin confirmar',
             AppColors.warning,
-            Icons.help_outline_rounded,
+            AppIcons.ayuda,
           ),
         OpportunityStatus.pending => (
             'Pendiente',
             AppColors.warning,
-            Icons.schedule_rounded,
+            AppIcons.hora,
           ),
       };
 
@@ -429,8 +430,8 @@ class _OpportunityCard extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Icon(record.canSendDirectly
-                            ? Icons.send_rounded
-                            : Icons.edit_outlined),
+                            ? AppIcons.enviar
+                            : AppIcons.editar),
                     label: Text(record.canSendDirectly
                         ? 'Enviar'
                         : record.status == OpportunityStatus.error

@@ -8,6 +8,7 @@ import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
 import 'package:service_met/utils/top_alert.dart';
+import '../../../theme/app_icons.dart';
 
 class ExcentricidadStep extends StatefulWidget {
   const ExcentricidadStep({super.key});
@@ -668,13 +669,13 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _dirBtn('atras', Icons.arrow_upward, 'Atrás', isDark),
+        _dirBtn('atras', AppIcons.arriba, 'Atrás', isDark),
         const SizedBox(width: 6),
-        _dirBtn('frente', Icons.arrow_downward, 'Frente', isDark),
+        _dirBtn('frente', AppIcons.abajo, 'Frente', isDark),
         const SizedBox(width: 6),
-        _dirBtn('izquierda', Icons.arrow_back, 'Izq', isDark),
+        _dirBtn('izquierda', AppIcons.atras, 'Izq', isDark),
         const SizedBox(width: 6),
-        _dirBtn('derecha', Icons.arrow_forward, 'Der', isDark),
+        _dirBtn('derecha', AppIcons.adelante, 'Der', isDark),
       ],
     );
   }
@@ -759,8 +760,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child: Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -866,8 +866,7 @@ class _ExcentricidadStepState extends State<ExcentricidadStep> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.teal),
+                  const Icon(AppIcons.consejo, size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (⅓ $label)',

@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../theme/app_icons.dart';
 
 class ConfigField extends StatefulWidget {
   final String label;
@@ -47,9 +48,8 @@ class _ConfigFieldState extends State<ConfigField> {
         TextFormField(
           controller: widget.controller,
           obscureText: widget.isPassword && _obscurePassword,
-          keyboardType: widget.isNumber
-              ? TextInputType.number
-              : TextInputType.text,
+          keyboardType:
+              widget.isNumber ? TextInputType.number : TextInputType.text,
           style: GoogleFonts.inter(
             fontSize: 15,
             color: widget.isDark ? Colors.white : Colors.black87,
@@ -82,19 +82,17 @@ class _ConfigFieldState extends State<ConfigField> {
             ),
             suffixIcon: widget.isPassword
                 ? IconButton(
-              icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: widget.isDark ? Colors.white70 : Colors.black38,
-                size: 22,
-              ),
-              onPressed: () {
-                setState(() {
-                  _obscurePassword = !_obscurePassword;
-                });
-              },
-            )
+                    icon: Icon(
+                      _obscurePassword ? AppIcons.ocultar : AppIcons.ver,
+                      color: widget.isDark ? Colors.white70 : Colors.black38,
+                      size: 22,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  )
                 : null,
           ),
           validator: widget.validator,

@@ -19,6 +19,7 @@ import 'package:service_met/screens/soporte_new/utils/menu_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/pasos_soporte.dart';
 import 'package:service_met/screens/soporte_new/utils/requisitos_pruebas.dart';
 import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacRelevamientoDeDatos extends StatefulWidget {
   final String sessionId;
@@ -63,25 +64,21 @@ class _StacRelevamientoDeDatosState extends State<StacRelevamientoDeDatos> {
 
   static const _steps = [
     StepData(
-        title: 'Terminal',
-        subtitle: 'Inspección',
-        icon: Icons.computer_outlined),
+        title: 'Terminal', subtitle: 'Inspección', icon: AppIcons.computadora),
     StepData(
-        title: 'Plataforma',
-        subtitle: 'Inspección',
-        icon: Icons.scale_outlined),
+        title: 'Plataforma', subtitle: 'Inspección', icon: AppIcons.balanza),
     StepData(
         title: 'Celdas y Entorno',
         subtitle: 'Inspección y condiciones',
-        icon: Icons.sensors_outlined),
+        icon: AppIcons.sensor),
     StepData(
         title: 'Pruebas Finales',
         subtitle: 'Metrológicas',
-        icon: Icons.task_alt_outlined),
+        icon: AppIcons.tareaLista),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   static const _recomendacionesOptions = [

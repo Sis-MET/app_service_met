@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-
+import '../../../theme/app_icons.dart';
 import '../models/manual.dart';
 
 /// Manual de uso de ServiceMET (NB/ISO/IEC 17025 7.11.5).
@@ -28,7 +27,7 @@ const manualServiceMet = ManualUso(
       id: 'introduccion',
       grupo: GrupoManual.primerosPasos,
       titulo: 'Acerca de ServiceMET',
-      icono: Icons.info_outline_rounded,
+      icono: AppIcons.info,
       resumen: 'Qué hace la app, qué servicios cubre y cómo viajan los datos.',
       bloques: [
         Parrafo('ServiceMET es la herramienta con la que los técnicos del '
@@ -74,7 +73,7 @@ const manualServiceMet = ManualUso(
       id: 'requisitos',
       grupo: GrupoManual.primerosPasos,
       titulo: 'Antes de empezar',
-      icono: Icons.checklist_rounded,
+      icono: AppIcons.lista,
       resumen: 'Teléfono, permisos, red y cuenta que necesita.',
       bloques: [
         Lista('Necesita', [
@@ -110,7 +109,7 @@ const manualServiceMet = ManualUso(
       id: 'acceso',
       grupo: GrupoManual.primerosPasos,
       titulo: 'Configuración inicial e inicio de sesión',
-      icono: Icons.login_rounded,
+      icono: AppIcons.ingresar,
       resumen: 'Vincular la cuenta, ingresar y activar el acceso biométrico.',
       bloques: [
         Pasos('Primera vez en el teléfono', [
@@ -148,7 +147,7 @@ const manualServiceMet = ManualUso(
       id: 'navegacion',
       grupo: GrupoManual.primerosPasos,
       titulo: 'Conociendo la app',
-      icono: Icons.explore_outlined,
+      icono: AppIcons.explorar,
       resumen: 'Inicio, Servicios, Precarga y Ajustes.',
       bloques: [
         Lista('Barra inferior', [
@@ -197,7 +196,7 @@ const manualServiceMet = ManualUso(
       id: 'precarga',
       grupo: GrupoManual.primerosPasos,
       titulo: 'Precarga para trabajar sin conexión',
-      icono: Icons.cloud_download_outlined,
+      icono: AppIcons.descargarNube,
       resumen: 'Descargar clientes, plantas, balanzas y patrones.',
       bloques: [
         Pasos(null, [
@@ -231,7 +230,7 @@ const manualServiceMet = ManualUso(
       id: 'calibracion',
       grupo: GrupoManual.servicios,
       titulo: 'Calibración de balanzas',
-      icono: Icons.scale_outlined,
+      icono: AppIcons.balanza,
       resumen: 'El asistente paso a paso, de Cliente a Finalizar.',
       bloques: [
         Parrafo('Abra Servicios y elija Calibración. Si había una calibración '
@@ -297,7 +296,7 @@ const manualServiceMet = ManualUso(
       id: 'lector-indicador',
       grupo: GrupoManual.servicios,
       titulo: 'Leer el indicador con la cámara',
-      icono: Icons.document_scanner_outlined,
+      icono: AppIcons.escanearDocumento,
       resumen: 'Captura asistida de lecturas de displays de 7 segmentos.',
       bloques: [
         Parrafo('Funciona en calibración y en las pruebas metrológicas de '
@@ -332,7 +331,7 @@ const manualServiceMet = ManualUso(
       id: 'soporte',
       grupo: GrupoManual.servicios,
       titulo: 'Servicios de soporte técnico',
-      icono: Icons.build_outlined,
+      icono: AppIcons.soporte,
       resumen: 'Mantenimientos, diagnóstico, verificaciones e instalación.',
       bloques: [
         Pasos('Iniciar un servicio', [
@@ -379,7 +378,7 @@ const manualServiceMet = ManualUso(
       id: 'oportunidades',
       grupo: GrupoManual.servicios,
       titulo: 'Registrar una oportunidad comercial',
-      icono: Icons.handshake_outlined,
+      icono: AppIcons.oportunidad,
       resumen: 'Enviar a Bitrix24 una necesidad del cliente sin dejar el '
           'servicio.',
       bloques: [
@@ -463,7 +462,7 @@ const manualServiceMet = ManualUso(
       id: 'rim',
       grupo: GrupoManual.servicios,
       titulo: 'Recepción de instrumentos (RIM)',
-      icono: Icons.inventory_2_outlined,
+      icono: AppIcons.rim,
       resumen: 'Dejar constancia, con la firma del cliente, del estado de una '
           'balanza cuyo servicio no se puede concluir.',
       bloques: [
@@ -571,7 +570,7 @@ const manualServiceMet = ManualUso(
       id: 'registros',
       grupo: GrupoManual.datos,
       titulo: 'Consultar, corregir y exportar',
-      icono: Icons.folder_open_outlined,
+      icono: AppIcons.carpetaAbierta,
       resumen: 'Registros de un servicio, fotos, PDF y CSV.',
       bloques: [
         Pasos('Abrir un servicio', [
@@ -611,7 +610,7 @@ const manualServiceMet = ManualUso(
       id: 'subida',
       grupo: GrupoManual.datos,
       titulo: 'Subir datos al servidor',
-      icono: Icons.cloud_upload_outlined,
+      icono: AppIcons.subir,
       resumen: 'Validar, corregir y subir a DataMET.',
       bloques: [
         Pasos(null, [
@@ -644,7 +643,7 @@ const manualServiceMet = ManualUso(
       id: 'respaldo',
       grupo: GrupoManual.datos,
       titulo: 'Respaldo y restauración',
-      icono: Icons.backup_outlined,
+      icono: AppIcons.respaldo,
       resumen: 'Copias de las bases del teléfono e importación.',
       bloques: [
         Pasos('Guardar una copia', [
@@ -681,7 +680,7 @@ const manualServiceMet = ManualUso(
       id: 'calidad',
       grupo: GrupoManual.datos,
       titulo: 'Cumplimiento, manual y versiones',
-      icono: Icons.verified_outlined,
+      icono: AppIcons.verificado,
       resumen: 'Consultar y exportar la información de calidad.',
       bloques: [
         Parrafo('En Ajustes, la sección "Calidad y normativa" reúne la '
@@ -713,7 +712,7 @@ const manualServiceMet = ManualUso(
       id: 'incidencias',
       grupo: GrupoManual.ayuda,
       titulo: 'Qué hacer ante una falla',
-      icono: Icons.report_problem_outlined,
+      icono: AppIcons.advertencia,
       resumen: 'Cómo actuar y reportar cuando algo no funciona.',
       bloques: [
         Pasos(null, [
@@ -744,7 +743,7 @@ const manualServiceMet = ManualUso(
       id: 'problemas',
       grupo: GrupoManual.ayuda,
       titulo: 'Problemas frecuentes',
-      icono: Icons.help_outline_rounded,
+      icono: AppIcons.ayuda,
       resumen: 'Mensajes habituales y cómo resolverlos.',
       bloques: [
         Lista('"Datos pendientes"', [

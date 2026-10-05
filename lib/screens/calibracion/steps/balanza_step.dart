@@ -19,6 +19,7 @@ import 'package:service_met/utils/new_scale_code.dart';
 import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../theme/app_icons.dart';
 
 class BalanzaStep extends StatefulWidget {
   const BalanzaStep({super.key});
@@ -488,11 +489,11 @@ class _BalanzaStepState extends State<BalanzaStep> {
     return Row(
       children: [
         Expanded(
-            child: _field(_nRecaCtrl, 'N° RECA *', Icons.assignment,
+            child: _field(_nRecaCtrl, 'N° RECA *', AppIcons.formulario,
                 onChanged: (_) => _saveToProvider(provider), isDark: isDark)),
         const SizedBox(width: 12),
         Expanded(
-            child: _field(_stickerCtrl, 'N° Sticker *', Icons.local_offer,
+            child: _field(_stickerCtrl, 'N° Sticker *', AppIcons.etiqueta,
                 onChanged: (_) => _saveToProvider(provider), isDark: isDark)),
       ],
     ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.2);
@@ -511,7 +512,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.search, size: 18),
+                : const Icon(AppIcons.buscar, size: 18),
             label: const Text('Buscar'),
           ),
         ),
@@ -520,7 +521,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
           flex: 3,
           child: FilledButton.icon(
             onPressed: () => _startNewBalanza(provider),
-            icon: const Icon(Icons.add, size: 18),
+            icon: const Icon(AppIcons.agregar, size: 18),
             label: const Text('Nuevo'),
           ),
         ),
@@ -530,7 +531,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
           child: OutlinedButton.icon(
             onPressed:
                 _isLoadingBalanzas ? null : () => _scanQrForBalanza(provider),
-            icon: const Icon(Icons.qr_code_scanner, size: 18),
+            icon: const Icon(AppIcons.escanearQr, size: 18),
             label: const Text('QR'),
           ),
         ),
@@ -597,9 +598,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
           Row(
             children: [
               Icon(
-                _isNewBalanza
-                    ? Icons.add_circle_outline_rounded
-                    : Icons.check_circle_outline_rounded,
+                _isNewBalanza ? AppIcons.agregarCirculo : AppIcons.completo,
                 color: _isNewBalanza
                     ? (isDark
                         ? const Color(0xFF81C784)
@@ -628,28 +627,28 @@ class _BalanzaStepState extends State<BalanzaStep> {
             ],
           ),
           const SizedBox(height: 20),
-          _field(_codMetricaCtrl, 'Código Métrica', Icons.qr_code,
+          _field(_codMetricaCtrl, 'Código Métrica', AppIcons.qr,
               readOnly: true,
               onChanged: (_) => _saveToProvider(provider),
               isDark: isDark),
           const SizedBox(height: 12),
-          _dropdownField('Categoría', Icons.category, _categorias,
+          _dropdownField('Categoría', AppIcons.categoria, _categorias,
               _categoriaCtrl, provider,
               isDark: isDark),
           const SizedBox(height: 12),
-          _field(_tecnologiaCtrl, 'Tecnología', Icons.memory,
+          _field(_tecnologiaCtrl, 'Tecnología', AppIcons.chip,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _field(_claseCtrl, 'Clase', Icons.class_,
+          _field(_claseCtrl, 'Clase', AppIcons.clase,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _field(_codIntCtrl, 'Código Interno', Icons.tag,
+          _field(_codIntCtrl, 'Código Interno', AppIcons.numero,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           EditableSuggestionField(
             controller: _tipoEquipoCtrl,
             label: 'Tipo de Equipo',
-            icon: Icons.scale,
+            icon: AppIcons.balanza,
             options: _tiposEquipo,
             onChanged: (_) => _saveToProvider(provider),
             isDark: isDark,
@@ -658,26 +657,26 @@ class _BalanzaStepState extends State<BalanzaStep> {
           EditableSuggestionField(
             controller: _marcaCtrl,
             label: 'Marca',
-            icon: Icons.business,
+            icon: AppIcons.empresa,
             options: scaleBrandSuggestions,
             onChanged: (_) => _saveToProvider(provider),
             isDark: isDark,
           ),
           const SizedBox(height: 12),
-          _field(_modeloCtrl, 'Modelo', Icons.precision_manufacturing,
+          _field(_modeloCtrl, 'Modelo', AppIcons.equipo,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _field(_serieCtrl, 'Serie', Icons.confirmation_number,
+          _field(_serieCtrl, 'Serie', AppIcons.serie,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           _dropdownField(
-              'Unidad', Icons.straighten, _unidades, _unidadesCtrl, provider,
+              'Unidad', AppIcons.medida, _unidades, _unidadesCtrl, provider,
               isDark: isDark),
           const SizedBox(height: 12),
-          _field(_ubicacionCtrl, 'Ubicación', Icons.location_on,
+          _field(_ubicacionCtrl, 'Ubicación', AppIcons.ubicacion,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
-          _field(_rangoCtrl, 'Rango', Icons.linear_scale,
+          _field(_rangoCtrl, 'Rango', AppIcons.medida,
               onChanged: (_) => _saveToProvider(provider), isDark: isDark),
           const SizedBox(height: 12),
           CalibrationNumberField(
@@ -686,8 +685,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
             onChanged: (_) => _saveToProvider(provider),
             style: GoogleFonts.inter(
                 color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-            decoration:
-                _fieldDecoration('N° Celdas', Icons.grid_view, isDark: isDark),
+            decoration: _fieldDecoration('N° Celdas', AppIcons.cuadricula,
+                isDark: isDark),
           ),
         ],
       ),
@@ -700,7 +699,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       children: [
         Row(
           children: [
-            Icon(Icons.tune_rounded,
+            Icon(AppIcons.filtros,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
             Text('Rangos de Intervalo',
@@ -797,7 +796,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       children: [
         Row(
           children: [
-            Icon(Icons.camera_alt_outlined,
+            Icon(AppIcons.camara,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
             Text('Fotos del Instrumento',
@@ -834,7 +833,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       ),
       child: Column(
         children: [
-          Icon(Icons.camera_alt_outlined,
+          Icon(AppIcons.camara,
               size: 40, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 10),
           Text(
@@ -847,7 +846,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
           const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: canTakePhoto ? _takeInstrumentoFoto : null,
-            icon: const Icon(Icons.camera_alt, size: 18),
+            icon: const Icon(AppIcons.camara, size: 18),
             label: const Text('Tomar Foto'),
           ),
         ],
@@ -865,7 +864,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _takeInstrumentoFoto,
-                icon: const Icon(Icons.camera_alt, size: 18),
+                icon: const Icon(AppIcons.camara, size: 18),
                 label: const Text('Agregar Fotografía'),
               ),
             ),
@@ -893,7 +892,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                           : null,
                     ),
                     child: !exists
-                        ? Icon(Icons.broken_image_outlined,
+                        ? Icon(AppIcons.imagenNoDisponible,
                             color: isDark ? Colors.white24 : Colors.black26)
                         : null,
                   ),
@@ -909,7 +908,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded,
+                          child: const Icon(AppIcons.cerrar,
                               size: 14, color: Colors.white),
                         ),
                       ),
@@ -1246,12 +1245,12 @@ class _BalanzaStepState extends State<BalanzaStep> {
                   hintStyle: GoogleFonts.inter(
                       fontSize: 14,
                       color: isDark ? Colors.white38 : Colors.black38),
-                  prefixIcon: Icon(Icons.search_rounded,
+                  prefixIcon: Icon(AppIcons.buscar,
                       color: isDark ? Colors.white54 : Colors.black38,
                       size: 20),
                   suffixIcon: searchCtrl.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.close_rounded,
+                          icon: Icon(AppIcons.cerrar,
                               color: isDark ? Colors.white54 : Colors.black38,
                               size: 18),
                           onPressed: () {
@@ -1292,7 +1291,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.search_off_rounded,
+                            Icon(AppIcons.sinResultados,
                                 size: 48,
                                 color:
                                     isDark ? Colors.white24 : Colors.black26),
@@ -1429,7 +1428,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
-                                    child: Icon(Icons.chevron_right_rounded,
+                                    child: Icon(AppIcons.siguiente,
                                         color: isDark
                                             ? Colors.white24
                                             : Colors.black26),

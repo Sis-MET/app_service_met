@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_icons.dart';
 
 const Map<String, Color> estadoColorMap = {
   'Bueno': Colors.green,
@@ -8,8 +9,8 @@ const Map<String, Color> estadoColorMap = {
 };
 
 const Map<String, IconData> estadoIconMap = {
-  'Bueno': Icons.check_circle,
-  'Regular': Icons.warning_amber,
-  'Malo': Icons.error,
-  'No aplica': Icons.block,
+  'Bueno': AppIcons.completo,
+  'Regular': AppIcons.advertencia,
+  'Malo': AppIcons.error,
+  'No aplica': AppIcons.bloquear,
 };

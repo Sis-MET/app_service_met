@@ -9,6 +9,7 @@ import '../services/home_dashboard_service.dart';
 import '../widgets/service_card.dart';
 import '../widgets/tipo_servicio_selector.dart';
 import '../widgets/welcome_header.dart';
+import '../../theme/app_icons.dart';
 
 class HomeDashboardTab extends StatefulWidget {
   final String userName;
@@ -171,8 +172,8 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               ),
               AppStatusPill(
                 icon: data.servicesInProgress == 0
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.pending_actions_rounded,
+                    ? AppIcons.completo
+                    : AppIcons.pendiente,
                 label: data.servicesInProgress == 0
                     ? 'Todo al día'
                     : '${data.servicesInProgress} en proceso',
@@ -188,19 +189,19 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               final compact = constraints.maxWidth < 520;
               final metrics = [
                 _MetricData(
-                  icon: Icons.scale_rounded,
+                  icon: AppIcons.balanza,
                   value: data.calibratedScales,
                   label: 'Balanzas calibradas',
                   color: AppColors.actionPositive,
                 ),
                 _MetricData(
-                  icon: Icons.build_circle_outlined,
+                  icon: AppIcons.soporte,
                   value: data.supportServices,
                   label: 'Servicios de soporte',
                   color: AppColors.shimmerGold,
                 ),
                 _MetricData(
-                  icon: Icons.cloud_upload_outlined,
+                  icon: AppIcons.subir,
                   value: data.pendingUploads,
                   label: 'Pendientes de subir',
                   color: data.pendingUploads == 0
@@ -232,7 +233,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           Row(
             children: [
               Icon(
-                Icons.cloud_download_outlined,
+                AppIcons.descargarNube,
                 size: 17,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -325,9 +326,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
               borderRadius: AppDesign.mediumRadius,
             ),
             child: Icon(
-              hasPending
-                  ? Icons.cloud_upload_outlined
-                  : Icons.cloud_done_outlined,
+              hasPending ? AppIcons.subir : AppIcons.nubeLista,
               color:
                   hasPending ? AppColors.shimmerGold : AppColors.actionPositive,
             ),
@@ -362,7 +361,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                 backgroundColor: AppColors.actionPositive,
                 foregroundColor: AppColors.actionPositiveInk,
               ),
-              icon: const Icon(Icons.arrow_forward_rounded),
+              icon: const Icon(AppIcons.adelante),
             ),
           ],
         ],
@@ -402,10 +401,10 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
                   return AppPanel(
                     padding: EdgeInsets.zero,
                     child: ListTile(
-                      leading: const Icon(Icons.scale_outlined),
+                      leading: const Icon(AppIcons.balanza),
                       title: Text('SECA ${group.seca}'),
                       subtitle: Text('${group.count} pendientes'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
+                      trailing: const Icon(AppIcons.siguiente),
                       onTap: () => Navigator.pop(sheetContext, group.seca),
                     ),
                   );
@@ -434,7 +433,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       child: Column(
         children: [
           Icon(
-            Icons.inbox_outlined,
+            AppIcons.bandeja,
             size: 38,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -449,7 +448,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           const SizedBox(height: 18),
           FilledButton.icon(
             onPressed: widget.goToServicios,
-            icon: const Icon(Icons.add_rounded),
+            icon: const Icon(AppIcons.agregar),
             label: const Text('Crear servicio'),
           ),
         ],
@@ -462,7 +461,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
       child: Column(
         children: [
           const Icon(
-            Icons.cloud_off_rounded,
+            AppIcons.sinConexion,
             color: AppColors.actionNegative,
             size: 38,
           ),
@@ -478,7 +477,7 @@ class _HomeDashboardTabState extends State<HomeDashboardTab> {
           const SizedBox(height: 18),
           OutlinedButton.icon(
             onPressed: _refresh,
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(AppIcons.actualizar),
             label: const Text('Reintentar'),
           ),
         ],

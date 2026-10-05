@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_icons.dart';
 
 class BalanzaSpeedDial extends StatefulWidget {
   final VoidCallback onTomarFoto;
@@ -73,7 +74,7 @@ class _BalanzaSpeedDialState extends State<BalanzaSpeedDial>
               ),
             ),
           _buildChild(
-            icon: Icons.monitor_weight_outlined,
+            icon: AppIcons.balanza,
             label: 'Seleccionar Balanza',
             color: Colors.orange,
             onTap: () {
@@ -83,7 +84,7 @@ class _BalanzaSpeedDialState extends State<BalanzaSpeedDial>
             index: 0,
           ),
           _buildChild(
-            icon: Icons.camera_alt_outlined,
+            icon: AppIcons.camara,
             label: 'Tomar Foto',
             color: Colors.blue,
             onTap: () {
@@ -170,7 +171,7 @@ class _BalanzaSpeedDialState extends State<BalanzaSpeedDial>
           return Transform.rotate(
             angle: _controller.value * 3.14159,
             child: Icon(
-              _isOpen ? Icons.close : Icons.add,
+              _isOpen ? AppIcons.cerrar : AppIcons.agregar,
               color: Colors.white,
             ),
           );

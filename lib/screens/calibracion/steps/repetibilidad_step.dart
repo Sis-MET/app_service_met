@@ -8,6 +8,7 @@ import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/step_scroll_view.dart';
 import 'package:service_met/utils/top_alert.dart';
+import '../../../theme/app_icons.dart';
 
 class RepetibilidadStep extends StatefulWidget {
   const RepetibilidadStep({super.key});
@@ -525,8 +526,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(cargaIdx, medIdx),
-                child: Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child: Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -632,8 +632,7 @@ class _RepetibilidadStepState extends State<RepetibilidadStep> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.teal),
+                  const Icon(AppIcons.consejo, size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (50% $label)',

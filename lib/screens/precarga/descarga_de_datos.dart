@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as path;
@@ -19,6 +18,7 @@ import '../../login/services/connection_profile_service.dart';
 import '../../login/widgets/setup/setup_loading.dart';
 import '../../login/screens/initial_setup_screen.dart';
 import 'widgets/autorizar_actualizacion_dialog.dart';
+import '../../theme/app_icons.dart';
 
 class DescargaDeDatosScreen extends StatefulWidget {
   final String userName;
@@ -110,7 +110,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.cloud_sync, color: accent),
+            Icon(AppIcons.sincronizar, color: accent),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -344,7 +344,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _buildMiniStat(
-                              icon: FontAwesomeIcons.buildingUser,
+                              icon: AppIcons.empresa,
                               value: _clientesCount.toString(),
                               label: 'Clientes',
                               accent: accent,
@@ -358,7 +358,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                   : AppColors.borderLight,
                             ),
                             _buildMiniStat(
-                              icon: FontAwesomeIcons.industry,
+                              icon: AppIcons.planta,
                               value: _plantasCount.toString(),
                               label: 'Plantas',
                               accent: accent,
@@ -372,7 +372,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                                   : AppColors.borderLight,
                             ),
                             _buildMiniStat(
-                              icon: FontAwesomeIcons.scaleBalanced,
+                              icon: AppIcons.balanza,
                               value: _equiposCount.toString(),
                               label: 'Equipos',
                               accent: accent,
@@ -391,7 +391,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                         // Última actualización info
                         Row(
                           children: [
-                            Icon(Icons.history,
+                            Icon(AppIcons.historial,
                                 size: 18,
                                 color:
                                     isDark ? Colors.white38 : Colors.black38),
@@ -433,8 +433,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        FaIcon(FontAwesomeIcons.server,
-                            color: accent, size: 20),
+                        Icon(AppIcons.servidor, color: accent, size: 20),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -471,7 +470,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
                       height: 52,
                       child: FilledButton.icon(
                         onPressed: _showUpdateDialog,
-                        icon: const Icon(Icons.cloud_sync_outlined),
+                        icon: const Icon(AppIcons.sincronizar),
                         label: Text(
                           'Actualizar Datos',
                           style: GoogleFonts.poppins(
@@ -509,7 +508,7 @@ class _DescargaDeDatosScreenState extends State<DescargaDeDatosScreen> {
           ),
           child: icon is IconData
               ? Icon(icon, size: 16, color: accent)
-              : FaIcon(icon, size: 16, color: accent),
+              : Icon(icon, size: 16, color: accent),
         ),
         const SizedBox(height: 8),
         Text(

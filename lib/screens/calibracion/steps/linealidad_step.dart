@@ -17,6 +17,7 @@ import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
+import '../../../theme/app_icons.dart';
 
 class LinealidadStep extends StatefulWidget {
   const LinealidadStep({super.key});
@@ -584,9 +585,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            _cargasValidadas
-                ? Icons.check_circle_outline_rounded
-                : Icons.info_outline_rounded,
+            _cargasValidadas ? AppIcons.completo : AppIcons.info,
             size: 18,
             color: Colors.teal,
           ),
@@ -620,20 +619,20 @@ class _LinealidadStepState extends State<LinealidadStep> {
               spacing: 4,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded,
+                  icon: const Icon(AppIcons.agregarCirculo,
                       color: Colors.teal, size: 22),
                   onPressed: _addRow,
                   tooltip: 'Agregar fila',
                 ),
                 IconButton(
-                  icon: const Icon(Icons.remove_circle_outline_rounded,
+                  icon: const Icon(AppIcons.quitarCirculo,
                       color: Colors.teal, size: 22),
                   onPressed: _removeRow,
                   tooltip: 'Eliminar ultima fila',
                 ),
                 if (_cargasValidadas)
                   IconButton(
-                    icon: const Icon(Icons.refresh_rounded,
+                    icon: const Icon(AppIcons.actualizar,
                         color: Colors.teal, size: 22),
                     onPressed: _resetValidation,
                     tooltip: 'Volver a validar cargas',
@@ -648,7 +647,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _cargasValidadas ? null : _validatePatronLoads,
-                icon: const Icon(Icons.verified_outlined, size: 18),
+                icon: const Icon(AppIcons.verificado, size: 18),
                 label: const Text('Validar cargas'),
               ),
             ),
@@ -656,7 +655,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
-                icon: const Icon(Icons.calculate_outlined, size: 18),
+                icon: const Icon(AppIcons.calcular, size: 18),
                 label: const Text('Carga sustitutiva'),
               ),
             ),
@@ -794,8 +793,8 @@ class _LinealidadStepState extends State<LinealidadStep> {
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: const Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child:
+                    const Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -1064,7 +1063,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                           onPressed: indicacionCtrl.text.trim().isEmpty
                               ? null
                               : () => Navigator.pop(ctx, _fmt(acumulado)),
-                          icon: const Icon(Icons.check_rounded),
+                          icon: const Icon(AppIcons.listo),
                           label: const Text('Guardar carga sustitutiva'),
                         ),
                       ),
@@ -1267,7 +1266,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
         const SizedBox(height: 24),
         Row(
           children: [
-            Icon(Icons.camera_alt_outlined,
+            Icon(AppIcons.camara,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
             Text('Fotos de Carga',
@@ -1304,7 +1303,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
       ),
       child: Column(
         children: [
-          Icon(Icons.camera_alt_outlined,
+          Icon(AppIcons.camara,
               size: 40, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 10),
           Text(
@@ -1317,7 +1316,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: canTakePhoto ? _takeFoto : null,
-            icon: const Icon(Icons.camera_alt, size: 18),
+            icon: const Icon(AppIcons.camara, size: 18),
             label: const Text('Tomar Foto'),
           ),
         ],
@@ -1335,7 +1334,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _takeFoto,
-                icon: const Icon(Icons.camera_alt, size: 18),
+                icon: const Icon(AppIcons.camara, size: 18),
                 label: const Text('Agregar Fotografía'),
               ),
             ),
@@ -1363,7 +1362,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                           : null,
                     ),
                     child: !exists
-                        ? Icon(Icons.broken_image_outlined,
+                        ? Icon(AppIcons.imagenNoDisponible,
                             color: isDark ? Colors.white24 : Colors.black26)
                         : null,
                   ),
@@ -1379,7 +1378,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded,
+                          child: const Icon(AppIcons.cerrar,
                               size: 14, color: Colors.white),
                         ),
                       ),

@@ -16,6 +16,7 @@ import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/diagnostico_controller.dart';
 import 'models/diagnostico_model.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacDiagnostico extends StatefulWidget {
   final String sessionId;
@@ -61,11 +62,11 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
     StepData(
         title: 'Info General',
         subtitle: 'Reporte y evaluación',
-        icon: Icons.info_outline),
+        icon: AppIcons.info),
     StepData(
         title: 'Estado Final',
         subtitle: 'Conclusión del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.
@@ -365,7 +366,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.login_outlined, color: Color(0xFF46824B)),
+                const Icon(AppIcons.ingresar, color: Color(0xFF46824B)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -380,7 +381,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
                     ],
                   ),
                 ),
-                const Icon(Icons.logout_outlined, color: Color(0xFF46824B)),
+                const Icon(AppIcons.salir, color: Color(0xFF46824B)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -404,7 +405,7 @@ class _StacDiagnosticoState extends State<StacDiagnostico> {
                       _controller.markChanged();
                     });
                   },
-                  icon: const Icon(Icons.access_time),
+                  icon: const Icon(AppIcons.hora),
                 ),
               ],
             ),

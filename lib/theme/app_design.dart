@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
+import 'app_icons.dart';
 
 /// Tokens visuales compartidos para que Login, Home y los siguientes módulos
 /// mantengan la misma identidad sin repetir valores mágicos.
@@ -96,7 +97,7 @@ class AppBackButton extends StatelessWidget {
     return IconButton.outlined(
       tooltip: tooltip,
       onPressed: onPressed ?? () => Navigator.maybePop(context),
-      icon: const Icon(Icons.arrow_back_rounded),
+      icon: const Icon(AppIcons.atras),
       style: IconButton.styleFrom(
         foregroundColor:
             foregroundColor ?? (isDark ? Colors.white : AppDesign.ink),

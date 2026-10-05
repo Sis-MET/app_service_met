@@ -1,10 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_icons.dart';
 
 class TipoServicioSelector extends StatelessWidget {
   final int selectedIndex;
@@ -40,14 +40,14 @@ class TipoServicioSelector extends StatelessWidget {
           _buildTab(
             context: context,
             index: 0,
-            icon: FontAwesomeIcons.scaleBalanced,
+            icon: AppIcons.balanza,
             label: 'Calibración',
             isSelected: selectedIndex == 0,
           ),
           _buildTab(
             context: context,
             index: 1,
-            icon: FontAwesomeIcons.screwdriverWrench,
+            icon: AppIcons.soporte,
             label: 'Soporte Técnico',
             isSelected: selectedIndex == 1,
           ),
@@ -95,7 +95,7 @@ class TipoServicioSelector extends StatelessWidget {
                           ? AppColors.actionPositiveInk
                           : cs.onSurface.withOpacity(0.38),
                     )
-                  : FaIcon(
+                  : Icon(
                       icon,
                       size: 14,
                       color: isSelected

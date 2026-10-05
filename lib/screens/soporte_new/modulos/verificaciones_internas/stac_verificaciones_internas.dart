@@ -22,6 +22,7 @@ import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/verificaciones_internas_controller.dart';
 import 'models/verificaciones_internas_model.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacVerificacionesInternas extends StatefulWidget {
   final String sessionId;
@@ -80,15 +81,15 @@ class _StacVerificacionesInternasState
     StepData(
         title: 'Inspección visual',
         subtitle: 'Estado y condiciones',
-        icon: Icons.visibility_outlined),
+        icon: AppIcons.ver),
     StepData(
         title: 'Pruebas metrológicas',
         subtitle: 'Excentricidad, repetibilidad y linealidad',
-        icon: Icons.science_outlined),
+        icon: AppIcons.laboratorio),
     StepData(
         title: 'Estado final',
         subtitle: 'Cierre del servicio',
-        icon: Icons.assignment_turned_in_outlined),
+        icon: AppIcons.formularioCompleto),
   ];
 
   /// Menú ⋮: emitir el RIM del instrumento y registrar una oportunidad.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
+import '../../../theme/app_icons.dart';
 
 class SuggestionHelper {
   static List<Map<String, double>> getValidCapacities(BalanzaInfo balanza) {
@@ -113,14 +114,12 @@ class SuggestionHelper {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Row(
                       children: [
-                        Icon(Icons.tune_rounded,
-                            color: isDark
-                                ? Colors.white54
-                                : Colors.black54,
+                        Icon(AppIcons.filtros,
+                            color: isDark ? Colors.white54 : Colors.black54,
                             size: 20),
                         const SizedBox(width: 8),
                         Expanded(
@@ -149,9 +148,7 @@ class SuggestionHelper {
                             style: GoogleFonts.robotoMono(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white70
-                                  : Colors.black87,
+                              color: isDark ? Colors.white70 : Colors.black87,
                             ),
                           ),
                         ),
@@ -159,7 +156,6 @@ class SuggestionHelper {
                     ),
                   ),
                   const Divider(height: 1),
-
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -171,7 +167,7 @@ class SuggestionHelper {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.keyboard_arrow_up_rounded,
+                            Icon(AppIcons.plegar,
                                 color: isDark
                                     ? const Color(0xFF64B5F6)
                                     : const Color(0xFF1565C0),
@@ -192,7 +188,6 @@ class SuggestionHelper {
                       ),
                     ),
                   ),
-
                   Flexible(
                     child: ListView.builder(
                       // El sitio de la barra ya lo deja la hoja.
@@ -207,8 +202,7 @@ class SuggestionHelper {
                         return Material(
                           color: isBase
                               ? (isDark
-                                  ? const Color(0xFF2E7D32)
-                                      .withOpacity(0.2)
+                                  ? const Color(0xFF2E7D32).withOpacity(0.2)
                                   : const Color(0xFFE8F5E9))
                               : Colors.transparent,
                           child: InkWell(
@@ -221,8 +215,7 @@ class SuggestionHelper {
                               child: Row(
                                 children: [
                                   if (isBase)
-                                    Icon(
-                                        Icons.arrow_forward_rounded,
+                                    Icon(AppIcons.adelante,
                                         color: isDark
                                             ? const Color(0xFF81C784)
                                             : const Color(0xFF2E7D32),
@@ -256,8 +249,7 @@ class SuggestionHelper {
                                             ? const Color(0xFF81C784)
                                                 .withOpacity(0.2)
                                             : const Color(0xFFC8E6C9),
-                                        borderRadius:
-                                            BorderRadius.circular(4),
+                                        borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         'BASE',
@@ -279,7 +271,6 @@ class SuggestionHelper {
                       },
                     ),
                   ),
-
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -291,7 +282,7 @@ class SuggestionHelper {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.keyboard_arrow_down_rounded,
+                            Icon(AppIcons.desplegar,
                                 color: isDark
                                     ? const Color(0xFF64B5F6)
                                     : const Color(0xFF1565C0),
@@ -312,8 +303,7 @@ class SuggestionHelper {
                       ),
                     ),
                   ),
-                  SizedBox(
-                      height: MediaQuery.of(ctx).padding.bottom + 8),
+                  SizedBox(height: MediaQuery.of(ctx).padding.bottom + 8),
                 ],
               ),
             );

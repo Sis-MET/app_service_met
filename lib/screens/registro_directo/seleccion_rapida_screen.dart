@@ -10,6 +10,7 @@ import '../calibracion/widgets/qr_scanner_screen.dart';
 import '../oportunidades/models/opportunity_service_context.dart';
 import '../soporte_new/precarga/precarga_controller.dart';
 import 'catalogo_servicio.dart';
+import '../../theme/app_icons.dart';
 
 /// Para qué formulario se elige el cliente: cambia qué es obligatorio.
 enum PropositoSeleccion {
@@ -347,7 +348,7 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
         leading: Center(
           child: IconButton(
             tooltip: 'Cancelar',
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(AppIcons.cerrar),
             onPressed: () => Navigator.of(context).pop(),
           ),
         ),
@@ -372,13 +373,13 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
             OutlinedButton.icon(
               style: AppDesign.neutralButtonStyle(context),
               onPressed: _cargando ? null : _escanearQr,
-              icon: const Icon(Icons.qr_code_scanner_rounded),
+              icon: const Icon(AppIcons.escanearQr),
               label: const Text('Escanear QR del instrumento'),
             ),
             const SizedBox(height: 18),
             _CampoSeleccion(
               key: const ValueKey('seleccion-cliente'),
-              icon: Icons.business_rounded,
+              icon: AppIcons.empresa,
               label: 'Cliente',
               value: _cliente == null ? null : _texto(_cliente, 'cliente'),
               detail: _texto(_cliente, 'razonsocial'),
@@ -387,7 +388,7 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
             const SizedBox(height: 12),
             _CampoSeleccion(
               key: const ValueKey('seleccion-planta'),
-              icon: Icons.factory_outlined,
+              icon: AppIcons.planta,
               label: 'Planta$opcional',
               value: _planta == null ? null : _texto(_planta, 'planta'),
               detail: plantaDetalle,
@@ -403,7 +404,7 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
             const SizedBox(height: 12),
             _CampoSeleccion(
               key: const ValueKey('seleccion-instrumento'),
-              icon: Icons.scale_outlined,
+              icon: AppIcons.balanza,
               label: 'Instrumento$opcional',
               value: _instrumento == null
                   ? null
@@ -423,7 +424,7 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
                   onPressed: _cargando ? null : _instrumentoNoRegistrado,
-                  icon: const Icon(Icons.add_rounded),
+                  icon: const Icon(AppIcons.agregar),
                   label: const Text('El instrumento no está en la lista'),
                 ),
               ),
@@ -492,7 +493,7 @@ class _CampoSeleccion extends StatelessWidget {
           isDark,
           prefixIcon: Icon(icon),
           suffixIcon: Icon(
-            Icons.expand_more_rounded,
+            AppIcons.desplegar,
             color: onTap == null ? muted.withValues(alpha: 0.4) : null,
           ),
         ).copyWith(floatingLabelBehavior: FloatingLabelBehavior.always),
@@ -600,7 +601,7 @@ class _ListaConBuscadorState<T> extends State<_ListaConBuscador<T>> {
                 decoration: serviceInputDeco(
                   'Buscar',
                   isDark,
-                  prefixIcon: const Icon(Icons.search_rounded),
+                  prefixIcon: const Icon(AppIcons.buscar),
                 ),
               ),
               const SizedBox(height: 10),

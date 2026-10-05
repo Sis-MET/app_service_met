@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import '../../../../../theme/app_icons.dart';
 
 class ExcentricidadBasculaWidget extends StatefulWidget {
   final BalanzaInfo balanza;
@@ -256,13 +257,13 @@ class _ExcentricidadBasculaWidgetState
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _dirBtn('atras', Icons.arrow_upward, 'Atrás', isDark),
+        _dirBtn('atras', AppIcons.arriba, 'Atrás', isDark),
         const SizedBox(width: 6),
-        _dirBtn('frente', Icons.arrow_downward, 'Frente', isDark),
+        _dirBtn('frente', AppIcons.abajo, 'Frente', isDark),
         const SizedBox(width: 6),
-        _dirBtn('izquierda', Icons.arrow_back, 'Izq', isDark),
+        _dirBtn('izquierda', AppIcons.atras, 'Izq', isDark),
         const SizedBox(width: 6),
-        _dirBtn('derecha', Icons.arrow_forward, 'Der', isDark),
+        _dirBtn('derecha', AppIcons.adelante, 'Der', isDark),
       ],
     );
   }
@@ -294,7 +295,8 @@ class _ExcentricidadBasculaWidgetState
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16,
+            Icon(icon,
+                size: 16,
                 color: selected
                     ? Colors.white
                     : (isDark ? Colors.white70 : Colors.black54)),
@@ -323,12 +325,9 @@ class _ExcentricidadBasculaWidgetState
       items: _puntosOptions
           .map((v) => DropdownMenuItem(
               value: v,
-              child: Text(
-                  '$v puntos (${v ~/ 2} Ida / ${v ~/ 2} Vuelta)',
+              child: Text('$v puntos (${v ~/ 2} Ida / ${v ~/ 2} Vuelta)',
                   style: GoogleFonts.inter(
-                      color: isDark
-                          ? Colors.white
-                          : const Color(0xFF1A1A1A)))))
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A)))))
           .toList(),
       onChanged: _onPuntosChanged,
     ).animate(delay: 100.ms).fadeIn();
@@ -375,8 +374,7 @@ class _ExcentricidadBasculaWidgetState
               setState(() {});
             },
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.teal.withOpacity(isDark ? 0.15 : 0.1),
                 border: Border.all(color: Colors.teal.withOpacity(0.3)),
@@ -385,8 +383,7 @@ class _ExcentricidadBasculaWidgetState
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.teal),
+                  const Icon(AppIcons.consejo, size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (⅓ $label)',
@@ -428,8 +425,7 @@ class _ExcentricidadBasculaWidgetState
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.arrow_forward_rounded,
-                  size: 16, color: Color(0xFF0F9F93)),
+              const Icon(AppIcons.adelante, size: 16, color: Color(0xFF0F9F93)),
               const SizedBox(width: 4),
               Text('IDA',
                   style: GoogleFonts.inter(
@@ -443,8 +439,7 @@ class _ExcentricidadBasculaWidgetState
                       fontSize: 11,
                       color: const Color(0xFFE67E22))),
               const SizedBox(width: 4),
-              const Icon(Icons.arrow_back_rounded,
-                  size: 16, color: Color(0xFFE67E22)),
+              const Icon(AppIcons.atras, size: 16, color: Color(0xFFE67E22)),
             ],
           ),
           const SizedBox(height: 12),
@@ -534,21 +529,20 @@ class _ExcentricidadBasculaWidgetState
       onChanged: (_) => _emit(),
       decoration: InputDecoration(
         isDense: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: hasCarga
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(i),
-                child: const Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child:
+                    const Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -590,12 +584,12 @@ class _ExcentricidadBasculaWidgetState
               const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
           border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white24 : Colors.black26)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
           enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isDark ? Colors.white12 : Colors.black12)),
+              borderSide:
+                  BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         ),
         allowNegative: true,
         readable: true,
@@ -613,16 +607,16 @@ class _ExcentricidadBasculaWidgetState
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white24 : Colors.black26)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white24 : Colors.black26)),
         enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-                color: isDark ? Colors.white12 : Colors.black12)),
+            borderSide:
+                BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
       );
 }
 
@@ -654,8 +648,7 @@ class _BasculaPlatformPainter extends CustomPainter {
     final bg = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFE8ECF0);
     final fg = isDark ? Colors.white38 : Colors.black26;
     final textColor = isDark ? Colors.white70 : Colors.black54;
-    final idaColor =
-        isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F9F93);
+    final idaColor = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F9F93);
     final vueltaColor =
         isDark ? const Color(0xFFFBBF24) : const Color(0xFFE67E22);
 
@@ -708,8 +701,7 @@ class _BasculaPlatformPainter extends CustomPainter {
     }
   }
 
-  void _drawRouteArrow(
-      Canvas canvas, Offset from, Offset to, Color color) {
+  void _drawRouteArrow(Canvas canvas, Offset from, Offset to, Color color) {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 2.5

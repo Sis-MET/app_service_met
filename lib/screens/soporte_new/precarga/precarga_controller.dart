@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:service_met/database/precarga_bd.dart';
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
 import 'package:service_met/utils/scale_range_validator.dart';
+import '../../../theme/app_icons.dart';
 
 class ServicioInfo {
   final String nombre;
@@ -48,7 +49,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'MPR.BL',
       descripcion:
           'Mantenimiento preventivo periódico básico y limpieza general del equipo.',
-      icon: Icons.build_circle_outlined,
+      icon: AppIcons.soporte,
       color: Color(0xFFE65100),
       tag: 'PREVENTIVO',
     ),
@@ -57,7 +58,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'MPA.SP',
       descripcion:
           'Mantenimiento preventivo profundo con inspección detallada de componentes.',
-      icon: Icons.handyman_outlined,
+      icon: AppIcons.herramientas,
       color: Color(0xFFBF360C),
       tag: 'AVANZADO',
     ),
@@ -66,7 +67,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'MCR.BL',
       descripcion:
           'Reparación de fallas, reemplazo de repuestos o ajustes por avería.',
-      icon: Icons.healing_outlined,
+      icon: AppIcons.reparacion,
       color: Color(0xFFC62828),
       tag: 'CORRECTIVO',
     ),
@@ -75,7 +76,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'DIG.BL',
       descripcion:
           'Evaluación técnica inicial para determinar el estado y fallas del equipo.',
-      icon: Icons.search_rounded,
+      icon: AppIcons.buscar,
       color: Color(0xFF00838F),
       tag: 'EVALUACIÓN',
     ),
@@ -84,7 +85,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'VIN.SP',
       descripcion:
           'Comprobación interna de tolerancias y rendimiento del instrumento.',
-      icon: Icons.fact_check_outlined,
+      icon: AppIcons.verificacion,
       color: Color(0xFF46824B),
       tag: 'VERIFICACIÓN',
     ),
@@ -93,7 +94,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'REL.BL',
       descripcion:
           'Toma de datos técnicos y levantamiento de inventario en planta.',
-      icon: Icons.assignment_outlined,
+      icon: AppIcons.formulario,
       color: Color(0xFF6A1B9A),
       tag: 'INVENTARIO',
     ),
@@ -102,7 +103,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'INS.BL',
       descripcion:
           'Puesta en marcha, montaje y configuración inicial en ubicación final.',
-      icon: Icons.precision_manufacturing_outlined,
+      icon: AppIcons.equipo,
       color: Color(0xFF2E7D32),
       tag: 'INSTALACIÓN',
     ),
@@ -111,7 +112,7 @@ class PrecargaController extends ChangeNotifier {
       codigo: 'IBM.BL',
       descripcion:
           'Calibración interna, ajuste de cero, span o linealidad según norma.',
-      icon: Icons.tune_rounded,
+      icon: AppIcons.filtros,
       color: Color(0xFF4A148C),
       tag: 'AJUSTE',
     ),
@@ -403,8 +404,8 @@ class PrecargaController extends ChangeNotifier {
     }
     await selectCliente(cliente);
 
-    final planta = _firstWhereOrNull(plantas,
-        (p) => p['codigo_planta']?.toString().trim() == codigoPlanta);
+    final planta = _firstWhereOrNull(
+        plantas, (p) => p['codigo_planta']?.toString().trim() == codigoPlanta);
     if (planta == null) {
       return 'No se encontró planta con código: $codigoPlanta';
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_icons.dart';
 
 class SoporteConstants {
   static const Color primaryColor = Color(0xFF46824B);
@@ -16,12 +17,12 @@ class SoporteConstants {
   ];
 
   static const Map<String, IconData> solucionIconMap = {
-    'No aplica': Icons.block_outlined,
-    'Se ajusta': Icons.build_circle_outlined,
-    'Se repara': Icons.handyman_outlined,
-    'Se cambia': Icons.cached_outlined,
-    'Limpieza': Icons.cleaning_services_outlined,
-    'Lubricación': Icons.water_drop_outlined,
+    'No aplica': AppIcons.bloquear,
+    'Se ajusta': AppIcons.soporte,
+    'Se repara': AppIcons.herramientas,
+    'Se cambia': AppIcons.actualizar,
+    'Limpieza': AppIcons.limpieza,
+    'Lubricación': AppIcons.humedad,
   };
 
   static const Map<String, Color> solucionColorMap = {

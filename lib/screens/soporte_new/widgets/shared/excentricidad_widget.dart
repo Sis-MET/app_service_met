@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
+import '../../../../theme/app_icons.dart';
 
 class ExcentricidadWidget extends StatefulWidget {
   final List<Excentricidad> excentricidad;
@@ -102,7 +103,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
   @override
   void initState() {
     super.initState();
-    if (widget.excentricidad.isNotEmpty && widget.excentricidad[0].carga.isNotEmpty) {
+    if (widget.excentricidad.isNotEmpty &&
+        widget.excentricidad[0].carga.isNotEmpty) {
       _cargaPatronCtrl.text = widget.excentricidad[0].carga;
     }
   }
@@ -209,7 +211,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
           decoration: InputDecoration(
             labelText: 'Carga Patrón de Excentricidad',
             hintText: 'Ej. 50 kg',
-            prefixIcon: Icon(Icons.fitness_center_rounded,
+            prefixIcon: Icon(AppIcons.pesa,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -231,9 +233,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
             width: 220,
             height: 220,
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF2A2A2A)
-                  : const Color(0xFFF0F2F5),
+              color: isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF0F2F5),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
@@ -282,9 +282,7 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
                           border: Border.all(
                             color: isSel
                                 ? const Color(0xFF1A1A1A)
-                                : (isDark
-                                    ? Colors.white38
-                                    : Colors.black26),
+                                : (isDark ? Colors.white38 : Colors.black26),
                             width: isSel ? 2 : 1,
                           ),
                           boxShadow: [
@@ -407,8 +405,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
           fontSize: 13, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle:
-            GoogleFonts.inter(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle: GoogleFonts.inter(
+            fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -419,7 +417,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
           borderSide:
               BorderSide(color: isDark ? Colors.white12 : Colors.black12),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
       items: items
           .map((v) => DropdownMenuItem(
@@ -451,7 +450,8 @@ class _ExcentricidadWidgetState extends State<ExcentricidadWidget> {
         labelStyle: GoogleFonts.inter(
             fontSize: 11, color: isDark ? Colors.white54 : Colors.black45),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:

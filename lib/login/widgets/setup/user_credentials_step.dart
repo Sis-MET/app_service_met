@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class UserCredentialsStep extends StatefulWidget {
   final bool isDark;
@@ -47,7 +48,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                Icons.person_outline,
+                AppIcons.persona,
                 color: primary,
                 size: 28,
               ),
@@ -62,7 +63,9 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                     style: GoogleFonts.poppins(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: widget.isDark ? Colors.white : AppColors.textPrimaryLight,
+                      color: widget.isDark
+                          ? Colors.white
+                          : AppColors.textPrimaryLight,
                     ),
                   ),
                   Text(
@@ -130,7 +133,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               vertical: 18,
             ),
             prefixIcon: Icon(
-              Icons.person_outline_rounded,
+              AppIcons.persona,
               color: widget.isDark ? Colors.white70 : primary,
               size: 22,
             ),
@@ -195,16 +198,15 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               vertical: 18,
             ),
             prefixIcon: Icon(
-              Icons.lock_outline_rounded,
+              AppIcons.bloqueado,
               color: widget.isDark ? Colors.white70 : primary,
               size: 22,
             ),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: widget.isDark ? Colors.white70 : primary.withOpacity(0.6),
+                _obscurePassword ? AppIcons.ocultar : AppIcons.ver,
+                color:
+                    widget.isDark ? Colors.white70 : primary.withOpacity(0.6),
                 size: 22,
               ),
               onPressed: () {
@@ -213,7 +215,9 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
             ),
           ),
           validator: (value) {
-            if (value == null || value.isEmpty) return 'Contraseña es requerida';
+            if (value == null || value.isEmpty) {
+              return 'Contraseña es requerida';
+            }
             if (value.length < 4) return 'Mínimo 4 caracteres';
             return null;
           },
@@ -238,7 +242,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                   ),
                 ),
                 onPressed: widget.loading ? null : widget.onBack,
-                icon: const Icon(Icons.arrow_back, size: 20),
+                icon: const Icon(AppIcons.atras, size: 20),
                 label: Text(
                   'Atrás',
                   style: GoogleFonts.inter(
@@ -254,7 +258,8 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
-                  foregroundColor: widget.isDark ? const Color(0xFF292929) : Colors.white,
+                  foregroundColor:
+                      widget.isDark ? const Color(0xFF292929) : Colors.white,
                   elevation: 4,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -262,7 +267,7 @@ class _UserCredentialsStepState extends State<UserCredentialsStep> {
                   ),
                 ),
                 onPressed: widget.loading ? null : widget.onFinish,
-                icon: const Icon(Icons.check_circle_outline, size: 20),
+                icon: const Icon(AppIcons.completo, size: 20),
                 label: Text(
                   'Finalizar Setup',
                   style: GoogleFonts.inter(

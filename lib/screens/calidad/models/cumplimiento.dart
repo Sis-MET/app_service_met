@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 /// Cláusulas de la NB/ISO/IEC 17025 que se evalúan sobre la app.
 enum Clausula {
@@ -8,19 +9,19 @@ enum Clausula {
     '7.5',
     'Registros técnicos',
     'Qué se registra, cuándo y por quién, y cómo se rastrean los cambios.',
-    Icons.fact_check_outlined,
+    AppIcons.verificacion,
   ),
   gestionInformacion(
     '7.11',
     'Datos y gestión de la información',
     'Validación, acceso, integridad, fallas, manuales y transferencias.',
-    Icons.dns_outlined,
+    AppIcons.servidor,
   ),
   controlRegistros(
     '8.4',
     'Control de registros',
     'Respaldo, retención, disposición y confidencialidad de los registros.',
-    Icons.inventory_2_outlined,
+    AppIcons.rim,
   );
 
   const Clausula(this.numero, this.nombre, this.resumen, this.icono);
@@ -32,10 +33,10 @@ enum Clausula {
 }
 
 enum EstadoCumplimiento {
-  cumple('Cumple', Icons.check_circle_rounded, AppColors.actionPositive),
-  parcial('Parcial', Icons.timelapse_rounded, Color(0xFFE0A100)),
-  noCumple('No cumple', Icons.cancel_rounded, AppColors.actionNegative),
-  porVerificar('Por verificar', Icons.help_rounded, Color(0xFF7E8A97));
+  cumple('Cumple', AppIcons.completo, AppColors.actionPositive),
+  parcial('Parcial', AppIcons.parcial, Color(0xFFE0A100)),
+  noCumple('No cumple', AppIcons.cancelar, AppColors.actionNegative),
+  porVerificar('Por verificar', AppIcons.ayuda, Color(0xFF7E8A97));
 
   const EstadoCumplimiento(this.etiqueta, this.icono, this.color);
 

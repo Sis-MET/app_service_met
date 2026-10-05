@@ -10,6 +10,7 @@ import '../services/connection_profile_service.dart';
 import '../widgets/login/login_form.dart';
 import '../widgets/login/user_selector_dialog.dart';
 import 'initial_setup_screen.dart';
+import '../../theme/app_icons.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -147,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final accepted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.fingerprint_rounded, size: 34),
+        icon: const Icon(AppIcons.huella, size: 34),
         title: const Text('Acceso rápido y seguro'),
         content: const Text(
           '¿Quieres usar la huella, rostro, PIN o patrón configurado en este dispositivo para futuros accesos?',
@@ -244,19 +245,19 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.person_add_alt_1_rounded),
+                leading: const Icon(AppIcons.agregarPersona),
                 title: const Text('Vincular otro usuario'),
                 subtitle: const Text('Requiere conexión al servidor'),
                 onTap: () => Navigator.pop(sheetContext, 'add'),
               ),
               if (_savedUser != null)
                 ListTile(
-                  leading: const Icon(Icons.people_outline_rounded),
+                  leading: const Icon(AppIcons.personas),
                   title: const Text('Cambiar usuario'),
                   onTap: () => Navigator.pop(sheetContext, 'switch'),
                 ),
               ListTile(
-                leading: const Icon(Icons.settings_ethernet_rounded),
+                leading: const Icon(AppIcons.puerto),
                 title: const Text('Configurar servidor'),
                 onTap: () => Navigator.pop(sheetContext, 'setup'),
               ),
@@ -329,7 +330,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               onPressed: _loading || _authenticatingDevice
                                   ? null
                                   : _showOptions,
-                              icon: const Icon(Icons.tune_rounded, size: 20),
+                              icon: const Icon(AppIcons.filtros, size: 20),
                               style: IconButton.styleFrom(
                                 foregroundColor:
                                     dark ? Colors.white : Colors.black,

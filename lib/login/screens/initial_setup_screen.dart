@@ -8,6 +8,7 @@ import '../services/connection_profile_service.dart';
 import '../services/setup_service.dart';
 import '../widgets/setup/connection_profile_selector.dart';
 import '../widgets/setup/setup_loading.dart';
+import '../../theme/app_icons.dart';
 
 class InitialSetupScreen extends StatefulWidget {
   final bool isUpdateMode;
@@ -118,7 +119,7 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
         leading: _step == 1
             ? IconButton(
                 onPressed: _loading ? null : () => setState(() => _step = 0),
-                icon: const Icon(Icons.arrow_back_rounded),
+                icon: const Icon(AppIcons.atras),
               )
             : widget.isUpdateMode
                 ? const BackButton()
@@ -141,8 +142,8 @@ class _InitialSetupScreenState extends State<InitialSetupScreen> {
                   child: Form(
                     key: _formKey,
                     child: ListView(
-                      padding: EdgeInsets.fromLTRB(20, 8, 20,
-                          32 + MediaQuery.paddingOf(context).bottom),
+                      padding: EdgeInsets.fromLTRB(
+                          20, 8, 20, 32 + MediaQuery.paddingOf(context).bottom),
                       children: [
                         Row(
                           children: [
@@ -328,7 +329,7 @@ class _SetupOverviewCard extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              step == 0 ? Icons.lan_outlined : Icons.verified_user_outlined,
+              step == 0 ? AppIcons.red : AppIcons.seguridadVerificada,
               color: foreground,
               size: 29,
             ),
@@ -383,7 +384,7 @@ class _CredentialsPanel extends StatelessWidget {
           controller: userController,
           textInputAction: TextInputAction.next,
           autofillHints: const [AutofillHints.username],
-          decoration: decoration('Usuario', Icons.person_outline_rounded),
+          decoration: decoration('Usuario', AppIcons.persona),
           validator: (value) => value == null || value.trim().isEmpty
               ? 'Ingresa tu usuario'
               : null,
@@ -394,7 +395,7 @@ class _CredentialsPanel extends StatelessWidget {
           obscureText: true,
           autofillHints: const [AutofillHints.password],
           onFieldSubmitted: (_) => onSubmitted(),
-          decoration: decoration('Contraseña', Icons.lock_outline_rounded),
+          decoration: decoration('Contraseña', AppIcons.bloqueado),
           validator: (value) =>
               value == null || value.isEmpty ? 'Ingresa tu contraseña' : null,
         ),

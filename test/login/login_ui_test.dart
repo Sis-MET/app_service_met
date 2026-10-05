@@ -9,6 +9,7 @@ import 'package:service_met/login/widgets/login/login_form.dart';
 import 'package:service_met/login/widgets/login/password_field.dart';
 import 'package:service_met/login/widgets/login/user_selector_dialog.dart';
 import 'package:service_met/theme/app_colors.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   setUpAll(() {
@@ -79,7 +80,7 @@ void main() {
     final password = find.byType(PasswordField);
     final submit = find.widgetWithText(FilledButton, 'Ingresar');
     expect(biometric, findsOneWidget);
-    expect(find.byIcon(Icons.fingerprint_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.huella), findsOneWidget);
     expect(
       tester.getTopLeft(biometric).dy,
       greaterThan(tester.getTopLeft(password).dy),
@@ -175,7 +176,7 @@ void main() {
     expect(find.text('INACTIVO'), findsOneWidget);
     expect(find.text('EN USO'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.person_remove_outlined).first);
+    await tester.tap(find.byIcon(AppIcons.quitarPersona).first);
     await tester.pumpAndSettle();
     final removeButton = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Quitar acceso'),

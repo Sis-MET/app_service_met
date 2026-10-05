@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../theme/app_icons.dart';
 
 /// Datos mínimos del instrumento para la ficha de información.
 /// Modelo neutro compartido por Calibración y Soporte.
@@ -84,7 +85,7 @@ class BalanzaInfoButton extends StatelessWidget {
         ],
       ),
       child: IconButton(
-        icon: const Icon(Icons.info_outline, color: Colors.black87, size: 22),
+        icon: const Icon(AppIcons.info, color: Colors.black87, size: 22),
         onPressed: () => showBalanzaInfoSheet(context, info, isDark),
       ),
     );

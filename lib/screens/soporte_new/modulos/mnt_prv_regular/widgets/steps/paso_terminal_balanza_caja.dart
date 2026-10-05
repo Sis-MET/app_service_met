@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/bulk_estado_toggle.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/campo_inspeccion_widget.dart';
+import '../../../../../../theme/app_icons.dart';
 
 // ── Section header ────────────────────────────────────────────────────
 class _SectionHeader extends StatelessWidget {
@@ -142,7 +143,8 @@ class _PasoTerminalState extends State<PasoTerminal> with _AllGoodMixin {
 
   void _notifyAll() {
     for (int i = 0; i < widget.campos.length; i++) {
-      widget.onChanged(i, widget.campos[i].value, widget.campos[i].solutionValue);
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
     }
   }
 }
@@ -199,7 +201,8 @@ class _PasoBalanzaState extends State<PasoBalanza> with _AllGoodMixin {
 
   void _notifyAll() {
     for (int i = 0; i < widget.campos.length; i++) {
-      widget.onChanged(i, widget.campos[i].value, widget.campos[i].solutionValue);
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
     }
   }
 }
@@ -225,7 +228,8 @@ class PasoCajaSumadora extends StatefulWidget {
   State<PasoCajaSumadora> createState() => _PasoCajaSumadoraState();
 }
 
-class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin {
+class _PasoCajaSumadoraState extends State<PasoCajaSumadora>
+    with _AllGoodMixin {
   @override
   Widget build(BuildContext context) {
     // Indices 0-3: Plataforma, 4-9: Caja Sumadora (incluye pintado + limpieza profunda)
@@ -246,7 +250,7 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
         _SectionHeader(
           title: 'BALANZA | PLATAFORMA',
           subtitle: 'Inspeccione los componentes de la plataforma',
-          icon: Icons.square_outlined,
+          icon: AppIcons.cuadro,
           color: Colors.orange,
         ),
         const SizedBox(height: 12),
@@ -265,7 +269,7 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
         _SectionHeader(
           title: 'CAJA SUMADORA',
           subtitle: 'Inspeccione el estado de la caja sumadora',
-          icon: Icons.electrical_services_outlined,
+          icon: AppIcons.electrico,
           color: Colors.amber[700]!,
         ),
         const SizedBox(height: 12),
@@ -287,7 +291,8 @@ class _PasoCajaSumadoraState extends State<PasoCajaSumadora> with _AllGoodMixin 
 
   void _notifyAll() {
     for (int i = 0; i < widget.campos.length; i++) {
-      widget.onChanged(i, widget.campos[i].value, widget.campos[i].solutionValue);
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
     }
   }
 }
@@ -344,7 +349,8 @@ class _PasoEntornoState extends State<PasoEntorno> with _AllGoodMixin {
 
   void _notifyAll() {
     for (int i = 0; i < widget.campos.length; i++) {
-      widget.onChanged(i, widget.campos[i].value, widget.campos[i].solutionValue);
+      widget.onChanged(
+          i, widget.campos[i].value, widget.campos[i].solutionValue);
     }
   }
 }

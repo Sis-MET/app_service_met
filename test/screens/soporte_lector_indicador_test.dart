@@ -10,6 +10,7 @@ import 'package:service_met/screens/soporte_new/widgets/shared/pruebas/repetibil
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 final _balanza = BalanzaInfo(
   codMetrica: '0090-11-014',
@@ -20,7 +21,7 @@ final _balanza = BalanzaInfo(
 );
 
 const _pasos = [
-  StepData(title: 'Pruebas', subtitle: 'Paso 1', icon: Icons.scale),
+  StepData(title: 'Pruebas', subtitle: 'Paso 1', icon: AppIcons.balanza),
 ];
 
 /// Pantalla de soporte con [contenido] como único paso.

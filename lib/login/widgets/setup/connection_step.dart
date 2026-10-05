@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:service_met/theme/app_colors.dart';
 import '../../services/connection_profile_service.dart';
 import 'connection_profile_selector.dart';
+import '../../../theme/app_icons.dart';
 
 class ConnectionStep extends StatelessWidget {
   final bool isDark;
@@ -36,11 +37,12 @@ class ConnectionStep extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: (isDark ? Colors.white : AppColors.primary).withOpacity(0.1),
+                color: (isDark ? Colors.white : AppColors.primary)
+                    .withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                Icons.storage_outlined,
+                AppIcons.datos,
                 color: isDark ? Colors.white : AppColors.primary,
                 size: 28,
               ),
@@ -103,8 +105,7 @@ class ConnectionStep extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.check_circle,
-                        size: 16, color: AppColors.success),
+                    Icon(AppIcons.completo, size: 16, color: AppColors.success),
                     const SizedBox(width: 8),
                     Text(
                       'Configuración seleccionada',
@@ -143,7 +144,7 @@ class ConnectionStep extends StatelessWidget {
               ),
             ),
             onPressed: (loading || !tienePerfil) ? null : onContinue,
-            icon: const Icon(Icons.arrow_forward),
+            icon: const Icon(AppIcons.adelante),
             label: Text(
               'Validar Conexión y Continuar',
               style: GoogleFonts.inter(

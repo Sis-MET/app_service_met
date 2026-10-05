@@ -3,8 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_design.dart';
+import 'app_icons.dart';
 
 class AppTheme {
+  /// Volver, cerrar y menú de las barras superiores con los íconos de la app,
+  /// en vez de los de Material que Flutter pone solo.
+  static final _botonesDeAccion = ActionIconThemeData(
+    backButtonIconBuilder: (_) => const Icon(AppIcons.atras),
+    closeButtonIconBuilder: (_) => const Icon(AppIcons.cerrar),
+    drawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
+    endDrawerButtonIconBuilder: (_) => const Icon(AppIcons.menu),
+  );
+
   static ThemeData buildLightTheme(BuildContext context) {
     const primaryColor = AppColors.primary;
     const scaffoldBackgroundColor = AppDesign.canvas;
@@ -119,6 +129,7 @@ class AppTheme {
         ),
       ),
       iconTheme: const IconThemeData(color: Colors.black),
+      actionIconTheme: _botonesDeAccion,
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: primaryColor,
@@ -329,6 +340,7 @@ class AppTheme {
         ),
       ),
       iconTheme: const IconThemeData(color: Colors.white),
+      actionIconTheme: _botonesDeAccion,
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: primaryColor,

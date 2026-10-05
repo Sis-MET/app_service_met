@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_icons.dart';
 
 /// Datos de control del manual como documento controlado (NB/ISO/IEC 17025
 /// 8.3). Lo que asigna Calidad queda como pendiente hasta que se apruebe.
@@ -85,9 +86,9 @@ class Lista extends BloqueManual {
 }
 
 enum TipoNota {
-  consejo('Consejo', Icons.lightbulb_outline_rounded, Color(0xFF3D7BD9)),
-  importante('Importante', Icons.warning_amber_rounded, Color(0xFFE0A100)),
-  norma('NB/ISO/IEC 17025', Icons.verified_outlined, Color(0xFF8BC251));
+  consejo('Consejo', AppIcons.consejo, Color(0xFF3D7BD9)),
+  importante('Importante', AppIcons.advertencia, Color(0xFFE0A100)),
+  norma('NB/ISO/IEC 17025', AppIcons.verificado, Color(0xFF8BC251));
 
   const TipoNota(this.etiqueta, this.icono, this.color);
   final String etiqueta;

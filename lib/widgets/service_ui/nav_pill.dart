@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 /// Pill flotante de navegación (Atrás + acción dinámica),
 /// idéntica a la usada en el workspace de Calibración.
@@ -97,7 +98,7 @@ class ServiceNavPill extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.arrow_back_ios_new_rounded,
+                  AppIcons.anterior,
                   size: 18,
                   color: canGoBack
                       ? (isDark ? Colors.white70 : Colors.black54)
@@ -140,7 +141,7 @@ class ServiceNavPill extends StatelessWidget {
                         ),
                         if (label == 'Siguiente') ...[
                           const SizedBox(width: 6),
-                          const Icon(Icons.arrow_forward_ios_rounded,
+                          const Icon(AppIcons.siguiente,
                               size: 14, color: AppColors.actionPositiveInk),
                         ],
                       ],

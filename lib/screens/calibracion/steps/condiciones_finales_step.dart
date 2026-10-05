@@ -16,6 +16,7 @@ import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
+import '../../../theme/app_icons.dart';
 
 class CondicionesFinalesStep extends StatefulWidget {
   const CondicionesFinalesStep({super.key});
@@ -297,7 +298,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
             borderSide:
                 BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
         suffixIcon: IconButton(
-          icon: Icon(Icons.access_time_filled_rounded,
+          icon: Icon(AppIcons.hora,
               color:
                   isDark ? const Color(0xFFf9e300) : const Color(0xFF5A4E00)),
           onPressed: () {
@@ -560,7 +561,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       children: [
         Row(
           children: [
-            Icon(Icons.camera_alt_outlined,
+            Icon(AppIcons.camara,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
             Text('Fotografías Finales',
@@ -597,7 +598,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       ),
       child: Column(
         children: [
-          Icon(Icons.camera_alt_outlined,
+          Icon(AppIcons.camara,
               size: 40, color: isDark ? Colors.white24 : Colors.black26),
           const SizedBox(height: 10),
           Text(
@@ -610,7 +611,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
           const SizedBox(height: 12),
           ElevatedButton.icon(
             onPressed: canTakePhoto ? _takeFinalFoto : null,
-            icon: const Icon(Icons.camera_alt, size: 18),
+            icon: const Icon(AppIcons.camara, size: 18),
             label: const Text('Tomar Foto'),
           ),
         ],
@@ -628,7 +629,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: _takeFinalFoto,
-                icon: const Icon(Icons.camera_alt, size: 18),
+                icon: const Icon(AppIcons.camara, size: 18),
                 label: const Text('Agregar Fotografía'),
               ),
             ),
@@ -656,7 +657,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                           : null,
                     ),
                     child: !exists
-                        ? Icon(Icons.broken_image_outlined,
+                        ? Icon(AppIcons.imagenNoDisponible,
                             color: isDark ? Colors.white24 : Colors.black26)
                         : null,
                   ),
@@ -672,7 +673,7 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close_rounded,
+                          child: const Icon(AppIcons.cerrar,
                               size: 14, color: Colors.white),
                         ),
                       ),

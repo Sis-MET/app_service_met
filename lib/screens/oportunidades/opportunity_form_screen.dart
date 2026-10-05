@@ -17,6 +17,7 @@ import 'services/bitrix_company_matcher.dart';
 import 'services/opportunity_repository.dart';
 import 'widgets/bitrix_company_picker.dart';
 import 'widgets/opportunity_password_prompt.dart';
+import '../../theme/app_icons.dart';
 
 /// Cómo terminó el formulario, para avisarlo en la pantalla del servicio.
 class OpportunityFormOutcome {
@@ -174,7 +175,7 @@ class _OpportunityFormScreenState extends State<OpportunityFormScreen> {
           leading: Center(
             child: IconButton(
               tooltip: 'Cancelar',
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.cerrar),
               onPressed: controller.busy ? null : _cancel,
             ),
           ),
@@ -257,7 +258,7 @@ class _ServiceSummary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppStatusPill(
-            icon: Icons.check_circle_rounded,
+            icon: AppIcons.completo,
             label: label,
             color: AppColors.actionPositive,
           ),
@@ -392,8 +393,8 @@ class _CompanyField extends StatelessWidget {
             decoration: serviceInputDeco(
               'Empresa Bitrix24',
               isDark,
-              prefixIcon: const Icon(Icons.business_rounded),
-              suffixIcon: const Icon(Icons.search_rounded),
+              prefixIcon: const Icon(AppIcons.empresa),
+              suffixIcon: const Icon(AppIcons.buscar),
               hintText: 'Buscar empresa…',
             ).copyWith(errorText: controller.fieldErrors['company']),
             child: company == null
@@ -448,7 +449,7 @@ class _ContactField extends StatelessWidget {
     if (error != null) {
       return Row(
         children: [
-          const Icon(Icons.info_outline_rounded, size: 18),
+          const Icon(AppIcons.info, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -483,7 +484,7 @@ class _ContactField extends StatelessWidget {
       decoration: serviceInputDeco(
         'Contacto',
         isDark,
-        prefixIcon: const Icon(Icons.person_outline_rounded),
+        prefixIcon: const Icon(AppIcons.persona),
       ).copyWith(errorText: controller.fieldErrors['contact']),
       selectedItemBuilder: (_) => [
         const Text('Sin contacto'),
@@ -540,7 +541,7 @@ class _CityField extends StatelessWidget {
               ? 'Ciudad del prospecto'
               : 'Ciudad del prospecto (opcional)',
           isDark,
-          prefixIcon: const Icon(Icons.location_city_outlined),
+          prefixIcon: const Icon(AppIcons.ciudad),
         ).copyWith(errorText: controller.fieldErrors['city']),
         items: [
           DropdownMenuItem<String?>(value: null, child: Text(automatic)),
@@ -599,7 +600,7 @@ class _OpportunityFields extends StatelessWidget {
           decoration: serviceInputDeco(
             'Tipo de oportunidad',
             isDark,
-            prefixIcon: const Icon(Icons.sell_outlined),
+            prefixIcon: const Icon(AppIcons.etiqueta),
           ).copyWith(errorText: errors['type']),
           items: [
             for (final type in OpportunityTypeCatalog.all)
@@ -696,8 +697,7 @@ class _ErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.actionNegative),
+          const Icon(AppIcons.error, color: AppColors.actionNegative),
           const SizedBox(width: 10),
           Expanded(child: Text(message)),
         ],

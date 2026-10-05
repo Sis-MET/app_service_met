@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
+import '../../../../theme/app_icons.dart';
 
 class LinealidadWidget extends StatefulWidget {
   final List<Linealidad> linealidad;
@@ -149,7 +150,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
             ),
             ElevatedButton.icon(
               onPressed: _addPunto,
-              icon: const Icon(Icons.add, size: 16),
+              icon: const Icon(AppIcons.agregar, size: 16),
               label: const Text('Agregar Punto'),
             ),
           ],
@@ -219,7 +220,7 @@ class _LinealidadWidgetState extends State<LinealidadWidget> {
                   ),
                   if (widget.linealidad.length > 1)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded,
+                      icon: const Icon(AppIcons.eliminar,
                           color: Colors.redAccent, size: 20),
                       onPressed: () => _removePunto(i),
                     ),

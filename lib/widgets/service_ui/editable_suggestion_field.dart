@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../theme/app_icons.dart';
 
 /// Campo de texto libre que conserva un catalogo como lista de sugerencias.
 ///
@@ -80,7 +81,7 @@ class _EditableSuggestionFieldState extends State<EditableSuggestionField> {
               color: widget.isDark ? Colors.white54 : Colors.black54,
             ),
             suffixIcon: Icon(
-              Icons.arrow_drop_down_rounded,
+              AppIcons.desplegar,
               color: widget.isDark ? Colors.white54 : Colors.black54,
             ),
             border: OutlineInputBorder(

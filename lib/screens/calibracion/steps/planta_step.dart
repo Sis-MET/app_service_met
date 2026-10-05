@@ -7,6 +7,7 @@ import 'package:service_met/models/service_session.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../theme/app_icons.dart';
 
 class PlantaStep extends StatefulWidget {
   const PlantaStep({super.key});
@@ -196,7 +197,7 @@ class _PlantaStepState extends State<PlantaStep> {
               color: isDark ? Colors.white12 : const Color(0xFFF0F2F5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.business_rounded,
+            child: Icon(AppIcons.empresa,
                 color: isDark ? Colors.white70 : Colors.black54, size: 20),
           ),
           const SizedBox(width: 14),
@@ -253,7 +254,7 @@ class _PlantaStepState extends State<PlantaStep> {
         children: [
           _modeTab(
             label: 'Existente',
-            icon: Icons.factory_outlined,
+            icon: AppIcons.planta,
             isActive: !_isNewPlanta,
             isDark: isDark,
             onTap: () {
@@ -265,7 +266,7 @@ class _PlantaStepState extends State<PlantaStep> {
           ),
           _modeTab(
             label: 'Nueva',
-            icon: Icons.add_business_rounded,
+            icon: AppIcons.agregarEmpresa,
             isActive: _isNewPlanta,
             isDark: isDark,
             onTap: () {
@@ -494,12 +495,12 @@ class _PlantaStepState extends State<PlantaStep> {
                                 color: Color(0xFFf9e300),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check_rounded,
+                              child: const Icon(AppIcons.listo,
                                   size: 14, color: Color(0xFF1A1A1A)),
                             )
                           : Icon(
                               key: const ValueKey('arrow'),
-                              Icons.chevron_right_rounded,
+                              AppIcons.siguiente,
                               size: 20,
                               color: isDark ? Colors.white24 : Colors.black26,
                             ),
@@ -534,8 +535,7 @@ class _PlantaStepState extends State<PlantaStep> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 18, color: Colors.blue[600]),
+                Icon(AppIcons.info, size: 18, color: Colors.blue[600]),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -557,7 +557,7 @@ class _PlantaStepState extends State<PlantaStep> {
           controller: _nombrePlantaController,
           label: 'Nombre de la Planta',
           hint: 'Ej. Planta Principal',
-          icon: Icons.factory_rounded,
+          icon: AppIcons.planta,
           isDark: isDark,
           required: true,
           onChanged: (value) => _updateNewPlanta(provider),
@@ -568,7 +568,7 @@ class _PlantaStepState extends State<PlantaStep> {
           controller: _plantaDirController,
           label: 'Dirección',
           hint: 'Ej. Av. Industrial 123',
-          icon: Icons.location_on_rounded,
+          icon: AppIcons.ubicacion,
           isDark: isDark,
           required: true,
           onChanged: (value) => _updateNewPlanta(provider),
@@ -579,7 +579,7 @@ class _PlantaStepState extends State<PlantaStep> {
           controller: _plantaDepController,
           label: 'Departamento',
           hint: 'Ej. Lima',
-          icon: Icons.map_rounded,
+          icon: AppIcons.mapa,
           isDark: isDark,
           required: true,
           onChanged: (value) => _updateNewPlanta(provider),
@@ -597,8 +597,7 @@ class _PlantaStepState extends State<PlantaStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  size: 18, color: Colors.amber[600]),
+              Icon(AppIcons.advertencia, size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -717,7 +716,7 @@ class _PlantaStepState extends State<PlantaStep> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  isNew ? Icons.add_business_rounded : Icons.check_rounded,
+                  isNew ? AppIcons.agregarEmpresa : AppIcons.listo,
                   color: isNew ? Colors.white : const Color(0xFF1A1A1A),
                   size: 22,
                 ),
@@ -779,7 +778,7 @@ class _PlantaStepState extends State<PlantaStep> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.location_on_rounded,
+                        Icon(AppIcons.ubicacion,
                             size: 14, color: accentColor.withOpacity(0.8)),
                         const SizedBox(width: 8),
                         Expanded(
@@ -801,7 +800,7 @@ class _PlantaStepState extends State<PlantaStep> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.map_rounded,
+                        Icon(AppIcons.mapa,
                             size: 14, color: accentColor.withOpacity(0.8)),
                         const SizedBox(width: 8),
                         Expanded(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
+import '../../../theme/app_icons.dart';
 
 /// Acceso a un formulario adicional desde Servicios. Tocar la tarjeta abre
 /// la lista de los ya registrados, con el número de los que esperan ser
@@ -54,7 +55,7 @@ class FormularioEntryCard extends StatelessWidget {
                     backgroundColor: AppColors.warning,
                   ),
                 const SizedBox(width: 6),
-                const Icon(Icons.chevron_right_rounded),
+                const Icon(AppIcons.siguiente),
               ],
             ),
             onTap: onOpenList,
@@ -63,7 +64,7 @@ class FormularioEntryCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(18, 8, 18, 16),
             child: FilledButton.icon(
               onPressed: onNew,
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(AppIcons.agregar),
               label: Text(newLabel),
             ),
           ),

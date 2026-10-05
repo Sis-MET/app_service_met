@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/utils/saf_storage.dart';
+import '../theme/app_icons.dart';
 
 /// Pide al técnico la carpeta principal de ServiceMET donde exportar la
 /// documentación de los servicios.
@@ -27,7 +28,7 @@ class FotoStorageDialog {
           children: [
             Row(
               children: [
-                Icon(Icons.folder_outlined,
+                Icon(AppIcons.carpeta,
                     size: 24, color: isDark ? Colors.white70 : Colors.black54),
                 const SizedBox(width: 10),
                 Expanded(
@@ -83,7 +84,7 @@ class FotoStorageDialog {
                         Navigator.pop(ctx, tree != null);
                       }
                     },
-                    icon: const Icon(Icons.folder_open, size: 18),
+                    icon: const Icon(AppIcons.carpetaAbierta, size: 18),
                     label: const Text('Seleccionar Carpeta'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3e7732),
@@ -129,28 +130,29 @@ class FotoStorageDialog {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _folderRow(Icons.folder, '${SafStorage.rootFolder}/', isDark,
+          _folderRow(AppIcons.carpeta, '${SafStorage.rootFolder}/', isDark,
               bold: true),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 24),
+            child: _folderRow(AppIcons.carpeta, '{código de servicio}/', isDark,
+                bold: true),
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 48),
             child: _folderRow(
-                Icons.folder, '{código de servicio}/', isDark, bold: true),
+                AppIcons.documento, 'resumen.pdf, datos.csv', isDark),
           ),
           const SizedBox(height: 4),
           Padding(
             padding: const EdgeInsets.only(left: 48),
-            child: _folderRow(Icons.description, 'resumen.pdf, datos.csv',
-                isDark),
-          ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 48),
-            child: _folderRow(Icons.folder, '$subDirName/', isDark, bold: true),
+            child: _folderRow(AppIcons.carpeta, '$subDirName/', isDark,
+                bold: true),
           ),
           Padding(
             padding: const EdgeInsets.only(left: 72),
-            child: _folderRow(Icons.image, '001.jpg, 002.jpg...', isDark),
+            child: _folderRow(AppIcons.imagen, '001.jpg, 002.jpg...', isDark),
           ),
         ],
       ),

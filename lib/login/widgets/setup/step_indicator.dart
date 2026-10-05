@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class StepIndicator extends StatelessWidget {
   final int currentStep;
@@ -57,7 +58,9 @@ class StepIndicator extends StatelessWidget {
           ),
           child: Center(
             child: isCompleted
-                ? Icon(Icons.check, color: isDark ? const Color(0xFF292929) : Colors.white, size: 22)
+                ? Icon(AppIcons.listo,
+                    color: isDark ? const Color(0xFF292929) : Colors.white,
+                    size: 22)
                 : Text(
                     '${step + 1}',
                     style: GoogleFonts.inter(
@@ -76,9 +79,8 @@ class StepIndicator extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            color: isActive
-                ? accent
-                : (isDark ? Colors.white60 : Colors.black54),
+            color:
+                isActive ? accent : (isDark ? Colors.white60 : Colors.black54),
           ),
         ),
       ],

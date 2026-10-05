@@ -8,6 +8,7 @@ import 'models/manual.dart';
 import 'services/calidad_pdf.dart';
 import 'utils/exportar_documento.dart';
 import 'widgets/calidad_ui.dart';
+import '../../theme/app_icons.dart';
 
 Future<void> _exportarManual(BuildContext context, ManualUso manual) =>
     exportarDocumentoCalidad(
@@ -62,7 +63,7 @@ class _ManualScreenState extends State<ManualScreen> {
           'conexión.',
       acciones: [
         CalidadAccion(
-          icono: Icons.picture_as_pdf_outlined,
+          icono: AppIcons.documento,
           tooltip: 'Exportar manual',
           onPressed: () => _exportarManual(context, manual),
         ),
@@ -72,18 +73,18 @@ class _ManualScreenState extends State<ManualScreen> {
         runSpacing: 8,
         children: [
           AppStatusPill(
-            icon: Icons.description_outlined,
+            icon: AppIcons.documento,
             label: 'Rev. ${control.revision}',
             color: AppColors.shimmerGold,
           ),
           AppStatusPill(
-            icon: Icons.phone_android_rounded,
+            icon: AppIcons.telefono,
             label: 'Aplica a v${control.aplicaA}',
             color: AppColors.actionPositive,
           ),
           if (!control.aprobado)
             const AppStatusPill(
-              icon: Icons.pending_actions_rounded,
+              icon: AppIcons.pendiente,
               label: 'Pendiente de aprobación',
               color: Color(0xFFB07F00),
             ),
@@ -96,12 +97,12 @@ class _ManualScreenState extends State<ManualScreen> {
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
             hintText: 'Buscar en el manual (p. ej. "SECA", "subir")',
-            prefixIcon: const Icon(Icons.search_rounded),
+            prefixIcon: const Icon(AppIcons.buscar),
             suffixIcon: _consulta.isEmpty
                 ? null
                 : IconButton(
                     tooltip: 'Borrar búsqueda',
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(AppIcons.cerrar),
                     onPressed: () => setState(() {
                       _consulta = '';
                       _busqueda.clear();
@@ -143,7 +144,7 @@ class _ManualScreenState extends State<ManualScreen> {
         FilledButton.icon(
           style: AppDesign.positiveButtonStyle(),
           onPressed: () => _exportarManual(context, manual),
-          icon: const Icon(Icons.picture_as_pdf_outlined),
+          icon: const Icon(AppIcons.documento),
           label: const Text('Exportar manual en PDF'),
         ),
       ],
@@ -197,7 +198,7 @@ class _ManualScreenState extends State<ManualScreen> {
         AppPanel(
           child: Column(
             children: [
-              Icon(Icons.search_off_rounded,
+              Icon(AppIcons.sinResultados,
                   size: 36, color: cs.onSurfaceVariant),
               const SizedBox(height: 10),
               Text('No encontramos "$_consulta" en el manual.',
@@ -271,7 +272,7 @@ class _SeccionTile extends StatelessWidget {
       ),
       subtitle: Text(extracto ?? seccion.resumen,
           maxLines: extracto == null ? 2 : 3, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: const Icon(AppIcons.siguiente),
       onTap: onTap,
     );
   }
@@ -429,7 +430,7 @@ class _ManualSeccionScreenState extends State<ManualSeccionScreen> {
             child: FilledButton.icon(
               style: AppDesign.positiveButtonStyle(),
               onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(Icons.menu_book_outlined),
+              icon: const Icon(AppIcons.manual),
               label: const Text('Volver al índice'),
             ),
           ),
@@ -672,7 +673,7 @@ class _PasoFila extends StatelessWidget {
                             ),
                           ),
                           child: hecho
-                              ? const Icon(Icons.check_rounded,
+                              ? const Icon(AppIcons.listo,
                                   size: 18, color: AppColors.actionPositiveInk)
                               : Text(
                                   '$numero',

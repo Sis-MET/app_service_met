@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class AutoLoginLoading extends StatelessWidget {
   final bool isDark;
@@ -42,7 +43,7 @@ class AutoLoginLoading extends StatelessWidget {
               ],
             ),
             child: Icon(
-              Icons.person_outline,
+              AppIcons.persona,
               size: 64,
               color: isDark ? Colors.white70 : primary,
             ),

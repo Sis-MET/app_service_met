@@ -7,6 +7,7 @@ import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
 import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 /// Servicio de soporte de tres pasos que controla su paso actual.
 class _Servicio extends StatefulWidget {
@@ -35,8 +36,8 @@ class _ServicioState extends State<_Servicio> {
       title: 'Instalación',
       steps: const [
         StepData(title: 'Uno', subtitle: 'Condiciones', icon: Icons.info),
-        StepData(title: 'Dos', subtitle: 'Pruebas', icon: Icons.scale),
-        StepData(title: 'Tres', subtitle: 'Cierre', icon: Icons.check),
+        StepData(title: 'Dos', subtitle: 'Pruebas', icon: AppIcons.balanza),
+        StepData(title: 'Tres', subtitle: 'Cierre', icon: AppIcons.listo),
       ],
       stepWidgets: [
         for (var i = 1; i <= 3; i++) Center(child: Text('paso $i'))
@@ -200,16 +201,16 @@ void main() {
           centerTitle: true,
           leading: const ServiceStepsButton(),
           actions: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.undo_rounded)),
+            IconButton(onPressed: () {}, icon: const Icon(AppIcons.deshacer)),
             IconButton(
-                onPressed: () {}, icon: const Icon(Icons.more_vert_rounded)),
+                onPressed: () {}, icon: const Icon(AppIcons.masVertical)),
           ],
         ),
       ),
     ));
 
     final menu = tester.getRect(find.byType(ServiceStepsButton));
-    final firstAction = tester.getRect(find.byIcon(Icons.undo_rounded));
+    final firstAction = tester.getRect(find.byIcon(AppIcons.deshacer));
     for (final text in [
       find.textContaining('Mantenimiento'),
       find.textContaining('Paso 6 de 9'),
@@ -249,7 +250,7 @@ void main() {
           actions: [
             const SaveStatusIndicator(status: SaveStatus.pending),
             IconButton(
-                onPressed: () {}, icon: const Icon(Icons.more_vert_rounded)),
+                onPressed: () {}, icon: const Icon(AppIcons.masVertical)),
           ],
         ),
       ),
@@ -281,9 +282,9 @@ void main() {
           centerTitle: true,
           leading: const ServiceStepsButton(),
           actions: [
-            IconButton(onPressed: () {}, icon: const Icon(Icons.undo_rounded)),
+            IconButton(onPressed: () {}, icon: const Icon(AppIcons.deshacer)),
             IconButton(
-                onPressed: () {}, icon: const Icon(Icons.more_vert_rounded)),
+                onPressed: () {}, icon: const Icon(AppIcons.masVertical)),
           ],
         ),
       ),
@@ -352,7 +353,7 @@ void main() {
           label: 'Siguiente', showNext: false, onBack: () => back++),
     ))));
     expect(find.text('Siguiente'), findsNothing);
-    expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.siguiente), findsNothing);
     await tester.tap(find.byTooltip('Anterior'));
     expect(back, 1);
   });
@@ -387,7 +388,8 @@ void main() {
           title: 'Diagnóstico',
           steps: const [
             StepData(title: 'Datos', subtitle: 'Paso 1', icon: Icons.info),
-            StepData(title: 'Pruebas', subtitle: 'Paso 2', icon: Icons.scale),
+            StepData(
+                title: 'Pruebas', subtitle: 'Paso 2', icon: AppIcons.balanza),
           ],
           stepWidgets: const [SizedBox(), SizedBox()],
           currentStep: 0,

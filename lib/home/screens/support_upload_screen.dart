@@ -16,6 +16,7 @@ import '../services/support_upload_status_service.dart';
 import '../services/upload_record_deduplicator.dart';
 import '../widgets/upload_auth_dialog.dart';
 import '../widgets/new_scales_upload_notice.dart';
+import '../../theme/app_icons.dart';
 
 class SupportUploadScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -242,7 +243,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
           IconButton(
             onPressed: _working ? null : _load,
             tooltip: 'Actualizar',
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(AppIcons.actualizar),
           ),
         ],
       ),
@@ -272,12 +273,12 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  _message(Icons.error_outline_rounded, Colors.red, _error!),
+                  _message(AppIcons.error, Colors.red, _error!),
                 ],
                 if (_duplicateCount > 0) ...[
                   const SizedBox(height: 12),
                   _message(
-                    Icons.content_copy_rounded,
+                    AppIcons.copiar,
                     Colors.orange,
                     'Se encontraron $_duplicateCount registro(s) local(es) '
                     'duplicado(s). Se subirá solamente el registro más reciente '
@@ -287,7 +288,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                 const SizedBox(height: 20),
                 if (_pending.isEmpty)
                   _message(
-                    Icons.cloud_done_outlined,
+                    AppIcons.nubeLista,
                     Colors.green,
                     _uploadedCount > 0
                         ? 'Todos los servicios completos de esta OTST ya fueron subidos.'
@@ -295,7 +296,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                   )
                 else if (_validation == null)
                   _message(
-                    Icons.fact_check_outlined,
+                    AppIcons.verificacion,
                     colors.primary,
                     'Se validarán tipos, longitudes, formatos y duplicados antes de escribir en el servidor.',
                   )
@@ -340,7 +341,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         leading: Icon(
-          record.valid ? Icons.check_circle_outline : Icons.cancel_outlined,
+          record.valid ? AppIcons.completo : AppIcons.cancelar,
           color: color,
         ),
         title: Text(record.codMetrica ?? 'Equipo sin código'),
@@ -375,27 +376,27 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
     if (validation == null) {
       return FilledButton.icon(
         onPressed: _validate,
-        icon: const Icon(Icons.fact_check_outlined),
+        icon: const Icon(AppIcons.verificacion),
         label: const Text('VALIDAR DATOS'),
       );
     }
     if (validation.invalidCount == 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: false),
-        icon: const Icon(Icons.cloud_upload_outlined),
+        icon: const Icon(AppIcons.subir),
         label: Text('SUBIR LOTE COMPLETO (${validation.validCount})'),
       );
     }
     if (validation.validCount > 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: true),
-        icon: const Icon(Icons.cloud_upload_outlined),
+        icon: const Icon(AppIcons.subir),
         label: Text('SUBIR SOLO VÁLIDOS (${validation.validCount})'),
       );
     }
     return OutlinedButton.icon(
       onPressed: _validate,
-      icon: const Icon(Icons.refresh_rounded),
+      icon: const Icon(AppIcons.actualizar),
       label: const Text('VALIDAR NUEVAMENTE'),
     );
   }

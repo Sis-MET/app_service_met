@@ -5,6 +5,7 @@ import '../../registro_directo/seleccion_rapida_screen.dart';
 import '../../registro_directo/widgets/formulario_entry_card.dart';
 import '../opportunity_form_screen.dart';
 import '../pending_opportunities_screen.dart';
+import '../../../theme/app_icons.dart';
 
 /// Acceso a "Oportunidades" desde Servicios: registrar una nueva sin estar
 /// dentro de un servicio y abrir la lista, con el número de las que esperan
@@ -59,7 +60,7 @@ class _OpportunitiesEntryTileState extends State<OpportunitiesEntryTile> {
   @override
   Widget build(BuildContext context) {
     return FormularioEntryCard(
-      icon: Icons.handshake_outlined,
+      icon: AppIcons.oportunidad,
       title: 'Oportunidades comerciales',
       subtitle: _unsent == 0
           ? 'Necesidades del cliente que van a Prospectos de Bitrix24.'

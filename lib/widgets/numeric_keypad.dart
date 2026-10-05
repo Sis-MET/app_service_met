@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_design.dart';
+import '../theme/app_icons.dart';
 
 /// Teclado numérico propio para las lecturas de una calibración.
 ///
@@ -639,7 +640,7 @@ class _NumericKeypadState extends State<NumericKeypad> {
             small: true,
             // Con el ícono de ocultar teclado se reconoce como la tecla que
             // cierra; el rótulo solo no bastaba.
-            icon: Icons.keyboard_hide_outlined,
+            icon: AppIcons.ocultarTeclado,
             semanticLabel: 'Ocultar teclado',
             onTap: controller.close,
           ),
@@ -648,7 +649,7 @@ class _NumericKeypadState extends State<NumericKeypad> {
           _KeypadKey(
             key: const ValueKey('keypad-backspace'),
             isDark: isDark,
-            icon: Icons.backspace_outlined,
+            icon: AppIcons.borrar,
             semanticLabel: 'Borrar',
             onTap: controller.backspace,
             onLongPress: controller.clear,
@@ -667,7 +668,7 @@ class _NumericKeypadState extends State<NumericKeypad> {
             height: NumericKeypad._keyHeight * 2 + gap,
             label: 'Siguiente',
             small: true,
-            icon: Icons.arrow_downward_rounded,
+            icon: AppIcons.abajo,
             semanticLabel: 'Siguiente campo',
             primary: true,
             onTap: controller.next,
@@ -688,7 +689,7 @@ class _NumericKeypadState extends State<NumericKeypad> {
             isDark: isDark,
             height: 44,
             label: 'Leer del indicador',
-            icon: Icons.document_scanner_outlined,
+            icon: AppIcons.escanearDocumento,
             small: true,
             horizontal: true,
             semanticLabel: 'Leer la lectura del indicador con la cámara',

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
 import 'password_field.dart';
+import '../../../theme/app_icons.dart';
 
 class LoginForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
@@ -89,7 +90,7 @@ class LoginForm extends StatelessWidget {
               decoration: _fieldDecoration(
                 context,
                 hint: 'Usuario corporativo',
-                icon: Icons.person_outline_rounded,
+                icon: AppIcons.persona,
               ),
               validator: (value) => value == null || value.trim().isEmpty
                   ? 'Ingresa tu usuario'
@@ -125,7 +126,7 @@ class LoginForm extends StatelessWidget {
                   disabledBackgroundColor:
                       AppColors.actionPositive.withOpacity(0.42),
                 ),
-                icon: const Icon(Icons.fingerprint_rounded, size: 30),
+                icon: const Icon(AppIcons.huella, size: 30),
               ),
             ),
           ],
@@ -366,7 +367,7 @@ class _UserTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.expand_more_rounded),
+              const Icon(AppIcons.desplegar),
             ],
           ),
         ),

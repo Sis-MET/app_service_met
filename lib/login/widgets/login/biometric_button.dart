@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../../theme/app_icons.dart';
 
 class BiometricButton extends StatefulWidget {
   final bool isDark;
@@ -44,7 +45,7 @@ class _BiometricButtonState extends State<BiometricButton>
   @override
   Widget build(BuildContext context) {
     final color = widget.isDark ? Colors.white : AppColors.primary;
-    
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -66,23 +67,26 @@ class _BiometricButtonState extends State<BiometricButton>
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: widget.isDark 
-                    ? color.withOpacity(0.1 + (_pulseController.value * 0.05))
-                    : color.withOpacity(0.05 + (_pulseController.value * 0.05)),
+                  color: widget.isDark
+                      ? color.withOpacity(0.1 + (_pulseController.value * 0.05))
+                      : color
+                          .withOpacity(0.05 + (_pulseController.value * 0.05)),
                   border: Border.all(
-                    color: color.withOpacity(0.2 + (_pulseController.value * 0.2)),
+                    color:
+                        color.withOpacity(0.2 + (_pulseController.value * 0.2)),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withOpacity(0.05 + (_pulseController.value * 0.05)),
+                      color: color
+                          .withOpacity(0.05 + (_pulseController.value * 0.05)),
                       blurRadius: 8 + (_pulseController.value * 4),
                       spreadRadius: 1,
                     ),
                   ],
                 ),
                 child: Icon(
-                  Icons.fingerprint,
+                  AppIcons.huella,
                   size: 32,
                   color: widget.isDark ? Colors.white70 : color,
                 ),

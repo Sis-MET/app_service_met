@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
+import '../../../../../theme/app_icons.dart';
 
 class RepetibilidadPruebaWidget extends StatefulWidget {
   final BalanzaInfo balanza;
@@ -25,8 +26,7 @@ class RepetibilidadPruebaWidget extends StatefulWidget {
       _RepetibilidadPruebaWidgetState();
 }
 
-class _RepetibilidadPruebaWidgetState
-    extends State<RepetibilidadPruebaWidget> {
+class _RepetibilidadPruebaWidgetState extends State<RepetibilidadPruebaWidget> {
   static const _medicionesOptions = ['3', '5', '10'];
 
   String? _medicionesCount;
@@ -74,11 +74,15 @@ class _RepetibilidadPruebaWidgetState
   }
 
   void _buildControllers(int nMediciones) {
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
     _indCtrls = List.generate(nMediciones, (_) => TextEditingController());
-    _retCtrls = List.generate(
-        nMediciones, (_) => TextEditingController(text: '0'));
+    _retCtrls =
+        List.generate(nMediciones, (_) => TextEditingController(text: '0'));
   }
 
   void _onMedicionesChanged(String? v) {
@@ -126,8 +130,12 @@ class _RepetibilidadPruebaWidgetState
   @override
   void dispose() {
     _cargaCtrl.dispose();
-    for (final c in _indCtrls) { c.dispose(); }
-    for (final c in _retCtrls) { c.dispose(); }
+    for (final c in _indCtrls) {
+      c.dispose();
+    }
+    for (final c in _retCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -170,8 +178,8 @@ class _RepetibilidadPruebaWidgetState
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+        border: Border.all(
+            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -213,16 +221,14 @@ class _RepetibilidadPruebaWidgetState
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color:
-                              isDark ? Colors.white70 : Colors.grey[600]),
+                          color: isDark ? Colors.white70 : Colors.grey[600]),
                       textAlign: TextAlign.center)),
               Expanded(
                   child: Text('Retorno',
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
-                          color:
-                              isDark ? Colors.white70 : Colors.grey[600]),
+                          color: isDark ? Colors.white70 : Colors.grey[600]),
                       textAlign: TextAlign.center)),
             ]),
           ),
@@ -230,8 +236,8 @@ class _RepetibilidadPruebaWidgetState
           ...List.generate(
               nMediciones,
               (j) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: Row(children: [
                       SizedBox(
                           width: 30,
@@ -278,12 +284,13 @@ class _RepetibilidadPruebaWidgetState
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _indCtrls[medIdx],
       onChanged: (_) => _emit(),
-      decoration: _fieldDecoration(isDark,
+      decoration: _fieldDecoration(
+        isDark,
         suffixIcon: hasBase
             ? InkWell(
                 onTap: () => _showIndicacionSuggestion(medIdx),
-                child: const Icon(Icons.unfold_more_rounded,
-                    color: Colors.teal, size: 20),
+                child:
+                    const Icon(AppIcons.expandir, color: Colors.teal, size: 20),
               )
             : null,
       ),
@@ -337,8 +344,8 @@ class _RepetibilidadPruebaWidgetState
 
   InputDecoration _deco(String label, bool isDark) => InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(
-            color: isDark ? Colors.white70 : Colors.black87),
+        labelStyle:
+            GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide:
@@ -372,8 +379,7 @@ class _RepetibilidadPruebaWidgetState
           return GestureDetector(
             onTap: () {
               _cargaCtrl.text = formatted;
-              final nMediciones =
-                  int.tryParse(_medicionesCount ?? '3') ?? 3;
+              final nMediciones = int.tryParse(_medicionesCount ?? '3') ?? 3;
               for (int j = 0; j < nMediciones; j++) {
                 _indCtrls[j].text = formatted;
               }
@@ -381,8 +387,7 @@ class _RepetibilidadPruebaWidgetState
               setState(() {});
             },
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.teal.withOpacity(isDark ? 0.15 : 0.1),
                 border: Border.all(color: Colors.teal.withOpacity(0.3)),
@@ -391,8 +396,7 @@ class _RepetibilidadPruebaWidgetState
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.teal),
+                  const Icon(AppIcons.consejo, size: 14, color: Colors.teal),
                   const SizedBox(width: 4),
                   Text(
                     'Sugerido: $formatted $unidad (50% $label)',

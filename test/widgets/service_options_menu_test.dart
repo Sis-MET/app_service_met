@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/service_ui/service_options_menu.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   Future<void> abrirMenu(WidgetTester tester, Brightness brightness) async {
@@ -13,7 +14,7 @@ void main() {
             onExit: () async => false,
             actions: [
               ServiceMenuAction(
-                icon: Icons.handshake_outlined,
+                icon: AppIcons.oportunidad,
                 label: 'Registrar oportunidad comercial',
                 onSelected: (_) {},
               ),
@@ -35,7 +36,7 @@ void main() {
         '(${brightness.name})', (tester) async {
       await abrirMenu(tester, brightness);
 
-      for (final icon in [Icons.handshake_outlined, Icons.logout_rounded]) {
+      for (final icon in [AppIcons.oportunidad, AppIcons.salir]) {
         expect(tester.widget<Icon>(find.byIcon(icon)).color, ink);
       }
       expect(find.byType(PopupMenuDivider), findsNothing,

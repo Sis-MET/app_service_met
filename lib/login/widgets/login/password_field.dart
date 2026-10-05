@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../theme/app_icons.dart';
 
 class PasswordField extends StatefulWidget {
   final TextEditingController controller;
@@ -83,15 +84,13 @@ class _PasswordFieldState extends State<PasswordField> {
               vertical: 18,
             ),
             prefixIcon: Icon(
-              Icons.lock_outline_rounded,
+              AppIcons.bloqueado,
               color: widget.isDark ? Colors.white70 : Colors.black87,
               size: 22,
             ),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
+                _obscurePassword ? AppIcons.ocultar : AppIcons.ver,
                 color: widget.isDark ? Colors.white70 : Colors.black54,
                 size: 22,
               ),

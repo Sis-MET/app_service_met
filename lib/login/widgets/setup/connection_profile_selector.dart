@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../theme/app_design.dart';
 import '../../models/connection_profile.dart';
 import '../../services/connection_profile_service.dart';
+import '../../../theme/app_icons.dart';
 
 class ConnectionProfileSelector extends StatelessWidget {
   final bool isDark;
@@ -34,7 +35,7 @@ class ConnectionProfileSelector extends StatelessWidget {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: () => _edit(context, service, null),
-            icon: const Icon(Icons.add_rounded),
+            icon: const Icon(AppIcons.agregar),
             label: const Text('Agregar servidor'),
             style: OutlinedButton.styleFrom(
               foregroundColor: isDark ? Colors.white : Colors.black,
@@ -72,7 +73,7 @@ class ConnectionProfileSelector extends StatelessWidget {
                 controller: name,
                 decoration: const InputDecoration(
                   labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.label_outline_rounded),
+                  prefixIcon: Icon(AppIcons.etiqueta),
                 ),
                 validator: (value) => value == null || value.trim().isEmpty
                     ? 'Ingresa un nombre'
@@ -85,7 +86,7 @@ class ConnectionProfileSelector extends StatelessWidget {
                 decoration: const InputDecoration(
                   labelText: 'URL segura de la API',
                   hintText: 'https://192.168.1.5:3100',
-                  prefixIcon: Icon(Icons.api_rounded),
+                  prefixIcon: Icon(AppIcons.api),
                 ),
                 validator: (value) {
                   final uri = Uri.tryParse(value?.trim() ?? '');
@@ -217,7 +218,7 @@ class _ProfileTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
-                  selected ? Icons.check_rounded : Icons.dns_outlined,
+                  selected ? AppIcons.listo : AppIcons.servidor,
                   color: selected ? foreground : colors.onSurfaceVariant,
                 ),
               ),

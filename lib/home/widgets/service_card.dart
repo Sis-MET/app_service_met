@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../models/servicio_model.dart';
 import '../screens/servicio_detalles_screen.dart';
+import '../../theme/app_icons.dart';
 
 class ServiceCard extends StatelessWidget {
   final ServicioResumen servicio;
@@ -22,9 +22,7 @@ class ServiceCard extends StatelessWidget {
     final calibration = servicio.tipo == TipoServicio.calibracion;
     final accent =
         calibration ? AppColors.actionPositive : AppColors.shimmerGold;
-    final icon = calibration
-        ? FontAwesomeIcons.scaleBalanced
-        : FontAwesomeIcons.screwdriverWrench;
+    final icon = calibration ? AppIcons.balanza : AppIcons.soporte;
     final date = _formatDate(servicio.fecha);
 
     return Padding(
@@ -45,7 +43,7 @@ class ServiceCard extends StatelessWidget {
                     color: accent.withOpacity(0.13),
                     borderRadius: AppDesign.smallRadius,
                   ),
-                  child: Center(child: FaIcon(icon, color: accent, size: 19)),
+                  child: Center(child: Icon(icon, color: accent, size: 19)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -82,7 +80,7 @@ class ServiceCard extends StatelessWidget {
                     backgroundColor: AppColors.accentYellow.withOpacity(0.12),
                     foregroundColor: colors.onSurface,
                   ),
-                  icon: const Icon(Icons.arrow_forward_rounded, size: 19),
+                  icon: const Icon(AppIcons.adelante, size: 19),
                 ),
               ],
             ),

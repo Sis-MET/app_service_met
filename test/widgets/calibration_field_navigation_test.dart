@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   testWidgets('un pendiente lleva al campo y deshacer recupera su valor',
@@ -53,17 +54,17 @@ void main() {
         StepData(
             title: 'Cliente',
             subtitle: 'Acme',
-            icon: Icons.business,
+            icon: AppIcons.empresa,
             progress: StepProgress.complete),
         StepData(
             title: 'Planta',
             subtitle: 'La Paz',
-            icon: Icons.factory,
+            icon: AppIcons.planta,
             progress: StepProgress.review),
         StepData(
             title: 'SECA',
             subtitle: 'Pendiente',
-            icon: Icons.qr_code,
+            icon: AppIcons.qr,
             progress: StepProgress.pending),
       ],
     ))));

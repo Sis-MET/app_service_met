@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
 import '../../../widgets/service_ui/service_app_bar.dart';
+import '../../../theme/app_icons.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -102,14 +103,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildControlButton(
-                icon: Icons.flash_on_rounded,
+                icon: AppIcons.flash,
                 label: 'Linterna',
                 onPressed: () => cameraController.toggleTorch(),
                 isDark: isDark,
               ),
               const SizedBox(width: 40),
               _buildControlButton(
-                icon: Icons.flip_camera_ios_rounded,
+                icon: AppIcons.cambiarCamara,
                 label: 'Cámara',
                 onPressed: () => cameraController.switchCamera(),
                 isDark: isDark,

@@ -4,6 +4,7 @@ import '../../../utils/top_alert.dart';
 import '../../../widgets/service_ui/service_options_menu.dart';
 import '../models/opportunity_service_context.dart';
 import '../opportunity_form_screen.dart';
+import '../../../theme/app_icons.dart';
 
 /// "Registrar oportunidad comercial" del menú ⋮ de Calibración y de Soporte.
 ///
@@ -16,7 +17,7 @@ class OpportunityMenuAction extends ServiceMenuAction {
   OpportunityMenuAction({
     required OpportunityServiceContext Function() contextBuilder,
   }) : super(
-          icon: Icons.handshake_outlined,
+          icon: AppIcons.oportunidad,
           label: title,
           onSelected: (context) => _open(context, contextBuilder),
         );

@@ -6,6 +6,7 @@ import 'package:service_met/screens/soporte_new/widgets/shared/pruebas/excentric
 import 'package:service_met/screens/soporte_new/widgets/shared/pruebas/linealidad_prueba_widget.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/pruebas/prueba_common_widgets.dart';
 import 'package:service_met/screens/soporte_new/widgets/shared/pruebas/repetibilidad_prueba_widget.dart';
+import '../../../../../../theme/app_icons.dart';
 
 class PasoPruebasMetrologicas extends StatelessWidget {
   final BalanzaInfo balanza;
@@ -88,7 +89,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
           _buildRetornoCeroSection(isDark),
           const SizedBox(height: 24),
         ],
-        _buildSectionTitle('EXCENTRICIDAD', Icons.adjust_rounded, isDark),
+        _buildSectionTitle('EXCENTRICIDAD', AppIcons.excentricidad, isDark),
         const SizedBox(height: 12),
         PruebaSkipCard(
           realizada: excentricidadActiva,
@@ -105,7 +106,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 28),
-        _buildSectionTitle('REPETIBILIDAD', Icons.repeat_rounded, isDark),
+        _buildSectionTitle('REPETIBILIDAD', AppIcons.repetir, isDark),
         const SizedBox(height: 12),
         PruebaSkipCard(
           realizada: repetibilidadActiva,
@@ -122,7 +123,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
           ),
         ],
         const SizedBox(height: 28),
-        _buildSectionTitle('LINEALIDAD', Icons.show_chart_rounded, isDark),
+        _buildSectionTitle('LINEALIDAD', AppIcons.grafico, isDark),
         const SizedBox(height: 12),
         PruebaSkipCard(
           realizada: linealidadActiva,
@@ -162,8 +163,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
               color: Colors.blue.withOpacity(isDark ? 0.2 : 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.access_time_rounded,
-                size: 20, color: Colors.blue),
+            child: const Icon(AppIcons.hora, size: 20, color: Colors.blue),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -322,8 +322,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline_rounded,
-                  color: Colors.blue[600], size: 20),
+              Icon(AppIcons.info, color: Colors.blue[600], size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -343,7 +342,7 @@ class PasoPruebasMetrologicas extends StatelessWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: onCopiarDeIniciales,
-              icon: const Icon(Icons.content_copy_rounded, size: 20),
+              icon: const Icon(AppIcons.copiar, size: 20),
               label: Text(
                 'COPIAR DE PRUEBAS INICIALES',
                 style: GoogleFonts.inter(

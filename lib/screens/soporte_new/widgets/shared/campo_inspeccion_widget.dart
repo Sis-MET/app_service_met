@@ -8,14 +8,15 @@ import 'package:service_met/screens/soporte_new/utils/soporte_constants.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
+import '../../../../theme/app_icons.dart';
 
 const Map<String, IconData> _solucionIconMap = {
-  'No aplica': Icons.block_outlined,
-  'Se ajusta': Icons.build_circle_outlined,
-  'Se repara': Icons.handyman_outlined,
-  'Se cambia': Icons.cached_outlined,
-  'Limpieza': Icons.cleaning_services_outlined,
-  'Lubricación': Icons.water_drop_outlined,
+  'No aplica': AppIcons.bloquear,
+  'Se ajusta': AppIcons.soporte,
+  'Se repara': AppIcons.herramientas,
+  'Se cambia': AppIcons.actualizar,
+  'Limpieza': AppIcons.limpieza,
+  'Lubricación': AppIcons.humedad,
 };
 
 const Map<String, Color> _solucionColorMap = {
@@ -181,7 +182,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                         Icon(
                           customOptions == null
                               ? estadoIconMap[key]
-                              : Icons.tune_rounded,
+                              : AppIcons.filtros,
                           color: customOptions == null
                               ? estadoColorMap[key]
                               : Theme.of(context).colorScheme.primary,
@@ -200,7 +201,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                 TextFormField(
                   initialValue: _campoEstado.solutionValue,
                   decoration: serviceInputDeco('Comentario', isDark).copyWith(
-                    prefixIcon: const Icon(Icons.comment_outlined),
+                    prefixIcon: const Icon(AppIcons.comentario),
                   ),
                   maxLines: 2,
                   onChanged: (value) {
@@ -279,7 +280,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                             width: 80,
                             height: 80,
                             color: Colors.grey[300],
-                            child: const Icon(Icons.broken_image),
+                            child: const Icon(AppIcons.imagenNoDisponible),
                           ),
                         ),
                       ),
@@ -297,7 +298,7 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
                         border: Border.all(
                             color: isDark ? Colors.white24 : Colors.grey[400]!),
                       ),
-                      child: Icon(Icons.add_a_photo,
+                      child: Icon(AppIcons.agregarFoto,
                           size: 32,
                           color: isDark ? Colors.white38 : Colors.grey),
                     ),

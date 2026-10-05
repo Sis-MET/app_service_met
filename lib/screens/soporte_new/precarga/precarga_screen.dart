@@ -29,6 +29,7 @@ import 'widgets/planta_step.dart';
 import 'widgets/seca_step.dart';
 import 'widgets/servicio_incompleto_dialog.dart';
 import 'widgets/tipo_servicio_step.dart';
+import '../../../theme/app_icons.dart';
 
 class PrecargaScreenSop extends StatefulWidget {
   final String userName;
@@ -178,9 +179,8 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
     } catch (_) {}
     final name = module.serviceName;
     return OpportunityServiceContext.fromSupport(
-      serviceName: name.isEmpty
-          ? name
-          : name[0] + name.substring(1).toLowerCase(),
+      serviceName:
+          name.isEmpty ? name : name[0] + name.substring(1).toLowerCase(),
       otst: text('otst') ?? '',
       sessionId: text('session_id'),
       codMetrica: text('cod_metrica') ?? '',
@@ -205,7 +205,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.pending_actions_rounded, color: Colors.orange),
+        icon: const Icon(AppIcons.pendiente, color: Colors.orange),
         title: const Text('Servicio de soporte pendiente'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -483,8 +483,7 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.warning_amber_rounded,
-                color: Colors.orange[700], size: 22),
+            Icon(AppIcons.advertencia, color: Colors.orange[700], size: 22),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -742,33 +741,33 @@ class _PrecargaScreenSopState extends State<PrecargaScreenSop> {
       StepData(
           title: 'Servicio',
           subtitle: c.selectedServicio ?? 'Tipo de servicio',
-          icon: Icons.build_circle_outlined),
+          icon: AppIcons.soporte),
       StepData(
           title: 'Cliente',
           subtitle:
               c.selectedCliente?['nombre']?.toString() ?? 'Seleccione cliente',
-          icon: Icons.business,
+          icon: AppIcons.empresa,
           isAccessible: accessible(1)),
       StepData(
           title: 'Planta',
           subtitle:
               c.selectedPlanta?['nombre']?.toString() ?? 'Seleccione planta',
-          icon: Icons.factory,
+          icon: AppIcons.planta,
           isAccessible: accessible(2)),
       StepData(
           title: 'OTST',
           subtitle: c.selectedSeca ?? c.suggestedSeca ?? 'Confirmar OTST',
-          icon: Icons.qr_code,
+          icon: AppIcons.qr,
           isAccessible: accessible(3)),
       StepData(
           title: 'Instrumento',
           subtitle: c.selectedInstrumento ?? 'Seleccione instrumento',
-          icon: Icons.scale,
+          icon: AppIcons.balanza,
           isAccessible: accessible(4)),
       StepData(
           title: 'Resumen',
           subtitle: 'Confirmar datos',
-          icon: Icons.check_circle,
+          icon: AppIcons.completo,
           isAccessible: accessible(5)),
     ];
   }

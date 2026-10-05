@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_icons.dart';
 
 class UploadAuthDialog extends StatefulWidget {
   final String usuario;
@@ -50,7 +51,7 @@ class _UploadAuthDialogState extends State<UploadAuthDialog> {
             autofocus: true,
             decoration: const InputDecoration(
               labelText: 'Contraseña',
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: Icon(AppIcons.bloqueado),
             ),
             onSubmitted: (_) => _authenticate(),
           ),

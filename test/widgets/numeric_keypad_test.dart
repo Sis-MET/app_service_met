@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 TextEditingValue _at(String text, [int? offset]) => TextEditingValue(
       text: text,
@@ -95,8 +96,7 @@ void main() {
                               borderRadius: BorderRadius.circular(12)),
                           suffixIcon: InkWell(
                             onTap: () {},
-                            child:
-                                const Icon(Icons.unfold_more_rounded, size: 20),
+                            child: const Icon(AppIcons.expandir, size: 20),
                           ),
                         ),
                       ),

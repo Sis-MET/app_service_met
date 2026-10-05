@@ -14,6 +14,7 @@ import 'package:service_met/screens/respaldo/services/database_import_service.da
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
+import '../../theme/app_icons.dart';
 
 class BackupService {
   static Future<List<FileSystemEntity>> getDatabaseFiles() async {
@@ -258,7 +259,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
         type: FileType.any,
       );
     } catch (e) {
-      _showErrorDialog('No se pudo abrir el selector de archivos', e.toString());
+      _showErrorDialog(
+          'No se pudo abrir el selector de archivos', e.toString());
       return;
     }
 
@@ -337,28 +339,28 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
               ),
               const SizedBox(height: 20),
               _buildImportStat(
-                icon: Icons.dataset_outlined,
+                icon: AppIcons.datos,
                 color: accent,
                 label: 'Contenido detectado',
                 value: preview.descripcion,
               ),
               const SizedBox(height: 12),
               _buildImportStat(
-                icon: Icons.add_circle_outline_rounded,
+                icon: AppIcons.agregarCirculo,
                 color: AppColors.success,
                 label: 'Registros nuevos a importar',
                 value: '${preview.totalNuevas}',
               ),
               const SizedBox(height: 12),
               _buildImportStat(
-                icon: Icons.remove_circle_outline_rounded,
+                icon: AppIcons.quitarCirculo,
                 color: cs.onSurface.withOpacity(0.45),
                 label: 'Ya existen en el teléfono (se omiten)',
                 value: '${preview.totalExistentes}',
               ),
               const SizedBox(height: 12),
               _buildImportStat(
-                icon: Icons.description_outlined,
+                icon: AppIcons.documento,
                 color: cs.onSurface.withOpacity(0.45),
                 label: 'Registros leídos del archivo',
                 value: '${preview.totalLeidas}',
@@ -366,7 +368,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
               if (preview.columnasIgnoradas.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _buildImportNotice(
-                  icon: Icons.warning_amber_rounded,
+                  icon: AppIcons.advertencia,
                   color: AppColors.warning,
                   text:
                       'El respaldo trae columnas que esta versión no reconoce y '
@@ -375,7 +377,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
               ],
               const SizedBox(height: 16),
               _buildImportNotice(
-                icon: Icons.shield_outlined,
+                icon: AppIcons.seguridad,
                 color: AppColors.success,
                 text: 'No se borrará nada de lo que ya está en el teléfono. '
                     'Solo se agregan los registros que faltan.',
@@ -581,7 +583,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.download_outlined),
+              leading: const Icon(AppIcons.descargar),
               title: const Text('Descargar'),
               subtitle: const Text('Guardar una copia fuera de la app'),
               onTap: () {
@@ -590,7 +592,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline,
+              leading: const Icon(AppIcons.eliminar,
                   color: AppColors.actionNegative),
               title: const Text('Eliminar'),
               subtitle: Text(
@@ -616,7 +618,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: Icon(
-          critica ? Icons.warning_amber_rounded : Icons.delete_outline_rounded,
+          critica ? AppIcons.advertencia : AppIcons.eliminar,
           color: critica ? AppColors.warning : AppColors.actionNegative,
         ),
         title: Text(critica ? 'Base crítica' : 'Eliminar archivo'),
@@ -655,9 +657,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: Icon(
-          criticas.isEmpty
-              ? Icons.delete_outline_rounded
-              : Icons.warning_amber_rounded,
+          criticas.isEmpty ? AppIcons.eliminar : AppIcons.advertencia,
           color:
               criticas.isEmpty ? AppColors.actionNegative : AppColors.warning,
         ),
@@ -737,7 +737,8 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Row(
             children: [
-              Expanded(child: Text(title, style: AppDesign.titleStyle(context))),
+              Expanded(
+                  child: Text(title, style: AppDesign.titleStyle(context))),
               if (files.isNotEmpty)
                 Text(
                   '${files.length}',
@@ -755,8 +756,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             child: Row(
               children: [
-                Icon(Icons.inbox_outlined,
-                    size: 20, color: cs.onSurfaceVariant),
+                Icon(AppIcons.bandeja, size: 20, color: cs.onSurfaceVariant),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -838,7 +838,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
             ),
             if (critica) ...[
               const SizedBox(width: 8),
-              const Icon(Icons.shield_outlined,
+              const Icon(AppIcons.seguridad,
                   size: 13, color: AppColors.shimmerGold),
             ],
           ],
@@ -853,18 +853,19 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                 backgroundColor: AppColors.accentYellow.withOpacity(0.12),
                 foregroundColor: cs.onSurface,
               ),
-              icon: const Icon(Icons.download_outlined, size: 19),
+              icon: const Icon(AppIcons.descargar, size: 19),
             ),
-      onTap: () =>
-          _isSelectionMode ? _toggleFileSelection(file) : _showFileOptions(file),
+      onTap: () => _isSelectionMode
+          ? _toggleFileSelection(file)
+          : _showFileOptions(file),
       onLongPress: () => _toggleFileSelection(file),
     );
   }
 
   IconData _getFileIcon(FileSystemEntity file) {
-    if (file.path.endsWith('.csv')) return Icons.table_chart_outlined;
-    if (file.path.endsWith('.db')) return Icons.storage_rounded;
-    return Icons.insert_drive_file_outlined;
+    if (file.path.endsWith('.csv')) return AppIcons.tabla;
+    if (file.path.endsWith('.db')) return AppIcons.datos;
+    return AppIcons.archivo;
   }
 
   String _formatBytes(int bytes, {int decimals = 2}) {
@@ -879,11 +880,11 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       controller: _searchController,
       decoration: InputDecoration(
         hintText: 'Buscar archivos…',
-        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+        prefixIcon: const Icon(AppIcons.buscar, size: 20),
         suffixIcon: _searchController.text.isEmpty
             ? null
             : IconButton(
-                icon: const Icon(Icons.close_rounded, size: 18),
+                icon: const Icon(AppIcons.cerrar, size: 18),
                 onPressed: () {
                   _searchController.clear();
                   setState(() {});
@@ -924,7 +925,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                       color: AppColors.actionPositive.withOpacity(0.13),
                       borderRadius: AppDesign.mediumRadius,
                     ),
-                    child: const Icon(Icons.lock_outline_rounded,
+                    child: const Icon(AppIcons.bloqueado,
                         color: AppColors.actionPositive, size: 24),
                   ),
                   const SizedBox(height: 20),
@@ -954,7 +955,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                   FilledButton.icon(
                     onPressed: _authenticate,
                     style: AppDesign.positiveButtonStyle(),
-                    icon: const Icon(Icons.login_rounded),
+                    icon: const Icon(AppIcons.ingresar),
                     label: const Text('Ingresar'),
                   ),
                 ],
@@ -982,18 +983,18 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
             ? [
                 IconButton(
                   tooltip: 'Descargar selección',
-                  icon: const Icon(Icons.download_outlined),
+                  icon: const Icon(AppIcons.descargar),
                   onPressed: _downloadSelectedFiles,
                 ),
                 IconButton(
                   tooltip: 'Eliminar selección',
-                  icon: const Icon(Icons.delete_outline,
+                  icon: const Icon(AppIcons.eliminar,
                       color: AppColors.actionNegative),
                   onPressed: _confirmDeleteSelected,
                 ),
                 IconButton(
                   tooltip: 'Cancelar',
-                  icon: const Icon(Icons.close_rounded),
+                  icon: const Icon(AppIcons.cerrar),
                   onPressed: () => setState(() {
                     _selectedFiles.clear();
                     _isSelectionMode = false;
@@ -1015,7 +1016,7 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.upload_file_rounded),
+                  : const Icon(AppIcons.subirArchivo),
               label: Text(
                 _isImporting ? 'Importando…' : 'Importar base',
                 style: GoogleFonts.inter(fontWeight: FontWeight.w800),

@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_controller.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
+import '../../../../theme/app_icons.dart';
 
 class PlantaStep extends StatefulWidget {
   final PrecargaController controller;
@@ -152,7 +153,7 @@ class _PlantaStepState extends State<PlantaStep> {
               color: isDark ? Colors.white12 : const Color(0xFFF0F2F5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.business_rounded,
+            child: Icon(AppIcons.empresa,
                 color: isDark ? Colors.white70 : Colors.black54, size: 20),
           ),
           const SizedBox(width: 14),
@@ -209,7 +210,7 @@ class _PlantaStepState extends State<PlantaStep> {
         children: [
           _modeTab(
             label: 'Existente',
-            icon: Icons.factory_outlined,
+            icon: AppIcons.planta,
             isActive: !_isNewPlanta,
             isDark: isDark,
             onTap: () {
@@ -220,7 +221,7 @@ class _PlantaStepState extends State<PlantaStep> {
           ),
           _modeTab(
             label: 'Nueva',
-            icon: Icons.add_business_rounded,
+            icon: AppIcons.agregarEmpresa,
             isActive: _isNewPlanta,
             isDark: isDark,
             onTap: () {
@@ -289,8 +290,7 @@ class _PlantaStepState extends State<PlantaStep> {
     );
   }
 
-  Widget _buildExistingPlantaSection(
-      PrecargaController provider, bool isDark) {
+  Widget _buildExistingPlantaSection(PrecargaController provider, bool isDark) {
     if (provider.isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
@@ -425,7 +425,7 @@ class _PlantaStepState extends State<PlantaStep> {
                           color: Color(0xFFf9e300),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.check_rounded,
+                        child: const Icon(AppIcons.listo,
                             size: 14, color: Color(0xFF1A1A1A)),
                       ),
                   ],
@@ -458,8 +458,7 @@ class _PlantaStepState extends State<PlantaStep> {
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline_rounded,
-                    size: 18, color: Colors.blue[600]),
+                Icon(AppIcons.info, size: 18, color: Colors.blue[600]),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -476,39 +475,35 @@ class _PlantaStepState extends State<PlantaStep> {
             ),
           ).animate().fadeIn().scale(begin: const Offset(0.97, 0.97)),
         ],
-
         _inputField(
           controller: _nombrePlantaController,
           label: 'Nombre de la Planta',
           hint: 'Ej. Planta Principal',
-          icon: Icons.factory_rounded,
+          icon: AppIcons.planta,
           isDark: isDark,
           required: true,
           onChanged: (_) => _updateNewPlanta(provider),
         ).animate(delay: 300.ms).fadeIn().slideX(begin: -0.1),
         const SizedBox(height: 12),
-
         _inputField(
           controller: _plantaDirController,
           label: 'Dirección',
           hint: 'Ej. Av. Industrial 123',
-          icon: Icons.location_on_rounded,
+          icon: AppIcons.ubicacion,
           isDark: isDark,
           required: true,
           onChanged: (_) => _updateNewPlanta(provider),
         ).animate(delay: 380.ms).fadeIn().slideX(begin: 0.1),
         const SizedBox(height: 12),
-
         _inputField(
           controller: _plantaDepController,
           label: 'Departamento',
           hint: 'Ej. Lima',
-          icon: Icons.map_rounded,
+          icon: AppIcons.mapa,
           isDark: isDark,
           required: true,
           onChanged: (_) => _updateNewPlanta(provider),
         ).animate(delay: 460.ms).fadeIn().slideX(begin: -0.1),
-
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -520,8 +515,7 @@ class _PlantaStepState extends State<PlantaStep> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  size: 18, color: Colors.amber[600]),
+              Icon(AppIcons.advertencia, size: 18, color: Colors.amber[600]),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -592,10 +586,11 @@ class _PlantaStepState extends State<PlantaStep> {
     );
   }
 
-  Widget _buildSelectedPlantaCard(
-      Map<String, dynamic> planta, bool isDark) {
+  Widget _buildSelectedPlantaCard(Map<String, dynamic> planta, bool isDark) {
     final nombre = planta['nombre']?.toString() ?? 'Planta sin nombre';
-    final codigo = planta['codigo']?.toString() ?? planta['codigo_planta']?.toString() ?? '';
+    final codigo = planta['codigo']?.toString() ??
+        planta['codigo_planta']?.toString() ??
+        '';
     final dir = planta['dir']?.toString() ?? '';
     final dep = planta['dep']?.toString() ?? '';
     final isNew = planta['isNew'] == true;
@@ -620,7 +615,7 @@ class _PlantaStepState extends State<PlantaStep> {
                   color: const Color(0xFFf9e300),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.check_rounded,
+                child: const Icon(AppIcons.listo,
                     color: Color(0xFF1A1A1A), size: 24),
               ),
               const SizedBox(width: 14),
@@ -670,12 +665,13 @@ class _PlantaStepState extends State<PlantaStep> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on_outlined,
+                  const Icon(AppIcons.ubicacion,
                       size: 14, color: Color(0xFF5A4E00)),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      [if (dir.isNotEmpty) dir, if (dep.isNotEmpty) dep].join(', '),
+                      [if (dir.isNotEmpty) dir, if (dep.isNotEmpty) dep]
+                          .join(', '),
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: isDark ? Colors.white70 : Colors.black87,

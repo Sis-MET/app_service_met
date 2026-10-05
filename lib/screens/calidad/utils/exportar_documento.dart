@@ -15,6 +15,7 @@ import '../../../utils/service_exporter.dart';
 import '../../../utils/top_alert.dart';
 import '../data/historial_versiones.dart';
 import '../widgets/calidad_ui.dart';
+import '../../../theme/app_icons.dart';
 
 /// Carpeta, dentro de ServiceMET, donde se guardan los documentos de calidad.
 const carpetaCalidad = 'Calidad';
@@ -202,21 +203,21 @@ class _HojaExportar extends StatelessWidget {
             const SizedBox(height: 14),
             _opcion(
               context,
-              icono: Icons.save_alt_rounded,
+              icono: AppIcons.descargar,
               titulo: 'Guardar PDF',
               detalle: 'En la carpeta ServiceMET/$carpeta',
               destino: _Destino.guardar,
             ),
             _opcion(
               context,
-              icono: Icons.ios_share_rounded,
+              icono: AppIcons.compartir,
               titulo: 'Compartir',
               detalle: 'Correo, WhatsApp, Drive u otra app',
               destino: _Destino.compartir,
             ),
             _opcion(
               context,
-              icono: Icons.print_outlined,
+              icono: AppIcons.imprimir,
               titulo: 'Imprimir',
               detalle: 'Vista previa, impresora o guardar como PDF',
               destino: _Destino.imprimir,
@@ -240,7 +241,7 @@ class _HojaExportar extends StatelessWidget {
       leading: CalidadIcono(icono),
       title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(detalle),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: const Icon(AppIcons.siguiente),
       onTap: () => Navigator.pop(context, destino),
     );
   }

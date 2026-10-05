@@ -20,6 +20,7 @@ import 'package:service_met/screens/soporte_new/utils/salida_servicio.dart';
 
 import 'controllers/ajuste_verificaciones_controller.dart';
 import 'models/ajuste_verificaciones_model.dart';
+import '../../../../theme/app_icons.dart';
 
 class StacAjusteVerificaciones extends StatefulWidget {
   final String sessionId;
@@ -68,17 +69,17 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
     StepData(
       title: 'Pruebas Iniciales',
       subtitle: 'Metrología inicial',
-      icon: Icons.science_outlined,
+      icon: AppIcons.laboratorio,
     ),
     StepData(
       title: 'Pruebas Finales',
       subtitle: 'Metrología final',
-      icon: Icons.task_alt_outlined,
+      icon: AppIcons.tareaLista,
     ),
     StepData(
       title: 'Estado Final',
       subtitle: 'Cierre del servicio',
-      icon: Icons.assignment_turned_in_outlined,
+      icon: AppIcons.formularioCompleto,
     ),
   ];
 

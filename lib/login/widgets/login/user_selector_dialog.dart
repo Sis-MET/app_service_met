@@ -5,6 +5,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../../theme/app_icons.dart';
 
 class UserSelectorSheet extends StatefulWidget {
   final List<UserModel> users;
@@ -96,7 +97,7 @@ class _UserSelectorSheetState extends State<UserSelectorSheet> {
                   IconButton(
                     tooltip: 'Cerrar',
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
+                    icon: const Icon(AppIcons.cerrar),
                   ),
                 ],
               ),
@@ -132,7 +133,7 @@ class _UserSelectorSheetState extends State<UserSelectorSheet> {
                 child: FilledButton.icon(
                   onPressed: widget.onAdd,
                   style: AppDesign.positiveButtonStyle(),
-                  icon: const Icon(Icons.person_add_alt_1_rounded, size: 20),
+                  icon: const Icon(AppIcons.agregarPersona, size: 20),
                   label: Text(
                     'Vincular otro usuario',
                     style: GoogleFonts.inter(fontWeight: FontWeight.w700),
@@ -150,7 +151,7 @@ class _UserSelectorSheetState extends State<UserSelectorSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.person_remove_outlined),
+        icon: const Icon(AppIcons.quitarPersona),
         title: const Text('Quitar acceso del dispositivo'),
         content: Text(
           'Se eliminará el acceso offline de ${user.fullName}. '
@@ -255,7 +256,7 @@ class _SavedUserCard extends StatelessWidget {
                         if (selected)
                           const Padding(
                             padding: EdgeInsets.only(left: 8),
-                            child: Icon(Icons.check_circle_rounded, size: 19),
+                            child: Icon(AppIcons.completo, size: 19),
                           ),
                       ],
                     ),
@@ -319,7 +320,7 @@ class _SavedUserCard extends StatelessWidget {
                   : IconButton(
                       tooltip: 'Quitar del dispositivo',
                       onPressed: onDelete,
-                      icon: const Icon(Icons.person_remove_outlined),
+                      icon: const Icon(AppIcons.quitarPersona),
                     ),
             ],
           ),
@@ -398,7 +399,7 @@ class _EmptyUsers extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.06),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.people_outline_rounded, size: 32),
+            child: const Icon(AppIcons.personas, size: 32),
           ),
           const SizedBox(height: 16),
           Text(
