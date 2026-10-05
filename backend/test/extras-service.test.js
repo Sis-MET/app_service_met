@@ -14,6 +14,7 @@ const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   Buffer.from('firma'),
 ]);
+const PNG_METRICA = Buffer.concat([PNG.subarray(0, 8), Buffer.from('firma de métrica')]);
 
 function rim(overrides = {}) {
   return {
@@ -63,6 +64,7 @@ function rim(overrides = {}) {
     createdBy: 'aquispe',
     appVersion: '6.3.3+15',
     clientSignature: PNG.toString('base64'),
+    metricaSignature: PNG_METRICA.toString('base64'),
     ...overrides,
   };
 }
@@ -119,7 +121,8 @@ test('registra el RIM con el usuario autenticado y solo con INSERT', async () =>
   assert.equal(values.tecnico_asignado, null);
   assert.equal(values.pruebas_funcionamiento, true);
   assert.ok(values.emitido_en instanceof Date);
-  assert.ok(Buffer.isBuffer(values.firma_cliente));
+  assert.deepEqual(values.firma_cliente, PNG);
+  assert.deepEqual(values.firma_representante, PNG_METRICA);
   assert.deepEqual(JSON.parse(values.inventario), {
     items: { indicator: 'present', powerCable: 'missing', loadCells: 'present' },
     quantities: { loadCells: '4' },
@@ -197,6 +200,7 @@ test('rechaza un RIM incompleto indicando cada campo', () => {
       functionalityTestPerformed: 'yes',
       contactName: 'A',
       clientSignature: '',
+      metricaSignature: undefined,
       issuedAt: 'ayer',
       service: { serviceType: 'venta' },
     })),
@@ -210,6 +214,7 @@ test('rechaza un RIM incompleto indicando cada campo', () => {
         'damageLevel',
         'functionalityTestPerformed',
         'issuedAt',
+        'metricaSignature',
         'reason',
         'service.metricCode',
         'service.serviceType',
@@ -241,7 +246,7 @@ test('acepta un RIM emitido fuera de un servicio (registro directo)', async () =
   assert.equal(values.cod_metrica, '0103-11-005');
 });
 
-test('la firma debe ser un PNG de tamaño razonable', () => {
+test('las firmas deben ser PNG de tamaño razonable', () => {
   const field = (overrides) => {
     try {
       validateRim(rim(overrides));
@@ -254,6 +259,8 @@ test('la firma debe ser un PNG de tamaño razonable', () => {
   assert.deepEqual(field({ clientSignature: '<svg onload=alert(1)>' }), ['clientSignature']);
   const enorme = Buffer.concat([PNG, Buffer.alloc(MAX_SIGNATURE_BYTES)]).toString('base64');
   assert.deepEqual(field({ clientSignature: enorme }), ['clientSignature']);
+  assert.deepEqual(field({ metricaSignature: Buffer.from('no es png').toString('base64') }), ['metricaSignature']);
+  assert.deepEqual(field({ metricaSignature: enorme }), ['metricaSignature']);
   assert.equal(field({}), null);
 });
 

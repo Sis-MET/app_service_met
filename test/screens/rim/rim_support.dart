@@ -12,6 +12,12 @@ final Uint8List firmaDePrueba = base64Decode(
   '60e6kgAAAABJRU5ErkJggg==',
 );
 
+/// Otro PNG de 1×1 píxel, de otro color, como firma del representante.
+final Uint8List firmaRepresentanteDePrueba = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOQsyv4DwADFgHM'
+  'Ma3dmwAAAABJRU5ErkJggg==',
+);
+
 OpportunityServiceContext servicioDePrueba({
   String sessionId = '0007',
   String codMetrica = '0090-11-014',
@@ -91,6 +97,7 @@ class MemoryRimStore extends RimStore {
   Future<RimRegistro> insert(
     RimDocumento documento,
     Uint8List firmaCliente,
+    Uint8List firmaRepresentante,
   ) async {
     if (registros.any((registro) => registro.uuid == documento.uuid)) {
       throw StateError('UNIQUE constraint failed: form_rim.uuid');
@@ -99,6 +106,7 @@ class MemoryRimStore extends RimStore {
       id: registros.length + 1,
       documento: documento,
       firmaCliente: firmaCliente,
+      firmaRepresentante: firmaRepresentante,
       estado: RimEstadoSubida.pending,
     );
     registros.add(registro);

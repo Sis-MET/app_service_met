@@ -13,6 +13,7 @@ import 'package:service_met/widgets/service_ui/service_workspace_layout.dart';
 import 'package:service_met/widgets/service_ui/step_indicator.dart';
 
 import 'rim_support.dart';
+import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
@@ -55,7 +56,12 @@ void main() {
                   ),
                   loggedUser: () async => 'lmamani',
                   appVersion: () async => '6.3.3+15',
-                  signatureCapture: (_) async => firma ? firmaDePrueba : null,
+                  signatureCapture: (_, firmante) async {
+                    if (!firma) return null;
+                    return firmante == RimFirmante.cliente
+                        ? firmaDePrueba
+                        : firmaRepresentanteDePrueba;
+                  },
                 ),
               ),
             )),
@@ -113,7 +119,7 @@ void main() {
     await tocar(tester, find.byKey(const ValueKey('rim-suciedad-clean')));
     await tester.tap(find.text('Siguiente'));
     await tester.pumpAndSettle();
-    expect(find.text('Paso 2 de 2 · Recepción y firma'), findsOneWidget);
+    expect(find.text('Paso 2 de 2 · Recepción y firmas'), findsOneWidget);
 
     await tester.tap(find.text('Emitir RIM'));
     await tester.pumpAndSettle();
@@ -122,6 +128,8 @@ void main() {
     expect(find.text('Indique si se realizaron pruebas.'), findsOneWidget);
     expect(find.text('Escriba el nombre de quien entrega.'), findsOneWidget);
     expect(find.text('Falta la firma del cliente.'), findsOneWidget);
+    expect(find.text('Falta la firma del representante de Métrica.'),
+        findsOneWidget);
     expect(find.text('¿Emitir el RIM?'), findsNothing);
     expect(store.registros, isEmpty);
   });
@@ -136,10 +144,14 @@ void main() {
     await tester.tap(find.text('Siguiente'));
     await tester.pumpAndSettle();
 
-    await tocar(tester, find.byKey(const ValueKey('rim-firma')));
+    await tocar(tester, find.byKey(const ValueKey('rim-firma-cliente')));
     expect(
         find.text('Escriba el nombre de quien va a firmar.'), findsOneWidget);
     expect(find.text('Volver a firmar'), findsNothing);
+
+    // El representante de Métrica ya se conoce por la sesión: puede firmar.
+    await tocar(tester, find.byKey(const ValueKey('rim-firma-representante')));
+    expect(find.text('Volver a firmar'), findsOneWidget);
   });
 
   testWidgets('emite el RIM firmado, lo guarda en el teléfono y lo devuelve',
@@ -182,17 +194,25 @@ void main() {
     await tocar(tester, find.text('No'));
     await tester.enterText(
         find.byKey(const ValueKey('rim-contacto')), 'Juan Pérez');
-    expect(find.text('Tec. Luis Mamani'), findsOneWidget,
+    // En "Recepción" y en su firma.
+    expect(find.text('Tec. Luis Mamani'), findsNWidgets(2),
         reason: 'el representante sale de la sesión, no se escribe');
     expect(
         find.text('Planta Viacha - Carretera a Viacha km 14'), findsOneWidget);
-    await tocar(tester, find.byKey(const ValueKey('rim-firma')));
+    await tocar(tester, find.byKey(const ValueKey('rim-firma-cliente')));
     expect(find.text('Volver a firmar'), findsOneWidget);
+    await tocar(tester, find.byKey(const ValueKey('rim-firma-representante')));
+    expect(find.text('Volver a firmar'), findsNWidgets(2));
 
     await tester.tap(find.text('Emitir RIM'));
     await tester.pumpAndSettle();
     expect(find.text('¿Emitir el RIM?'), findsOneWidget);
     expect(find.textContaining('no se puede modificar'), findsOneWidget);
+    expect(
+      find.textContaining(
+          'firmado por Juan Pérez (cliente) y Tec. Luis Mamani (Métrica)'),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Emitir RIM').last);
     await tester.pumpAndSettle();
 
@@ -200,6 +220,7 @@ void main() {
     final registro = (await result)!;
     expect(store.registros.single, same(registro));
     expect(registro.firmaCliente, firmaDePrueba);
+    expect(registro.firmaRepresentante, firmaRepresentanteDePrueba);
 
     final rim = registro.documento;
     expect(rim.codigo, 'RIM-0090-11-26');
@@ -257,7 +278,8 @@ void main() {
           title: 'Mantenimiento correctivo',
           steps: const [
             StepData(title: 'Inspección', subtitle: 'Paso 1', icon: Icons.info),
-            StepData(title: 'Pruebas', subtitle: 'Paso 2', icon: Icons.scale),
+            StepData(
+                title: 'Pruebas', subtitle: 'Paso 2', icon: AppIcons.balanza),
           ],
           stepWidgets: const [
             Center(child: Text('Contenido del paso 1')),
@@ -335,7 +357,8 @@ void main() {
 
     testWidgets('con el RIM ya emitido, salir no vuelve a sugerirlo',
         (tester) async {
-      await store.insert(rimDePrueba(), firmaDePrueba);
+      await store.insert(
+          rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
       await pump(tester, servicio());
 
       await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));
@@ -350,7 +373,8 @@ void main() {
 
     testWidgets('un servicio que ya tiene RIM pregunta antes de emitir otro',
         (tester) async {
-      await store.insert(rimDePrueba(), firmaDePrueba);
+      await store.insert(
+          rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
       await pump(tester, servicio());
 
       await tester.tap(find.byTooltip(ServiceOptionsMenu.tooltip));

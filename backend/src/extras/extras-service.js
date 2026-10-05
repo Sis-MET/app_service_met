@@ -76,7 +76,8 @@ function rimColumns(rim, { user, registeredBy }) {
     text('representante_metrica', 150, rim.metricaRepresentative),
     text('lugar_recepcion', 255, rim.receptionLocation),
     text('tecnico_asignado', 150, rim.assignedTechnician),
-    { name: 'firma_cliente', type: sql.VarBinary(sql.MAX), value: rim.signature },
+    { name: 'firma_cliente', type: sql.VarBinary(sql.MAX), value: rim.clientSignature },
+    { name: 'firma_representante', type: sql.VarBinary(sql.MAX), value: rim.metricaSignature },
   ];
 }
 

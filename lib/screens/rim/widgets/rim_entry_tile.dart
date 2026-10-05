@@ -50,7 +50,8 @@ class _RimEntryTileState extends State<RimEntryTile> {
       icon: RimMenuAction.menuIcon,
       title: 'Recepción de instrumentos (RIM)',
       subtitle: _unsent == 0
-          ? 'Constancia del estado de una balanza, con la firma del cliente.'
+          ? 'Constancia del estado de una balanza, firmada por el cliente y '
+              'por Métrica.'
           : '$_unsent pendiente(s) de subir al servidor.',
       pending: _unsent,
       onOpenList: _open,

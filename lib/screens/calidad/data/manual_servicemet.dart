@@ -188,7 +188,8 @@ const manualServiceMet = ManualUso(
           '⋮ › "Registrar oportunidad comercial" envía una oportunidad a '
               'Bitrix24 sin dejar el servicio.',
           '⋮ › "Emitir RIM (recepción de instrumento)" deja constancia, con '
-              'la firma del cliente, del estado en que se recibe una balanza.',
+              'las firmas del cliente y del representante de Métrica, del '
+              'estado en que se recibe una balanza.',
         ]),
       ],
     ),
@@ -463,8 +464,9 @@ const manualServiceMet = ManualUso(
       grupo: GrupoManual.servicios,
       titulo: 'Recepción de instrumentos (RIM)',
       icono: AppIcons.rim,
-      resumen: 'Dejar constancia, con la firma del cliente, del estado de una '
-          'balanza cuyo servicio no se puede concluir.',
+      resumen: 'Dejar constancia, con las firmas del cliente y del '
+          'representante de Métrica, del estado de una balanza cuyo servicio '
+          'no se puede concluir.',
       bloques: [
         Parrafo('El RIM (recepción de instrumentos de pesaje) registra en qué '
             'estado se recibe una balanza: qué componentes la acompañan, qué '
@@ -502,7 +504,7 @@ const manualServiceMet = ManualUso(
               'Elija el estado general, los daños detectados con su ubicación '
                   'y el nivel de suciedad.',
               'El estado general y el nivel de suciedad son obligatorios.'),
-          Paso('Paso 2, "Recepción y firma": escriba el "Motivo de la '
+          Paso('Paso 2, "Recepción y firmas": escriba el "Motivo de la '
               'recepción" e indique si se realizaron pruebas de '
               'funcionamiento.'),
           Paso(
@@ -511,9 +513,16 @@ const manualServiceMet = ManualUso(
               'El representante de Métrica es el usuario con sesión iniciada; '
                   'no se escribe.'),
           Paso(
-              'Toque "Tocar para firmar" y entregue el teléfono al cliente.',
-              'La pantalla gira a horizontal. El cliente firma con el dedo; '
-                  '"Limpiar" borra el trazo y "Aceptar firma" lo guarda.'),
+              'En "Firmas", toque "Tocar para firmar" bajo "Firma del '
+                  'cliente" y entregue el teléfono al cliente.',
+              'La firma se hace en pantalla completa y en horizontal, sobre '
+                  'la línea. "Limpiar" borra el trazo, ✓ "Aceptar" guarda la '
+                  'firma y ✕ "Cancelar" vuelve sin firmar.'),
+          Paso(
+              'Firme usted en "Firma del representante de Métrica", de la '
+                  'misma forma.',
+              'Las dos firmas son obligatorias para emitir. "Volver a '
+                  'firmar" repite una firma antes de emitir.'),
           Paso(
               'Toque "Emitir RIM" y confirme.',
               'El RIM queda guardado en el teléfono. Desde "RIM emitido" '
@@ -552,8 +561,9 @@ const manualServiceMet = ManualUso(
         ]),
         Nota(
           TipoNota.importante,
-          'Un RIM emitido no se puede modificar: es lo que el cliente firmó. '
-          'Revise los datos antes de pedir la firma.',
+          'Un RIM emitido no se puede modificar: es lo que firmaron el '
+          'cliente y el representante de Métrica. Revise los datos antes de '
+          'pedir las firmas.',
         ),
         Nota(
           TipoNota.norma,

@@ -9,10 +9,10 @@ import '../models/rim_documento.dart';
 /// RIM emitidos en este teléfono (`servicios_extras.db` › `form_rim`), con el
 /// mismo nombre de base y de tabla que en el servidor.
 ///
-/// Un RIM es un registro firmado por el cliente: se inserta una sola vez y su
-/// contenido no se vuelve a escribir. Después solo cambian el estado de la
-/// subida y, si corresponde, la anulación (con quién, cuándo y por qué). No
-/// hay borrado. El respaldo de la app incluye esta base porque copia todas
+/// Un RIM es un registro firmado por el cliente y por el representante de
+/// Métrica: se inserta una sola vez y su contenido no se vuelve a escribir.
+/// Después solo cambian el estado de la subida y, si corresponde, la
+/// anulación (con quién, cuándo y por qué). No hay borrado. El respaldo de la app incluye esta base porque copia todas
 /// las `.db`.
 class RimStore {
   static const databaseName = 'servicios_extras.db';
@@ -62,6 +62,7 @@ class RimStore {
         contacto_nombre TEXT,
         payload TEXT NOT NULL,
         firma_cliente BLOB NOT NULL,
+        firma_representante BLOB,
         created_by TEXT,
         emitido_en TEXT NOT NULL,
         app_version TEXT,
@@ -83,13 +84,21 @@ class RimStore {
       'CREATE INDEX IF NOT EXISTS idx_${table}_session '
       'ON $table (service_session_id)',
     );
+    // Tablas creadas antes de pedir la firma del representante de Métrica.
+    final columnas = await db.rawQuery('PRAGMA table_info($table)');
+    if (!columnas.any((columna) => columna['name'] == 'firma_representante')) {
+      await db.execute(
+        'ALTER TABLE $table ADD COLUMN firma_representante BLOB',
+      );
+    }
   }
 
-  /// Guarda un RIM recién emitido. Falla si el UUID ya existe: un RIM
-  /// emitido nunca se reemplaza.
+  /// Guarda un RIM recién emitido, con las dos firmas. Falla si el UUID ya
+  /// existe: un RIM emitido nunca se reemplaza.
   Future<RimRegistro> insert(
     RimDocumento documento,
     Uint8List firmaCliente,
+    Uint8List firmaRepresentante,
   ) async {
     final db = await _db;
     await db.insert(
@@ -107,6 +116,7 @@ class RimStore {
         'contacto_nombre': documento.contactoNombre,
         'payload': jsonEncode(documento.toJson()),
         'firma_cliente': firmaCliente,
+        'firma_representante': firmaRepresentante,
         'created_by': documento.creadoPor,
         'emitido_en': documento.emitidoEn.toUtc().toIso8601String(),
         'app_version': documento.appVersion,
@@ -240,11 +250,15 @@ class RimStore {
     DateTime? date(String column) =>
         DateTime.tryParse(row[column]?.toString() ?? '')?.toLocal();
     final payload = jsonDecode(row['payload'].toString());
+    final firmaRepresentante = row['firma_representante'] as List<int>?;
     return RimRegistro(
       id: row['id'] as int,
       documento:
           RimDocumento.fromJson(Map<String, dynamic>.from(payload as Map)),
       firmaCliente: Uint8List.fromList(row['firma_cliente'] as List<int>),
+      firmaRepresentante: firmaRepresentante == null
+          ? null
+          : Uint8List.fromList(firmaRepresentante),
       estado: RimEstadoSubida.fromName(row['status']?.toString()),
       retryCount: row['retry_count'] as int? ?? 0,
       lastError: row['last_error']?.toString(),

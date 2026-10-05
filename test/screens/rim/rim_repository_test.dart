@@ -91,7 +91,8 @@ void main() {
   test('emitir guarda en el teléfono sin tocar la red', () async {
     final repo = repository((_) async => json(500, {}));
 
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(rim.estado, RimEstadoSubida.pending);
     expect(requests, isEmpty);
@@ -102,11 +103,12 @@ void main() {
     );
   });
 
-  test('sube el RIM con la firma y guarda el correlativo del servidor',
+  test('sube el RIM con las firmas y guarda el correlativo del servidor',
       () async {
     final repo =
         repository((_) async => json(201, {'n': 15, 'duplicate': false}));
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -122,6 +124,8 @@ void main() {
     expect(body['uuid'], rim.uuid);
     expect(body['code'], 'RIM-0090-11-26');
     expect(base64Decode(body['clientSignature'] as String), firmaDePrueba);
+    expect(base64Decode(body['metricaSignature'] as String),
+        firmaRepresentanteDePrueba);
     expect(body['issuedAt'],
         DateTime(2026, 10, 1, 14, 45).toUtc().toIso8601String());
     expect(body['functionalityTestPerformed'], isTrue);
@@ -142,7 +146,8 @@ void main() {
       if (!online) throw const SocketException('sin red');
       return json(200, {'n': 15, 'duplicate': true});
     });
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final offline = await repo.subir(rim);
     expect(offline.sent, isFalse);
@@ -164,7 +169,8 @@ void main() {
           'error': 'EXTRAS_NOT_READY',
           'message': 'El servidor todavía no tiene lista la base.',
         }));
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -178,7 +184,8 @@ void main() {
           'error': 'VALIDATION_ERROR',
           'message': 'Los datos del RIM están incompletos o no son válidos.',
         }));
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -195,7 +202,8 @@ void main() {
       expect(request.headers['Authorization'], 'Bearer token-renovado');
       return json(201, {'n': 3, 'duplicate': false});
     });
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
     final prompts = <String?>[];
 
     final result = await repo.subir(rim, onAuthRequired: (error) async {
@@ -211,7 +219,8 @@ void main() {
   test('si el técnico cancela la contraseña, el RIM sigue pendiente', () async {
     auth.token = null;
     final repo = repository((_) async => json(201, {'n': 3}));
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim, onAuthRequired: (_) async => null);
 
@@ -223,7 +232,8 @@ void main() {
 
   test('un RIM anulado no se sube', () async {
     final repo = repository((_) async => json(201, {'n': 3}));
-    final rim = await repo.emitir(rimDePrueba(), firmaDePrueba);
+    final rim = await repo.emitir(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(await repo.anular(rim, 'Balanza equivocada.'), isTrue);
     final anulado = (await store.byUuid(rim.uuid))!;

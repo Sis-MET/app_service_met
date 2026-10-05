@@ -13,6 +13,7 @@ import 'models/rim_documento.dart';
 import 'rim_form_screen.dart';
 import 'services/rim_pdf.dart';
 import 'services/rim_store.dart';
+import '../../theme/app_icons.dart';
 
 /// Carpeta, dentro de ServiceMET, donde se guardan los PDF de los RIM.
 const carpetaRim = 'RIM';
@@ -208,7 +209,7 @@ class RimFlow {
     final emitir = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        icon: const Icon(Icons.inventory_2_outlined, color: AppColors.warning),
+        icon: const Icon(AppIcons.rim, color: AppColors.warning),
         title: const Text('¿Emitir el RIM antes de descartar?'),
         content: Text(
           'Va a descartar el servicio de ${service.metricCode} sin '
@@ -245,7 +246,7 @@ class RimFlow {
 /// para tomar lo que el servicio sabe en ese momento.
 class RimMenuAction extends ServiceMenuAction {
   static const title = 'Emitir RIM (recepción de instrumento)';
-  static const menuIcon = Icons.inventory_2_outlined;
+  static const menuIcon = AppIcons.rim;
 
   RimMenuAction({
     required OpportunityServiceContext Function() contextBuilder,
@@ -309,7 +310,7 @@ class _HojaRimEmitido extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: AppStatusPill(
-                icon: Icons.check_circle_rounded,
+                icon: AppIcons.completo,
                 label: [rim.codigo, rim.service.metricCode]
                     .whereType<String>()
                     .join(' · '),
@@ -317,14 +318,15 @@ class _HojaRimEmitido extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Quedó guardado en este teléfono con la firma de '
-              '${rim.contactoNombre}. Súbalo al servidor desde $rimUbicacion.',
+              'Quedó guardado en este teléfono, firmado por '
+              '${rim.contactoNombre} y por Métrica. Súbalo al servidor desde '
+              '$rimUbicacion.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 10),
             _opcion(
               context,
-              icono: Icons.picture_as_pdf_outlined,
+              icono: AppIcons.documento,
               titulo: 'Ver o compartir el PDF',
               detalle: 'Guardarlo, enviarlo al cliente o imprimirlo',
               valor: _DespuesDeEmitir.pdf,
@@ -332,7 +334,7 @@ class _HojaRimEmitido extends StatelessWidget {
             if (conCambioDeBalanza)
               _opcion(
                 context,
-                icono: Icons.swap_horiz_rounded,
+                icono: AppIcons.cambiar,
                 titulo: 'Cambiar de balanza',
                 detalle: 'Cierra esta balanza sin concluir el servicio y '
                     'permite elegir otra',
@@ -340,7 +342,7 @@ class _HojaRimEmitido extends StatelessWidget {
               ),
             _opcion(
               context,
-              icono: Icons.arrow_forward_rounded,
+              icono: AppIcons.adelante,
               titulo: conCambioDeBalanza ? 'Seguir con esta balanza' : 'Listo',
               detalle: conCambioDeBalanza
                   ? 'Vuelve al paso en el que estaba'
@@ -366,7 +368,7 @@ class _HojaRimEmitido extends StatelessWidget {
       leading: Icon(icono),
       title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(detalle),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: const Icon(AppIcons.siguiente),
       onTap: () => Navigator.pop(context, valor),
     );
   }

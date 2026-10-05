@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/rim/data/rim_catalogo.dart';
 import 'package:service_met/screens/rim/models/rim_documento.dart';
@@ -28,12 +30,14 @@ void main() {
     expect(rimCodigo(year: 2031), 'RIM-XXXX-XX-31');
   });
 
-  test('guarda el RIM con la firma y lo recupera idéntico', () async {
-    final guardado = await store.insert(rimDePrueba(), firmaDePrueba);
+  test('guarda el RIM con las dos firmas y lo recupera idéntico', () async {
+    final guardado = await store.insert(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(guardado.estado, RimEstadoSubida.pending);
     expect(guardado.canUpload, isTrue);
     expect(guardado.firmaCliente, firmaDePrueba);
+    expect(guardado.firmaRepresentante, firmaRepresentanteDePrueba);
 
     final rim = (await store.byUuid(guardado.uuid))!.documento;
     expect(rim.codigo, 'RIM-0090-11-26');
@@ -62,14 +66,15 @@ void main() {
   });
 
   test('un RIM emitido no se reemplaza', () async {
-    await store.insert(rimDePrueba(), firmaDePrueba);
+    await store.insert(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
     final otro = RimDocumento.fromJson({
       ...rimDePrueba().toJson(),
       'reason': 'Texto cambiado después de firmar.',
     });
 
     await expectLater(
-      store.insert(otro, firmaDePrueba),
+      store.insert(otro, firmaDePrueba, firmaRepresentanteDePrueba),
       throwsA(isA<DatabaseException>()),
     );
     final vigente = await store.byUuid(otro.uuid);
@@ -77,7 +82,8 @@ void main() {
   });
 
   test('sabe si un servicio ya tiene RIM de su instrumento', () async {
-    await store.insert(rimDePrueba(), firmaDePrueba);
+    await store.insert(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(
       await store.existsForService(
@@ -101,7 +107,8 @@ void main() {
   });
 
   test('subido: guarda el correlativo del servidor y ya no se anula', () async {
-    final rim = await store.insert(rimDePrueba(), firmaDePrueba);
+    final rim = await store.insert(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
     await store.markSending(rim.uuid);
     final subido = await store.markSent(rim.uuid, 42);
 
@@ -129,7 +136,8 @@ void main() {
 
   test('anular deja el RIM en el teléfono, con quién, cuándo y por qué',
       () async {
-    final rim = await store.insert(rimDePrueba(), firmaDePrueba);
+    final rim = await store.insert(
+        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(
       await store.anular(
@@ -146,9 +154,10 @@ void main() {
     expect(anulado.anuladoEn, isNotNull);
     expect(anulado.motivoAnulacion, 'Se eligió la balanza equivocada.');
     expect(anulado.canUpload, isFalse);
-    // Sigue existiendo, con su contenido y su firma.
+    // Sigue existiendo, con su contenido y sus firmas.
     expect(anulado.documento.contactoNombre, 'Juan Pérez Ñáñez');
     expect(anulado.firmaCliente, firmaDePrueba);
+    expect(anulado.firmaRepresentante, firmaRepresentanteDePrueba);
     expect(await store.countUnsent(), 0);
     // Un RIM anulado ya no cuenta para el servicio: se puede emitir otro.
     expect(
@@ -175,6 +184,7 @@ void main() {
       await store.insert(
         rimDePrueba(uuid: uuids[i], emitidoEn: DateTime(2026, 10, 1, 9 + i)),
         firmaDePrueba,
+        firmaRepresentanteDePrueba,
       );
     }
     await store.markSent(uuids[0], 1);
@@ -183,5 +193,65 @@ void main() {
     final lista = await store.list();
     expect(lista.map((rim) => rim.uuid), [uuids[2], uuids[1], uuids[0]]);
     expect(await store.countUnsent(), 1);
+  });
+
+  test('una tabla anterior a la firma de Métrica se completa sin perder RIM',
+      () async {
+    // Tabla como la creaba la versión anterior: sin firma_representante.
+    final anterior =
+        await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
+    addTearDown(anterior.close);
+    await anterior.execute('''
+      CREATE TABLE ${RimStore.table} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT NOT NULL UNIQUE,
+        codigo_rim TEXT NOT NULL,
+        service_type TEXT NOT NULL,
+        service_name TEXT,
+        service_session_id TEXT,
+        seca TEXT,
+        cod_metrica TEXT,
+        cliente TEXT,
+        planta TEXT,
+        contacto_nombre TEXT,
+        payload TEXT NOT NULL,
+        firma_cliente BLOB NOT NULL,
+        created_by TEXT,
+        emitido_en TEXT NOT NULL,
+        app_version TEXT,
+        status TEXT NOT NULL,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        server_n INTEGER,
+        sent_at TEXT,
+        anulado INTEGER NOT NULL DEFAULT 0,
+        anulado_por TEXT,
+        anulado_en TEXT,
+        motivo_anulacion TEXT
+      )
+    ''');
+    final viejo = rimDePrueba();
+    await anterior.insert(RimStore.table, {
+      'uuid': viejo.uuid,
+      'codigo_rim': viejo.codigo,
+      'service_type': viejo.service.serviceType.name,
+      'payload': jsonEncode(viejo.toJson()),
+      'firma_cliente': firmaDePrueba,
+      'emitido_en': viejo.emitidoEn.toUtc().toIso8601String(),
+      'status': RimEstadoSubida.pending.name,
+    });
+
+    final migrado = RimStore(database: anterior);
+    final conservado = (await migrado.byUuid(viejo.uuid))!;
+    expect(conservado.firmaCliente, firmaDePrueba);
+    expect(conservado.firmaRepresentante, isNull);
+    expect(conservado.toUploadJson().containsKey('metricaSignature'), isFalse);
+
+    final nuevo = await migrado.insert(
+      rimDePrueba(uuid: '44444444-4444-4444-8444-444444444444'),
+      firmaDePrueba,
+      firmaRepresentanteDePrueba,
+    );
+    expect(nuevo.firmaRepresentante, firmaRepresentanteDePrueba);
   });
 }

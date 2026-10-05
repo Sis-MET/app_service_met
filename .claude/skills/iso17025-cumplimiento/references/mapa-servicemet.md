@@ -60,7 +60,8 @@ Otros puntos:
 - Pruebas: `test/` (Flutter) y `backend/test/` (`node --test`).
 - Formularios adicionales (no son tablas de DataMET; se llenan dentro de un
   servicio, desde el menu de tres puntos, y se revisan en Servicios):
-  - RIM, recepcion de instrumentos de pesaje con firma del cliente:
+  - RIM, recepcion de instrumentos de pesaje con firmas del cliente y del
+    representante de Metrica:
     `lib/screens/rim/`. Local en `servicios_extras.db` > `form_rim`
     (`services/rim_store.dart`): solo insercion, sin edicion ni borrado;
     anulacion con usuario, fecha y motivo. Servidor: base `servicios_extras`

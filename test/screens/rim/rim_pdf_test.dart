@@ -14,6 +14,7 @@ void main() {
         id: 1,
         documento: rimDePrueba(),
         firmaCliente: firmaDePrueba,
+        firmaRepresentante: firmaRepresentanteDePrueba,
         estado: RimEstadoSubida.pending,
         anulado: anulado,
         anuladoPor: anulado ? 'lmamani' : null,
@@ -33,7 +34,7 @@ void main() {
     File('$carpeta${Platform.pathSeparator}$nombre').writeAsBytesSync(bytes);
   }
 
-  test('el PDF del RIM se genera sin conexión, con la firma', () async {
+  test('el PDF del RIM se genera sin conexión, con las firmas', () async {
     final bytes = await RimPdf.generar(registro());
     esPdf(bytes);
     guardar('rim.pdf', bytes);

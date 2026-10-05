@@ -1,8 +1,8 @@
 /*
   Crea la base servicios_extras con los formularios adicionales de ServiceMET:
 
-    - dbo.form_rim     Recepción de instrumentos de pesaje (RIM), con la firma
-                       del cliente.
+    - dbo.form_rim     Recepción de instrumentos de pesaje (RIM), con las
+                       firmas del cliente y del representante de Métrica.
     - dbo.form_bitrix  Oportunidades comerciales registradas en Bitrix24
                        (CRM › Prospectos): copia de lo que se envió y el
                        número de prospecto asignado.
@@ -15,7 +15,8 @@
   Ejecutar con una cuenta administradora (crea una base). Puede ejecutarse de
   nuevo: no recrea lo que ya existe ni duplica permisos. Si las tablas se
   crearon con una versión anterior de este script, actualiza la restricción
-  de tipo_servicio para admitir los registros directos.
+  de tipo_servicio para admitir los registros directos y agrega la columna
+  de la firma del representante de Métrica.
 
   Permisos: el login de la API (ServiceMET) recibe SELECT e INSERT sobre las
   dos tablas. Deliberadamente NO recibe UPDATE, DELETE, ALTER ni CONTROL: un
@@ -116,8 +117,11 @@ BEGIN
     [lugar_recepcion]        nvarchar(255)     NOT NULL,
     [tecnico_asignado]       nvarchar(150)     NULL,
 
-    -- Firma del cliente, en PNG.
+    -- Firmas del cliente y del representante de Métrica, en PNG. La API
+    -- exige las dos; la segunda admite NULL solo para poder agregarla a una
+    -- tabla creada con una versión anterior de este script.
     [firma_cliente]          varbinary(max)    NOT NULL,
+    [firma_representante]    varbinary(max)    NULL,
 
     CONSTRAINT [PK_form_rim] PRIMARY KEY CLUSTERED ([n]),
     CONSTRAINT [UQ_form_rim_uuid] UNIQUE ([uuid]),
@@ -219,6 +223,13 @@ BEGIN
   ALTER TABLE [dbo].[form_bitrix] ADD CONSTRAINT [CK_form_bitrix_tipo_servicio]
     CHECK ([tipo_servicio] IN (N'calibracion', N'soporte', N'directo'));
   PRINT N'dbo.form_bitrix admite ahora tipo_servicio = directo.';
+END
+
+-- Tabla creada antes de pedir la firma del representante de Métrica.
+IF COL_LENGTH(N'dbo.form_rim', N'firma_representante') IS NULL
+BEGIN
+  ALTER TABLE [dbo].[form_rim] ADD [firma_representante] varbinary(max) NULL;
+  PRINT N'dbo.form_rim tiene ahora la columna firma_representante.';
 END
 
 COMMIT TRANSACTION;

@@ -22,8 +22,8 @@ class RimUploadResult {
 
 /// Orquesta la tabla local de RIM y la API METRICA.
 ///
-/// Emitir es solo local: el RIM queda guardado en el teléfono, con la firma
-/// del cliente, aunque no haya red. La subida al servidor es un paso aparte
+/// Emitir es solo local: el RIM queda guardado en el teléfono, con las firmas
+/// del cliente y del representante de Métrica, aunque no haya red. La subida al servidor es un paso aparte
 /// que el técnico inicia a mano; reenviar usa el mismo UUID, así que no
 /// duplica el RIM en el servidor.
 class RimRepository {
@@ -47,8 +47,12 @@ class RimRepository {
         _apiFactory = apiFactory ?? RimApi.new;
 
   /// Guarda el RIM firmado en el teléfono. Desde aquí ya no se modifica.
-  Future<RimRegistro> emitir(RimDocumento documento, Uint8List firmaCliente) =>
-      _store.insert(documento, firmaCliente);
+  Future<RimRegistro> emitir(
+    RimDocumento documento,
+    Uint8List firmaCliente,
+    Uint8List firmaRepresentante,
+  ) =>
+      _store.insert(documento, firmaCliente, firmaRepresentante);
 
   Future<List<RimRegistro>> list() => _store.list();
 

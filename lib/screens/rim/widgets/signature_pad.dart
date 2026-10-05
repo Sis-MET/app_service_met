@@ -3,9 +3,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
-import '../../../widgets/service_ui/service_app_bar.dart';
+import '../../../theme/app_icons.dart';
 
 /// Trazos de una firma hecha con el dedo.
 class SignaturePadController extends ChangeNotifier {
@@ -121,6 +123,9 @@ class SignaturePadController extends ChangeNotifier {
 
 /// Lienzo blanco donde se firma con el dedo.
 class SignaturePad extends StatelessWidget {
+  /// Altura de la línea de firma, como fracción del alto del lienzo.
+  static const baselineFactor = 0.74;
+
   final SignaturePadController controller;
 
   const SignaturePad({super.key, required this.controller});
@@ -151,7 +156,7 @@ class _SignaturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.white);
-    final baseline = size.height * 0.74;
+    final baseline = size.height * SignaturePad.baselineFactor;
     canvas.drawLine(
       Offset(size.width * 0.08, baseline),
       Offset(size.width * 0.92, baseline),
@@ -167,10 +172,15 @@ class _SignaturePainter extends CustomPainter {
       oldDelegate.controller != controller;
 }
 
-/// Pantalla completa, en horizontal, para que el cliente firme con el dedo.
-/// Devuelve la firma en PNG, o null si se cancela.
+/// Pantalla completa, en horizontal y sin las barras del sistema, para firmar
+/// con el dedo: todo el teléfono es el lienzo, salvo una franja con ✕
+/// (cancelar), "Limpiar" y ✓ (aceptar). Devuelve la firma en PNG, o null si
+/// se cancela.
 class SignatureCaptureScreen extends StatefulWidget {
-  /// Quién firma, para que lo lea antes de firmar.
+  /// Qué firma se pide ("Firma del cliente").
+  final String title;
+
+  /// Quién firma: se lee bajo la línea, como la aclaración de una firma.
   final String signerName;
 
   /// Qué está firmando ("RIM-0103-11-26 · 0103-11-005").
@@ -178,12 +188,14 @@ class SignatureCaptureScreen extends StatefulWidget {
 
   const SignatureCaptureScreen({
     super.key,
+    required this.title,
     required this.signerName,
     required this.documentLabel,
   });
 
   static Future<Uint8List?> open(
     BuildContext context, {
+    required String title,
     required String signerName,
     required String documentLabel,
   }) {
@@ -191,6 +203,7 @@ class SignatureCaptureScreen extends StatefulWidget {
       MaterialPageRoute(
         fullscreenDialog: true,
         builder: (_) => SignatureCaptureScreen(
+          title: title,
           signerName: signerName,
           documentLabel: documentLabel,
         ),
@@ -209,15 +222,18 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
   @override
   void initState() {
     super.initState();
-    // La app trabaja en vertical; para firmar conviene el ancho del teléfono.
+    // La app trabaja en vertical; para firmar conviene el ancho del teléfono,
+    // y sin las barras del sistema el lienzo llega a los bordes.
     SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
   void dispose() {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
     _controller.dispose();
     super.dispose();
@@ -233,66 +249,230 @@ class _SignatureCaptureScreenState extends State<SignatureCaptureScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    // Siempre blanco, también en oscuro: es la hoja donde se firma.
     return Scaffold(
-      appBar: ServiceAppBar(
-        title: 'Firma del cliente',
-        subtitle: widget.documentLabel,
-        leading: Center(
-          child: IconButton(
-            tooltip: 'Cancelar',
-            icon: const Icon(Icons.close_rounded),
-            onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Si el teléfono no gira, la franja de botones pasa abajo.
+            final horizontal = constraints.maxWidth >= constraints.maxHeight;
+            return Flex(
+              direction: horizontal ? Axis.horizontal : Axis.vertical,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _lienzo()),
+                Container(
+                  width: horizontal ? 1 : null,
+                  height: horizontal ? null : 1,
+                  color: Colors.black12,
+                ),
+                // Lo justo para el ✓ (68) con su nombre y los márgenes.
+                SizedBox(
+                  width: horizontal ? 112 : null,
+                  height: horizontal ? null : 128,
+                  child: _acciones(horizontal),
+                ),
+              ],
+            );
+          },
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    );
+  }
+
+  Widget _lienzo() => LayoutBuilder(
+        builder: (context, constraints) {
+          final baseline = constraints.maxHeight * SignaturePad.baselineFactor;
+          // Los textos no reciben toques: el trazo pasa por encima de ellos.
+          return Stack(
             children: [
-              Text(
-                'Firma de ${widget.signerName}. Firme con el dedo sobre la '
-                'línea.',
-                style: TextStyle(fontSize: 13, color: muted),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: AppDesign.smallRadius,
-                    border: Border.all(color: muted.withValues(alpha: 0.5)),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: AppDesign.smallRadius,
-                    child: SignaturePad(controller: _controller),
+              Positioned.fill(child: SignaturePad(controller: _controller)),
+              Positioned(
+                left: 20,
+                top: 14,
+                right: 20,
+                child: IgnorePointer(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.poppins(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: AppDesign.ink,
+                        ),
+                      ),
+                      Text(
+                        widget.documentLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppDesign.muted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
-              ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _controller.isEmpty || _saving
-                          ? null
-                          : _controller.clear,
-                      icon: const Icon(Icons.backspace_outlined),
-                      label: const Text('Limpiar'),
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: constraints.maxHeight - baseline + 10,
+                child: IgnorePointer(
+                  child: ListenableBuilder(
+                    listenable: _controller,
+                    builder: (context, _) => AnimatedOpacity(
+                      opacity: _controller.isEmpty ? 1 : 0,
+                      duration: const Duration(milliseconds: 150),
+                      child: const Text(
+                        'Firme aquí con el dedo',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 15, color: Colors.black26),
+                      ),
                     ),
-                    const Spacer(),
-                    FilledButton.icon(
-                      onPressed:
-                          _controller.hasSignature && !_saving ? _accept : null,
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text('Aceptar firma'),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 20,
+                right: 20,
+                top: baseline + 8,
+                child: IgnorePointer(
+                  child: Text(
+                    widget.signerName,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black54,
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
+          );
+        },
+      );
+
+  Widget _acciones(bool horizontal) => ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) => Padding(
+          padding: const EdgeInsets.all(12),
+          child: Flex(
+            direction: horizontal ? Axis.vertical : Axis.horizontal,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _AccionFirma(
+                icon: AppIcons.cerrar,
+                label: 'Cancelar',
+                onPressed: _saving ? null : () => Navigator.of(context).pop(),
+              ),
+              _AccionFirma(
+                icon: AppIcons.borrar,
+                label: 'Limpiar',
+                onPressed:
+                    _controller.isEmpty || _saving ? null : _controller.clear,
+              ),
+              _AccionFirma(
+                icon: AppIcons.listo,
+                label: 'Aceptar',
+                tooltip: 'Aceptar firma',
+                primary: true,
+                busy: _saving,
+                onPressed:
+                    _controller.hasSignature && !_saving ? _accept : null,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+/// Acción de la franja de firma: un círculo con su ícono y el nombre debajo,
+/// que se tocan como un solo botón. La principal (✓) es más grande y verde.
+class _AccionFirma extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? tooltip;
+  final VoidCallback? onPressed;
+  final bool primary;
+  final bool busy;
+
+  const _AccionFirma({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.tooltip,
+    this.primary = false,
+    this.busy = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final size = primary ? 68.0 : 50.0;
+    final tinta = primary
+        ? (enabled ? AppColors.actionPositiveInk : Colors.black38)
+        : (enabled ? Colors.black87 : Colors.black26);
+    return Tooltip(
+      message: tooltip ?? label,
+      child: Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip ?? label,
+        excludeSemantics: true,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppDesign.mediumRadius,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: size,
+                  height: size,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: primary
+                        ? (enabled ? AppColors.actionPositive : Colors.black12)
+                        : null,
+                    border: primary
+                        ? null
+                        : Border.all(
+                            color: enabled ? Colors.black38 : Colors.black12,
+                          ),
+                  ),
+                  child: busy
+                      ? SizedBox.square(
+                          dimension: 26,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: tinta,
+                          ),
+                        )
+                      : Icon(icon, size: primary ? 38 : 24, color: tinta),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? Colors.black87 : Colors.black38,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

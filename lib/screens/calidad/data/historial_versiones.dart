@@ -38,7 +38,8 @@ const cambiosSinLiberar = <String>[
   'Recepción de instrumentos de pesaje (RIM) desde calibración y soporte: ⋮ › '
       '"Emitir RIM (recepción de instrumento)". El cliente, la planta y el '
       'instrumento se toman del servicio; el técnico registra el inventario, '
-      'los daños, la suciedad y el motivo, y el cliente firma en la pantalla. '
+      'los daños, la suciedad y el motivo, y firman en la pantalla, a '
+      'pantalla completa, el cliente y el representante de Métrica. '
       'El RIM queda guardado en el teléfono, con su PDF, y no se modifica: si '
       'tiene un error se anula con motivo.',
   'La app sugiere el RIM cuando el servicio de una balanza se corta: al '
@@ -48,9 +49,10 @@ const cambiosSinLiberar = <String>[
   'Servicios reúne los formularios adicionales: "Recepción de instrumentos '
       '(RIM)" y "Oportunidades comerciales" (antes en Precarga), con sus '
       'pendientes de enviar.',
-  'Servidor: base servicios_extras con las tablas form_rim (RIM con la firma '
-      'del cliente) y form_bitrix (copia de cada oportunidad registrada en '
-      'Bitrix24). Requiere el script 012.',
+  'Servidor: base servicios_extras con las tablas form_rim (RIM con las '
+      'firmas del cliente y del representante de Métrica) y form_bitrix '
+      '(copia de cada oportunidad registrada en Bitrix24). Requiere el '
+      'script 012.',
   'RIM y oportunidades también fuera de un servicio: en Servicios, "Nuevo '
       'RIM" y "Nueva oportunidad" abren una selección rápida de cliente, '
       'planta e instrumento (o el código QR del instrumento). El RIM admite '

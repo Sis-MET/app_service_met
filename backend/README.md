@@ -114,8 +114,9 @@ a las tablas de DataMET se guardan en la base `servicios_extras`, en la misma
 instancia de SQL Server:
 
 - `dbo.form_rim`: recepción de instrumentos de pesaje (RIM), con el estado
-  físico, el inventario, los datos de la recepción y la firma del cliente
-  (PNG en `firma_cliente`).
+  físico, el inventario, los datos de la recepción y las firmas del cliente
+  y del representante de Métrica (PNG en `firma_cliente` y
+  `firma_representante`; la API exige las dos).
 - `dbo.form_bitrix`: copia de cada oportunidad comercial registrada en
   Bitrix24, con el número de prospecto.
 

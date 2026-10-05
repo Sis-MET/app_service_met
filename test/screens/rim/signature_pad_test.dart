@@ -56,7 +56,9 @@ void main() {
     expect(header.getUint32(4), lessThan(300));
   });
 
-  testWidgets('se firma con el dedo y se devuelve el PNG', (tester) async {
+  testWidgets('se firma con el dedo en pantalla completa y se devuelve el PNG',
+      (tester) async {
+    // Teléfono en horizontal: 800 × 360 puntos.
     tester.view.physicalSize = const Size(2400, 1080);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -69,6 +71,7 @@ void main() {
           onPressed: () async {
             firma = await SignatureCaptureScreen.open(
               context,
+              title: 'Firma del cliente',
               signerName: 'Juan Pérez',
               documentLabel: 'RIM-0090-11-26 · 0090-11-014',
             );
@@ -82,10 +85,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Firma del cliente'), findsOneWidget);
-    expect(find.textContaining('Firma de Juan Pérez'), findsOneWidget);
-    FilledButton aceptar() => tester.widget<FilledButton>(
-        find.widgetWithText(FilledButton, 'Aceptar firma'));
-    expect(aceptar().onPressed, isNull, reason: 'todavía no hay firma');
+    expect(find.text('RIM-0090-11-26 · 0090-11-014'), findsOneWidget);
+    expect(find.text('Juan Pérez'), findsOneWidget);
+    expect(find.text('Firme aquí con el dedo'), findsOneWidget);
+    // Sin barra de título: el lienzo ocupa todo el alto y casi todo el ancho.
+    expect(find.byType(AppBar), findsNothing);
+    final lienzo = tester.getSize(find.byType(SignaturePad));
+    expect(lienzo.height, 360);
+    expect(lienzo.width, greaterThan(650));
+
+    InkWell accion(String label) => tester.widget<InkWell>(
+        find.ancestor(of: find.text(label), matching: find.byType(InkWell)));
+    expect(accion('Aceptar').onTap, isNull, reason: 'todavía no hay firma');
+    expect(accion('Limpiar').onTap, isNull);
 
     final pad = tester.getCenter(find.byType(SignaturePad));
     final gesture = await tester.startGesture(pad - const Offset(120, 0));
@@ -94,12 +106,12 @@ void main() {
     await gesture.moveBy(const Offset(80, -20));
     await gesture.up();
     await tester.pump();
-    expect(aceptar().onPressed, isNotNull);
+    expect(accion('Aceptar').onTap, isNotNull);
 
-    // "Limpiar" borra y vuelve a deshabilitar.
+    // "Limpiar" borra y vuelve a deshabilitar el ✓.
     await tester.tap(find.text('Limpiar'));
-    await tester.pump();
-    expect(aceptar().onPressed, isNull);
+    await tester.pumpAndSettle();
+    expect(accion('Aceptar').onTap, isNull);
 
     final again = await tester.startGesture(pad - const Offset(100, 10));
     await again.moveBy(const Offset(200, 20));
@@ -107,7 +119,7 @@ void main() {
     await tester.pump();
 
     await tester.runAsync(() async {
-      await tester.tap(find.text('Aceptar firma'));
+      await tester.tap(find.byTooltip('Aceptar firma'));
       // Codificar el PNG ocurre fuera del reloj simulado.
       for (var i = 0; i < 50 && !cerrado; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -120,5 +132,55 @@ void main() {
     expect(firma, isNotNull);
     expect(firma!.take(8), pngSignature);
     expect(find.text('Firma del cliente'), findsNothing);
+  });
+
+  testWidgets('✕ cancela sin devolver firma', (tester) async {
+    tester.view.physicalSize = const Size(2400, 1080);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    Uint8List? firma = Uint8List(0);
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () async => firma = await SignatureCaptureScreen.open(
+            context,
+            title: 'Firma del representante de Métrica',
+            signerName: 'Tec. Luis Mamani',
+            documentLabel: 'RIM-0090-11-26',
+          ),
+          child: const Text('firmar'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('firmar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Firma del representante de Métrica'), findsOneWidget);
+
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+    expect(find.text('Firma del representante de Métrica'), findsNothing);
+    expect(firma, isNull);
+  });
+
+  testWidgets('si el teléfono no gira, los botones pasan abajo',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const MaterialApp(
+      home: SignatureCaptureScreen(
+        title: 'Firma del cliente',
+        signerName: 'Juan Pérez',
+        documentLabel: 'RIM-0090-11-26',
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    final lienzo = tester.getRect(find.byType(SignaturePad));
+    expect(lienzo.width, 360);
+    expect(
+        tester.getCenter(find.text('Aceptar')).dy, greaterThan(lienzo.bottom));
   });
 }

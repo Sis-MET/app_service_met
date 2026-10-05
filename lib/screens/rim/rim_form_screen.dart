@@ -15,15 +15,16 @@ import 'data/rim_catalogo.dart';
 import 'models/rim_documento.dart';
 import 'services/rim_repository.dart';
 import 'widgets/signature_pad.dart';
+import '../../theme/app_icons.dart';
 
 /// Formulario "Recepción de instrumentos de pesaje" (RIM), para Calibración
 /// y Soporte técnico.
 ///
 /// El cliente, la planta y el instrumento vienen del servicio en curso (una
 /// foto de solo lectura), así que el técnico llena solo el estado físico y la
-/// recepción, y el cliente firma en la pantalla. Se abre encima del servicio:
-/// el paso actual sigue montado debajo. Al emitir, el RIM queda guardado en
-/// el teléfono y ya no se modifica.
+/// recepción, y firman en la pantalla el cliente y el representante de
+/// Métrica. Se abre encima del servicio: el paso actual sigue montado debajo.
+/// Al emitir, el RIM queda guardado en el teléfono y ya no se modifica.
 class RimFormScreen extends StatefulWidget {
   final OpportunityServiceContext serviceContext;
   final RimRepository repository;
@@ -31,7 +32,8 @@ class RimFormScreen extends StatefulWidget {
   final Future<String?> Function() appVersion;
 
   /// Solo para pruebas: reemplaza la pantalla de firma.
-  final Future<Uint8List?> Function(BuildContext context)? signatureCapture;
+  final Future<Uint8List?> Function(BuildContext context, RimFirmante firmante)?
+      signatureCapture;
 
   const RimFormScreen({
     super.key,
@@ -68,13 +70,27 @@ class RimFormScreen extends StatefulWidget {
   State<RimFormScreen> createState() => _RimFormScreenState();
 }
 
+/// Quienes firman el RIM: el que entrega el instrumento y el que lo recibe.
+enum RimFirmante {
+  cliente('Firma del cliente', 'firmaCliente'),
+  representante('Firma del representante de Métrica', 'firmaRepresentante');
+
+  /// Título de la firma, en el formulario y en la pantalla de firma.
+  final String titulo;
+
+  /// Clave de su error en el formulario.
+  final String campo;
+
+  const RimFirmante(this.titulo, this.campo);
+}
+
 class _OtroComponente {
   final nombre = TextEditingController();
   RimEstadoComponente estado = RimEstadoComponente.present;
 }
 
 class _RimFormScreenState extends State<RimFormScreen> {
-  static const _pasos = ['Estado físico', 'Recepción y firma'];
+  static const _pasos = ['Estado físico', 'Recepción y firmas'];
 
   late final String _uuid = newOpportunityUuid();
   late final String _codigo = rimCodigo(
@@ -112,13 +128,37 @@ class _RimFormScreenState extends State<RimFormScreen> {
   final _contactoTelefono = TextEditingController();
   late final _lugar = TextEditingController(text: _lugarSugerido());
   final _tecnicoAsignado = TextEditingController();
-  Uint8List? _firma;
+  final Map<RimFirmante, Uint8List> _firmas = {};
+
+  /// Usuario con sesión iniciada; representa a Métrica si el servicio no
+  /// trae técnico.
+  String? _usuario;
 
   OpportunityServiceContext get _service => widget.serviceContext;
 
   String _lugarSugerido() => [_service.plantName, _service.plantAddress]
       .whereType<String>()
       .join(' - ');
+
+  /// Quién recibe y firma por Métrica: sale de la sesión, no se escribe.
+  String? get _representante {
+    final nombre = (_service.technician ?? _usuario)?.trim() ?? '';
+    return nombre.isEmpty ? null : nombre;
+  }
+
+  String get _documentoFirmado =>
+      [_codigo, _service.metricCode].whereType<String>().join(' · ');
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+  }
+
+  Future<void> _cargarUsuario() async {
+    final usuario = await widget.loggedUser();
+    if (mounted) setState(() => _usuario = usuario);
+  }
 
   @override
   void dispose() {
@@ -177,7 +217,13 @@ class _RimFormScreenState extends State<RimFormScreen> {
     if (_lugar.text.trim().isEmpty) {
       errores['lugar'] = 'Indique el lugar de recepción.';
     }
-    if (_firma == null) errores['firma'] = 'Falta la firma del cliente.';
+    if (_firmas[RimFirmante.cliente] == null) {
+      errores[RimFirmante.cliente.campo] = 'Falta la firma del cliente.';
+    }
+    if (_firmas[RimFirmante.representante] == null) {
+      errores[RimFirmante.representante.campo] =
+          'Falta la firma del representante de Métrica.';
+    }
     return errores;
   }
 
@@ -203,29 +249,34 @@ class _RimFormScreenState extends State<RimFormScreen> {
 
   // ── Firma y emisión ────────────────────────────────────────────────────
 
-  Future<void> _firmar() async {
+  Future<void> _firmar(RimFirmante firmante) async {
     FocusScope.of(context).unfocus();
-    final nombre = _contactoNombre.text.trim();
-    if (nombre.length < 3) {
-      setState(() => _errores = {
-            ..._errores,
-            'contactoNombre': 'Escriba el nombre de quien va a firmar.',
-          });
-      return;
+    final String nombre;
+    if (firmante == RimFirmante.cliente) {
+      nombre = _contactoNombre.text.trim();
+      if (nombre.length < 3) {
+        setState(() => _errores = {
+              ..._errores,
+              'contactoNombre': 'Escriba el nombre de quien va a firmar.',
+            });
+        return;
+      }
+    } else {
+      nombre = _representante ?? 'Representante de Métrica';
     }
     final capture = widget.signatureCapture;
     final firma = capture != null
-        ? await capture(context)
+        ? await capture(context, firmante)
         : await SignatureCaptureScreen.open(
             context,
+            title: firmante.titulo,
             signerName: nombre,
-            documentLabel:
-                [_codigo, _service.metricCode].whereType<String>().join(' · '),
+            documentLabel: _documentoFirmado,
           );
     if (firma == null || !mounted) return;
     _cambio(() {
-      _firma = firma;
-      _errores = {..._errores}..remove('firma');
+      _firmas[firmante] = firma;
+      _errores = {..._errores}..remove(firmante.campo);
     });
   }
 
@@ -292,7 +343,8 @@ class _RimFormScreenState extends State<RimFormScreen> {
         content: Text(
           'Se emitirá $_codigo del instrumento '
           '${_service.metricCode ?? 'seleccionado'}, firmado por '
-          '${_contactoNombre.text.trim()}.\n\n'
+          '${_contactoNombre.text.trim()} (cliente) y '
+          '${_representante ?? 'el representante de Métrica'} (Métrica).\n\n'
           'Una vez emitido no se puede modificar: si tiene un error, se '
           'anula y se emite otro.',
         ),
@@ -312,8 +364,11 @@ class _RimFormScreenState extends State<RimFormScreen> {
 
     setState(() => _busy = true);
     try {
-      final registro =
-          await widget.repository.emitir(await _documento(), _firma!);
+      final registro = await widget.repository.emitir(
+        await _documento(),
+        _firmas[RimFirmante.cliente]!,
+        _firmas[RimFirmante.representante]!,
+      );
       if (!mounted) return;
       Navigator.of(context).pop(registro);
     } catch (error) {
@@ -374,7 +429,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
           leading: Center(
             child: IconButton(
               tooltip: 'Cancelar',
-              icon: const Icon(Icons.close_rounded),
+              icon: const Icon(AppIcons.cerrar),
               onPressed: _busy ? null : _cancelar,
             ),
           ),
@@ -518,7 +573,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
                       ),
                       IconButton(
                         tooltip: 'Quitar este componente',
-                        icon: const Icon(Icons.delete_outline_rounded),
+                        icon: const Icon(AppIcons.eliminar),
                         onPressed: () => _cambio(() {
                           _otros.removeAt(i).nombre.dispose();
                         }),
@@ -540,7 +595,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: () => _cambio(() => _otros.add(_OtroComponente())),
-            icon: const Icon(Icons.add_rounded),
+            icon: const Icon(AppIcons.agregar),
             label: const Text('Agregar otro componente'),
           ),
         ),
@@ -681,7 +736,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
           decoration: serviceInputDeco(
             'Nombre del cliente o contacto',
             isDark,
-            prefixIcon: const Icon(Icons.person_outline_rounded),
+            prefixIcon: const Icon(AppIcons.persona),
           ).copyWith(
             errorText: _errores['contactoNombre'],
             counterText: '',
@@ -714,7 +769,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
           padding: const EdgeInsets.all(16),
           child: _FilaLectura(
             'Representante Métrica',
-            _service.technician ?? 'Usuario con sesión iniciada',
+            _representante ?? 'Usuario con sesión iniciada',
           ),
         ),
         const SizedBox(height: 12),
@@ -726,7 +781,7 @@ class _RimFormScreenState extends State<RimFormScreen> {
           decoration: serviceInputDeco(
             'Lugar de recepción',
             isDark,
-            prefixIcon: const Icon(Icons.place_outlined),
+            prefixIcon: const Icon(AppIcons.ubicacion),
           ).copyWith(errorText: _errores['lugar'], counterText: ''),
         ),
         const SizedBox(height: 12),
@@ -739,11 +794,31 @@ class _RimFormScreenState extends State<RimFormScreen> {
               .copyWith(counterText: ''),
         ),
         const SizedBox(height: 20),
-        const ServiceSectionHeader('Firma del cliente'),
+        const ServiceSectionHeader('Firmas'),
+        Text(
+          'Primero firma el cliente y después el representante de Métrica, '
+          'cada uno con el dedo, en pantalla completa y en horizontal. Las '
+          'dos firmas quedan en el RIM y en su PDF.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        ListenableBuilder(
+          listenable: _contactoNombre,
+          builder: (context, _) => _CampoFirma(
+            firmante: RimFirmante.cliente,
+            nombre: _contactoNombre.text.trim(),
+            firma: _firmas[RimFirmante.cliente],
+            error: _errores[RimFirmante.cliente.campo],
+            onTap: () => _firmar(RimFirmante.cliente),
+          ),
+        ),
+        const SizedBox(height: 16),
         _CampoFirma(
-          firma: _firma,
-          error: _errores['firma'],
-          onTap: _firmar,
+          firmante: RimFirmante.representante,
+          nombre: _representante ?? '',
+          firma: _firmas[RimFirmante.representante],
+          error: _errores[RimFirmante.representante.campo],
+          onTap: () => _firmar(RimFirmante.representante),
         ),
       ];
 }
@@ -769,7 +844,7 @@ class _ResumenServicio extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppStatusPill(
-            icon: Icons.inventory_2_outlined,
+            icon: AppIcons.rim,
             label: codigo,
             color: AppColors.actionPositive,
           ),
@@ -1072,12 +1147,19 @@ class _FilaDano extends StatelessWidget {
   }
 }
 
+/// Recuadro de una firma: "Tocar para firmar" o la firma ya hecha.
 class _CampoFirma extends StatelessWidget {
+  final RimFirmante firmante;
+
+  /// Quién firma; vacío si todavía no se sabe.
+  final String nombre;
   final Uint8List? firma;
   final String? error;
   final VoidCallback onTap;
 
   const _CampoFirma({
+    required this.firmante,
+    required this.nombre,
     required this.firma,
     required this.error,
     required this.onTap,
@@ -1090,8 +1172,15 @@ class _CampoFirma extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Text(firmante.titulo, style: Theme.of(context).textTheme.labelLarge),
+        if (nombre.isNotEmpty)
+          Text(
+            nombre,
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+          ),
+        const SizedBox(height: 8),
         InkWell(
-          key: const ValueKey('rim-firma'),
+          key: ValueKey('rim-firma-${firmante.name}'),
           onTap: onTap,
           borderRadius: AppDesign.mediumRadius,
           child: Container(
@@ -1113,8 +1202,7 @@ class _CampoFirma extends StatelessWidget {
                 ? const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.draw_outlined,
-                          size: 30, color: Colors.black54),
+                      Icon(AppIcons.firma, size: 30, color: Colors.black54),
                       SizedBox(height: 6),
                       Text(
                         'Tocar para firmar',
@@ -1134,16 +1222,10 @@ class _CampoFirma extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onTap,
-              icon: const Icon(Icons.refresh_rounded),
+              icon: const Icon(AppIcons.actualizar),
               label: const Text('Volver a firmar'),
             ),
           ),
-        const SizedBox(height: 4),
-        Text(
-          'El cliente firma con el dedo en la pantalla, en horizontal. La '
-          'firma queda en el RIM y en su PDF.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
       ],
     );
   }
@@ -1183,8 +1265,7 @@ class _ErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded,
-              color: AppColors.actionNegative),
+          const Icon(AppIcons.error, color: AppColors.actionNegative),
           const SizedBox(width: 10),
           Expanded(child: Text(message)),
         ],

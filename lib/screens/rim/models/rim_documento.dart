@@ -104,7 +104,7 @@ class RimDocumento {
   });
 
   /// Lo que se guarda en `payload` y lo que recibe `POST /api/extras/rim`
-  /// (junto con la firma).
+  /// (junto con las firmas).
   Map<String, dynamic> toJson() => {
         'uuid': uuid,
         'code': codigo,
@@ -211,14 +211,19 @@ enum RimEstadoSubida {
   }
 }
 
-/// Fila de `form_rim`: el documento emitido, la firma del cliente y el estado
-/// de la subida.
+/// Fila de `form_rim`: el documento emitido, las firmas del cliente y del
+/// representante de Métrica, y el estado de la subida.
 class RimRegistro {
   final int id;
   final RimDocumento documento;
 
   /// Firma del cliente, en PNG.
   final Uint8List firmaCliente;
+
+  /// Firma del representante de Métrica, en PNG. Null solo en un RIM emitido
+  /// con una versión de prueba anterior a esta firma: el servidor no lo
+  /// acepta, así que se anula y se emite otro.
+  final Uint8List? firmaRepresentante;
   final RimEstadoSubida estado;
   final int retryCount;
   final String? lastError;
@@ -233,6 +238,7 @@ class RimRegistro {
     required this.id,
     required this.documento,
     required this.firmaCliente,
+    required this.firmaRepresentante,
     required this.estado,
     this.retryCount = 0,
     this.lastError,
@@ -258,5 +264,7 @@ class RimRegistro {
   Map<String, dynamic> toUploadJson() => {
         ...documento.toJson(),
         'clientSignature': base64Encode(firmaCliente),
+        if (firmaRepresentante != null)
+          'metricaSignature': base64Encode(firmaRepresentante!),
       };
 }

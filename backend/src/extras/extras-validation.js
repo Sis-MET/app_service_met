@@ -185,21 +185,28 @@ function validateRim(input) {
     fail('issuedAt', 'Fecha de emisión inválida.');
   }
 
-  let signature = null;
-  const rawSignature = typeof body.clientSignature === 'string' ? body.clientSignature.trim() : '';
-  if (!rawSignature) {
-    fail('clientSignature', 'Falta la firma del cliente.');
-  } else if (rawSignature.length > Math.ceil(MAX_SIGNATURE_BYTES / 3) * 4 + 4
-      || !/^[A-Za-z0-9+/]+={0,2}$/.test(rawSignature)) {
-    fail('clientSignature', 'La firma del cliente no es válida.');
-  } else {
-    signature = Buffer.from(rawSignature, 'base64');
-    if (signature.length > MAX_SIGNATURE_BYTES
-        || !signature.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
-      fail('clientSignature', 'La firma del cliente debe ser una imagen PNG.');
-      signature = null;
+  /** Firma en PNG, enviada en base64. */
+  const signature = (field, owner) => {
+    const raw = typeof body[field] === 'string' ? body[field].trim() : '';
+    if (!raw) {
+      fail(field, `Falta la firma ${owner}.`);
+      return null;
     }
-  }
+    if (raw.length > Math.ceil(MAX_SIGNATURE_BYTES / 3) * 4 + 4
+        || !/^[A-Za-z0-9+/]+={0,2}$/.test(raw)) {
+      fail(field, `La firma ${owner} no es válida.`);
+      return null;
+    }
+    const png = Buffer.from(raw, 'base64');
+    if (png.length > MAX_SIGNATURE_BYTES
+        || !png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+      fail(field, `La firma ${owner} debe ser una imagen PNG.`);
+      return null;
+    }
+    return png;
+  };
+  const clientSignature = signature('clientSignature', 'del cliente');
+  const metricaSignature = signature('metricaSignature', 'del representante de Métrica');
 
   const createdBy = cleanText(body.createdBy, 100);
   const appVersion = cleanText(body.appVersion, 30);
@@ -236,7 +243,8 @@ function validateRim(input) {
     issuedAt,
     createdBy: createdBy || '',
     appVersion: appVersion || '',
-    signature,
+    clientSignature,
+    metricaSignature,
   };
 }
 

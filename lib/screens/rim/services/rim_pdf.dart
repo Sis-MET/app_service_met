@@ -43,7 +43,10 @@ class RimPdf {
     final base = pw.Font.helvetica();
     final bold = pw.Font.helveticaBold();
     final rim = registro.documento;
-    final firma = pw.MemoryImage(registro.firmaCliente);
+    final firmaCliente = pw.MemoryImage(registro.firmaCliente);
+    final firmaRepresentante = registro.firmaRepresentante == null
+        ? null
+        : pw.MemoryImage(registro.firmaRepresentante!);
 
     final doc = pw.Document(
       title: CalidadPdf.texto('${rim.codigo} - Recepción de instrumento'),
@@ -127,7 +130,7 @@ class RimPdf {
             if (rim.tecnicoAsignado.isNotEmpty)
               ('Técnico asignado', rim.tecnicoAsignado),
           ]),
-          _firmas(rim, firma),
+          _firmas(rim, firmaCliente, firmaRepresentante),
         ],
       ),
     );
@@ -412,7 +415,16 @@ class RimPdf {
         ],
       );
 
-  static pw.Widget _firmas(RimDocumento rim, pw.ImageProvider firma) {
+  static pw.Widget _firmas(
+    RimDocumento rim,
+    pw.ImageProvider firmaCliente,
+    pw.ImageProvider? firmaRepresentante,
+  ) {
+    pw.Widget imagen(pw.ImageProvider firma) => pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 2),
+          child: pw.Image(firma, fit: pw.BoxFit.contain),
+        );
+
     pw.Widget caja(String titulo, String nombre, {pw.Widget? contenido}) =>
         pw.Expanded(
           child: pw.Column(
@@ -445,13 +457,15 @@ class RimPdf {
               rim.contactoNombre,
               if (rim.contactoCargo.isNotEmpty) rim.contactoCargo,
             ].join(' - '),
-            contenido: pw.Padding(
-              padding: const pw.EdgeInsets.only(bottom: 2),
-              child: pw.Image(firma, fit: pw.BoxFit.contain),
-            ),
+            contenido: imagen(firmaCliente),
           ),
           pw.SizedBox(width: 20),
-          caja('Representante de Métrica', rim.representanteMetrica),
+          caja(
+            'Representante de Métrica',
+            rim.representanteMetrica,
+            contenido:
+                firmaRepresentante == null ? null : imagen(firmaRepresentante),
+          ),
         ],
       ),
     );
