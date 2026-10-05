@@ -16,6 +16,7 @@ const historialVersiones = <VersionApp>[
   VersionApp(
     version: '6.3.4+16',
     fecha: '2026-10-05',
+    commit: '8825ff7',
     clase: ClaseCambio.critico,
     resumen: 'Recepción de instrumentos (RIM) con las firmas del cliente y '
         'de Métrica, oportunidades en Bitrix24, soporte técnico con la misma '
