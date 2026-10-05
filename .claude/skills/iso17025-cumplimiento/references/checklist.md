@@ -41,7 +41,7 @@ Estados: `Cumple` · `Parcial` · `No cumple` · `No aplica` · `Sin evidencia`.
 | DI-11 | 7.11.3 d | Integridad: tipos, decimales, fechas y zona horaria consistentes entre la app y el servidor | `calibration_data_normalizer.dart`, `validation.js`, pruebas de normalización |
 | DI-12 | 7.11.3 e | Las fallas del sistema quedan registradas con acción inmediata y correctiva | Tabla o registro de incidencias, manejo global de errores en `main.dart`, UI de reporte, seguimiento hasta el cierre |
 | DI-13 | 7.11.4 | Servicios externos identificados y controlados | `pubspec.yaml` (Firebase, ML Kit y otros), `main.dart`; ¿algún SDK envía datos fuera? |
-| DI-14 | 7.11.5 | Manual de uso vigente, controlado y disponible en campo sin conexión | `lib/screens/calidad/data/manual_servicemet.dart` (control y aprobación), Ajustes > Manual de uso, exportación PDF |
+| DI-14 | 7.11.5 | Manual de uso vigente, controlado y disponible en campo sin conexión | `lib/screens/calidad/data/manual_servicemet.dart` (control y aprobación), Otros > Manual de uso, exportación PDF |
 | DI-15 | 7.11.6 | Los cálculos están cubiertos por pruebas con valores de referencia | Pruebas de `metrological_tests_provider.dart`, `soporte_metrologia_utils.dart` y de los cálculos de errores y promedios |
 | DI-16 | 7.11.6 | Las transferencias se verifican: validar antes de subir, recuentos, ida y vuelta | `calibration_upload_api_service.dart`, `/validar` y `/subir`, `upload_record_deduplicator.dart`, pruebas del backend |
 | DI-17 | 7.11.6 | Importar y exportar (BD, CSV) no altera los datos | `database_import_service.dart`, `service_exporter.dart`, pruebas |

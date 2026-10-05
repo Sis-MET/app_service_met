@@ -148,7 +148,7 @@ const manualServiceMet = ManualUso(
       grupo: GrupoManual.primerosPasos,
       titulo: 'Conociendo la app',
       icono: AppIcons.explorar,
-      resumen: 'Inicio, Servicios, Precarga y Ajustes.',
+      resumen: 'Inicio, Servicios, Precarga, Otros y Ajustes.',
       bloques: [
         Lista('Barra inferior', [
           'Inicio: resumen de la actividad local, pendientes de subir y '
@@ -158,6 +158,8 @@ const manualServiceMet = ManualUso(
               'adicionales (RIM y oportunidades comerciales).',
           'Precarga: descarga de datos para trabajar sin conexión y '
               'vencimientos.',
+          'Otros: "Calidad y normativa", con el cumplimiento NB/ISO/IEC '
+              '17025, este manual y el historial de versiones.',
         ]),
         Lista('En Inicio', [
           'Tarjetas de resumen: balanzas calibradas, servicios de soporte y '
@@ -170,8 +172,6 @@ const manualServiceMet = ManualUso(
         Lista('En Ajustes', [
           'Apariencia: tema claro u oscuro y tamaño del texto.',
           'Respaldo de datos y conexión al servidor.',
-          'Calidad y normativa: cumplimiento, este manual e historial de '
-              'versiones.',
           'La versión instalada, al final de la pantalla.',
         ]),
         Lista('Dentro de una calibración o un servicio de soporte', [
@@ -587,9 +587,27 @@ const manualServiceMet = ManualUso(
           Paso('En Inicio, vaya a "Actividad local".'),
           Paso('Elija Calibración o Soporte Técnico y toque el servicio.'),
           Paso(
-              'En "Registros", abra el menú de cada registro.',
-              'Las opciones son Editar, Exportar CSV (una copia de ese '
-                  'registro) y Eliminar.'),
+              'En "Registros", toque un registro para ver sus datos, o '
+                  'manténgalo presionado para abrir su menú.',
+              'Las opciones del menú son Ver fotos (si tiene), Editar, '
+                  'Exportar CSV (una copia de ese registro) y Eliminar.'),
+        ]),
+        Pasos('Ver las fotos de una balanza', [
+          Paso(
+              'En "Registros", cada balanza muestra sus fotos en miniatura.',
+              'Tocar una miniatura la abre en grande. No hace falta entrar a '
+                  'Editar: ver las fotos no cambia el registro.'),
+          Paso(
+              'Para verlas todas, toque "+N" sobre la última miniatura, o '
+                  'mantenga presionado el registro y elija "Ver fotos".',
+              'En "Fotografías" aparecen agrupadas por sección (Balanza, '
+                  'Linealidad, Carcasa...), con cuántas hay en cada una.'),
+          Paso(
+              'En el visor, deslice para pasar de una foto a otra o elija '
+                  'una en la tira de abajo.',
+              'Pellizque para acercar. Tocar la foto oculta o muestra los '
+                  'controles. "Compartir" envía la foto y "Guardar en el '
+                  'teléfono" guarda una copia donde usted elija.'),
         ]),
         Lista('Opciones del servicio completo', [
           'Exportar PDF: "Generar un informe para compartir o imprimir", con '
@@ -599,8 +617,9 @@ const manualServiceMet = ManualUso(
           'Los archivos se guardan en la carpeta ServiceMET, organizados por '
               'código de servicio.',
         ]),
-        Parrafo('Las fotos se ven en la galería del registro, donde también '
-            'se pueden compartir o guardar.'),
+        Parrafo('Al tocar un registro, sus fotos aparecen arriba de los datos. '
+            'Si una foto ya no está en el teléfono, se indica con "Foto no '
+            'disponible en este teléfono".'),
         Nota(
           TipoNota.importante,
           'Eliminar un registro lo borra del teléfono de forma permanente. No '
@@ -693,7 +712,7 @@ const manualServiceMet = ManualUso(
       icono: AppIcons.verificado,
       resumen: 'Consultar y exportar la información de calidad.',
       bloques: [
-        Parrafo('En Ajustes, la sección "Calidad y normativa" reúne la '
+        Parrafo('En la barra inferior, Otros › "Calidad y normativa" reúne la '
             'información que el laboratorio necesita frente a la '
             'NB/ISO/IEC 17025.'),
         Lista(null, [

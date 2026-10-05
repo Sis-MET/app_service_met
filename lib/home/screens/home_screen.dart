@@ -15,7 +15,8 @@ import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../services/notification_service.dart';
 import '../../services/notifications/notification_plan.dart';
 import '../tabs/home_dashboard_tab.dart';
-import '../tabs/otros_apartados_tab.dart';
+import '../tabs/otros_tab.dart';
+import '../tabs/precarga_tab.dart';
 import '../tabs/servicios_tab.dart';
 import '../widgets/home_bottom_bar.dart';
 import 'configuracion_screen.dart';
@@ -183,7 +184,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           goToServicios: () => _selectPage(1),
         ),
         ServiciosTab(userName: userName),
-        OtrosApartadosTab(userName: userName),
+        PrecargaTab(userName: userName),
+        const OtrosTab(),
       ];
 
   Future<void> _fetchUserData() async {

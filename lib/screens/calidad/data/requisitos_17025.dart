@@ -3,7 +3,7 @@ import '../models/cumplimiento.dart';
 /// Evaluación interna de ServiceMET frente a la NB/ISO/IEC 17025 (7.5, 7.11 y
 /// 8.4).
 ///
-/// Es la matriz de cumplimiento que se muestra en Ajustes y se exporta en PDF.
+/// Es la matriz de cumplimiento que se muestra en Otros y se exporta en PDF.
 /// Se actualiza al cerrar una brecha o al liberar una versión: cambie el
 /// estado del requisito, sus evidencias y, arriba, la versión y la fecha de
 /// evaluación. Las exigencias están parafraseadas; el texto de la norma tiene

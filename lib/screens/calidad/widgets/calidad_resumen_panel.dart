@@ -6,9 +6,11 @@ import '../../../theme/app_design.dart';
 import '../data/requisitos_17025.dart';
 import '../models/cumplimiento.dart';
 import 'calidad_ui.dart';
+import '../../../theme/app_icons.dart';
 
-/// Resumen del cumplimiento NB/ISO/IEC 17025 para Ajustes: anillo de avance
-/// y una barra por cláusula. Tocar una cláusula abre el tablero filtrado.
+/// Resumen del cumplimiento NB/ISO/IEC 17025 para la pestaña Otros: anillo de
+/// avance y una barra por cláusula. Tocar una cláusula abre el tablero
+/// filtrado.
 class CalidadResumenPanel extends StatelessWidget {
   const CalidadResumenPanel({
     super.key,
@@ -94,7 +96,7 @@ class CalidadResumenPanel extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded),
+                  const Icon(AppIcons.siguiente),
                 ],
               ),
             ),

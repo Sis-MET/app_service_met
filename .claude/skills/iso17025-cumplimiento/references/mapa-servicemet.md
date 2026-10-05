@@ -69,7 +69,8 @@ Otros puntos:
     solo `SELECT` e `INSERT`.
   - Oportunidades de Bitrix24: `lib/screens/oportunidades/`; copia en
     `servicios_extras.form_bitrix`.
-- Calidad y normativa (Ajustes): `lib/screens/calidad/`, con el tablero de
+- Calidad y normativa (pestaña Otros, `lib/home/tabs/otros_tab.dart`):
+  `lib/screens/calidad/`, con el tablero de
   cumplimiento, el manual de uso y el historial de versiones, sus datos en
   `data/` y la exportación a PDF en `services/calidad_pdf.dart`.
 

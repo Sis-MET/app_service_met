@@ -5,13 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../../login/widgets/setup/connection_profile_selector.dart';
 import '../../providers/settings_provider.dart';
-import '../../screens/calidad/cumplimiento_screen.dart';
-import '../../screens/calidad/historial_versiones_screen.dart';
-import '../../screens/calidad/manual_screen.dart';
-import '../../screens/calidad/widgets/calidad_resumen_panel.dart';
 import '../../screens/respaldo/respaldo.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../../theme/app_icons.dart';
 
 class ConfiguracionScreen extends StatefulWidget {
   const ConfiguracionScreen({super.key});
@@ -78,7 +75,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: AppStatusPill(
-                        icon: Icons.verified_outlined,
+                        icon: AppIcons.verificado,
                         label: 'Versión $appVersion',
                         color: AppColors.actionPositive,
                       ),
@@ -104,7 +101,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    _settingIcon(Icons.text_fields_rounded),
+                                    _settingIcon(AppIcons.texto),
                                     const SizedBox(width: 12),
                                     const Expanded(
                                       child: Text(
@@ -148,7 +145,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                         children: [
                           _switchTile(
                             context,
-                            icon: Icons.sync_rounded,
+                            icon: AppIcons.actualizar,
                             title: 'Sincronización automática',
                             subtitle: 'Mantener actualizados los datos locales',
                             value: syncBackground,
@@ -158,7 +155,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                           _divider(context),
                           _switchTile(
                             context,
-                            icon: Icons.notifications_none_rounded,
+                            icon: AppIcons.notificaciones,
                             title: 'Notificaciones',
                             subtitle: 'Avisos de tareas y mantenimientos',
                             value: notifications,
@@ -177,7 +174,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                         children: [
                           _actionTile(
                             context,
-                            icon: Icons.backup_outlined,
+                            icon: AppIcons.respaldo,
                             title: 'Respaldo de datos',
                             subtitle:
                                 'Crear o restaurar una copia de seguridad',
@@ -191,7 +188,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                           _divider(context),
                           _actionTile(
                             context,
-                            icon: Icons.dns_outlined,
+                            icon: AppIcons.servidor,
                             title: 'Conexión al servidor',
                             subtitle: 'Red Local/VPN y dirección de la API',
                             onTap: () => _showConnectionProfiles(dark),
@@ -199,7 +196,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                           _divider(context),
                           _actionTile(
                             context,
-                            icon: Icons.person_outline_rounded,
+                            icon: AppIcons.persona,
                             title: 'Perfil de usuario',
                             subtitle: 'Credenciales y acceso local',
                             onTap: () => _showComingSoon('Perfil de usuario'),
@@ -207,58 +204,10 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                           _divider(context),
                           _actionTile(
                             context,
-                            icon: Icons.support_agent_outlined,
+                            icon: AppIcons.soporteAgente,
                             title: 'Soporte técnico',
                             subtitle: 'Contactar al administrador del sistema',
                             onTap: () => _showComingSoon('Soporte técnico'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    _sectionTitle(context, 'Calidad y normativa'),
-                    const SizedBox(height: 10),
-                    CalidadResumenPanel(
-                      onAbrir: (clausula) => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              CumplimientoScreen(clausulaInicial: clausula),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    AppPanel(
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          _actionTile(
-                            context,
-                            icon: Icons.menu_book_outlined,
-                            title: 'Manual de uso',
-                            subtitle: 'Guía interactiva de la app, exportable '
-                                'en PDF',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ManualScreen(),
-                              ),
-                            ),
-                          ),
-                          _divider(context),
-                          _actionTile(
-                            context,
-                            icon: Icons.history_rounded,
-                            title: 'Historial de versiones',
-                            subtitle: 'Cambios por versión y su impacto en '
-                                'los registros',
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const HistorialVersionesScreen(),
-                              ),
-                            ),
                           ),
                         ],
                       ),
@@ -342,7 +291,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
         children: [
           Row(
             children: [
-              _settingIcon(Icons.brightness_6_outlined),
+              _settingIcon(AppIcons.tema),
               const SizedBox(width: 12),
               const Expanded(
                 child: Text(
@@ -357,17 +306,17 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
             segments: const [
               ButtonSegment(
                 value: ThemeMode.system,
-                icon: Icon(Icons.brightness_auto_outlined),
+                icon: Icon(AppIcons.temaAuto),
                 label: Text('Sistema'),
               ),
               ButtonSegment(
                 value: ThemeMode.light,
-                icon: Icon(Icons.light_mode_outlined),
+                icon: Icon(AppIcons.claro),
                 label: Text('Claro'),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                icon: Icon(Icons.dark_mode_outlined),
+                icon: Icon(AppIcons.oscuro),
                 label: Text('Oscuro'),
               ),
             ],
@@ -414,7 +363,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
       leading: _settingIcon(icon),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
       subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
+      trailing: const Icon(AppIcons.siguiente),
       onTap: onTap,
     );
   }
@@ -447,7 +396,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.dns_outlined),
+                    const Icon(AppIcons.servidor),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -457,7 +406,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(dialogContext),
-                      icon: const Icon(Icons.close_rounded),
+                      icon: const Icon(AppIcons.cerrar),
                     ),
                   ],
                 ),

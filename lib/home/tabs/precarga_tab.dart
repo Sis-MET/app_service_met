@@ -4,11 +4,14 @@ import '../../screens/precarga/descarga_de_datos.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../screens/vencimientos_screen.dart';
+import '../../theme/app_icons.dart';
 
-class OtrosApartadosTab extends StatelessWidget {
+/// Pestaña "Precarga" de la barra inferior: datos maestros para trabajar sin
+/// conexión y vencimientos.
+class PrecargaTab extends StatelessWidget {
   final String userName;
 
-  const OtrosApartadosTab({super.key, required this.userName});
+  const PrecargaTab({super.key, required this.userName});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,7 @@ class OtrosApartadosTab extends StatelessWidget {
               const Align(
                 alignment: Alignment.centerLeft,
                 child: AppStatusPill(
-                  icon: Icons.offline_bolt_outlined,
+                  icon: AppIcons.listoSinConexion,
                   label: 'Preparado para trabajo offline',
                   color: AppColors.actionPositive,
                 ),
@@ -55,7 +58,7 @@ class OtrosApartadosTab extends StatelessWidget {
                         borderRadius: AppDesign.mediumRadius,
                       ),
                       child: const Icon(
-                        Icons.cloud_download_outlined,
+                        AppIcons.descargarNube,
                         color: AppColors.shimmerGold,
                         size: 27,
                       ),
@@ -76,17 +79,17 @@ class OtrosApartadosTab extends StatelessWidget {
                       runSpacing: 8,
                       children: const [
                         AppStatusPill(
-                          icon: Icons.business_outlined,
+                          icon: AppIcons.empresa,
                           label: 'Clientes y plantas',
                           color: AppColors.shimmerGold,
                         ),
                         AppStatusPill(
-                          icon: Icons.scale_outlined,
+                          icon: AppIcons.balanza,
                           label: 'Balanzas',
                           color: AppColors.shimmerGold,
                         ),
                         AppStatusPill(
-                          icon: Icons.history_rounded,
+                          icon: AppIcons.historial,
                           label: 'Historial',
                           color: AppColors.shimmerGold,
                         ),
@@ -101,7 +104,7 @@ class OtrosApartadosTab extends StatelessWidget {
                               DescargaDeDatosScreen(userName: userName),
                         ),
                       ),
-                      icon: const Icon(Icons.sync_rounded),
+                      icon: const Icon(AppIcons.actualizar),
                       label: const Text('Actualizar datos'),
                     ),
                   ],
@@ -116,14 +119,14 @@ class OtrosApartadosTab extends StatelessWidget {
                     vertical: 6,
                   ),
                   leading: const Icon(
-                    Icons.event_note_outlined,
+                    AppIcons.vencimientos,
                     color: AppColors.shimmerGold,
                   ),
                   title: const Text('Vencimientos'),
                   subtitle: const Text(
                     'Patrones y balanzas de clientes vencidos o por vencer.',
                   ),
-                  trailing: const Icon(Icons.chevron_right_rounded),
+                  trailing: const Icon(AppIcons.siguiente),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -139,7 +142,7 @@ class OtrosApartadosTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
-                      Icons.info_outline_rounded,
+                      AppIcons.info,
                       color: AppColors.actionPositive,
                     ),
                     const SizedBox(width: 12),

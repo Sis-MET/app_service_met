@@ -26,6 +26,7 @@ class HomeBottomBar extends StatelessWidget {
       _NavItem(icon: FontAwesomeIcons.house, label: 'Inicio', index: 0),
       _NavItem(icon: FontAwesomeIcons.wrench, label: 'Servicios', index: 1),
       _NavItem(icon: FontAwesomeIcons.download, label: 'Precarga', index: 2),
+      _NavItem(icon: FontAwesomeIcons.ellipsis, label: 'Otros', index: 3),
     ];
 
     return SafeArea(

@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/home/screens/configuracion_screen.dart';
+import 'package:service_met/home/tabs/otros_tab.dart';
+import 'package:service_met/home/widgets/home_bottom_bar.dart';
 import 'package:service_met/providers/settings_provider.dart';
 import 'package:service_met/screens/calidad/cumplimiento_screen.dart';
 import 'package:service_met/screens/calidad/data/manual_servicemet.dart';
@@ -122,8 +124,40 @@ void main() {
     expect(find.text('Próxima versión'), findsOneWidget);
   });
 
-  testWidgets('Ajustes muestra la sección de calidad y abre el tablero',
+  testWidgets('Otros reúne la sección de calidad y abre el tablero',
       (tester) async {
+    await _abrir(tester, const Scaffold(body: OtrosTab()));
+
+    expect(find.text('Otros'), findsOneWidget);
+    expect(find.text('Calidad y normativa'), findsOneWidget);
+    expect(find.text('Manual de uso'), findsOneWidget);
+    expect(find.text('Historial de versiones'), findsOneWidget);
+
+    await tester.tap(find.text('Cumplimiento NB/ISO/IEC 17025'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cumplimiento'), findsOneWidget);
+  });
+
+  testWidgets('la barra inferior lleva a Otros', (tester) async {
+    int? elegido;
+    await _abrir(
+      tester,
+      Scaffold(
+        bottomNavigationBar: HomeBottomBar(
+          currentIndex: 0,
+          onTap: (index) => elegido = index,
+        ),
+      ),
+    );
+
+    for (final label in ['Inicio', 'Servicios', 'Precarga', 'Otros']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    await tester.tap(find.text('Otros'));
+    expect(elegido, 3);
+  });
+
+  testWidgets('Ajustes ya no tiene la sección de calidad', (tester) async {
     SharedPreferences.setMockInitialValues({});
     PackageInfo.setMockInitialValues(
       appName: 'ServiceMET',
@@ -142,14 +176,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    final panel = find.text('Cumplimiento NB/ISO/IEC 17025');
-    await tester.ensureVisible(panel);
-    await tester.pumpAndSettle();
-    expect(find.text('Manual de uso'), findsOneWidget);
-    expect(find.text('Historial de versiones'), findsOneWidget);
-
-    await tester.tap(panel);
-    await tester.pumpAndSettle();
-    expect(find.text('Cumplimiento'), findsOneWidget);
+    expect(find.text('Respaldo de datos'), findsOneWidget);
+    expect(find.text('Calidad y normativa'), findsNothing);
+    expect(find.text('Cumplimiento NB/ISO/IEC 17025'), findsNothing);
   });
 }

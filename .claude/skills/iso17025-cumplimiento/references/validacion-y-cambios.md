@@ -118,7 +118,7 @@ aprobada sin haberla ejecutado o sin ver su resultado.
 
 ## 5. Historial de versiones (CHANGELOG)
 
-Vive en `lib/screens/calidad/data/historial_versiones.dart`, se ve en Ajustes
+Vive en `lib/screens/calidad/data/historial_versiones.dart`, se ve en Otros
 > "Historial de versiones" y se exporta en PDF. Mientras se desarrolla, cada
 cambio relevante se anota en `cambiosSinLiberar`. Al subir la versión en
 `pubspec.yaml`:

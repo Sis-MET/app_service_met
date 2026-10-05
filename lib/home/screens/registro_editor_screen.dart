@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../database/calibration_data_normalizer.dart';
-import '../../models/service_session.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/foto_viewer.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/servicio_model.dart';
 import '../services/local_service_record_repository.dart';
+import '../../theme/app_icons.dart';
 
 /// Editor de un registro individual (una fila de la base local).
 ///
@@ -61,11 +60,7 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
     final fotoKeys = _original.keys
         .where(CalibrationDataNormalizer.isLocalFileField)
         .toList();
-    _fotos = [
-      for (final key in fotoKeys)
-        for (final path in ServiceSession.fotosFromColumn(_original[key]))
-          FotoItem(path: path, grupo: _grupoFoto(key)),
-    ];
+    _fotos = fotosDelRegistro(_original);
     _editableKeys = _original.keys
         .where(
             (k) => !kLocalRecordSystemKeys.contains(k) && !fotoKeys.contains(k))
@@ -90,13 +85,6 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
     if (value == null) return '';
     return value.toString();
   }
-
-  String _grupoFoto(String key) => switch (key) {
-        'foto_balanza' => 'Balanza',
-        'linealidad_foto' => 'Linealidad',
-        'condiciones_finales_foto' => 'Condiciones finales',
-        _ => _formatearNombreCampo(key.replaceAll(RegExp(r'_?foto'), '')),
-      };
 
   String _formatearNombreCampo(String campo) {
     return campo
@@ -201,7 +189,7 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.save_outlined, size: 18),
+                    : const Icon(AppIcons.guardar, size: 18),
                 label: const Text('Guardar'),
               ),
             ),
@@ -228,11 +216,11 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
                     onChanged: (v) => setState(() => _query = v.trim()),
                     decoration: InputDecoration(
                       hintText: 'Buscar campo…',
-                      prefixIcon: const Icon(Icons.search_rounded),
+                      prefixIcon: const Icon(AppIcons.buscar),
                       suffixIcon: _query.isEmpty
                           ? null
                           : IconButton(
-                              icon: const Icon(Icons.close_rounded),
+                              icon: const Icon(AppIcons.cerrar),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() => _query = '');
@@ -299,7 +287,7 @@ class _RegistroEditorScreenState extends State<RegistroEditorScreen> {
                   onPressed: _saving ? null : _guardar,
                   backgroundColor: AppColors.actionPositive,
                   foregroundColor: AppColors.actionPositiveInk,
-                  icon: const Icon(Icons.check_rounded),
+                  icon: const Icon(AppIcons.listo),
                   label: const Text('Guardar cambios'),
                 )
               : const SizedBox.shrink(),
@@ -388,7 +376,7 @@ class _SystemFieldsSection extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
         childrenPadding: const EdgeInsets.only(bottom: 8),
-        leading: const FaIcon(FontAwesomeIcons.lock, size: 14),
+        leading: const Icon(AppIcons.bloqueado, size: 14),
         title: Text(
           'Campos del sistema (${keys.length})',
           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),

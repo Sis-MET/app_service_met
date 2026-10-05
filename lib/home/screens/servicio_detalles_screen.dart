@@ -5,20 +5,23 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:csv/csv.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../services/local_service_record_repository.dart';
 import '../utils/pdf_generator.dart';
+import '../../database/calibration_data_normalizer.dart';
 import '../../utils/foto_storage_dialog.dart';
 import '../../utils/saf_storage.dart';
 import '../../utils/service_exporter.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
+import '../../widgets/foto_viewer.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import 'calibration_upload_screen.dart';
+import 'fotos_registro_screen.dart';
 import 'registro_editor_screen.dart';
 import 'support_upload_screen.dart';
+import '../../theme/app_icons.dart';
 
 class ServicioDetallesScreen extends StatefulWidget {
   final ServicioResumen servicio;
@@ -38,12 +41,14 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     itemsEditados = List.from(widget.servicio.items);
   }
 
-  // Filtrar solo campos con datos válidos
+  // Filtrar solo campos con datos válidos. Las fotos no: guardan rutas del
+  // teléfono y se ven como fotos, no como texto.
   Map<String, dynamic> _obtenerCamposConDatos(Map<String, dynamic> item) {
     final Map<String, dynamic> camposValidos = {};
 
     item.forEach((key, value) {
-      if (value != null &&
+      if (!CalibrationDataNormalizer.isLocalFileField(key) &&
+          value != null &&
           value.toString().isNotEmpty &&
           value.toString() != '0' &&
           value.toString() != 'null' &&
@@ -66,7 +71,30 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         .join(' ');
   }
 
-  Future<void> _abrirEditorRegistro(int index, Map<String, dynamic> item) async {
+  String _tituloRegistro(int index, Map<String, dynamic> item) {
+    final camposConDatos = _obtenerCamposConDatos(item);
+    return camposConDatos['cod_metrica']?.toString() ??
+        camposConDatos['modelo']?.toString() ??
+        '${widget.servicio.nombreItem} ${index + 1}';
+  }
+
+  /// Prefijo de los archivos al compartir o guardar una foto.
+  String _nombreBaseFotos(Map<String, dynamic> item) =>
+      item['cod_metrica']?.toString().trim() ?? '';
+
+  /// Todas las fotos del registro, por sección. Solo para ver: no pasa por
+  /// el editor.
+  Future<void> _verFotos(int index, Map<String, dynamic> item) =>
+      FotosRegistroScreen.open(
+        context,
+        fotos: fotosDelRegistro(item),
+        titulo: _tituloRegistro(index, item),
+        servicio: '${widget.servicio.prefijo} ${widget.servicio.codigo}',
+        nombreBase: _nombreBaseFotos(item),
+      );
+
+  Future<void> _abrirEditorRegistro(
+      int index, Map<String, dynamic> item) async {
     final actualizado = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -95,8 +123,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.delete_outline_rounded,
-            color: AppColors.actionNegative),
+        icon: const Icon(AppIcons.eliminar, color: AppColors.actionNegative),
         title: const Text('Eliminar registro'),
         content: Text(
           'Esta acción borra el registro de forma permanente en este '
@@ -146,8 +173,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       SnackBar(
         content: Row(
           children: [
-            const FaIcon(FontAwesomeIcons.circleXmark,
-                color: Colors.white, size: 20),
+            const Icon(AppIcons.cancelar, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(child: Text(mensaje)),
           ],
@@ -162,15 +188,18 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
   Future<void> _mostrarAccionesRegistro(
       BuildContext context, int index, Map<String, dynamic> item) async {
     final cs = Theme.of(context).colorScheme;
+    final fotos = fotosDelRegistro(item);
     final accion = await showModalBottomSheet<String>(
       context: context,
+      // Con "Ver fotos" son cuatro opciones: la hoja crece lo necesario.
+      isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
       backgroundColor: cs.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (sheetContext) => Padding(
+      builder: (sheetContext) => SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
             20, 0, 20, 24 + MediaQuery.paddingOf(sheetContext).bottom),
         child: Column(
@@ -188,12 +217,26 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 4),
             Text(
               'Elige qué hacer con este registro individual.',
-              style: GoogleFonts.inter(fontSize: 13, color: cs.onSurfaceVariant),
+              style:
+                  GoogleFonts.inter(fontSize: 13, color: cs.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
+            if (fotos.isNotEmpty) ...[
+              _buildActionTile(
+                context: sheetContext,
+                icon: AppIcons.fotos,
+                iconColor: AppColors.shimmerGold,
+                title: 'Ver fotos',
+                subtitle: fotos.length == 1
+                    ? '1 fotografía, sin abrir el editor'
+                    : '${fotos.length} fotografías, sin abrir el editor',
+                value: 'fotos',
+              ),
+              const SizedBox(height: 10),
+            ],
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.penToSquare,
+              icon: AppIcons.editarRegistro,
               iconColor: AppColors.actionPositive,
               title: 'Editar',
               subtitle: 'Modificar los datos de este registro',
@@ -202,7 +245,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 10),
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.fileArrowDown,
+              icon: AppIcons.exportarArchivo,
               iconColor: AppColors.calibracion,
               title: 'Exportar CSV',
               subtitle: 'Guardar una copia de este registro',
@@ -211,7 +254,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 10),
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.trashCan,
+              icon: AppIcons.eliminar,
               iconColor: Colors.red,
               title: 'Eliminar',
               subtitle: 'Borrar este registro de forma permanente',
@@ -224,6 +267,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     if (!mounted || accion == null) return;
     switch (accion) {
+      case 'fotos':
+        await _verFotos(index, item);
       case 'editar':
         await _abrirEditorRegistro(index, item);
       case 'csv':
@@ -295,8 +340,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       SnackBar(
         content: Row(
           children: [
-            const FaIcon(FontAwesomeIcons.circleCheck,
-                color: Colors.white, size: 20),
+            const Icon(AppIcons.completo, color: Colors.white, size: 20),
             const SizedBox(width: 12),
             Expanded(child: Text('Guardado en: ${result.destination}$fotos')),
           ],
@@ -353,8 +397,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark,
-                    color: Colors.white, size: 20),
+                const Icon(AppIcons.cancelar, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar: $e')),
               ],
@@ -403,8 +446,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           SnackBar(
             content: Row(
               children: [
-                const FaIcon(FontAwesomeIcons.circleXmark,
-                    color: Colors.white, size: 20),
+                const Icon(AppIcons.cancelar, color: Colors.white, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Error al exportar PDF: $e')),
               ],
@@ -432,10 +474,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            FaIcon(
-                isPdf ? FontAwesomeIcons.filePdf : FontAwesomeIcons.fileExport,
-                color: primaryColor,
-                size: 20),
+            Icon(isPdf ? AppIcons.documento : AppIcons.exportar,
+                color: primaryColor, size: 20),
             const SizedBox(width: 12),
             Text(
               'Exportar ${isPdf ? "PDF" : "CSV"}',
@@ -495,14 +535,11 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     const Color primaryColor = AppColors.actionPositive;
-    final icon = isCalibracion
-        ? FontAwesomeIcons.scaleBalanced
-        : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? AppIcons.balanza : AppIcons.soporte;
 
     final camposConDatos = _obtenerCamposConDatos(item);
-    final titulo = camposConDatos['cod_metrica']?.toString() ??
-        camposConDatos['modelo']?.toString() ??
-        '${widget.servicio.nombreItem} ${index + 1}';
+    final titulo = _tituloRegistro(index, item);
+    final fotos = fotosDelRegistro(item);
 
     return GestureDetector(
       onTap: () => _mostrarDetalleItem(context, index, item),
@@ -515,74 +552,100 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           borderRadius: AppDesign.mediumRadius,
           border: Border.all(color: borderColor),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ─ Ícono tipo servicio ───────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: FaIcon(icon, color: primaryColor, size: 20),
-            ),
-            const SizedBox(width: 14),
-            // ─ Info principal ───────────────────────────────────────
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    titulo,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+            Row(
+              children: [
+                // ─ Ícono tipo servicio ───────────────────────────────────
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(height: 4),
-                  Row(
+                  child: Icon(icon, color: primaryColor, size: 20),
+                ),
+                const SizedBox(width: 14),
+                // ─ Info principal ───────────────────────────────────────
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            widget.servicio.nombreTipo,
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: primaryColor,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
-                        '${camposConDatos.length} campos',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: cs.onSurface.withOpacity(0.38),
+                        titulo,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                widget.servicio.nombreTipo,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: primaryColor,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              fotos.isEmpty
+                                  ? '${camposConDatos.length} campos'
+                                  : '${camposConDatos.length} campos · '
+                                      '${fotos.length} '
+                                      '${fotos.length == 1 ? 'foto' : 'fotos'}',
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: cs.onSurface.withOpacity(0.38),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
+                // ─ Flecha ────────────────────────────────────────────
+                Icon(
+                  AppIcons.siguiente,
+                  color: cs.onSurface.withOpacity(isDark ? 0.30 : 0.26),
+                  size: 22,
+                ),
+              ],
+            ),
+            // ─ Fotos: se ven desde aquí, sin pasar por el editor ────
+            if (fotos.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              FotoTiraMiniaturas(
+                fotos: fotos,
+                onFoto: (i) => abrirVisorFotos(
+                  context,
+                  fotos: fotos,
+                  index: i,
+                  nombreBase: _nombreBaseFotos(item),
+                ),
+                onVerTodas: () => _verFotos(index, item),
               ),
-            ),
-            // ─ Flecha ────────────────────────────────────────────
-            Icon(
-              Icons.chevron_right_rounded,
-              color: cs.onSurface.withOpacity(isDark ? 0.30 : 0.26),
-              size: 22,
-            ),
+            ],
           ],
         ),
       ),
@@ -599,17 +662,15 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
     final isCalibracion = widget.servicio.tipo == TipoServicio.calibracion;
     const Color primaryColor = AppColors.actionPositive;
-    final icon = isCalibracion
-        ? FontAwesomeIcons.scaleBalanced
-        : FontAwesomeIcons.screwdriverWrench;
+    final icon = isCalibracion ? AppIcons.balanza : AppIcons.soporte;
 
     final bgColor = Theme.of(context).scaffoldBackgroundColor;
     final borderColor = cs.outlineVariant;
 
     final camposConDatos = _obtenerCamposConDatos(item);
-    final titulo = camposConDatos['cod_metrica']?.toString() ??
-        camposConDatos['modelo']?.toString() ??
-        '${widget.servicio.nombreItem} ${index + 1}';
+    final titulo = _tituloRegistro(index, item);
+    final fotos = fotosDelRegistro(item);
+    final offset = fotos.isEmpty ? 0 : 1;
 
     showModalBottomSheet(
       context: context,
@@ -651,7 +712,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         color: primaryColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: FaIcon(icon, color: primaryColor, size: 20),
+                      child: Icon(icon, color: primaryColor, size: 20),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -683,8 +744,8 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         Navigator.pop(ctx);
                         _abrirEditorRegistro(index, item);
                       },
-                      icon: Icon(Icons.edit_outlined,
-                          size: 16, color: primaryColor),
+                      icon:
+                          Icon(AppIcons.editar, size: 16, color: primaryColor),
                       label: Text(
                         'Editar',
                         style: GoogleFonts.inter(
@@ -697,24 +758,34 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   ],
                 ),
               ),
-              // ─ Campos scrolleables ─────────────────────────────────
+              // ─ Fotos y campos scrolleables ────────────────────────────
               Expanded(
-                child: ListView.separated(
+                child: ListView.builder(
                   controller: controller,
                   padding: EdgeInsets.fromLTRB(
                       20, 20, 20, 40 + MediaQuery.paddingOf(ctx).bottom),
-                  itemCount: camposConDatos.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    color: borderColor,
-                  ),
-                  itemBuilder: (_, i) {
+                  itemCount: offset + camposConDatos.length,
+                  itemBuilder: (_, fila) {
+                    if (fila < offset) {
+                      return FotoGallerySection(
+                        fotos: fotos,
+                        nombreBase: _nombreBaseFotos(item),
+                      );
+                    }
+                    final i = fila - offset;
                     final entry = camposConDatos.entries.elementAt(i);
-                    return _buildCampoRow(
-                      _formatearNombreCampo(entry.key),
-                      entry.value.toString(),
-                      cs,
-                      isDark,
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: i == 0
+                            ? null
+                            : Border(top: BorderSide(color: borderColor)),
+                      ),
+                      child: _buildCampoRow(
+                        _formatearNombreCampo(entry.key),
+                        entry.value.toString(),
+                        cs,
+                        isDark,
+                      ),
                     );
                   },
                 ),
@@ -798,7 +869,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 20),
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.filePdf,
+              icon: AppIcons.documento,
               iconColor: Colors.red,
               title: 'Exportar PDF',
               subtitle: 'Generar un informe para compartir o imprimir',
@@ -807,7 +878,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 10),
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.fileArrowDown,
+              icon: AppIcons.exportarArchivo,
               iconColor: AppColors.actionPositive,
               title: 'Respaldo CSV',
               subtitle: 'Guardar una copia editable de los datos',
@@ -816,7 +887,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
             const SizedBox(height: 10),
             _buildActionTile(
               context: sheetContext,
-              icon: FontAwesomeIcons.cloudArrowUp,
+              icon: AppIcons.subir,
               iconColor: widget.servicio.tipo == TipoServicio.calibracion
                   ? AppColors.calibracion
                   : AppColors.soporte,
@@ -849,7 +920,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
 
   Widget _buildActionTile({
     required BuildContext context,
-    required FaIconData icon,
+    required IconData icon,
     required Color iconColor,
     required String title,
     required String subtitle,
@@ -874,7 +945,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 alignment: Alignment.center,
-                child: FaIcon(icon, color: iconColor, size: 20),
+                child: Icon(icon, color: iconColor, size: 20),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -900,7 +971,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+              Icon(AppIcons.siguiente, color: cs.onSurfaceVariant),
             ],
           ),
         ),
@@ -925,7 +996,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         onPressed: _mostrarMenuAcciones,
         backgroundColor: primaryColor,
         foregroundColor: AppColors.actionPositiveInk,
-        icon: const Icon(Icons.tune_rounded),
+        icon: const Icon(AppIcons.filtros),
         label: Text(
           'Acciones',
           style: GoogleFonts.inter(fontWeight: FontWeight.w700),
@@ -936,8 +1007,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  FaIcon(FontAwesomeIcons.boxOpen,
-                      size: 64, color: Colors.grey[400]),
+                  Icon(AppIcons.vacio, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'No hay ${widget.servicio.nombreItem}s registrados',
@@ -992,5 +1062,4 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
       ),
     );
   }
-
 }

@@ -23,7 +23,7 @@ Ya está implementado:
   elaboró, revisó, aprobó e historial) y secciones formadas por bloques
   `Parrafo`, `Pasos`/`Paso`, `Lista` y `Nota` (consejo, importante o norma, con
   la cláusula). Los modelos están en `lib/screens/calidad/models/manual.dart`.
-- **Dentro de la app**: Ajustes > "Manual de uso" (`manual_screen.dart`), sin
+- **Dentro de la app**: Otros > "Manual de uso" (`manual_screen.dart`), sin
   conexión, con búsqueda que resalta el texto, pasos que se marcan al
   completarlos y navegación entre secciones.
 - **Copia controlada**: se exporta en PDF desde la propia pantalla

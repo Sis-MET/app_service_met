@@ -4,8 +4,9 @@ import '../models/version_app.dart';
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
 const cambiosSinLiberar = <String>[
-  'Sección "Calidad y normativa" en Ajustes: tablero de cumplimiento '
-      'NB/ISO/IEC 17025, manual de uso interactivo e historial de versiones.',
+  'Sección "Calidad y normativa" en la pestaña Otros de la barra inferior: '
+      'tablero de cumplimiento NB/ISO/IEC 17025, manual de uso interactivo e '
+      'historial de versiones.',
   'Exportación en PDF de la matriz de cumplimiento, el manual y el '
       'historial de versiones.',
   'Soporte técnico: teclado numérico propio y lectura del indicador con la '
@@ -64,6 +65,12 @@ const cambiosSinLiberar = <String>[
       'coincidencia exacta de nombre) y las envía sola; si no hay una '
       'coincidencia segura, pide que el técnico la elija. Reemplaza al botón '
       '"Guardar pendiente".',
+  'Fotos de calibración y soporte técnico sin entrar a Editar: en '
+      '"Registros" cada balanza muestra sus fotos en miniatura; "+N" o el '
+      'menú › "Ver fotos" las reúne por sección, y el visor permite deslizar, '
+      'acercar, saltar con la tira de miniaturas, compartir y guardar. Ver '
+      'las fotos no modifica el registro. El detalle del registro muestra las '
+      'fotos en lugar de sus rutas en el teléfono.',
   'Íconos nuevos en toda la app: una sola familia de línea fina y '
       'redondeada en lugar de los íconos de Material y Font Awesome. No '
       'cambia ningún flujo ni ningún dato.',

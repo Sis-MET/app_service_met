@@ -43,7 +43,7 @@ Para la interpretación detallada, cláusulas relacionadas (4.2, 6.2.6, 7.10, 8.
 
 ## Lo que ya vive en la app
 
-En Ajustes > "Calidad y normativa" (`lib/screens/calidad/`) hay tres
+En la pestaña Otros > "Calidad y normativa" (`lib/screens/calidad/`) hay tres
 pantallas exportables en PDF (`services/calidad_pdf.dart`):
 
 | Pantalla | Fuente de datos (se edita aquí) |
