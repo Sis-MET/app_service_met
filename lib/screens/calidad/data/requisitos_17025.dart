@@ -9,8 +9,8 @@ import '../models/cumplimiento.dart';
 /// evaluación. Las exigencias están parafraseadas; el texto de la norma tiene
 /// derechos de autor.
 final evaluacionCumplimiento = EvaluacionCumplimiento(
-  version: '6.3.3+15',
-  fecha: DateTime(2026, 9, 28),
+  version: '6.3.4+16',
+  fecha: DateTime(2026, 10, 5),
   requisitos: const [
     // ── 7.5 Registros técnicos ────────────────────────────────────────────
     Requisito(
@@ -228,8 +228,8 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
           'respalda.',
       estado: EstadoCumplimiento.cumple,
       evidencias: [
-        'Cada foto se guarda por servicio y código métrica, y se ve en la '
-            'galería del registro.',
+        'Cada foto se guarda por servicio y código métrica, y se ve en '
+            '"Registros", agrupada por sección, sin entrar a Editar.',
         'El editor no permite cambiar la ruta de una foto como si fuera texto.',
       ],
     ),

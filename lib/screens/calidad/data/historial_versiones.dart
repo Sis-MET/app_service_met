@@ -3,82 +3,7 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[
-  'Sección "Calidad y normativa" en la pestaña Otros de la barra inferior: '
-      'tablero de cumplimiento NB/ISO/IEC 17025, manual de uso interactivo e '
-      'historial de versiones.',
-  'Exportación en PDF de la matriz de cumplimiento, el manual y el '
-      'historial de versiones.',
-  'Soporte técnico: teclado numérico propio y lectura del indicador con la '
-      'cámara en excentricidad, repetibilidad y linealidad (también la carga '
-      'sustitutiva), como en calibración. Atrás cierra primero el teclado.',
-  'Registro de oportunidades comerciales en Bitrix24 (CRM › Prospectos) '
-      'desde calibración y soporte, sin salir del servicio. No modifica '
-      'los registros técnicos.',
-  'Calibración y soporte técnico: título centrado con el paso actual debajo; '
-      '≡ abre la lista de pasos, marca los completos y lleva a cualquiera '
-      'habilitado (reemplaza a la barra de pasos). "Anterior" y el gesto '
-      'Atrás retroceden un paso y nunca sacan del servicio; ⋮ reúne '
-      '"Registrar oportunidad comercial" y "Salir (queda guardado)", que '
-      'guarda antes de cerrar.',
-  'Soporte técnico con la misma seguridad que la calibración: se avanza solo '
-      'con el paso completo y guardado en el teléfono; un paso adelante se '
-      'abre solo con los anteriores completos, y "Finalizar" revisa todos los '
-      'pasos y lleva al primero incompleto (antes revisaba solo el actual y se '
-      'podía finalizar con pasos saltados). Las pruebas de excentricidad, '
-      'repetibilidad y linealidad marcadas como realizadas se exigen con todas '
-      'sus lecturas.',
-  'Soporte técnico: Relevamiento de datos exige inspección, pruebas y cierre '
-      '(antes se podía finalizar vacío); al continuarlo recupera la '
-      'repetibilidad y las posiciones de excentricidad en su lugar. El panel ≡ '
-      'marca como completos los pasos llenos también al reabrir el servicio.',
-  'Soporte técnico: al elegir otra balanza se cierra el servicio recién '
-      'finalizado, que antes quedaba abierto debajo y aceptaba cambios.',
-  'Calibración: de Inspección en adelante los pasos se abren con el '
-      'instrumento confirmado.',
-  'Recepción de instrumentos de pesaje (RIM) desde calibración y soporte: ⋮ › '
-      '"Emitir RIM (recepción de instrumento)". El cliente, la planta y el '
-      'instrumento se toman del servicio; el técnico registra el inventario, '
-      'los daños, la suciedad y el motivo, y firman en la pantalla, a '
-      'pantalla completa, el cliente y el representante de Métrica. '
-      'El RIM queda guardado en el teléfono, con su PDF, y no se modifica: si '
-      'tiene un error se anula con motivo.',
-  'La app sugiere el RIM cuando el servicio de una balanza se corta: al '
-      'salir a medias y al descartar un servicio pendiente. Después de '
-      'emitirlo, "Cambiar de balanza" cierra esa balanza sin concluirla y '
-      'permite seguir con otra en la misma SECA u OTST.',
-  'Servicios reúne los formularios adicionales: "Recepción de instrumentos '
-      '(RIM)" y "Oportunidades comerciales" (antes en Precarga), con sus '
-      'pendientes de enviar.',
-  'Servidor: base servicios_extras con las tablas form_rim (RIM con las '
-      'firmas del cliente y del representante de Métrica) y form_bitrix '
-      '(copia de cada oportunidad registrada en Bitrix24). Requiere el '
-      'script 012.',
-  'RIM y oportunidades también fuera de un servicio: en Servicios, "Nuevo '
-      'RIM" y "Nueva oportunidad" abren una selección rápida de cliente, '
-      'planta e instrumento (o el código QR del instrumento). El RIM admite '
-      'un instrumento no registrado, con código provisional. Estos registros '
-      'se guardan como "Registro directo".',
-  'Oportunidades sin conexión: se registran con el cliente de ServiceMET y '
-      'quedan pendientes. Al volver la conexión con el servidor la app les '
-      'asigna la empresa de Bitrix24 (la elegida antes para ese cliente o una '
-      'coincidencia exacta de nombre) y las envía sola; si no hay una '
-      'coincidencia segura, pide que el técnico la elija. Reemplaza al botón '
-      '"Guardar pendiente".',
-  'Fotos de calibración y soporte técnico sin entrar a Editar: en '
-      '"Registros" cada balanza muestra sus fotos en miniatura; "+N" o el '
-      'menú › "Ver fotos" las reúne por sección, y el visor permite deslizar, '
-      'acercar, saltar con la tira de miniaturas, compartir y guardar. Ver '
-      'las fotos no modifica el registro. El detalle del registro muestra las '
-      'fotos en lugar de sus rutas en el teléfono.',
-  'Nueva barra de navegación inferior: una cápsula más angosta que flota '
-      'sobre la pantalla, clara u oscura según el tema, con íconos nuevos; la '
-      'pestaña abierta se resalta en gris con su nombre y las demás muestran '
-      'solo su ícono.',
-  'Íconos nuevos en toda la app: una sola familia de línea fina y '
-      'redondeada en lugar de los íconos de Material y Font Awesome. No '
-      'cambia ningún flujo ni ningún dato.',
-];
+const cambiosSinLiberar = <String>[];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
@@ -88,6 +13,97 @@ const cambiosSinLiberar = <String>[
 /// Redacte para el laboratorio: qué cambia para el técnico y para los
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
+  VersionApp(
+    version: '6.3.4+16',
+    fecha: '2026-10-05',
+    clase: ClaseCambio.critico,
+    resumen: 'Recepción de instrumentos (RIM) con las firmas del cliente y '
+        'de Métrica, oportunidades en Bitrix24, soporte técnico con la misma '
+        'seguridad que la calibración, fotos sin entrar a Editar y nueva '
+        'navegación.',
+    nuevo: [
+      'Sección "Calidad y normativa" en la pestaña Otros de la barra inferior: '
+          'tablero de cumplimiento NB/ISO/IEC 17025, manual de uso interactivo '
+          'e historial de versiones.',
+      'Exportación en PDF de la matriz de cumplimiento, el manual y el '
+          'historial de versiones.',
+      'Soporte técnico: teclado numérico propio y lectura del indicador con la '
+          'cámara en excentricidad, repetibilidad y linealidad (también la '
+          'carga sustitutiva), como en calibración. Atrás cierra primero el '
+          'teclado.',
+      'Registro de oportunidades comerciales en Bitrix24 (CRM › Prospectos) '
+          'desde calibración y soporte, sin salir del servicio. No modifica '
+          'los registros técnicos.',
+      'Calibración y soporte técnico: título centrado con el paso actual '
+          'debajo; ≡ abre la lista de pasos, marca los completos y lleva a '
+          'cualquiera habilitado (reemplaza a la barra de pasos). "Anterior" y '
+          'el gesto Atrás retroceden un paso y nunca sacan del servicio; ⋮ '
+          'reúne "Registrar oportunidad comercial" y "Salir (queda guardado)", '
+          'que guarda antes de cerrar.',
+      'Recepción de instrumentos de pesaje (RIM) desde calibración y soporte: '
+          '⋮ › "Emitir RIM (recepción de instrumento)". El cliente, la planta '
+          'y el instrumento se toman del servicio; el técnico registra el '
+          'inventario, los daños, la suciedad y el motivo, y firman en la '
+          'pantalla, a pantalla completa, el cliente y el representante de '
+          'Métrica. El RIM queda guardado en el teléfono, con su PDF, y no se '
+          'modifica: si tiene un error se anula con motivo.',
+      'La app sugiere el RIM cuando el servicio de una balanza se corta: al '
+          'salir a medias y al descartar un servicio pendiente. Después de '
+          'emitirlo, "Cambiar de balanza" cierra esa balanza sin concluirla y '
+          'permite seguir con otra en la misma SECA u OTST.',
+      'Servicios reúne los formularios adicionales: "Recepción de instrumentos '
+          '(RIM)" y "Oportunidades comerciales" (antes en Precarga), con sus '
+          'pendientes de enviar.',
+      'RIM y oportunidades también fuera de un servicio: en Servicios, "Nuevo '
+          'RIM" y "Nueva oportunidad" abren una selección rápida de cliente, '
+          'planta e instrumento (o el código QR del instrumento). El RIM '
+          'admite un instrumento no registrado, con código provisional. Estos '
+          'registros se guardan como "Registro directo".',
+      'Oportunidades sin conexión: se registran con el cliente de ServiceMET y '
+          'quedan pendientes. Al volver la conexión con el servidor la app les '
+          'asigna la empresa de Bitrix24 (la elegida antes para ese cliente o '
+          'una coincidencia exacta de nombre) y las envía sola; si no hay una '
+          'coincidencia segura, pide que el técnico la elija. Reemplaza al '
+          'botón "Guardar pendiente".',
+      'Fotos de calibración y soporte técnico sin entrar a Editar: en '
+          '"Registros" cada balanza muestra sus fotos en miniatura; "+N" o el '
+          'menú › "Ver fotos" las reúne por sección, y el visor permite '
+          'deslizar, acercar, saltar con la tira de miniaturas, compartir y '
+          'guardar. Ver las fotos no modifica el registro. El detalle del '
+          'registro muestra las fotos en lugar de sus rutas en el teléfono.',
+      'Nueva barra de navegación inferior: una cápsula más angosta que flota '
+          'sobre la pantalla, clara u oscura según el tema, con íconos nuevos; '
+          'la pestaña abierta se resalta en gris con su nombre y las demás '
+          'muestran solo su ícono.',
+      'Íconos nuevos en toda la app: una sola familia de línea fina y '
+          'redondeada en lugar de los íconos de Material y Font Awesome. No '
+          'cambia ningún flujo ni ningún dato.',
+    ],
+    corregido: [
+      'Soporte técnico con la misma seguridad que la calibración: se avanza '
+          'solo con el paso completo y guardado en el teléfono; un paso '
+          'adelante se abre solo con los anteriores completos, y "Finalizar" '
+          'revisa todos los pasos y lleva al primero incompleto (antes '
+          'revisaba solo el actual y se podía finalizar con pasos saltados). '
+          'Las pruebas de excentricidad, repetibilidad y linealidad marcadas '
+          'como realizadas se exigen con todas sus lecturas.',
+      'Soporte técnico: Relevamiento de datos exige inspección, pruebas y '
+          'cierre (antes se podía finalizar vacío); al continuarlo recupera la '
+          'repetibilidad y las posiciones de excentricidad en su lugar. El '
+          'panel ≡ marca como completos los pasos llenos también al reabrir el '
+          'servicio.',
+      'Soporte técnico: al elegir otra balanza se cierra el servicio recién '
+          'finalizado, que antes quedaba abierto debajo y aceptaba cambios.',
+      'Calibración: de Inspección en adelante los pasos se abren con el '
+          'instrumento confirmado.',
+    ],
+    impactoRegistros: 'Nuevos registros en la base servicios_extras: RIM '
+        '(form_rim, con las firmas del cliente y del representante de '
+        'Métrica) y copia de cada oportunidad registrada en Bitrix24 '
+        '(form_bitrix). Requiere ejecutar el script 012 antes de desplegar '
+        'el backend. En soporte técnico, cada paso debe quedar completo y '
+        'guardado para avanzar.',
+  ),
   VersionApp(
     version: '6.3.3+15',
     fecha: '2026-09-24',

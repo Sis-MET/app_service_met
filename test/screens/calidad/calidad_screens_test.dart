@@ -115,7 +115,11 @@ void main() {
   testWidgets('el historial marca la versión instalada', (tester) async {
     await _abrir(
       tester,
-      const HistorialVersionesScreen(versionInstalada: '6.3.3+15'),
+      // Con cambios en desarrollo propios: los reales se vacían al liberar.
+      const HistorialVersionesScreen(
+        versionInstalada: '6.3.3+15',
+        sinLiberar: ['Cambio todavía en desarrollo.'],
+      ),
     );
 
     expect(find.text('Instalada: 6.3.3+15'), findsOneWidget);
