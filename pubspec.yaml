@@ -72,7 +72,6 @@ dependencies:
   # Lector del indicador: cámara en vivo y OCR de ML Kit en el teléfono.
   camera: ^0.12.1
   google_mlkit_text_recognition: ^0.17.1
-  font_awesome_flutter: ^11.0.0
   timezone: ^0.11.1
   local_auth: ^3.0.2
   # Íconos de la app (lib/theme/app_icons.dart): línea fina y redondeada.

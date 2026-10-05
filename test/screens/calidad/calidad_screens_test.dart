@@ -150,10 +150,7 @@ void main() {
       ),
     );
 
-    for (final label in ['Inicio', 'Servicios', 'Precarga', 'Otros']) {
-      expect(find.text(label), findsOneWidget);
-    }
-    await tester.tap(find.text('Otros'));
+    await tester.tap(find.bySemanticsLabel('Otros'));
     expect(elegido, 3);
   });
 

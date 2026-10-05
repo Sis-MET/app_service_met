@@ -71,6 +71,10 @@ const cambiosSinLiberar = <String>[
       'acercar, saltar con la tira de miniaturas, compartir y guardar. Ver '
       'las fotos no modifica el registro. El detalle del registro muestra las '
       'fotos en lugar de sus rutas en el teléfono.',
+  'Nueva barra de navegación inferior: una cápsula más angosta que flota '
+      'sobre la pantalla, clara u oscura según el tema, con íconos nuevos; la '
+      'pestaña abierta se resalta en gris con su nombre y las demás muestran '
+      'solo su ícono.',
   'Íconos nuevos en toda la app: una sola familia de línea fina y '
       'redondeada en lugar de los íconos de Material y Font Awesome. No '
       'cambia ningún flujo ni ningún dato.',

@@ -150,16 +150,20 @@ const manualServiceMet = ManualUso(
       icono: AppIcons.explorar,
       resumen: 'Inicio, Servicios, Precarga, Otros y Ajustes.',
       bloques: [
+        Parrafo('La barra inferior flota sobre la pantalla y sigue el tema '
+            'claro u oscuro elegido en Ajustes. La pestaña abierta se resalta '
+            'en gris con su nombre; las demás muestran solo su ícono.'),
         Lista('Barra inferior', [
-          'Inicio: resumen de la actividad local, pendientes de subir y '
-              'servicios guardados en el teléfono.',
-          'Servicios: aquí se empieza una calibración o un servicio de '
-              'soporte, y se llenan, revisan y envían los formularios '
+          'Inicio (casa): resumen de la actividad local, pendientes de subir '
+              'y servicios guardados en el teléfono.',
+          'Servicios (balanza): aquí se empieza una calibración o un servicio '
+              'de soporte, y se llenan, revisan y envían los formularios '
               'adicionales (RIM y oportunidades comerciales).',
-          'Precarga: descarga de datos para trabajar sin conexión y '
-              'vencimientos.',
-          'Otros: "Calidad y normativa", con el cumplimiento NB/ISO/IEC '
-              '17025, este manual y el historial de versiones.',
+          'Precarga (flecha hacia una bandeja): descarga de datos para '
+              'trabajar sin conexión y vencimientos.',
+          'Otros (tres cuadros y un círculo): "Calidad y normativa", con el '
+              'cumplimiento NB/ISO/IEC 17025, este manual y el historial de '
+              'versiones.',
         ]),
         Lista('En Inicio', [
           'Tarjetas de resumen: balanzas calibradas, servicios de soporte y '
