@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +27,15 @@ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // La fuente de íconos va dentro de la app, sin el paquete que traía su
+  // licencia: se registra para que figure con las demás.
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(
+      const ['Lucide'],
+      await rootBundle.loadString('assets/fonts/LICENSE-lucide.txt'),
+    );
+  });
 
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 

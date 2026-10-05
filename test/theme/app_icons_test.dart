@@ -36,17 +36,31 @@ void main() {
         reason: 'Use AppIcons (lib/theme/app_icons.dart) en su lugar.');
   });
 
-  test('el catálogo usa solo Lucide con trazo 300', () {
+  test('el catálogo usa solo la fuente de íconos de la app', () {
     final catalogo = File('lib/theme/app_icons.dart').readAsStringSync();
-    final declaraciones =
-        RegExp(r'static const IconData (\w+) = ([\w.]+);').allMatches(catalogo);
-    expect(declaraciones, isNotEmpty);
-    for (final declaracion in declaraciones) {
-      expect(declaracion.group(2), matches(RegExp(r'^LucideIcons\.\w+300$')),
-          reason: 'AppIcons.${declaracion.group(1)}');
-    }
+    final todas = RegExp(r'static const IconData \w+').allMatches(catalogo);
+    final propias = RegExp(
+      r'static const IconData \w+ =\s*IconData\(0x[0-9a-f]+, '
+      r'fontFamily: fuente\);',
+    ).allMatches(catalogo);
+    expect(todas, isNotEmpty);
+    expect(propias.length, todas.length,
+        reason: 'Cada ícono es IconData(punto, fontFamily: fuente).');
+    expect(AppIcons.fuente, 'Lucide300');
     expect(AppIcons.balanza.fontFamily, 'Lucide300');
-    expect(AppIcons.buscar.fontPackage, 'lucide_icons_flutter');
+    expect(AppIcons.buscar.fontPackage, isNull);
+  });
+
+  test('la app lleva solo el trazo que usa, con su licencia', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(pubspec, contains('- family: Lucide300'));
+    expect(pubspec, contains('- asset: assets/fonts/lucide_300.ttf'));
+    expect(pubspec, contains('- assets/fonts/LICENSE-lucide.txt'));
+    // El paquete completo trae los otros grosores, que no se usan.
+    expect(pubspec, isNot(contains('lucide_icons_flutter')));
+    expect(File('assets/fonts/lucide_300.ttf').existsSync(), isTrue);
+    expect(File('assets/fonts/LICENSE-lucide.txt').readAsStringSync(),
+        contains('ISC License'));
   });
 
   testWidgets('volver, cerrar y menú automáticos usan los íconos de la app',

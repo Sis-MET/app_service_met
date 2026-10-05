@@ -74,8 +74,6 @@ dependencies:
   google_mlkit_text_recognition: ^0.17.1
   timezone: ^0.11.1
   local_auth: ^3.0.2
-  # Íconos de la app (lib/theme/app_icons.dart): línea fina y redondeada.
-  lucide_icons_flutter: ^3.1.22
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -100,6 +98,14 @@ dev_dependencies:
 flutter:
   assets:
     - images/logo_met.png
+    - assets/fonts/LICENSE-lucide.txt
+
+  # Íconos de la app (lib/theme/app_icons.dart): Lucide, solo el trazo 300.
+  # Al compilar en release quedan solo los íconos que se usan.
+  fonts:
+    - family: Lucide300
+      fonts:
+        - asset: assets/fonts/lucide_300.ttf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
