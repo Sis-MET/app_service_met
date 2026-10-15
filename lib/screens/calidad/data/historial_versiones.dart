@@ -3,25 +3,7 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[
-  'Ubicación GPS de cada servicio de calibración y soporte: se toma una vez '
-      'al guardar la balanza y se envía al resumen del servicio en DataMET '
-      '(requiere backend/sql/013_add_service_location.sql y el backend '
-      'actualizado).',
-  'Paso Instrumento e "Información del instrumento" con una ficha nueva: '
-      'los rangos se muestran de menor a mayor capacidad (Rango 1 = el menor), '
-      'sin cambiar los datos guardados.',
-  'Los registros técnicos ya no se editan desde Registros: el detalle es de '
-      'solo lectura.',
-  'Balanzas nuevas: se suben solo con el código métrica definitivo de '
-      'DataMET, que se asigna en la pantalla de subida y queda en el historial '
-      'de cambios del registro. Las balanzas ya registradas pueden subirse '
-      'antes.',
-  'Permisos: antes de cada solicitud del teléfono (ubicación, notificaciones '
-      'y cámara) la app muestra su propio aviso; ninguno se pide en silencio. '
-      'Sin permiso de ubicación, o con la ubicación del teléfono apagada, no '
-      'se puede iniciar ni continuar un servicio.',
-];
+const cambiosSinLiberar = <String>[];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
@@ -31,6 +13,60 @@ const cambiosSinLiberar = <String>[
 /// Redacte para el laboratorio: qué cambia para el técnico y para los
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
+  VersionApp(
+    version: '6.3.5+17',
+    fecha: '2026-10-15',
+    clase: ClaseCambio.critico,
+    resumen: 'Ubicación de cada servicio, ficha del instrumento con los rangos '
+        'de menor a mayor, balanzas nuevas que se suben con su código '
+        'definitivo, registros de solo lectura y aviso antes de cada permiso.',
+    nuevo: [
+      'Ubicación de cada servicio de calibración y de los 8 módulos de '
+          'soporte: al guardar la balanza se toma una vez la ubicación del '
+          'teléfono (latitud, longitud, precisión y hora). Si el servicio se '
+          'continúa en otro lugar, se conserva la primera. Se envía al subir, '
+          'aparte del registro técnico.',
+      'Permisos: antes de cada solicitud del teléfono (ubicación, '
+          'notificaciones y cámara) la app muestra su propio aviso; ninguno se '
+          'pide en silencio. Sin permiso de ubicación, o con la ubicación del '
+          'teléfono apagada, no se puede iniciar ni continuar un servicio: '
+          'aparece "Ubicación requerida".',
+      'Ficha del instrumento, en el paso Instrumento y en el botón ámbar de '
+          'información (calibración y soporte): código, estado (catálogo o '
+          'nueva), datos clave, escala de capacidades y tabla de rangos. El '
+          'Rango 1 es siempre el de menor capacidad; es solo visual, los '
+          'datos guardados no cambian.',
+      'Paso Instrumento con los campos agrupados, rangos editables de menor a '
+          'mayor y "Agregar rango". La búsqueda de balanzas muestra su '
+          'capacidad.',
+      'Balanzas nuevas en la subida: aparecen aparte con los pasos a seguir y '
+          '"Asignar código". Se suben solo con el código métrica que asignó '
+          'DataMET; mientras tanto se pueden subir las balanzas ya '
+          'registradas. Al asignarlo, la app avisa si no corresponde al '
+          'cliente y la planta, si ya lo tiene otra balanza del servicio y si '
+          'figura en la precarga.',
+      'Registros de solo lectura: se retiró "Editar". El detalle muestra '
+          '"Historial de cambios" cuando al registro se le asignó el código '
+          'de una balanza nueva, y las balanzas nuevas llevan la marca '
+          '"Nueva".',
+    ],
+    corregido: [
+      'Las notificaciones ya no se piden al abrir la app sin aviso: se piden '
+          'desde el inicio, después del aviso de la app.',
+      'La "Información del instrumento" de calibración y la de soporte '
+          'mostraban los rangos en el orden guardado; ahora van de menor a '
+          'mayor capacidad.',
+    ],
+    impactoRegistros: 'Cada registro de calibración y soporte guarda su '
+        'ubicación en el teléfono, y el resumen DATA_SERVICIOS_DATOS la recibe '
+        'en latitud, longitud, precision_gps y fecha_gps (requiere el script '
+        '013 antes de desplegar el backend; lo subido desde versiones '
+        'anteriores queda sin coordenadas). Las balanzas nuevas ya no se suben '
+        'con código provisional. Asignar el código definitivo es la única '
+        'corrección de un registro técnico, y queda en la tabla '
+        'auditoria_registros con el valor anterior, el nuevo, el usuario, la '
+        'fecha, el motivo y la versión de la app.',
+  ),
   VersionApp(
     version: '6.3.4+16',
     fecha: '2026-10-05',

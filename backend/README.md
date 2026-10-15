@@ -47,6 +47,18 @@ valores existentes y puede volver a ejecutarse sin efecto. Al terminar lista
 los procedimientos, vistas y funciones que mencionan `carga`, para revisar que
 ninguno la convierta a entero.
 
+Para guardar la ubicación GPS de cada servicio (desde ServiceMET 6.3.5),
+debe ejecutarse una sola vez `sql/013_add_service_location.sql` **antes** de
+desplegar el backend. Agrega a `DATA_SERVICIOS_DATOS` las columnas
+`latitud`, `longitud` (`decimal(9,6)`), `precision_gps` (`decimal(7,1)`, en
+metros) y `fecha_gps` (`datetimeoffset(0)`), todas con nulos permitidos y con
+restricciones de rango. El resumen tiene una fila por servicio subido, de
+calibración o de cualquier módulo de soporte, y se une con la tabla de detalle
+por `codigo_registro`. La app envía la ubicación aparte del registro técnico
+(`ubicaciones` en calibración, `ubicacion` en cada sobre de soporte), así que
+una app anterior sigue subiendo sin coordenadas. Si el backend se despliega
+antes que el script, sube igual sin coordenadas y lo avisa en su consola.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 

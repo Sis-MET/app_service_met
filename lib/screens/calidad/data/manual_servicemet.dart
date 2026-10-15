@@ -11,14 +11,21 @@ const manualServiceMet = ManualUso(
   control: ControlDocumento(
     codigo: 'PENDIENTE: código asignado por Calidad',
     titulo: 'Manual de uso de ServiceMET',
-    revision: '00 (borrador)',
-    fechaEmision: '2026-09-28',
-    aplicaA: '6.3.x',
+    revision: '01 (borrador)',
+    fechaEmision: '2026-10-15',
+    aplicaA: '6.3.5 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
     aprobo: 'PENDIENTE',
     historial: [
       RevisionDocumento('00', '2026-09-28', 'Emisión inicial (borrador).'),
+      RevisionDocumento(
+          '01',
+          '2026-10-15',
+          'Versión 6.3.5: permisos con aviso previo y servicio bloqueado sin '
+              'ubicación, ubicación de cada servicio, ficha del instrumento '
+              'con los rangos de menor a mayor, Registros de solo lectura con '
+              'historial de cambios y balanzas nuevas en la subida (borrador).'),
     ],
   ),
   secciones: [

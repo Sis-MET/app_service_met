@@ -9,7 +9,7 @@ import '../models/cumplimiento.dart';
 /// evaluación. Las exigencias están parafraseadas; el texto de la norma tiene
 /// derechos de autor.
 final evaluacionCumplimiento = EvaluacionCumplimiento(
-  version: '6.3.4+16',
+  version: '6.3.5+17',
   fecha: DateTime(2026, 10, 15),
   requisitos: const [
     // ── 7.5 Registros técnicos ────────────────────────────────────────────
@@ -92,6 +92,11 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'patrones con certificado y condiciones ambientales de inicio y fin.',
         'Excentricidad, repetibilidad y linealidad guardan cada lectura, '
             'con fotografías de respaldo.',
+        'Desde 6.3.5 cada servicio registra la ubicación donde se realizó '
+            '(latitud, longitud, precisión y hora del GPS); sin permiso de '
+            'ubicación no se inicia un servicio '
+            '(lib/services/ubicacion_servicio.dart, '
+            'lib/widgets/requiere_ubicacion.dart).',
       ],
       brecha: 'No se registran el código y la revisión del procedimiento de '
           'calibración aplicado.',
@@ -252,6 +257,9 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       estado: EstadoCumplimiento.noCumple,
       evidencias: [
         'La versión instalada se ve en Ajustes y en el historial de versiones.',
+        'Desde 6.3.5 cada entrada del historial de cambios de un registro '
+            'guarda la versión de la app con que se hizo la corrección '
+            '(lib/database/auditoria_registros.dart).',
       ],
       brecha: 'Los registros no guardan la versión de la app que los capturó.',
       accion: 'Guardar la versión al crear cada registro y en cada entrada '
@@ -284,11 +292,15 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       evidencias: [
         'Pruebas automáticas de la app (Flutter) y del servidor (Node).',
         'Historial de versiones con la clase de cada cambio.',
+        'Registro de validación de 6.3.5+17 con el resultado de las pruebas '
+            'automáticas (docs/iso17025/validaciones/VAL-6.3.5+17.md).',
       ],
-      brecha: 'No hay un registro de validación por versión con el resultado '
-          'de las pruebas y quién autorizó su uso.',
-      accion: 'Emitir un registro de validación en cada versión antes de '
-          'distribuirla.',
+      brecha: 'El registro de validación de 6.3.5+17 está en borrador: faltan '
+          'los casos funcionales en un teléfono, la ida y vuelta contra DataMET '
+          'y la autorización del laboratorio. Las versiones anteriores no '
+          'tienen registro.',
+      accion: 'Completar y firmar el registro de validación de cada versión '
+          'antes de distribuirla.',
       cierre: TipoCierre.ambos,
       riesgo: Riesgo.medio,
     ),
@@ -527,6 +539,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         '"Validar datos" revisa el lote en el servidor sin insertar nada.',
         'La subida revalida e inserta todo o nada en una transacción.',
         'La app marca lo subido con el código asignado por el servidor.',
+        'La ubicación del servicio viaja aparte del registro técnico y se '
+            'guarda en el resumen dentro de la misma transacción; una '
+            'ubicación fuera de rango se descarta sin impedir la subida '
+            '(backend/src/location.js, backend/test/location.test.js).',
       ],
     ),
     Requisito(

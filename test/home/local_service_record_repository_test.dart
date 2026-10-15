@@ -83,7 +83,7 @@ void main() {
         row,
         nuevo: nuevo,
         usuario: usuario,
-        appVersion: '6.3.4+16',
+        appVersion: '6.3.5+17',
       );
 
   test('asigna el código definitivo y deja el cambio en el historial',
@@ -97,8 +97,8 @@ void main() {
     // Las demás columnas no se tocan.
     expect(stored['marca'], 'Toledo');
 
-    final historial = await LocalServiceRecordRepository.historial(
-        TipoServicio.soporte, row);
+    final historial =
+        await LocalServiceRecordRepository.historial(TipoServicio.soporte, row);
     expect(historial, hasLength(1));
     final entrada = historial.single;
     expect(entrada.accion, 'MODIFICAR');
@@ -109,7 +109,7 @@ void main() {
     expect(entrada.valorNuevo, '0001-01-021');
     expect(entrada.usuario, 'tecnico');
     expect(entrada.motivo, kMotivoCodigoMetricaAsignado);
-    expect(entrada.appVersion, '6.3.4+16');
+    expect(entrada.appVersion, '6.3.5+17');
     expect(
         entrada.fechaHora,
         matches(
@@ -119,8 +119,8 @@ void main() {
   test('no corrige registros que ya tienen un código definitivo', () async {
     final row = await seedRow(codMetrica: '0001-01-001');
 
-    await expectLater(asignar(row, '0001-01-002'),
-        throwsA(isA<AsignacionCodigoException>()));
+    await expectLater(
+        asignar(row, '0001-01-002'), throwsA(isA<AsignacionCodigoException>()));
     expect((await readRow(row['id'] as int))['cod_metrica'], '0001-01-001');
     expect(
         await LocalServiceRecordRepository.historial(TipoServicio.soporte, row),
@@ -147,8 +147,8 @@ void main() {
     await database.update('mnt_prv_regular_stil', {'cod_metrica': 'OTRO'},
         where: 'id = ?', whereArgs: [row['id']]);
 
-    await expectLater(asignar(row, '0001-01-021'),
-        throwsA(isA<AsignacionCodigoException>()));
+    await expectLater(
+        asignar(row, '0001-01-021'), throwsA(isA<AsignacionCodigoException>()));
     expect((await readRow(row['id'] as int))['cod_metrica'], 'OTRO');
     expect(
         await LocalServiceRecordRepository.historial(TipoServicio.soporte, row),
@@ -215,8 +215,7 @@ void main() {
     await expectLater(asignar(huerfana, '0001-01-021'),
         throwsA(isA<AsignacionCodigoException>()));
     expect(
-      await LocalServiceRecordRepository.delete(
-          TipoServicio.soporte, huerfana),
+      await LocalServiceRecordRepository.delete(TipoServicio.soporte, huerfana),
       0,
     );
     expect((await database.query('mnt_prv_regular_stil')).single['cod_metrica'],
