@@ -210,6 +210,28 @@ class DatabaseHelperSoporte {
     return rows.isEmpty ? null : rows.first;
   }
 
+  /// Cambia el código métrica provisional de una sesión por el definitivo,
+  /// para que el aviso de servicios repetidos use el código vigente.
+  Future<void> actualizarCodMetrica({
+    required String otst,
+    required String sessionId,
+    required String anterior,
+    required String nuevo,
+  }) async {
+    if (otst.trim().isEmpty || sessionId.trim().isEmpty) return;
+    final db = await database;
+    await _createSessionStatusTable(db);
+    await db.update(
+      supportSessionStatusTable,
+      {
+        'cod_metrica': nuevo,
+        'updated_at': DateTime.now().toIso8601String(),
+      },
+      where: 'otst = ? AND session_id = ? AND cod_metrica = ?',
+      whereArgs: [otst, sessionId, anterior],
+    );
+  }
+
   Future<void> markSessionCompleted(
     String moduleKey,
     String sessionId,

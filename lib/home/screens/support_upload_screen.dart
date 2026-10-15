@@ -5,17 +5,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../database/precarga_bd.dart';
 import '../../login/services/connection_profile_service.dart';
+import '../../screens/calidad/utils/exportar_documento.dart';
+import '../../screens/soporte_new/database/database_helper_soporte.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
 import '../models/servicio_model.dart';
 import '../services/calibration_upload_api_service.dart';
+import '../services/local_service_record_repository.dart';
 import '../services/support_upload_api_service.dart';
 import '../services/support_upload_status_service.dart';
 import '../services/upload_record_deduplicator.dart';
+import '../widgets/asignar_codigo_sheet.dart';
+import '../widgets/balanzas_nuevas_section.dart';
 import '../widgets/upload_auth_dialog.dart';
-import '../widgets/new_scales_upload_notice.dart';
 import '../../theme/app_icons.dart';
 
 class SupportUploadScreen extends StatefulWidget {
@@ -36,6 +41,15 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
   bool _working = false;
   String? _error;
   CalibrationValidationResult? _validation;
+
+  /// Equipos nuevos: su código métrica es provisional hasta registrarlos en
+  /// DataMET. No se validan ni se suben hasta que tengan el definitivo.
+  List<Map<String, dynamic>> get _nuevas =>
+      _pending.where(esBalanzaNueva).toList();
+
+  /// Lo que se valida y se sube: los equipos ya registrados en DataMET.
+  List<Map<String, dynamic>> get _registradas =>
+      _pending.where((record) => !esBalanzaNueva(record)).toList();
 
   @override
   void initState() {
@@ -132,7 +146,8 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
   }
 
   Future<void> _validate() async {
-    if (_pending.isEmpty) return;
+    final registradas = _registradas;
+    if (registradas.isEmpty) return;
     setState(() {
       _working = true;
       _error = null;
@@ -141,7 +156,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
     try {
       api = _api();
       final result =
-          await _withAuthentication(api, () => api!.validate(_pending));
+          await _withAuthentication(api, () => api!.validate(registradas));
       if (result != null && mounted) setState(() => _validation = result);
     } on TimeoutException {
       _showError('El servidor no respondió dentro del tiempo esperado.');
@@ -161,9 +176,12 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       builder: (dialogContext) => AlertDialog(
         title:
             Text(validOnly ? 'Subir registros válidos' : 'Subir lote completo'),
-        content: Text(validOnly
-            ? 'Se subirán ${validation.validCount} registros. Los ${validation.invalidCount} registros observados permanecerán pendientes.'
-            : 'Se subirán ${validation.validCount} registros y sus resúmenes en una sola transacción.'),
+        content: Text((validOnly
+                ? 'Se subirán ${validation.validCount} registros. Los ${validation.invalidCount} registros observados permanecerán pendientes.'
+                : 'Se subirán ${validation.validCount} registros y sus resúmenes en una sola transacción.') +
+            (_nuevas.isEmpty
+                ? ''
+                : '\n\n${_nuevas.length} equipo(s) nuevo(s) quedan pendientes hasta que asigne su código métrica.')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -182,19 +200,23 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       _error = null;
     });
     SupportUploadApiService? api;
+    // Los índices de la respuesta son los de esta lista.
+    final registradas = _registradas;
     try {
       api = _api();
       final result = await _withAuthentication(
         api,
-        () => api!.upload(_pending, validOnly: validOnly),
+        () => api!.upload(registradas, validOnly: validOnly),
       );
       if (result == null) return;
       final prefs = await SharedPreferences.getInstance();
       final uploadedBy = prefs.getString('logged_user') ?? '';
       for (final uploaded in result.uploaded) {
-        if (uploaded.index < 0 || uploaded.index >= _pending.length) continue;
+        if (uploaded.index < 0 || uploaded.index >= registradas.length) {
+          continue;
+        }
         await _status.markUploaded(
-          record: _pending[uploaded.index],
+          record: registradas[uploaded.index],
           codigoRegistro: uploaded.codigoRegistro,
           serverN: uploaded.serverN,
           uploadedBy: uploadedBy,
@@ -204,8 +226,6 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message), backgroundColor: Colors.green),
       );
-      await showNewScalesUploadNotice(context, result.newScaleCount);
-      if (!mounted) return;
       await _load();
     } on TimeoutException {
       _showError(
@@ -217,6 +237,71 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       api?.close();
       if (mounted) setState(() => _working = false);
     }
+  }
+
+  /// Cambia el código provisional de un equipo nuevo por el que le dio
+  /// DataMET. Queda en el historial del registro.
+  Future<void> _asignarCodigo(Map<String, dynamic> record) async {
+    final modulo = record['_support_module']?.toString() ?? '';
+    final anterior = record['cod_metrica']?.toString().trim() ?? '';
+    final codigo = await showAsignarCodigoSheet(
+      context,
+      registro: record,
+      buscarEnCatalogo: (codigo) =>
+          DatabaseHelperPrecarga().getBalanzaPorCodigo(codigo),
+      verificar: (codigo) async {
+        // Otro registro del mismo módulo en esta OTST con ese código sería
+        // el mismo servicio dos veces.
+        final repetido = widget.servicio.items.any((item) =>
+            !identical(item, record) &&
+            item['_support_module']?.toString() == modulo &&
+            item['id']?.toString() != record['id']?.toString() &&
+            (item['cod_metrica']?.toString().trim().toUpperCase() ?? '') ==
+                codigo.toUpperCase());
+        return repetido
+            ? 'Otro registro de ${record['_support_label'] ?? 'este módulo'} '
+                'en esta OTST ya tiene el código $codigo.'
+            : null;
+      },
+      guardar: (codigo) async {
+        final prefs = await SharedPreferences.getInstance();
+        await LocalServiceRecordRepository.asignarCodigoMetrica(
+          TipoServicio.soporte,
+          record,
+          nuevo: codigo,
+          usuario: prefs.getString('logged_user') ?? '',
+          appVersion: await versionInstalada(),
+        );
+      },
+    );
+    if (codigo == null || !mounted) return;
+    // La lista del servicio es la que se volvió a leer al abrir esta
+    // pantalla: se actualiza para no volver a mostrar el código anterior.
+    for (final item in widget.servicio.items) {
+      if (item['_source_table'] == record['_source_table'] &&
+          item['id']?.toString() == record['id']?.toString()) {
+        item['cod_metrica'] = codigo;
+      }
+    }
+    // El progreso de la sesión (para avisar servicios repetidos) también
+    // usa el código; es un dato de control, no el registro técnico.
+    try {
+      await DatabaseHelperSoporte().actualizarCodMetrica(
+        otst: record['otst']?.toString() ?? '',
+        sessionId: record['session_id']?.toString() ?? '',
+        anterior: anterior,
+        nuevo: codigo,
+      );
+    } catch (error) {
+      debugPrint('No se actualizó el progreso de la sesión: $error');
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Código $codigo asignado. Valide los datos para subir '
+          'este equipo.'),
+      backgroundColor: Colors.green,
+    ));
+    await _load();
   }
 
   void _showError(String message) {
@@ -266,8 +351,9 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                          '${_pending.length} pendientes · $_uploadedCount subidos'),
+                      Text('${_pending.length} pendientes · '
+                          '$_uploadedCount subidos'
+                          '${_nuevas.isEmpty ? '' : ' · ${_nuevas.length} nuevo(s) sin código'}'),
                     ],
                   ),
                 ),
@@ -285,6 +371,16 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                     'de cada equipo.',
                   ),
                 ],
+                if (_nuevas.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  BalanzasNuevasSection(
+                    registros: _nuevas,
+                    hayRegistradas: _registradas.isNotEmpty,
+                    onAsignar: _working ? null : _asignarCodigo,
+                    etiqueta: (registro) =>
+                        registro['_support_label']?.toString(),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 if (_pending.isEmpty)
                   _message(
@@ -294,6 +390,8 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                         ? 'Todos los servicios completos de esta OTST ya fueron subidos.'
                         : 'No hay registros completos disponibles para subir.',
                   )
+                else if (_registradas.isEmpty)
+                  const SizedBox.shrink()
                 else if (_validation == null)
                   _message(
                     AppIcons.verificacion,
@@ -304,7 +402,7 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
                   ..._validation!.records.map(_recordCard),
               ],
             ),
-      bottomNavigationBar: _pending.isEmpty
+      bottomNavigationBar: _registradas.isEmpty
           ? null
           : SafeArea(
               child: Padding(
@@ -333,8 +431,9 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
       );
 
   Widget _recordCard(UploadRecordValidation record) {
-    final source = record.index >= 0 && record.index < _pending.length
-        ? _pending[record.index]
+    final registradas = _registradas;
+    final source = record.index >= 0 && record.index < registradas.length
+        ? registradas[record.index]
         : const <String, dynamic>{};
     final color = record.valid ? Colors.green : Colors.red;
     return Card(
@@ -380,18 +479,25 @@ class _SupportUploadScreenState extends State<SupportUploadScreen> {
         label: const Text('VALIDAR DATOS'),
       );
     }
+    // Con equipos nuevos pendientes se aclara que solo suben los
+    // registrados: los nuevos esperan su código métrica.
+    final soloRegistradas = _nuevas.isNotEmpty;
     if (validation.invalidCount == 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: false),
         icon: const Icon(AppIcons.subir),
-        label: Text('SUBIR LOTE COMPLETO (${validation.validCount})'),
+        label: Text(soloRegistradas
+            ? 'SUBIR REGISTRADOS (${validation.validCount})'
+            : 'SUBIR LOTE COMPLETO (${validation.validCount})'),
       );
     }
     if (validation.validCount > 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: true),
         icon: const Icon(AppIcons.subir),
-        label: Text('SUBIR SOLO VÁLIDOS (${validation.validCount})'),
+        label: Text(soloRegistradas
+            ? 'SUBIR REGISTRADOS VÁLIDOS (${validation.validCount})'
+            : 'SUBIR SOLO VÁLIDOS (${validation.validCount})'),
       );
     }
     return OutlinedButton.icon(

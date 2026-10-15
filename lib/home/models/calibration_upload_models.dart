@@ -69,8 +69,6 @@ class CalibrationUploadResult {
   final List<UploadedCalibrationRecord> uploaded;
   final List<UploadRecordValidation> invalidRecords;
 
-  int get newScaleCount => uploaded.where((record) => record.isNewScale).length;
-
   CalibrationUploadResult.fromJson(Map<String, dynamic> json)
       : message = json['message']?.toString() ?? '',
         uploaded = (json['uploaded'] as List<dynamic>? ?? const [])

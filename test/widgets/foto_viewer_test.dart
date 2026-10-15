@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/home/models/servicio_model.dart';
 import 'package:service_met/home/screens/fotos_registro_screen.dart';
-import 'package:service_met/home/screens/registro_editor_screen.dart';
 import 'package:service_met/home/screens/servicio_detalles_screen.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/foto_viewer.dart';
@@ -47,7 +46,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
   }
 
-  Future<void> abrirEditor(WidgetTester tester) async {
+  /// Detalle (solo lectura) de un registro con una foto que ya no está.
+  Future<void> abrirDetalle(WidgetTester tester) async {
     final registro = {
       'cod_metrica': '0087-11-001',
       'marca': 'Marca',
@@ -55,18 +55,18 @@ void main() {
       'foto_balanza': foto1,
     };
     await tester.pumpWidget(MaterialApp(
-      home: RegistroEditorScreen(
+      home: ServicioDetallesScreen(
         servicio: ServicioResumen(
           tipo: TipoServicio.calibracion,
           codigo: '0087-11-C01-26',
           cantidad: 1,
           items: [registro],
         ),
-        index: 0,
-        item: registro,
       ),
     ));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('0087-11-001'));
+    await tester.pumpAndSettle();
   }
 
   /// "Registros" de una SECA con una balanza con 6 fotos y otra sin fotos.
@@ -113,21 +113,27 @@ void main() {
     expect(resultado.map((foto) => foto.path), fotos.take(4));
   });
 
-  testWidgets('las fotos se ven en galería y no como texto editable',
-      (tester) async {
-    await abrirEditor(tester);
+  testWidgets('las fotos se ven en galería y no como texto', (tester) async {
+    await abrirDetalle(tester);
     expect(find.byType(FotoGallerySection), findsOneWidget);
     expect(find.text('Fotografías (3)'), findsOneWidget);
     expect(find.text('Linealidad'), findsOneWidget);
-    expect(find.text('Balanza'), findsOneWidget);
-    // Ninguna ruta aparece como campo de texto.
+    expect(find.text('Balanza'), findsWidgets);
+    // Ninguna ruta aparece como dato.
     expect(find.textContaining('001.jpg'), findsNothing);
-    expect(find.text('Marca'), findsWidgets);
+    // El detalle es de solo lectura: no hay campos para editar.
+    expect(find.text('Solo lectura'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('el visor abre la foto con compartir y guardar', (tester) async {
-    await abrirEditor(tester);
-    await tester.tap(find.bySemanticsLabel('Ver foto de Linealidad').first);
+    await abrirDetalle(tester);
+    // La galería del detalle, no la tira de la tarjeta que queda detrás.
+    await tester.tap(find
+        .descendant(
+            of: find.byType(FotoGallerySection),
+            matching: find.bySemanticsLabel('Ver foto de Linealidad'))
+        .first);
     await esperarTransicion(tester);
     expect(find.byType(FotoViewerScreen), findsOneWidget);
     expect(find.text('Linealidad · 1 de 3'), findsOneWidget);
@@ -195,7 +201,6 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Ver foto de Balanza'));
     await esperarTransicion(tester);
     expect(find.text('Balanza · 1 de 6'), findsOneWidget);
-    expect(find.byType(RegistroEditorScreen), findsNothing);
     await tester.pageBack();
     await tester.pumpAndSettle();
 
@@ -210,7 +215,6 @@ void main() {
     expect(find.text('Linealidad'), findsOneWidget);
     expect(find.text('Condiciones finales'), findsOneWidget);
     expect(find.text('3 fotos'), findsOneWidget);
-    expect(find.byType(RegistroEditorScreen), findsNothing);
 
     await tester
         .tap(find.bySemanticsLabel('Ver foto de Condiciones finales').first);
@@ -224,7 +228,7 @@ void main() {
     await tester.longPress(find.text('0087-11-001'));
     await tester.pumpAndSettle();
     expect(find.text('Ver fotos'), findsOneWidget);
-    expect(find.text('6 fotografías, sin abrir el editor'), findsOneWidget);
+    expect(find.text('6 fotografías de este registro'), findsOneWidget);
     await tester.tap(find.text('Ver fotos'));
     await tester.pumpAndSettle();
     expect(find.byType(FotosRegistroScreen), findsOneWidget);
@@ -235,7 +239,9 @@ void main() {
     await tester.longPress(find.text('0087-11-002'));
     await tester.pumpAndSettle();
     expect(find.text('Ver fotos'), findsNothing);
-    expect(find.text('Editar'), findsOneWidget);
+    // Los registros técnicos no se editan desde la app.
+    expect(find.text('Editar'), findsNothing);
+    expect(find.text('Exportar CSV'), findsOneWidget);
   });
 
   testWidgets('el detalle muestra las fotos y no sus rutas', (tester) async {

@@ -9,6 +9,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../models/servicio_model.dart';
 import '../services/local_service_record_repository.dart';
 import '../utils/pdf_generator.dart';
+import '../../database/auditoria_registros.dart';
 import '../../database/calibration_data_normalizer.dart';
 import '../../utils/foto_storage_dialog.dart';
 import '../../utils/saf_storage.dart';
@@ -17,9 +18,9 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/foto_viewer.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
+import '../widgets/balanzas_nuevas_section.dart';
 import 'calibration_upload_screen.dart';
 import 'fotos_registro_screen.dart';
-import 'registro_editor_screen.dart';
 import 'support_upload_screen.dart';
 import '../../theme/app_icons.dart';
 
@@ -92,30 +93,6 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
         servicio: '${widget.servicio.prefijo} ${widget.servicio.codigo}',
         nombreBase: _nombreBaseFotos(item),
       );
-
-  Future<void> _abrirEditorRegistro(
-      int index, Map<String, dynamic> item) async {
-    final actualizado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => RegistroEditorScreen(
-          servicio: widget.servicio,
-          index: index,
-          item: item,
-        ),
-      ),
-    );
-    if (actualizado != true || !mounted) return;
-
-    final fresco = await LocalServiceRecordRepository.reload(
-      widget.servicio.tipo,
-      item,
-    );
-    if (!mounted) return;
-    setState(() {
-      itemsEditados[index] = fresco ?? itemsEditados[index];
-    });
-  }
 
   Future<void> _confirmarEliminarRegistro(
       int index, Map<String, dynamic> item) async {
@@ -228,21 +205,12 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                 iconColor: AppColors.shimmerGold,
                 title: 'Ver fotos',
                 subtitle: fotos.length == 1
-                    ? '1 fotografía, sin abrir el editor'
-                    : '${fotos.length} fotografías, sin abrir el editor',
+                    ? '1 fotografía de este registro'
+                    : '${fotos.length} fotografías de este registro',
                 value: 'fotos',
               ),
               const SizedBox(height: 10),
             ],
-            _buildActionTile(
-              context: sheetContext,
-              icon: AppIcons.editarRegistro,
-              iconColor: AppColors.actionPositive,
-              title: 'Editar',
-              subtitle: 'Modificar los datos de este registro',
-              value: 'editar',
-            ),
-            const SizedBox(height: 10),
             _buildActionTile(
               context: sheetContext,
               icon: AppIcons.exportarArchivo,
@@ -269,8 +237,6 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     switch (accion) {
       case 'fotos':
         await _verFotos(index, item);
-      case 'editar':
-        await _abrirEditorRegistro(index, item);
       case 'csv':
         await _exportarRegistroCSV(item);
       case 'eliminar':
@@ -604,6 +570,25 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                               ),
                             ),
                           ),
+                          if (esBalanzaNueva(item)) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withOpacity(0.14),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Nueva',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(width: 8),
                           Flexible(
                             child: Text(
@@ -739,20 +724,23 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                         ],
                       ),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _abrirEditorRegistro(index, item);
-                      },
-                      icon:
-                          Icon(AppIcons.editar, size: 16, color: primaryColor),
-                      label: Text(
-                        'Editar',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: primaryColor,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Tooltip(
+                      message: 'Los registros técnicos no se editan',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(AppIcons.bloqueado,
+                              size: 14, color: cs.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Solo lectura',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: cs.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -764,12 +752,18 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
                   controller: controller,
                   padding: EdgeInsets.fromLTRB(
                       20, 20, 20, 40 + MediaQuery.paddingOf(ctx).bottom),
-                  itemCount: offset + camposConDatos.length,
+                  itemCount: offset + camposConDatos.length + 1,
                   itemBuilder: (_, fila) {
                     if (fila < offset) {
                       return FotoGallerySection(
                         fotos: fotos,
                         nombreBase: _nombreBaseFotos(item),
+                      );
+                    }
+                    if (fila == offset + camposConDatos.length) {
+                      return _HistorialCambios(
+                        cargar: () => LocalServiceRecordRepository.historial(
+                            widget.servicio.tipo, item),
                       );
                     }
                     final i = fila - offset;
@@ -1060,6 +1054,85 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
           ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
         ],
       ),
+    );
+  }
+}
+
+/// Cambios registrados sobre un registro técnico (NB/ISO/IEC 17025 7.5.2):
+/// fecha, usuario, campo, valor anterior y nuevo, y motivo. Solo lectura.
+class _HistorialCambios extends StatelessWidget {
+  const _HistorialCambios({required this.cargar});
+
+  final Future<List<EntradaAuditoria>> Function() cargar;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return FutureBuilder<List<EntradaAuditoria>>(
+      future: cargar(),
+      builder: (context, snapshot) {
+        final entradas = snapshot.data ?? const <EntradaAuditoria>[];
+        if (entradas.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(AppIcons.historial, size: 18, color: cs.onSurface),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Historial de cambios',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              for (final e in entradas)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${e.campo ?? 'Registro'}: ${e.valorAnterior ?? '—'} → '
+                        '${e.valorNuevo ?? '—'}',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        e.motivo,
+                        style: GoogleFonts.inter(
+                            fontSize: 12.5, color: cs.onSurface),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${e.usuario} · ${e.fechaHora.replaceFirst('T', ' ')}'
+                        ' · v${e.appVersion}',
+                        style: GoogleFonts.inter(
+                            fontSize: 11.5, color: cs.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

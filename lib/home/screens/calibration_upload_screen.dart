@@ -6,15 +6,20 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../database/calibration_record_validator.dart';
+import '../../database/precarga_bd.dart';
 import '../../login/services/connection_profile_service.dart';
 import '../../repositories/calibration_repository.dart';
+import '../../screens/calidad/utils/exportar_documento.dart';
 import '../../theme/app_design.dart';
 import '../../widgets/service_ui/service_app_bar.dart';
 import '../models/calibration_upload_models.dart';
+import '../models/servicio_model.dart';
 import '../services/calibration_upload_api_service.dart';
+import '../services/local_service_record_repository.dart';
 import '../services/upload_record_deduplicator.dart';
+import '../widgets/asignar_codigo_sheet.dart';
+import '../widgets/balanzas_nuevas_section.dart';
 import '../widgets/upload_auth_dialog.dart';
-import '../widgets/new_scales_upload_notice.dart';
 import '../../theme/app_icons.dart';
 
 class CalibrationUploadScreen extends StatefulWidget {
@@ -36,6 +41,15 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   bool _working = false;
   String? _error;
   CalibrationValidationResult? _validation;
+
+  /// Balanzas nuevas: su código métrica es provisional hasta registrarlas en
+  /// DataMET. No se validan ni se suben hasta que tengan el definitivo.
+  List<Map<String, dynamic>> get _nuevas =>
+      _pendingRecords.where(esBalanzaNueva).toList();
+
+  /// Lo que se valida y se sube: las balanzas ya registradas en DataMET.
+  List<Map<String, dynamic>> get _registradas =>
+      _pendingRecords.where((record) => !esBalanzaNueva(record)).toList();
 
   /// Balanzas pendientes sin alguna prueba guardada: "0032-11-020: Linealidad".
   /// El servidor solo revisa tipos y formatos; una prueba vacía la aceptaría.
@@ -111,7 +125,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   }
 
   Future<void> _validate() async {
-    if (_pendingRecords.isEmpty) return;
+    if (_registradas.isEmpty) return;
     setState(() {
       _working = true;
       _error = null;
@@ -135,13 +149,14 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
 
   Future<CalibrationValidationResult?> _validateWithAuthentication(
       CalibrationUploadApiService api) async {
+    final registradas = _registradas;
     try {
-      return await api.validate(_pendingRecords);
+      return await api.validate(registradas);
     } on CalibrationUploadException catch (error) {
       if (!_requiresCredentials(error)) rethrow;
       final authenticated = await _requestPasswordAndAuthenticate(api);
       if (!authenticated) return null;
-      return api.validate(_pendingRecords);
+      return api.validate(registradas);
     }
   }
 
@@ -180,6 +195,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
     final validation = _validation;
     if (validation == null) return;
     final incompletas = _incompleteRecords.length;
+    final nuevas = _nuevas.length;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -188,6 +204,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
         content: Text(
             '${validOnly ? 'Se subirán ${validation.validCount} balanzas. Las ${validation.invalidCount} balanzas con errores permanecerán pendientes.' : 'Se subirán ${validation.validCount} balanzas en una sola transacción.'}'
             '${incompletas > 0 ? '\n\nAtención: $incompletas balanza(s) no tienen todas sus pruebas guardadas y se subirán así.' : ''}'
+            '${nuevas > 0 ? '\n\n$nuevas balanza(s) nueva(s) quedan pendientes hasta que asigne su código métrica.' : ''}'
             '\n\n¿Desea continuar?'),
         actions: [
           TextButton(
@@ -207,18 +224,21 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
       _error = null;
     });
     CalibrationUploadApiService? api;
+    // Los índices de la respuesta son los de esta lista.
+    final registradas = _registradas;
     try {
       api = _api();
-      final result = await _uploadWithAuthentication(api, validOnly);
+      final result =
+          await _uploadWithAuthentication(api, registradas, validOnly);
       if (result == null) return;
       final prefs = await SharedPreferences.getInstance();
       final uploadedBy = prefs.getString('logged_user') ?? '';
       final localStatuses = <Map<String, dynamic>>[];
       for (final uploaded in result.uploaded) {
-        if (uploaded.index < 0 || uploaded.index >= _pendingRecords.length) {
+        if (uploaded.index < 0 || uploaded.index >= registradas.length) {
           continue;
         }
-        final local = _pendingRecords[uploaded.index];
+        final local = registradas[uploaded.index];
         localStatuses.add({
           'seca': local['seca'],
           'session_id': local['session_id'],
@@ -236,8 +256,6 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
       ));
-      await showNewScalesUploadNotice(context, result.newScaleCount);
-      if (!mounted) return;
       await _load();
     } on TimeoutException {
       _showError(
@@ -251,15 +269,56 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
   }
 
   Future<CalibrationUploadResult?> _uploadWithAuthentication(
-      CalibrationUploadApiService api, bool validOnly) async {
+      CalibrationUploadApiService api,
+      List<Map<String, dynamic>> records,
+      bool validOnly) async {
     try {
-      return await api.upload(_pendingRecords, validOnly: validOnly);
+      return await api.upload(records, validOnly: validOnly);
     } on CalibrationUploadException catch (error) {
       if (!_requiresCredentials(error)) rethrow;
       final authenticated = await _requestPasswordAndAuthenticate(api);
       if (!authenticated) return null;
-      return api.upload(_pendingRecords, validOnly: validOnly);
+      return api.upload(records, validOnly: validOnly);
     }
+  }
+
+  /// Cambia el código provisional de una balanza nueva por el que le dio
+  /// DataMET. Queda en el historial del registro.
+  Future<void> _asignarCodigo(Map<String, dynamic> record) async {
+    final codigo = await showAsignarCodigoSheet(
+      context,
+      registro: record,
+      buscarEnCatalogo: (codigo) =>
+          DatabaseHelperPrecarga().getBalanzaPorCodigo(codigo),
+      verificar: (codigo) async {
+        final duplicado = await _repository.findDuplicateService(
+          seca: widget.seca,
+          codMetrica: codigo,
+          excludingSessionId: record['session_id']?.toString() ?? '',
+        );
+        return duplicado == null
+            ? null
+            : 'La balanza $codigo ya tiene un registro en esta SECA.';
+      },
+      guardar: (codigo) async {
+        final prefs = await SharedPreferences.getInstance();
+        await LocalServiceRecordRepository.asignarCodigoMetrica(
+          TipoServicio.calibracion,
+          record,
+          nuevo: codigo,
+          usuario: prefs.getString('logged_user') ?? '',
+          appVersion: await versionInstalada(),
+        );
+      },
+    );
+    if (codigo == null || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Código $codigo asignado. Valide los datos para subir '
+          'esta balanza.'),
+      backgroundColor: Colors.green,
+      behavior: SnackBarBehavior.floating,
+    ));
+    await _load();
   }
 
   void _showError(String message) {
@@ -320,6 +379,14 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                         'subir:\n${_incompleteRecords.map((linea) => '• $linea').join('\n')}',
                   ),
                 ],
+                if (_nuevas.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  BalanzasNuevasSection(
+                    registros: _nuevas,
+                    hayRegistradas: _registradas.isNotEmpty,
+                    onAsignar: _working ? null : _asignarCodigo,
+                  ),
+                ],
                 const SizedBox(height: 20),
                 if (_pendingRecords.isEmpty)
                   _messageCard(
@@ -329,6 +396,8 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                         ? 'Todas las balanzas completas de esta SECA ya fueron subidas.'
                         : 'No hay balanzas completas disponibles para subir.',
                   )
+                else if (_registradas.isEmpty)
+                  const SizedBox.shrink()
                 else if (_validation == null)
                   _messageCard(
                     icon: AppIcons.verificacion,
@@ -340,7 +409,7 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
                   ..._validation!.records.map(_recordCard),
               ],
             ),
-      bottomNavigationBar: _pendingRecords.isEmpty
+      bottomNavigationBar: _registradas.isEmpty
           ? null
           : SafeArea(
               child: Padding(
@@ -361,7 +430,9 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
             style:
                 GoogleFonts.poppins(fontSize: 19, fontWeight: FontWeight.w700)),
         const SizedBox(height: 10),
-        Text('${_pendingRecords.length} pendientes · $_uploadedCount subidas',
+        Text(
+            '${_pendingRecords.length} pendientes · $_uploadedCount subidas'
+            '${_nuevas.isEmpty ? '' : ' · ${_nuevas.length} nueva(s) sin código'}',
             style: GoogleFonts.inter(color: colors.onSurfaceVariant)),
         const SizedBox(height: 4),
         Text('Conexión: ${profile?.nombre ?? 'sin seleccionar'}',
@@ -432,18 +503,25 @@ class _CalibrationUploadScreenState extends State<CalibrationUploadScreen> {
         label: const Text('VALIDAR DATOS'),
       );
     }
+    // Con balanzas nuevas pendientes se aclara que solo suben las
+    // registradas: las nuevas esperan su código métrica.
+    final soloRegistradas = _nuevas.isNotEmpty;
     if (validation.invalidCount == 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: false),
         icon: const Icon(AppIcons.subir),
-        label: Text('SUBIR LOTE COMPLETO (${validation.validCount})'),
+        label: Text(soloRegistradas
+            ? 'SUBIR REGISTRADAS (${validation.validCount})'
+            : 'SUBIR LOTE COMPLETO (${validation.validCount})'),
       );
     }
     if (validation.validCount > 0) {
       return FilledButton.icon(
         onPressed: () => _upload(validOnly: true),
         icon: const Icon(AppIcons.subir),
-        label: Text('SUBIR SOLO VÁLIDOS (${validation.validCount})'),
+        label: Text(soloRegistradas
+            ? 'SUBIR REGISTRADAS VÁLIDAS (${validation.validCount})'
+            : 'SUBIR SOLO VÁLIDOS (${validation.validCount})'),
       );
     }
     return OutlinedButton.icon(

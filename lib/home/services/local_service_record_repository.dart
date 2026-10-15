@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../../database/app_database.dart';
+import '../../database/auditoria_registros.dart';
 import '../../database/local_database_catalog.dart';
+import '../../utils/new_scale_code.dart';
 import '../models/servicio_model.dart';
 
 /// Claves internas que la app agrega a cada fila (o que son identidad de la
@@ -15,6 +17,19 @@ const Set<String> kLocalRecordSystemKeys = {
   '_source_table',
   'uploaded',
 };
+
+/// Motivo que queda en el historial al asignar el código definitivo.
+const String kMotivoCodigoMetricaAsignado =
+    'Código métrica asignado en DataMET a una balanza nueva';
+
+/// No se pudo asignar el código métrica; [message] se muestra al técnico.
+class AsignacionCodigoException implements Exception {
+  const AsignacionCodigoException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 /// Ubicación concreta de una fila: conexión, tabla y cláusula que la identifica.
 class LocalRecordTarget {
@@ -36,8 +51,8 @@ typedef LocalRecordTargetResolver = Future<LocalRecordTarget?> Function(
   Map<String, dynamic> row,
 );
 
-/// Escribe y elimina registros locales resolviendo automáticamente en qué base
-/// de datos vive cada fila:
+/// Corrige y elimina registros locales resolviendo automáticamente en qué
+/// base de datos vive cada fila:
 ///
 /// * Calibración -> `calibracion.db`, tabla `registros_calibracion`.
 /// * Soporte     -> una de las 7 bases de `lib/database/soporte_tecnico/`,
@@ -56,26 +71,112 @@ class LocalServiceRecordRepository {
   ) =>
       (resolverOverride ?? _defaultResolver)(tipo, row);
 
-  /// Actualiza la fila [row] con [values] (solo columnas de datos).
-  /// Devuelve el número de filas afectadas.
-  static Future<int> update(
+  /// Reemplaza el código métrica provisional de una balanza nueva por el
+  /// que le asignó DataMET.
+  ///
+  /// Es la única corrección que la app permite sobre un registro técnico, y
+  /// queda en [AuditoriaRegistros] con el valor anterior, el nuevo, el
+  /// usuario, la fecha y el motivo, en la misma transacción que el cambio
+  /// (NB/ISO/IEC 17025 7.5.2). Lanza [AsignacionCodigoException] si la fila
+  /// ya no tiene el código provisional que se mostró al técnico.
+  static Future<void> asignarCodigoMetrica(
     TipoServicio tipo,
-    Map<String, dynamic> row,
-    Map<String, dynamic> values,
-  ) async {
-    final clean = <String, dynamic>{};
-    values.forEach((key, value) {
-      if (!kLocalRecordSystemKeys.contains(key)) clean[key] = value;
-    });
-    if (clean.isEmpty) return 0;
+    Map<String, dynamic> row, {
+    required String nuevo,
+    required String usuario,
+    required String appVersion,
+    String motivo = kMotivoCodigoMetricaAsignado,
+  }) async {
+    final codigo = nuevo.trim();
+    final anterior = row['cod_metrica']?.toString().trim() ?? '';
+    if (codigo.isEmpty) {
+      throw const AsignacionCodigoException('Ingrese el código métrica.');
+    }
+    if (NewScaleCode.isProvisional(codigo)) {
+      throw const AsignacionCodigoException(
+          'Ese código también es provisional. Use el que asignó DataMET.');
+    }
+    if (!NewScaleCode.isProvisional(anterior)) {
+      throw const AsignacionCodigoException(
+          'Solo se puede asignar el código a una balanza nueva con código '
+          'provisional.');
+    }
+    if (usuario.trim().isEmpty) {
+      throw const AsignacionCodigoException(
+          'No hay un usuario activo. Cierre sesión e ingrese nuevamente.');
+    }
 
     final target = await _target(tipo, row);
-    if (target == null) return 0;
-    return target.db.update(
-      target.table,
-      clean,
-      where: target.where,
-      whereArgs: target.whereArgs,
+    if (target == null) {
+      throw const AsignacionCodigoException(
+          'No se encontró el registro en el teléfono.');
+    }
+    final clave = AuditoriaRegistros.claveDe(
+      row,
+      LocalDatabaseCatalog.byTable(target.table)?.naturalKey ?? const ['id'],
+    );
+
+    await target.db.transaction((txn) async {
+      final actual = await txn.query(
+        target.table,
+        columns: ['cod_metrica'],
+        where: target.where,
+        whereArgs: target.whereArgs,
+        limit: 1,
+      );
+      if (actual.isEmpty) {
+        throw const AsignacionCodigoException(
+            'No se encontró el registro en el teléfono.');
+      }
+      if ((actual.first['cod_metrica']?.toString().trim() ?? '') != anterior) {
+        throw const AsignacionCodigoException(
+            'El registro cambió mientras tanto. Actualice la lista e '
+            'inténtelo de nuevo.');
+      }
+      await AuditoriaRegistros.asegurarTabla(txn);
+      final escritas = await txn.update(
+        target.table,
+        {'cod_metrica': codigo},
+        where: target.where,
+        whereArgs: target.whereArgs,
+      );
+      if (escritas != 1) {
+        throw AsignacionCodigoException(
+            'Se esperaba actualizar 1 registro y se encontraron $escritas.');
+      }
+      await AuditoriaRegistros.registrar(
+        txn,
+        EntradaAuditoria(
+          fechaHora: AuditoriaRegistros.ahora(),
+          usuario: usuario.trim(),
+          accion: 'MODIFICAR',
+          tabla: target.table,
+          registroClave: clave,
+          campo: 'cod_metrica',
+          valorAnterior: anterior,
+          valorNuevo: codigo,
+          motivo: motivo,
+          appVersion: appVersion,
+        ),
+      );
+    });
+  }
+
+  /// Historial de cambios de la fila [row], del más antiguo al más reciente.
+  static Future<List<EntradaAuditoria>> historial(
+    TipoServicio tipo,
+    Map<String, dynamic> row,
+  ) async {
+    final target = await _target(tipo, row);
+    if (target == null) return const [];
+    final clave = AuditoriaRegistros.claveDe(
+      row,
+      LocalDatabaseCatalog.byTable(target.table)?.naturalKey ?? const ['id'],
+    );
+    return AuditoriaRegistros.deRegistro(
+      target.db,
+      tablaRegistro: target.table,
+      clave: clave,
     );
   }
 

@@ -329,6 +329,19 @@ class DatabaseHelperPrecarga {
     ''', ['$prefix-%']);
   }
 
+  /// Balanza del catálogo con su información (`inf`), o null si no está.
+  Future<Map<String, dynamic>?> getBalanzaPorCodigo(String codMetrica) async {
+    final db = await database;
+    final rows = await db.rawQuery('''
+      SELECT b.*, i.cod_interno, i.instrumento, i.tipo_instrumento, i.marca, i.modelo, i.ubicacion, i.serie as inf_serie
+      FROM balanzas b
+      LEFT JOIN inf i ON b.cod_metrica = i.cod_metrica
+      WHERE b.cod_metrica = ? COLLATE NOCASE
+      LIMIT 1
+    ''', [codMetrica.trim()]);
+    return rows.isEmpty ? null : rows.first;
+  }
+
   Future<List<Map<String, dynamic>>> getInf() async {
     final db = await database;
     return await db.query('inf');
