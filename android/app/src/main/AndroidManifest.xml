@@ -18,6 +18,14 @@
         android:required="false"
         tools:replace="android:required" />
 
+    <!-- Ubicación del servicio: se toma una vez, con la app abierta, al guardar
+         la balanza en calibración o soporte. Sin ubicación en segundo plano
+         (ACCESS_BACKGROUND_LOCATION). Si el técnico la niega, el servicio se
+         registra igual, sin coordenadas. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
     <!-- Notificaciones. Se programan inexactas, sin permiso de alarmas exactas;
          BOOT_COMPLETED las vuelve a programar tras reiniciar el equipo. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>

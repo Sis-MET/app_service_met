@@ -6,7 +6,7 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 
 ## Índice de tablas
 
-- [DATA_SERVICIOS_DATOS](#data-servicios-datos) (9 columnas)
+- [DATA_SERVICIOS_DATOS](#data-servicios-datos) (13 columnas)
 - [DATA_SERVICIOS_DATOS_CALIBRACION](#data-servicios-datos-calibracion) (426 columnas)
 - [DATA_SERVICIOS_DATOS_DIG](#data-servicios-datos-dig) (47 columnas)
 - [DATA_SERVICIOS_DATOS_IBM](#data-servicios-datos-ibm) (268 columnas)
@@ -21,7 +21,9 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 
 ## DATA_SERVICIOS_DATOS
 
-Total de columnas: **9**
+Total de columnas: **13**
+
+Las columnas 10 a 13 (ubicación GPS del servicio) las agrega `backend/sql/013_add_service_location.sql`.
 
 | # | Columna | Tipo | Long./Precisión | Nulo | Default |
 |---|---------|------|------------------|------|---------|
@@ -34,6 +36,10 @@ Total de columnas: **9**
 | 7 | `obs_servicio` | nvarchar | max | Sí | - |
 | 8 | `campos_observados` | nvarchar | max | Sí | - |
 | 9 | `tipo_servicio` | nvarchar | 10 | Sí | - |
+| 10 | `latitud` | decimal | 9,6 | Sí | - |
+| 11 | `longitud` | decimal | 9,6 | Sí | - |
+| 12 | `precision_gps` | decimal | 7,1 | Sí | - |
+| 13 | `fecha_gps` | datetimeoffset | - | Sí | - |
 
 ---
 

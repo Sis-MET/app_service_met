@@ -392,6 +392,8 @@ class ServiceSessionProvider extends ChangeNotifier {
       await _repository.saveSession(seca, sessionId, session);
       _lastSaveSuccessful = true;
       _saveError = null;
+      // En segundo plano: el GPS puede tardar y nunca debe frenar el guardado.
+      unawaited(_repository.registrarUbicacion(seca, sessionId));
       // Actualizar dValues
       _dValues = await _repository.getDValues(seca, sessionId);
       return true;

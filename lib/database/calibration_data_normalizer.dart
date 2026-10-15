@@ -32,6 +32,12 @@ class CalibrationDataNormalizer {
     'balanza_confirmed',
     'directorio_zip',
     'estado_servicio_csv',
+    // Ubicación GPS: no es columna del detalle. Viaja aparte, al resumen
+    // DATA_SERVICIOS_DATOS (CalibrationUploadApiService).
+    'latitud',
+    'longitud',
+    'precision_gps',
+    'fecha_gps',
   };
   static final RegExp _integerPattern = RegExp(r'^-?\d+(?:[\.,]0+)?$');
   static final RegExp _decimalPattern = RegExp(r'^-?(?:\d+\.?\d*|\.\d+)$');

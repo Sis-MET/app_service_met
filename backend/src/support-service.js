@@ -10,6 +10,12 @@ const {
   summaryServiceStatus,
 } = require('./validation');
 const { resolveRegisteredBy, addRegisteredByErrors } = require('./calibration-service');
+const {
+  addLocationInputs,
+  normalizeLocation,
+  summaryLocationSql,
+  summarySupportsLocation,
+} = require('./location');
 
 const qualifiedSummaryTable = `[dbo].[${SERVICE_SUMMARY_TABLE}]`;
 const uploadLockResource = 'ServiceMET:soporte:upload';
@@ -90,6 +96,7 @@ function validateSupportRecords(records, schemas) {
   const prepared = records.map((envelope) => ({
     module: String(envelope?.module ?? '').trim(),
     data: envelope?.data,
+    location: normalizeLocation(envelope?.ubicacion),
   }));
   const counts = new Map();
   for (const { module, data } of prepared) {
@@ -103,7 +110,7 @@ function validateSupportRecords(records, schemas) {
     counts.set(canonical, (counts.get(canonical) ?? 0) + 1);
   }
 
-  const results = prepared.map(({ module, data }, index) => {
+  const results = prepared.map(({ module, data, location }, index) => {
     const errors = [];
     const normalized = {};
     const schema = schemas.get(module);
@@ -189,6 +196,7 @@ function validateSupportRecords(records, schemas) {
       valid: errors.length === 0,
       errors,
       normalized,
+      location,
     };
   });
   return { records: results, batchErrors: [] };
@@ -324,17 +332,19 @@ async function insertSupportRecord(transaction, schema, record, identityN) {
   return assigned;
 }
 
-function buildSummaryInsertQuery() {
+function buildSummaryInsertQuery(withLocation = false) {
+  const location = summaryLocationSql(withLocation);
   return `
     INSERT INTO ${qualifiedSummaryTable}
-      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio], [tipo_servicio])
+      ([codigo_registro], [fecha_reg], [reg_por], [nombre_csv], [estado_servicio], [tipo_servicio]${location.columns})
     OUTPUT INSERTED.[n] AS [n]
-    VALUES (@codigo, CONVERT(date, GETDATE()), @usuario, @csv, @estado, @tipoServicio);
+    VALUES (@codigo, CONVERT(date, GETDATE()), @usuario, @csv, @estado, @tipoServicio${location.values});
   `;
 }
 
-async function insertSummary(transaction, record, registeredBy) {
+async function insertSummary(transaction, record, registeredBy, withLocation = false) {
   const request = new sql.Request(transaction);
+  if (withLocation) addLocationInputs(request, record.location);
   request.input('codigo', sql.NVarChar(100), record.codigoRegistro);
   request.input('usuario', sql.NVarChar(50), registeredBy);
   request.input('csv', sql.NVarChar(100), record.nombreCsv);
@@ -348,7 +358,7 @@ async function insertSummary(transaction, record, registeredBy) {
     sql.NVarChar(10),
     SUPPORT_MODULES[record.module].serviceCode,
   );
-  const result = await request.query(buildSummaryInsertQuery());
+  const result = await request.query(buildSummaryInsertQuery(withLocation));
   const assigned = Number(result.recordset[0]?.n);
   if (!Number.isSafeInteger(assigned)) throw new Error('SQL Server no devolvió el identificador del resumen.');
   return assigned;
@@ -397,6 +407,7 @@ async function uploadSupportRecords(config, schemas, records, mode, username) {
         identityByModule.set(record.module, await tableUsesIdentityN(transaction, table));
       }
     }
+    const withLocation = await summarySupportsLocation(transaction);
     const uploaded = [];
     for (const record of valid) {
       const assignedN = await insertSupportRecord(
@@ -405,7 +416,12 @@ async function uploadSupportRecords(config, schemas, records, mode, username) {
         record,
         identityByModule.get(record.module),
       );
-      const summaryN = await insertSummary(transaction, record, registeredBy);
+      const summaryN = await insertSummary(
+        transaction,
+        record,
+        registeredBy,
+        withLocation,
+      );
       uploaded.push({
         index: record.index,
         module: record.module,

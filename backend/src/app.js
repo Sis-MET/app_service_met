@@ -138,7 +138,7 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
         validCount,
         invalidCount: validation.records.length - validCount,
         batchErrors: validation.batchErrors,
-        records: validation.records.map(({ normalized, ...record }) => record),
+        records: validation.records.map(({ normalized, location, ...record }) => record),
       });
     } catch (error) {
       return next(error);
@@ -153,10 +153,11 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
         req.body?.records,
         req.body?.mode ?? 'all',
         req.auth.sub,
+        req.body?.ubicaciones,
       );
       const invalidRecords = result.validation.records
         .filter((record) => !record.valid)
-        .map(({ normalized, ...record }) => record);
+        .map(({ normalized, location, ...record }) => record);
       if (result.rejected) {
         return res.status(422).json({
           error: 'BATCH_REJECTED',
@@ -191,7 +192,7 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
         validCount,
         invalidCount: validation.records.length - validCount,
         batchErrors: validation.batchErrors,
-        records: validation.records.map(({ normalized, ...record }) => record),
+        records: validation.records.map(({ normalized, location, ...record }) => record),
       });
     } catch (error) {
       return next(error);
@@ -209,7 +210,7 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
       );
       const invalidRecords = result.validation.records
         .filter((record) => !record.valid)
-        .map(({ normalized, ...record }) => record);
+        .map(({ normalized, location, ...record }) => record);
       if (result.rejected) {
         return res.status(422).json({
           error: 'BATCH_REJECTED',

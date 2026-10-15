@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/network/service_met_http_client.dart';
 import '../../database/calibration_data_normalizer.dart';
+import '../../services/ubicacion_servicio.dart';
 import '../models/calibration_upload_models.dart';
 
 class CalibrationUploadException implements Exception {
@@ -17,6 +18,15 @@ class CalibrationUploadException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Ubicación de cada registro, en el mismo orden que `records` (null si no
+/// tiene). El servidor la guarda en el resumen, no en el detalle.
+List<Map<String, Object?>?> calibrationUploadLocations(
+  List<Map<String, dynamic>> records,
+) =>
+    records
+        .map((record) => UbicacionServicio.deRegistro(record)?.toJson())
+        .toList(growable: false);
 
 class CalibrationUploadApiService {
   final String baseUrl;
@@ -130,6 +140,7 @@ class CalibrationUploadApiService {
     final response = await _authorizedPost('/api/calibracion/subir', {
       'mode': validOnly ? 'valid_only' : 'all',
       'records': normalized,
+      'ubicaciones': calibrationUploadLocations(records),
     });
     final body = _decode(response);
     if (response.statusCode != 201) throw _exception(response.statusCode, body);

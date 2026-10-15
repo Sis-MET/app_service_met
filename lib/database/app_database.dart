@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../services/ubicacion_servicio.dart';
 import 'calibration_data_normalizer.dart';
 
 /// Consulta compartida con las pruebas para determinar qué calibraciones
@@ -400,6 +401,7 @@ class AppDatabase {
         onCreate: _onCreate,
         onOpen: (db) async {
           await _ensureFotoColumns(db);
+          await RegistroUbicacion.asegurarColumnas(db, 'registros_calibracion');
           await _createServicioStatusTable(db);
           await _ensureServicioStatusColumns(db);
           await _createCalibrationUploadStatusTable(db);

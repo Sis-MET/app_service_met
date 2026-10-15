@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../services/ubicacion_servicio.dart';
 import 'app_database.dart';
 import 'soporte_tecnico/database_helper_ajustes.dart';
 import 'soporte_tecnico/database_helper_diagnostico_correctivo.dart';
@@ -54,6 +55,18 @@ class LocalDatabaseCatalog {
 
   static const List<String> _soporteKey = ['otst', 'session_id'];
 
+  /// Abre la base viva de soporte con las columnas de ubicación ya creadas,
+  /// para que importar un respaldo no las descarte.
+  static Future<Database> Function() _conUbicacion(
+    Future<Database> Function() abrir,
+    String tabla,
+  ) =>
+      () async {
+        final db = await abrir();
+        await RegistroUbicacion.asegurarColumnas(db, tabla);
+        return db;
+      };
+
   static final List<LocalTableSpec> all = [
     LocalTableSpec(
       database: 'calibracion.db',
@@ -69,7 +82,8 @@ class LocalDatabaseCatalog {
       module: 'ajuste_verificaciones',
       label: 'Ajuste y verificaciones',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperAjustes().database,
+      openLive: _conUbicacion(
+          () => DatabaseHelperAjustes().database, 'ajustes_metrologicos'),
     ),
     LocalTableSpec(
       database: 'diagnostico_correctivo.db',
@@ -77,7 +91,8 @@ class LocalDatabaseCatalog {
       module: 'diagnostico',
       label: 'Diagnóstico',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperDiagnosticoCorrectivo().database,
+      openLive: _conUbicacion(
+          () => DatabaseHelperDiagnosticoCorrectivo().database, 'diagnostico'),
     ),
     LocalTableSpec(
       database: 'instalacion.db',
@@ -85,7 +100,8 @@ class LocalDatabaseCatalog {
       module: 'instalacion',
       label: 'Instalación',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperInstalacion().database,
+      openLive: _conUbicacion(
+          () => DatabaseHelperInstalacion().database, 'instalacion'),
     ),
     LocalTableSpec(
       database: 'diagnostico_correctivo.db',
@@ -93,7 +109,9 @@ class LocalDatabaseCatalog {
       module: 'mnt_correctivo',
       label: 'Mantenimiento correctivo',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperDiagnosticoCorrectivo().database,
+      openLive: _conUbicacion(
+          () => DatabaseHelperDiagnosticoCorrectivo().database,
+          'diagnostico_correctivo'),
     ),
     LocalTableSpec(
       database: 'mnt_prv_avanzado_stac.db',
@@ -101,7 +119,8 @@ class LocalDatabaseCatalog {
       module: 'mnt_prv_avanzado',
       label: 'Mantenimiento preventivo avanzado',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperMntPrvAvanzadoStac().database,
+      openLive: _conUbicacion(() => DatabaseHelperMntPrvAvanzadoStac().database,
+          'mnt_prv_avanzado_stac'),
     ),
     LocalTableSpec(
       database: 'mnt_prv_regular_stil.db',
@@ -109,7 +128,8 @@ class LocalDatabaseCatalog {
       module: 'mnt_prv_regular',
       label: 'Mantenimiento preventivo regular',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperMntPrvRegularStil().database,
+      openLive: _conUbicacion(() => DatabaseHelperMntPrvRegularStil().database,
+          'mnt_prv_regular_stil'),
     ),
     LocalTableSpec(
       database: 'relevamiento_de_datos.db',
@@ -117,7 +137,8 @@ class LocalDatabaseCatalog {
       module: 'relevamiento_de_datos',
       label: 'Relevamiento de datos',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperRelevamiento().database,
+      openLive: _conUbicacion(
+          () => DatabaseHelperRelevamiento().database, 'relevamiento_de_datos'),
     ),
     LocalTableSpec(
       database: 'verificaciones_internas.db',
@@ -125,7 +146,8 @@ class LocalDatabaseCatalog {
       module: 'verificaciones_internas',
       label: 'Verificaciones internas',
       naturalKey: _soporteKey,
-      openLive: () => DatabaseHelperVerificaciones().database,
+      openLive: _conUbicacion(() => DatabaseHelperVerificaciones().database,
+          'verificaciones_internas'),
     ),
   ];
 

@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/network/service_met_http_client.dart';
+import '../../services/ubicacion_servicio.dart';
 import '../models/calibration_upload_models.dart';
 import 'calibration_upload_api_service.dart';
 
@@ -42,6 +43,7 @@ List<Map<String, dynamic>> buildSupportUploadEnvelopes(
           entry.key.endsWith('_foto') ||
           entry.key == 'estado_servicio_csv' ||
           entry.key == 'nombre_zip' ||
+          UbicacionServicio.columnas.contains(entry.key) ||
           legacyFields.contains(entry.key)) {
         continue;
       }
@@ -57,7 +59,13 @@ List<Map<String, dynamic>> buildSupportUploadEnvelopes(
     final session = record['session_id']?.toString().trim() ?? '';
     data['nombre_csv'] =
         '${otst}_$module${session.isEmpty ? '' : '_$session'}.csv';
-    return {'module': module, 'data': data};
+    final ubicacion = UbicacionServicio.deRegistro(record);
+    return {
+      'module': module,
+      'data': data,
+      // Aparte del registro: va al resumen DATA_SERVICIOS_DATOS.
+      if (ubicacion != null) 'ubicacion': ubicacion.toJson(),
+    };
   }).toList(growable: false);
 }
 

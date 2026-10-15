@@ -4,6 +4,7 @@ import 'package:service_met/database/app_database.dart';
 import 'package:service_met/database/calibration_data_normalizer.dart';
 import 'package:service_met/database/precarga_bd.dart';
 import 'package:service_met/models/service_session.dart';
+import 'package:service_met/services/ubicacion_servicio.dart';
 import 'package:sqflite/sqflite.dart';
 
 class CalibrationRepository {
@@ -26,6 +27,17 @@ class CalibrationRepository {
   Future<void> saveSession(
       String seca, String sessionId, ServiceSession session) async {
     await _db.upsertRegistroCalibracion(_recordOf(seca, sessionId, session));
+  }
+
+  /// Deja en el registro dónde se está haciendo la calibración, si todavía
+  /// no lo tiene. Sin GPS o sin permiso no hace nada.
+  Future<bool> registrarUbicacion(String seca, String sessionId) {
+    return RegistroUbicacion.instance.registrar(
+      abrir: () => _db.database,
+      tabla: 'registros_calibracion',
+      where: 'seca = ? AND session_id = ?',
+      whereArgs: [seca, sessionId],
+    );
   }
 
   Map<String, dynamic> _recordOf(

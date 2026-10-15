@@ -5,10 +5,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'package:service_met/database/local_database_catalog.dart';
 import 'package:service_met/screens/soporte_new/database/database_helper_soporte.dart';
 import 'package:service_met/screens/soporte_new/models/base_soporte_model.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
+import 'package:service_met/services/ubicacion_servicio.dart';
 
 abstract class BaseSoporteController extends ChangeNotifier
     with WidgetsBindingObserver {
@@ -74,6 +76,26 @@ abstract class BaseSoporteController extends ChangeNotifier
     _lastSaveSuccessful = successful;
     _lastSaveError = successful ? null : error?.toString();
     notifyListenersSafely();
+    if (successful) unawaited(registrarUbicacion());
+  }
+
+  /// Deja en el registro dónde se está haciendo el servicio, si todavía no
+  /// lo tiene. Sin GPS o sin permiso no hace nada.
+  Future<bool> registrarUbicacion() async {
+    final otst = secaValue.trim();
+    final sessionId = model.sessionId.trim();
+    if (otst.isEmpty || sessionId.isEmpty) return false;
+    // [tableName] es la tabla local en unos módulos y la clave del módulo en
+    // otros (mnt_correctivo vive en la tabla diagnostico_correctivo).
+    final spec = LocalDatabaseCatalog.soporte
+        .where((spec) => spec.table == tableName || spec.module == tableName);
+    if (spec.isEmpty) return false;
+    return RegistroUbicacion.instance.registrar(
+      abrir: spec.first.openLive,
+      tabla: spec.first.table,
+      where: 'otst = ? AND session_id = ?',
+      whereArgs: [otst, sessionId],
+    );
   }
 
   /// Notifica inmediatamente fuera de la fase de construcción y difiere la
