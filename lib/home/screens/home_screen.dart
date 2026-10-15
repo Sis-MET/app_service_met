@@ -14,6 +14,9 @@ import '../../screens/precarga/descarga_de_datos.dart';
 import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../services/notification_service.dart';
 import '../../services/notifications/notification_plan.dart';
+import '../../services/permisos_app.dart';
+import '../../widgets/dialogo_permiso.dart';
+import '../../widgets/requiere_ubicacion.dart';
 import '../tabs/home_dashboard_tab.dart';
 import '../tabs/otros_tab.dart';
 import '../tabs/precarga_tab.dart';
@@ -76,6 +79,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     NotificationService().refresh(userName);
     _handleNotificationTap();
     _startOpportunitySync();
+    _pedirPermisoNotificaciones();
+  }
+
+  /// Si las notificaciones están desactivadas, se avisa antes de pedirlas,
+  /// una vez por sesión. Android deja de mostrar su solicitud después de dos
+  /// rechazos: desde ahí el aviso lleva a los ajustes de la app.
+  static bool _notificacionesPreguntadas = false;
+  static const _rechazosNotificaciones = 'permiso_notificaciones_rechazos';
+
+  Future<void> _pedirPermisoNotificaciones() async {
+    if (_notificacionesPreguntadas) return;
+    final servicio = NotificationService();
+    try {
+      if (await servicio.permisoConcedido()) return;
+      _notificacionesPreguntadas = true;
+      final prefs = await SharedPreferences.getInstance();
+      final rechazos = prefs.getInt(_rechazosNotificaciones) ?? 0;
+      final aAjustes = rechazos >= 2;
+      if (!mounted) return;
+      final continuar = await confirmarPermiso(
+        context,
+        PermisoApp.notificaciones,
+        irAAjustes: aAjustes,
+      );
+      if (!continuar) return;
+      if (aAjustes) {
+        await abrirAjustesDeLaApp();
+        return;
+      }
+      final concedido = await servicio.solicitarPermiso();
+      await prefs.setInt(_rechazosNotificaciones, concedido ? 0 : rechazos + 1);
+      if (concedido && mounted) servicio.refresh(userName);
+    } catch (error) {
+      debugPrint('No se pudo pedir el permiso de notificaciones: $error');
+    }
   }
 
   /// Las oportunidades registradas sin conexión se completan y envían solas
@@ -136,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       case NoticePayload.soportePendiente:
         // La precarga de soporte ofrece retomar el servicio pendiente.
-        await _push(PrecargaScreenSop(
+        await _pushServicio(PrecargaScreenSop(
           userName: userName,
           clienteId: '',
           plantaCodigo: '',
@@ -167,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       );
       return;
     }
-    await _push(CalibrationWorkspaceScreen(
+    await _pushServicio(CalibrationWorkspaceScreen(
       userName: userName,
       secaValue: seca,
       sessionId: sessionId,
@@ -176,6 +214,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> _push(Widget screen) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+
+  /// Un servicio solo se abre con el permiso de ubicación concedido.
+  Future<void> _pushServicio(Widget screen) =>
+      Navigator.push(context, RequiereUbicacion.ruta(screen));
 
   List<Widget> _screens() => [
         HomeDashboardTab(

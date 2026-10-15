@@ -215,9 +215,7 @@ class _SeleccionRapidaScreenState extends State<SeleccionRapidaScreen> {
   Future<void> _escanearQr() async {
     final raw = widget.scanQr != null
         ? await widget.scanQr!(context)
-        : await Navigator.of(context).push<String>(
-            MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-          );
+        : await QrScannerScreen.escanear(context);
     if (raw == null || !mounted) return;
     final metrica = PrecargaController.codMetricaFromQr(raw);
     if (metrica == null) {

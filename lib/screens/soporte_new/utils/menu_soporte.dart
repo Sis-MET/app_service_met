@@ -6,6 +6,7 @@ import 'package:service_met/screens/rim/rim_flow.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/requiere_ubicacion.dart';
 import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 
 /// Menú ⋮ común a los módulos de soporte: emitir el RIM del instrumento y
@@ -65,17 +66,15 @@ class SoporteMenu {
     await controller.markRecoveryAbandoned();
     if (!context.mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => PrecargaScreenSop(
-          tableName: controller.tableName,
-          userName: userName,
-          clienteId: clienteId,
-          plantaCodigo: plantaCodigo,
-          servicio: controller.tipoServicio,
-          seca: otst,
-          skipToBalanza: true,
-        ),
-      ),
+      RequiereUbicacion.ruta(PrecargaScreenSop(
+        tableName: controller.tableName,
+        userName: userName,
+        clienteId: clienteId,
+        plantaCodigo: plantaCodigo,
+        servicio: controller.tipoServicio,
+        seca: otst,
+        skipToBalanza: true,
+      )),
     );
   }
 }

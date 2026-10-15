@@ -12,6 +12,7 @@ import '../../screens/soporte_new/precarga/precarga_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_design.dart';
 import '../../theme/app_icons.dart';
+import '../../widgets/requiere_ubicacion.dart';
 
 const _stepNames = [
   'Cliente',
@@ -65,14 +66,12 @@ class _ServiciosTabState extends State<ServiciosTab> {
   Future<void> _openSoporte() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => PrecargaScreenSop(
-          userName: userName,
-          clienteId: '',
-          plantaCodigo: '',
-          tableName: '',
-        ),
-      ),
+      RequiereUbicacion.ruta(PrecargaScreenSop(
+        userName: userName,
+        clienteId: '',
+        plantaCodigo: '',
+        tableName: '',
+      )),
     );
     _refrescarFormularios();
   }
@@ -240,13 +239,11 @@ class _ServiciosTabState extends State<ServiciosTab> {
       if (action == 'continue' && context.mounted) {
         await Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => CalibrationWorkspaceScreen(
-              userName: userName,
-              secaValue: last['seca']?.toString(),
-              sessionId: last['session_id']?.toString(),
-            ),
-          ),
+          RequiereUbicacion.ruta(CalibrationWorkspaceScreen(
+            userName: userName,
+            secaValue: last['seca']?.toString(),
+            sessionId: last['session_id']?.toString(),
+          )),
         );
         return;
       }
@@ -289,9 +286,7 @@ class _ServiciosTabState extends State<ServiciosTab> {
     if (context.mounted) {
       await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => CalibrationWorkspaceScreen(userName: userName),
-        ),
+        RequiereUbicacion.ruta(CalibrationWorkspaceScreen(userName: userName)),
       );
     }
   }

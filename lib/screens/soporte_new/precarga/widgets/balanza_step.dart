@@ -864,10 +864,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Future<void> _scanQrForBalanza(PrecargaController provider) async {
-    final rawValue = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
+    final rawValue = await QrScannerScreen.escanear(context);
     if (rawValue == null || !mounted) return;
     _applyQrCode(
         PrecargaController.codMetricaFromQr(rawValue) ?? rawValue.trim());

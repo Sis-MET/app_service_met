@@ -7,6 +7,7 @@ import 'package:service_met/screens/soporte_new/utils/estado_maps.dart';
 import 'package:service_met/screens/soporte_new/utils/soporte_constants.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
+import 'package:service_met/widgets/dialogo_permiso.dart';
 import 'package:service_met/widgets/service_ui/input_decoration.dart';
 import '../../../../theme/app_icons.dart';
 
@@ -113,6 +114,8 @@ class _CampoInspeccionWidgetState extends State<CampoInspeccionWidget> {
     final seca = widget.seca;
     final codMetrica = widget.codMetrica;
     if (seca.isEmpty || codMetrica.isEmpty) return;
+    if (!mounted) return;
+    if (!await asegurarCamara(context) || !mounted) return;
 
     final XFile? photo = await _picker.pickImage(
       source: ImageSource.camera,

@@ -799,10 +799,7 @@ class _ClienteStepState extends State<ClienteStep> {
   /// Escanea el QR del equipo y elige su cliente y su planta, como en
   /// calibración. El instrumento se elige al confirmar la OTST.
   Future<void> _scanQrAndProcess(PrecargaController provider) async {
-    final codMetrica = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
+    final codMetrica = await QrScannerScreen.escanear(context);
     if (codMetrica == null || codMetrica.isEmpty || !mounted) return;
 
     final navigator = Navigator.of(context);

@@ -51,11 +51,13 @@ class NotificationService {
     const fln.AndroidInitializationSettings initializationSettingsAndroid =
         fln.AndroidInitializationSettings(_androidSmallIcon);
 
+    // El permiso no se pide al arrancar: lo pide el inicio con el aviso de
+    // la app antes de la solicitud del sistema (ver [solicitarPermiso]).
     const fln.DarwinInitializationSettings initializationSettingsDarwin =
         fln.DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
 
     const fln.InitializationSettings initializationSettings =
@@ -87,8 +89,6 @@ class NotificationService {
             fln.AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidImplementation != null) {
-      // Solicitar permisos en Android 13+ (Notificaciones)
-      await androidImplementation.requestNotificationsPermission();
       // Crear los canales de entrada hace que aparezcan en los ajustes de
       // Android, donde el técnico puede silenciar cada tipo por separado.
       for (final channel in NoticeChannel.values) {
@@ -110,6 +110,37 @@ class NotificationService {
     }
 
     _initialized = true;
+  }
+
+  fln.AndroidFlutterLocalNotificationsPlugin? get _android =>
+      flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          fln.AndroidFlutterLocalNotificationsPlugin>();
+
+  /// Si la app puede mostrar notificaciones. Antes de Android 13 no hace
+  /// falta permiso.
+  Future<bool> permisoConcedido() async {
+    final android = _android;
+    if (android != null) return await android.areNotificationsEnabled() ?? true;
+    final ios =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            fln.IOSFlutterLocalNotificationsPlugin>();
+    if (ios == null) return true;
+    return (await ios.checkPermissions())?.isEnabled ?? false;
+  }
+
+  /// Muestra la solicitud del sistema y devuelve si quedó concedido. Se llama
+  /// solo después del aviso de la app (`confirmarPermiso`).
+  Future<bool> solicitarPermiso() async {
+    final android = _android;
+    if (android != null) {
+      return await android.requestNotificationsPermission() ?? false;
+    }
+    final ios =
+        flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+            fln.IOSFlutterLocalNotificationsPlugin>();
+    return await ios?.requestPermissions(
+            alert: true, badge: true, sound: true) ??
+        false;
   }
 
   /// Recalcula y reprograma todas las notificaciones para [personal].

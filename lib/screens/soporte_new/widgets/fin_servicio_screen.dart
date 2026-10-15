@@ -6,6 +6,7 @@ import 'package:service_met/home/screens/home_screen.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/precarga/precarga_screen.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/requiere_ubicacion.dart';
 import 'package:service_met/widgets/service_ui/service_app_bar.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
@@ -156,17 +157,15 @@ class _FinServicioScreenState extends State<FinServicioScreen> {
 
       FinServicioScreen.replaceFinishedService(
         context,
-        MaterialPageRoute(
-          builder: (_) => PrecargaScreenSop(
-            tableName: widget.config.tableNameDefault,
-            userName: widget.userName,
-            clienteId: widget.clienteId,
-            plantaCodigo: widget.plantaCodigo,
-            servicio: widget.config.tipoServicio,
-            seca: widget.secaValue,
-            skipToBalanza: true,
-          ),
-        ),
+        RequiereUbicacion.ruta<void>(PrecargaScreenSop(
+          tableName: widget.config.tableNameDefault,
+          userName: widget.userName,
+          clienteId: widget.clienteId,
+          plantaCodigo: widget.plantaCodigo,
+          servicio: widget.config.tipoServicio,
+          seca: widget.secaValue,
+          skipToBalanza: true,
+        )),
       );
     } catch (e, st) {
       debugPrint('Error al navegar: $e\n$st');

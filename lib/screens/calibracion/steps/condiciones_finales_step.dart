@@ -15,6 +15,7 @@ import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
+import 'package:service_met/widgets/dialogo_permiso.dart';
 import 'package:service_met/widgets/numeric_keypad.dart';
 import '../../../theme/app_icons.dart';
 
@@ -720,6 +721,8 @@ class _CondicionesFinalesStepState extends State<CondicionesFinalesStep> {
       final configured = await FotoStorageDialog.show(context);
       if (!configured || !mounted) return;
     }
+    if (!mounted) return;
+    if (!await asegurarCamara(context) || !mounted) return;
 
     try {
       final XFile? photo = await ImagePicker().pickImage(

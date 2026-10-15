@@ -8,6 +8,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 
 import '../../../models/service_session.dart';
 import '../../../theme/app_colors.dart';
+import '../../../widgets/dialogo_permiso.dart';
 import '../utils/indicator_frame.dart';
 import '../utils/indicator_reading.dart';
 import '../utils/seven_segment_reader.dart';
@@ -27,8 +28,11 @@ class IndicatorReaderScreen extends StatefulWidget {
   /// cuadra con la división d.
   final BalanzaInfo? balanza;
 
-  /// Abre el lector y devuelve la lectura confirmada ("12.345"), o null.
-  static Future<String?> read(BuildContext context, {BalanzaInfo? balanza}) {
+  /// Abre el lector y devuelve la lectura confirmada ("12.345"), o null. Si
+  /// todavía no hay permiso de cámara, primero muestra el aviso de la app.
+  static Future<String?> read(BuildContext context,
+      {BalanzaInfo? balanza}) async {
+    if (!await asegurarCamara(context) || !context.mounted) return null;
     return Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => IndicatorReaderScreen(balanza: balanza),

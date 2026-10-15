@@ -788,10 +788,7 @@ class _ClienteStepState extends State<ClienteStep> {
   }
 
   Future<void> _scanQrAndProcess(ServiceSessionProvider provider) async {
-    final codMetrica = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
+    final codMetrica = await QrScannerScreen.escanear(context);
     if (codMetrica == null || !mounted) return;
 
     final navigator = Navigator.of(context);

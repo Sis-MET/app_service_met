@@ -1,10 +1,13 @@
 package bo.metrica.smet
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
 import androidx.annotation.NonNull
+import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -24,6 +27,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     private companion object {
         const val CHANNEL = "bo.metrica.smet/saf"
+        const val PERMISOS_CHANNEL = "bo.metrica.smet/permisos"
         const val REQUEST_PICK_TREE = 0x5AF0
         const val PERSISTABLE_FLAGS =
             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -35,6 +39,18 @@ class MainActivity : FlutterFragmentActivity() {
         GeneratedPluginRegistrant.registerWith(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result -> handleSafCall(call, result) }
+        // Solo consulta: la app muestra su aviso antes de que los complementos
+        // de cámara pidan el permiso al sistema.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PERMISOS_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "camaraConcedida" -> result.success(
+                        ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+                            PackageManager.PERMISSION_GRANTED
+                    )
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

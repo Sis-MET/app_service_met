@@ -4,11 +4,21 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
+import '../../../widgets/dialogo_permiso.dart';
 import '../../../widgets/service_ui/service_app_bar.dart';
 import '../../../theme/app_icons.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
+
+  /// Abre el escáner y devuelve el texto leído, o null. Si todavía no hay
+  /// permiso de cámara, primero muestra el aviso de la app.
+  static Future<String?> escanear(BuildContext context) async {
+    if (!await asegurarCamara(context) || !context.mounted) return null;
+    return Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+    );
+  }
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();

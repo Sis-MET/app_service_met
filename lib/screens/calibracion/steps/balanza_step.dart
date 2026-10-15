@@ -19,6 +19,7 @@ import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
 import 'package:service_met/utils/scale_brand_suggestions.dart';
 import 'package:service_met/utils/scale_range_validator.dart';
+import 'package:service_met/widgets/dialogo_permiso.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
 import 'package:service_met/widgets/service_ui/ficha_instrumento.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
@@ -1163,6 +1164,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
       final configured = await FotoStorageDialog.show(context);
       if (!configured || !mounted) return;
     }
+    if (!await asegurarCamara(context) || !mounted) return;
 
     try {
       final XFile? photo = await ImagePicker().pickImage(
@@ -1349,10 +1351,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Future<void> _scanQrForBalanza(ServiceSessionProvider provider) async {
-    final rawValue = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-    );
+    final rawValue = await QrScannerScreen.escanear(context);
     if (rawValue == null || !mounted) return;
 
     // Limpiar el raw value del QR: extraer solo el código métrica
