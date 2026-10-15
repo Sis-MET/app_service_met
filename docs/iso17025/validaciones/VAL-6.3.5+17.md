@@ -6,7 +6,7 @@ solo puede aportar el laboratorio figura como `[PENDIENTE]`.
 | Campo | Valor |
 |---|---|
 | Versión (pubspec) | 6.3.5+17 (Android: versionCode 17, versionName 6.3.5) |
-| Commit | [PENDIENTE: commit `chore: versión 6.3.5+17`] |
+| Commit | 3692570 (`chore: versión 6.3.5+17`) |
 | Versión anterior en uso | 6.3.4+16 (commit 8825ff7) |
 | Fecha de validación | [PENDIENTE] (pruebas automáticas: 2026-10-15) |
 | Clase del cambio | A (crítico): cambia qué datos se capturan, el esquema local y del servidor, la subida y los permisos |

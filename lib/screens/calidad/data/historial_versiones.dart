@@ -16,6 +16,7 @@ const historialVersiones = <VersionApp>[
   VersionApp(
     version: '6.3.5+17',
     fecha: '2026-10-15',
+    commit: '3692570',
     clase: ClaseCambio.critico,
     resumen: 'Ubicación de cada servicio, ficha del instrumento con los rangos '
         'de menor a mayor, balanzas nuevas que se suben con su código '
