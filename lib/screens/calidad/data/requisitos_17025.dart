@@ -10,7 +10,7 @@ import '../models/cumplimiento.dart';
 /// derechos de autor.
 final evaluacionCumplimiento = EvaluacionCumplimiento(
   version: '6.3.4+16',
-  fecha: DateTime(2026, 10, 5),
+  fecha: DateTime(2026, 10, 15),
   requisitos: const [
     // ── 7.5 Registros técnicos ────────────────────────────────────────────
     Requisito(
@@ -148,17 +148,27 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       titulo: 'Historial de modificaciones',
       exige: 'Todo cambio se rastrea hasta el dato original; se conservan el '
           'valor anterior y el nuevo, la fecha y quién lo cambió.',
-      estado: EstadoCumplimiento.noCumple,
+      estado: EstadoCumplimiento.parcial,
       evidencias: [
-        'El editor de registros detecta qué campos cambiaron antes de guardar.',
+        'Se retiró el editor de registros: en Registros el detalle es de solo '
+            'lectura (lib/home/screens/servicio_detalles_screen.dart).',
+        'La única corrección permitida, asignar el código métrica definitivo '
+            'a una balanza nueva, guarda en la misma transacción el valor '
+            'anterior, el nuevo, el usuario, la fecha con desfase horario, el '
+            'motivo y la versión de la app '
+            '(LocalServiceRecordRepository.asignarCodigoMetrica, '
+            'lib/database/auditoria_registros.dart).',
+        'El historial se muestra en el detalle del registro ("Historial de '
+            'cambios"); lo prueba '
+            'test/home/local_service_record_repository_test.dart.',
       ],
-      brecha: 'Al editar un registro se sobrescribe el valor anterior sin '
-          'guardar quién, cuándo ni por qué.',
-      accion: 'Tabla de auditoría (solo se agrega) escrita en la misma '
-          'transacción, con motivo obligatorio y la sección "Historial de '
-          'cambios" en el editor.',
-      cierre: TipoCierre.software,
-      riesgo: Riesgo.alto,
+      brecha: 'El historial vive en la base del teléfono: no viaja a DataMET '
+          'con el registro y depende del respaldo del dispositivo.',
+      accion: 'Enviar el historial al servidor con la subida (por ejemplo, '
+          'en obs_servicio del resumen o en una tabla de auditoría) o '
+          'respaldarlo según el procedimiento de control de registros.',
+      cierre: TipoCierre.ambos,
+      riesgo: Riesgo.medio,
     ),
     Requisito(
       id: 'RT-09',
@@ -209,15 +219,14 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       titulo: 'Registros subidos protegidos',
       exige: 'Lo que ya está en la base del laboratorio no debe divergir de la '
           'copia local sin control.',
-      estado: EstadoCumplimiento.noCumple,
+      estado: EstadoCumplimiento.cumple,
       evidencias: [
         'La app sabe qué registros se subieron, quién los subió y cuándo.',
+        'Ningún registro técnico se edita desde la app: el detalle de '
+            'Registros es de solo lectura.',
+        'El código métrica de una balanza nueva solo se asigna antes de '
+            'subirla, desde la pantalla de subida, y queda en el historial.',
       ],
-      brecha: 'Un registro ya subido todavía puede editarse en el teléfono.',
-      accion: 'Abrir en solo lectura los registros subidos; las correcciones '
-          'se hacen según el procedimiento de Calidad.',
-      cierre: TipoCierre.software,
-      riesgo: Riesgo.medio,
     ),
     Requisito(
       id: 'RT-12',

@@ -89,8 +89,32 @@ const manualServiceMet = ManualUso(
           'Cámara: fotografías de evidencia, lectura de códigos QR y lectura '
               'del indicador.',
           'Notificaciones: avisos de servicios pendientes y vencimientos.',
+          'Ubicación (mientras se usa la app): obligatoria por '
+              'procedimiento de la empresa. Sin el permiso, o con la '
+              'ubicación del teléfono apagada, no se puede iniciar ni '
+              'continuar un servicio.',
           'Huella o rostro (opcional): acceso rápido sin escribir la '
               'contraseña.',
+        ]),
+        Pasos('Cómo se piden', [
+          Paso(
+              'Antes de cada solicitud del teléfono, la app muestra su '
+                  'propio aviso: "Permiso de ubicación", "Permiso de '
+                  'notificaciones" o "Permiso de cámara".',
+              'Pulse "Continuar" y, en la ventana del teléfono, elija '
+                  'permitir.'),
+          Paso(
+              'La ubicación se pide al abrir un servicio. Si no se concede, '
+                  'aparece "Ubicación requerida".',
+              'Use "Permitir ubicación"; si el permiso se rechazó para '
+                  'siempre, "Abrir ajustes" (Permisos › Ubicación); si la '
+                  'ubicación del teléfono está apagada, "Activar ubicación". '
+                  'Al volver a la app, el servicio se abre solo.'),
+          Paso(
+              'Las notificaciones se piden al entrar al inicio; la cámara, '
+                  'la primera vez que se abre.',
+              'Si se rechazan, la app vuelve a avisar en la próxima sesión '
+                  'o al volver a abrir la cámara.'),
         ]),
         Nota(
           TipoNota.importante,
@@ -256,8 +280,12 @@ const manualServiceMet = ManualUso(
           Paso(
               'Instrumento',
               'Seleccione la balanza (o identifíquela por QR), '
-                  'revise su información y pulse "Guardar Datos". Si la balanza '
-                  'no está en la precarga, regístrela como nueva.'),
+                  'revise su ficha y pulse "Guardar Datos". En "Rangos de '
+                  'pesaje" los rangos se muestran de menor a mayor capacidad: '
+                  'el Rango 1 es siempre el menor. Si la balanza no está en la '
+                  'precarga, regístrela como nueva: recibe un código '
+                  'provisional que se cambia por el de DataMET antes de subir '
+                  '(ver "Subir datos al servidor").'),
           Paso(
               'Inspección visual',
               'La hora de inicio se toma del reloj. '
@@ -295,6 +323,13 @@ const manualServiceMet = ManualUso(
           'técnico antes de seguir.',
           referencia: '7.5.1',
         ),
+        Parrafo('El servicio solo se abre con el permiso de ubicación '
+            'concedido (ver "Antes de empezar"). Al guardar cada balanza, la '
+            'app toma la ubicación del teléfono (latitud, longitud y '
+            'precisión) una sola vez: si el servicio se continúa después en '
+            'otro lugar, se conserva la primera. El botón ámbar de '
+            'información muestra la ficha del instrumento con sus rangos de '
+            'menor a mayor capacidad.'),
       ],
     ),
     SeccionManual(
@@ -372,6 +407,9 @@ const manualServiceMet = ManualUso(
           Paso('Al terminar, elija "SELECCIONAR OTRA BALANZA" o '
               '"FINALIZAR SERVICIO".'),
         ]),
+        Parrafo('Como en la calibración, al guardar se registra una vez la '
+            'ubicación del servicio, y un equipo nuevo recibe un código '
+            'provisional que se cambia por el de DataMET antes de subir.'),
         Nota(
           TipoNota.consejo,
           'Los comentarios admiten hasta 1000 caracteres: describa lo '
@@ -583,7 +621,7 @@ const manualServiceMet = ManualUso(
     SeccionManual(
       id: 'registros',
       grupo: GrupoManual.datos,
-      titulo: 'Consultar, corregir y exportar',
+      titulo: 'Consultar y exportar',
       icono: AppIcons.carpetaAbierta,
       resumen: 'Registros de un servicio, fotos, PDF y CSV.',
       bloques: [
@@ -593,14 +631,15 @@ const manualServiceMet = ManualUso(
           Paso(
               'En "Registros", toque un registro para ver sus datos, o '
                   'manténgalo presionado para abrir su menú.',
-              'Las opciones del menú son Ver fotos (si tiene), Editar, '
-                  'Exportar CSV (una copia de ese registro) y Eliminar.'),
+              'Las opciones del menú son Ver fotos (si tiene), Exportar CSV '
+                  '(una copia de ese registro) y Eliminar. Los registros '
+                  'técnicos no se editan: el detalle es de "Solo lectura".'),
         ]),
         Pasos('Ver las fotos de una balanza', [
           Paso(
               'En "Registros", cada balanza muestra sus fotos en miniatura.',
-              'Tocar una miniatura la abre en grande. No hace falta entrar a '
-                  'Editar: ver las fotos no cambia el registro.'),
+              'Tocar una miniatura la abre en grande. Ver las fotos no '
+                  'cambia el registro.'),
           Paso(
               'Para verlas todas, toque "+N" sobre la última miniatura, o '
                   'mantenga presionado el registro y elija "Ver fotos".',
@@ -623,7 +662,12 @@ const manualServiceMet = ManualUso(
         ]),
         Parrafo('Al tocar un registro, sus fotos aparecen arriba de los datos. '
             'Si una foto ya no está en el teléfono, se indica con "Foto no '
-            'disponible en este teléfono".'),
+            'disponible en este teléfono". Si al registro se le asignó el '
+            'código métrica de una balanza nueva, al final aparece "Historial '
+            'de cambios" con el código anterior, el nuevo, el usuario, la '
+            'fecha y el motivo.'),
+        Parrafo('Una balanza nueva lleva la marca "Nueva" en "Registros" hasta '
+            'que se le asigna su código métrica definitivo.'),
         Nota(
           TipoNota.importante,
           'Eliminar un registro lo borra del teléfono de forma permanente. No '
@@ -632,9 +676,10 @@ const manualServiceMet = ManualUso(
         Nota(
           TipoNota.norma,
           'Toda corrección debe poder rastrearse hasta el dato original: '
-          'valor anterior, valor nuevo, fecha, responsable y motivo. Mientras '
-          'la app no guarde ese historial, registre cada corrección según el '
-          'procedimiento del laboratorio.',
+          'valor anterior, valor nuevo, fecha, responsable y motivo. La app '
+          'solo permite asignar el código métrica a una balanza nueva, y lo '
+          'deja en el historial; cualquier otra corrección se registra según '
+          'el procedimiento del laboratorio.',
           referencia: '7.5.2',
         ),
       ],
@@ -652,18 +697,34 @@ const manualServiceMet = ManualUso(
               'Abra la subida.',
               'Desde "Pendientes por SECA" en Inicio, o con "Subir datos" en '
                   'el menú del servicio.'),
+          Paso(
+              'Si hay balanzas nuevas, regístrelas en DataMET.',
+              'Aparecen arriba, en "balanza(s) nueva(s) sin código '
+                  'definitivo". No se validan ni se suben con el código '
+                  'provisional.'),
+          Paso(
+              'Toque "Asignar código" en cada una y escriba el código '
+                  'métrica que le dio DataMET; pulse "Guardar código".',
+              'La app deja escrito el cliente y la planta, avisa si el código '
+                  'no coincide con ellos, si ya lo tiene otra balanza del '
+                  'servicio y si figura en la precarga.'),
           Paso('Pulse "VALIDAR DATOS".',
               'El servidor revisa el lote sin guardar nada.'),
           Paso('Corrija lo que se marque como inválido y pulse "VALIDAR '
               'NUEVAMENTE".'),
-          Paso('Elija "SUBIR LOTE COMPLETO" o "SUBIR SOLO VÁLIDOS".'),
+          Paso(
+              'Elija "SUBIR LOTE COMPLETO" o "SUBIR SOLO VÁLIDOS".',
+              'Si quedan balanzas nuevas sin código, el botón dice "SUBIR '
+                  'REGISTRADAS": suben las ya registradas y las nuevas quedan '
+                  'pendientes para cuando tengan su código.'),
           Paso(
               'Confirme en "Confirmar subida".',
               'Si la sesión venció, la app pide su contraseña en "Autenticar '
                   'subida".'),
         ]),
-        Parrafo('Si el lote incluye balanzas nuevas, la app muestra cuántas '
-            'deben completarse después en DataMET.'),
+        Parrafo('Con cada servicio se envía la ubicación registrada en el '
+            'teléfono, si la tiene. Va al resumen del servicio en DataMET, no '
+            'cambia el registro técnico.'),
         Nota(
           TipoNota.norma,
           'La transferencia se verifica en dos etapas: validación sin inserción '

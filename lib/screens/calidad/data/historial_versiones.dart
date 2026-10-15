@@ -3,7 +3,25 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[];
+const cambiosSinLiberar = <String>[
+  'Ubicación GPS de cada servicio de calibración y soporte: se toma una vez '
+      'al guardar la balanza y se envía al resumen del servicio en DataMET '
+      '(requiere backend/sql/013_add_service_location.sql y el backend '
+      'actualizado).',
+  'Paso Instrumento e "Información del instrumento" con una ficha nueva: '
+      'los rangos se muestran de menor a mayor capacidad (Rango 1 = el menor), '
+      'sin cambiar los datos guardados.',
+  'Los registros técnicos ya no se editan desde Registros: el detalle es de '
+      'solo lectura.',
+  'Balanzas nuevas: se suben solo con el código métrica definitivo de '
+      'DataMET, que se asigna en la pantalla de subida y queda en el historial '
+      'de cambios del registro. Las balanzas ya registradas pueden subirse '
+      'antes.',
+  'Permisos: antes de cada solicitud del teléfono (ubicación, notificaciones '
+      'y cámara) la app muestra su propio aviso; ninguno se pide en silencio. '
+      'Sin permiso de ubicación, o con la ubicación del teléfono apagada, no '
+      'se puede iniciar ni continuar un servicio.',
+];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
