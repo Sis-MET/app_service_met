@@ -11,13 +11,16 @@ import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/repositories/calibration_repository.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
 import 'package:service_met/screens/calibracion/widgets/qr_scanner_screen.dart';
+import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/utils/foto_helper.dart';
 import 'package:service_met/utils/foto_storage_dialog.dart';
 import 'package:service_met/utils/top_alert.dart';
 import 'package:service_met/utils/new_scale_code.dart';
 import 'package:service_met/utils/scale_brand_suggestions.dart';
+import 'package:service_met/utils/scale_range_validator.dart';
 import 'package:service_met/widgets/service_ui/editable_suggestion_field.dart';
+import 'package:service_met/widgets/service_ui/ficha_instrumento.dart';
 import 'package:service_met/widgets/service_ui/nav_pill.dart';
 import '../../../theme/app_icons.dart';
 
@@ -67,6 +70,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
   Map<String, dynamic>? _selectedBalanza;
   List<String> _fotosPaths = [];
   Set<String> _completedCodMetricas = {};
+
+  /// Orden en que se muestran los rangos guardados (0 = cap_max1): de menor a
+  /// mayor capacidad. Solo visual. Se recalcula al cargar una balanza y al
+  /// salir de la sección de rangos, no mientras se escribe, para que la
+  /// tarjeta que se está editando no cambie de lugar.
+  List<int> _rangeOrder = const [0, 1, 2];
+
+  /// Rangos que el técnico abrió con "Agregar rango" aunque sigan vacíos.
+  final Set<int> _rangosAgregados = {};
 
   static const List<String> _categorias = ['STAC', 'STIL'];
   static const List<String> _unidades = ['kg', 'g', 'mg', 't', 'lb', 'N'];
@@ -124,6 +136,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     final si = session.sessionInfo;
     _nRecaCtrl.text = si.nReca ?? '';
     _stickerCtrl.text = si.sticker ?? '';
+    _refreshRangeOrder();
   }
 
   Future<void> _loadBalanzas() async {
@@ -243,6 +256,8 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _d3Ctrl.text = b['d3']?.toString() ?? '0';
     _e3Ctrl.text = b['e3']?.toString() ?? '0';
     _dec3Ctrl.text = b['dec3']?.toString() ?? '0';
+    _rangosAgregados.clear();
+    _refreshRangeOrder();
   }
 
   void _fillFromBalanzaInfo(BalanzaInfo b) {
@@ -271,7 +286,54 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _d3Ctrl.text = b.d3?.toString() ?? '0';
     _e3Ctrl.text = b.e3?.toString() ?? '0';
     _dec3Ctrl.text = b.dec3?.toString() ?? '0';
+    _rangosAgregados.clear();
+    _refreshRangeOrder();
   }
+
+  // ── Rangos: orden visual ──────────────────────────────────────────────
+
+  /// Controladores de cada rango guardado: capacidad, d, e y decimales.
+  List<List<TextEditingController>> get _rangeCtrls => [
+        [_capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl],
+        [_capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl],
+        [_capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl],
+      ];
+
+  bool _rangoActivo(int slot) {
+    final c = _rangeCtrls[slot];
+    return ScaleRangeValues(
+      capacity: c[0].text,
+      division: c[1].text,
+      verificationDivision: c[2].text,
+      decimals: c[3].text,
+    ).hasAnyValue;
+  }
+
+  void _refreshRangeOrder() {
+    _rangeOrder =
+        ScaleRangeOrder.displayOrder([for (final c in _rangeCtrls) c[0].text]);
+  }
+
+  /// Rangos a mostrar, en orden visual: los que tienen datos (y los
+  /// anteriores a ellos, que deben completarse primero) más los agregados.
+  List<int> get _visibleSlots {
+    var last = 0;
+    for (var slot = 0; slot < 3; slot++) {
+      if (_rangoActivo(slot)) last = slot;
+    }
+    final visibles = {
+      for (var slot = 0; slot <= last; slot++) slot,
+      ..._rangosAgregados,
+    };
+    return _rangeOrder.where(visibles.contains).toList();
+  }
+
+  List<RangoInstrumento> get _rangosOrdenados => RangoInstrumento.ordenados(
+        capacidades: [for (final c in _rangeCtrls) c[0].text],
+        d: [for (final c in _rangeCtrls) c[1].text],
+        e: [for (final c in _rangeCtrls) c[2].text],
+        decimales: [for (final c in _rangeCtrls) c[3].text],
+      );
 
   void _saveToProvider(ServiceSessionProvider provider) {
     provider.updateBalanza(BalanzaInfo(
@@ -572,15 +634,149 @@ class _BalanzaStepState extends State<BalanzaStep> {
     _d3Ctrl.text = '0';
     _e3Ctrl.text = '0';
     _dec3Ctrl.text = '0';
+    _rangosAgregados.clear();
+    _refreshRangeOrder();
 
     _saveToProvider(provider);
     provider.clearPreviousServiceData();
   }
 
   Widget _buildBalanzaForm(ServiceSessionProvider provider, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
+    void guardar(String _) => _saveToProvider(provider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Resumen de lo que se está calibrando; se actualiza al escribir.
+        FichaInstrumentoEncabezado(
+          codMetrica: _codMetricaCtrl.text,
+          esNueva: _isNewBalanza,
+          marca: _marcaCtrl.text,
+          modelo: _modeloCtrl.text,
+          serie: _serieCtrl.text,
+          tipo: _tipoEquipoCtrl.text,
+          categoria: _categoriaCtrl.text,
+          clase: _claseCtrl.text,
+          unidad: _unidadesCtrl.text,
+          nCeldas: _nCeldasCtrl.text,
+          rangos: _rangosOrdenados,
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+          decoration: _panelDecoration(isDark),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _groupTitle('Identificación', AppIcons.etiqueta, isDark),
+              _field(_codMetricaCtrl, 'Código Métrica', AppIcons.qr,
+                  readOnly: true, onChanged: guardar, isDark: isDark),
+              const SizedBox(height: 12),
+              _field(_codIntCtrl, 'Código Interno', AppIcons.numero,
+                  onChanged: guardar, isDark: isDark),
+              const SizedBox(height: 12),
+              EditableSuggestionField(
+                controller: _tipoEquipoCtrl,
+                label: 'Tipo de Equipo',
+                icon: AppIcons.balanza,
+                options: _tiposEquipo,
+                onChanged: guardar,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _dropdownField('Categoría', null, _categorias,
+                        _categoriaCtrl, provider,
+                        isDark: isDark),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _dropdownField(
+                        'Unidad', null, _unidades, _unidadesCtrl, provider,
+                        isDark: isDark),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _groupTitle('Fabricante', AppIcons.empresa, isDark),
+              EditableSuggestionField(
+                controller: _marcaCtrl,
+                label: 'Marca',
+                icon: AppIcons.empresa,
+                options: scaleBrandSuggestions,
+                onChanged: guardar,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _field(_modeloCtrl, 'Modelo', null,
+                        onChanged: guardar, isDark: isDark),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _field(_serieCtrl, 'Serie', null,
+                        onChanged: guardar, isDark: isDark),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+              _groupTitle('Características', AppIcons.chip, isDark),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _field(_tecnologiaCtrl, 'Tecnología', null,
+                        onChanged: guardar, isDark: isDark),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _field(_claseCtrl, 'Clase', null,
+                        onChanged: guardar, isDark: isDark),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: _field(_rangoCtrl, 'Rango', null,
+                          onChanged: guardar, isDark: isDark),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: CalibrationNumberField(
+                      controller: _nCeldasCtrl,
+                      column: 'n_celdas',
+                      onChanged: guardar,
+                      style: GoogleFonts.inter(
+                          color:
+                              isDark ? Colors.white : const Color(0xFF1A1A1A)),
+                      decoration:
+                          _fieldDecoration('N° Celdas', null, isDark: isDark),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _field(_ubicacionCtrl, 'Ubicación', AppIcons.ubicacion,
+                  onChanged: guardar, isDark: isDark),
+            ],
+          ),
+        ),
+      ],
+    ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
+  }
+
+  BoxDecoration _panelDecoration(bool isDark) => BoxDecoration(
         color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
@@ -591,190 +787,200 @@ class _BalanzaStepState extends State<BalanzaStep> {
               blurRadius: 10,
               offset: const Offset(0, 4))
         ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      );
+
+  Widget _groupTitle(String title, IconData icon, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                _isNewBalanza ? AppIcons.agregarCirculo : AppIcons.completo,
-                color: _isNewBalanza
-                    ? (isDark
-                        ? const Color(0xFF81C784)
-                        : const Color(0xFF2E7D32))
-                    : (isDark
-                        ? const Color(0xFF64B5F6)
-                        : const Color(0xFF1565C0)),
-                size: 22,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _isNewBalanza
-                    ? 'Nuevo Instrumento'
-                    : 'Instrumento Seleccionado',
-                style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: _isNewBalanza
-                        ? (isDark
-                            ? const Color(0xFF81C784)
-                            : const Color(0xFF2E7D32))
-                        : (isDark
-                            ? const Color(0xFF64B5F6)
-                            : const Color(0xFF1565C0))),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _field(_codMetricaCtrl, 'Código Métrica', AppIcons.qr,
-              readOnly: true,
-              onChanged: (_) => _saveToProvider(provider),
-              isDark: isDark),
-          const SizedBox(height: 12),
-          _dropdownField('Categoría', AppIcons.categoria, _categorias,
-              _categoriaCtrl, provider,
-              isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_tecnologiaCtrl, 'Tecnología', AppIcons.chip,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_claseCtrl, 'Clase', AppIcons.clase,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_codIntCtrl, 'Código Interno', AppIcons.numero,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          EditableSuggestionField(
-            controller: _tipoEquipoCtrl,
-            label: 'Tipo de Equipo',
-            icon: AppIcons.balanza,
-            options: _tiposEquipo,
-            onChanged: (_) => _saveToProvider(provider),
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          EditableSuggestionField(
-            controller: _marcaCtrl,
-            label: 'Marca',
-            icon: AppIcons.empresa,
-            options: scaleBrandSuggestions,
-            onChanged: (_) => _saveToProvider(provider),
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          _field(_modeloCtrl, 'Modelo', AppIcons.equipo,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_serieCtrl, 'Serie', AppIcons.serie,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          _dropdownField(
-              'Unidad', AppIcons.medida, _unidades, _unidadesCtrl, provider,
-              isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_ubicacionCtrl, 'Ubicación', AppIcons.ubicacion,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          _field(_rangoCtrl, 'Rango', AppIcons.medida,
-              onChanged: (_) => _saveToProvider(provider), isDark: isDark),
-          const SizedBox(height: 12),
-          CalibrationNumberField(
-            controller: _nCeldasCtrl,
-            column: 'n_celdas',
-            onChanged: (_) => _saveToProvider(provider),
+          Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black45),
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
             style: GoogleFonts.inter(
-                color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
-            decoration: _fieldDecoration('N° Celdas', AppIcons.cuadricula,
-                isDark: isDark),
+              fontSize: 11,
+              letterSpacing: 1.0,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white60 : Colors.black54,
+            ),
           ),
         ],
       ),
-    ).animate(delay: 400.ms).fadeIn().slideY(begin: 0.3);
+    );
   }
 
   Widget _buildRangosSection(ServiceSessionProvider provider, bool isDark) {
+    final slots = _visibleSlots;
+    final siguiente = [0, 1, 2].where((slot) => !slots.contains(slot));
+    final unidad = _unidadesCtrl.text.trim();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
-            Icon(AppIcons.filtros,
+            Icon(AppIcons.medida,
                 color: isDark ? Colors.white54 : Colors.black54, size: 20),
             const SizedBox(width: 8),
-            Text('Rangos de Intervalo',
+            Text('Rangos de pesaje',
                 style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : const Color(0xFF1A1A1A))),
           ],
         ),
-        const SizedBox(height: 16),
-        _rangoCard(1, _capMax1Ctrl, _d1Ctrl, _e1Ctrl, _dec1Ctrl, isDark,
-            () => _saveToProvider(provider)),
-        const SizedBox(height: 12),
-        _rangoCard(2, _capMax2Ctrl, _d2Ctrl, _e2Ctrl, _dec2Ctrl, isDark,
-            () => _saveToProvider(provider)),
-        const SizedBox(height: 12),
-        _rangoCard(3, _capMax3Ctrl, _d3Ctrl, _e3Ctrl, _dec3Ctrl, isDark,
-            () => _saveToProvider(provider)),
+        const SizedBox(height: 4),
+        Text(
+          'Se muestran de menor a mayor capacidad: el Rango 1 es siempre el '
+          'menor.',
+          style: GoogleFonts.inter(
+              fontSize: 12, color: isDark ? Colors.white54 : Colors.black45),
+        ),
+        const SizedBox(height: 14),
+        // Al salir de los campos de rangos se vuelven a ordenar.
+        Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onFocusChange: (hasFocus) {
+            if (!hasFocus && mounted) setState(_refreshRangeOrder);
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < slots.length; i++) ...[
+                if (i > 0) const SizedBox(height: 12),
+                _rangoCard(slots[i], i + 1, slots.length, unidad, isDark,
+                    () => _saveToProvider(provider)),
+              ],
+            ],
+          ),
+        ),
+        if (siguiente.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _agregarRango(siguiente.first),
+            icon: const Icon(AppIcons.agregar, size: 18),
+            label: Text('Agregar rango ${slots.length + 1}'),
+          ),
+        ],
       ],
     ).animate(delay: 500.ms).fadeIn();
   }
 
-  Widget _rangoCard(
-      int rango,
-      TextEditingController capCtrl,
-      TextEditingController dCtrl,
-      TextEditingController eCtrl,
-      TextEditingController decCtrl,
-      bool isDark,
+  /// Abre un rango vacío para escribirlo: los ceros con que se inicializan
+  /// los rangos sin usar se borran para no tener que borrarlos a mano.
+  void _agregarRango(int slot) {
+    setState(() {
+      _rangosAgregados.add(slot);
+      for (final c in _rangeCtrls[slot]) {
+        if ((double.tryParse(c.text.trim()) ?? 0) == 0) c.clear();
+      }
+    });
+  }
+
+  /// Cierra un rango agregado que quedó vacío; vuelve a quedar en 0.
+  void _quitarRango(int slot) {
+    setState(() {
+      _rangosAgregados.remove(slot);
+      for (final c in _rangeCtrls[slot]) {
+        c.text = '0';
+      }
+    });
+  }
+
+  /// Tarjeta editable de un rango guardado en [slot] (0 = cap_max1) que se
+  /// muestra como Rango [numero]. La insignia lleva el tono del rango en la
+  /// escala (amarillo, dorado, tinta), el mismo de la ficha de arriba.
+  Widget _rangoCard(int slot, int numero, int total, String unidad, bool isDark,
       VoidCallback onChanged) {
-    final title = 'Rango $rango';
+    final c = _rangeCtrls[slot];
+    final columna = slot + 1;
+    final capacidad = formatoMedida(c[0].text);
+    final quitable = _rangosAgregados.contains(slot) && !_rangoActivo(slot);
+    final sufijo = unidad.isEmpty ? null : unidad;
+    final texto = isDark ? Colors.white : AppColors.textPrimaryLight;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color:
-            isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
-      ),
+      decoration: decoracionFicha(context, radio: 16),
+      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
-              borderRadius: BorderRadius.circular(6),
+            // Neutro, como el encabezado de la tabla de la ficha: el color
+            // del rango va solo en la insignia.
+            color: Theme.of(context)
+                .colorScheme
+                .onSurface
+                .withOpacity(isDark ? 0.05 : 0.035),
+            padding: EdgeInsets.fromLTRB(14, 10, quitable ? 4 : 14, 10),
+            child: Row(
+              children: [
+                NumeroRango(numero: numero, total: total),
+                const SizedBox(width: 10),
+                Text('Rango $numero',
+                    style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: texto)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    capacidad.isEmpty
+                        ? 'Sin capacidad'
+                        : 'hasta $capacidad${sufijo == null ? '' : ' $sufijo'}',
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: capacidad.isEmpty ? texto.withOpacity(0.5) : texto,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+                if (quitable)
+                  IconButton(
+                    tooltip: 'Quitar rango',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _quitarRango(slot),
+                    icon: const Icon(AppIcons.cerrar, size: 18),
+                  ),
+              ],
             ),
-            child: Text(title,
-                style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : Colors.black87)),
           ),
-          const SizedBox(height: 16),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-                child: _numField(capCtrl, 'Cap. Max', 'cap_max$rango',
-                    onChanged: onChanged, isDark: isDark)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _numField(dCtrl, 'd', 'd$rango',
-                    onChanged: onChanged, isDark: isDark)),
-          ]),
-          const SizedBox(height: 12),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-                child: _numField(eCtrl, 'e', 'e$rango',
-                    onChanged: onChanged, isDark: isDark)),
-            const SizedBox(width: 12),
-            Expanded(
-                child: _numField(decCtrl, 'Dec.', 'dec$rango',
-                    onChanged: onChanged, isDark: isDark)),
-          ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                      child: _numField(c[0], 'Cap. Max', 'cap_max$columna',
+                          suffix: sufijo,
+                          onChanged: onChanged,
+                          isDark: isDark)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: _numField(c[1], 'd', 'd$columna',
+                          suffix: sufijo,
+                          onChanged: onChanged,
+                          isDark: isDark)),
+                ]),
+                const SizedBox(height: 12),
+                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Expanded(
+                      child: _numField(c[2], 'e', 'e$columna',
+                          suffix: sufijo,
+                          onChanged: onChanged,
+                          isDark: isDark)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: _numField(c[3], 'Decimales', 'dec$columna',
+                          onChanged: onChanged, isDark: isDark)),
+                ]),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1017,7 +1223,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
 
   // --- Helpers de widgets ---
 
-  Widget _field(TextEditingController ctrl, String label, IconData icon,
+  Widget _field(TextEditingController ctrl, String label, IconData? icon,
       {bool readOnly = false,
       void Function(String)? onChanged,
       required bool isDark}) {
@@ -1032,13 +1238,15 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  InputDecoration _fieldDecoration(String label, IconData icon,
+  InputDecoration _fieldDecoration(String label, IconData? icon,
       {bool readOnly = false, required bool isDark}) {
     return InputDecoration(
       labelText: label,
       labelStyle:
           GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
-      prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
+      prefixIcon: icon == null
+          ? null
+          : Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: isDark ? Colors.white24 : Colors.black26),
@@ -1057,7 +1265,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
   }
 
   Widget _numField(TextEditingController ctrl, String label, String column,
-      {required VoidCallback onChanged, required bool isDark}) {
+      {required VoidCallback onChanged, required bool isDark, String? suffix}) {
     return CalibrationNumberField(
       controller: ctrl,
       column: column,
@@ -1068,6 +1276,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
         labelText: label,
         labelStyle:
             GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
+        suffixText: suffix,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide:
@@ -1085,7 +1294,7 @@ class _BalanzaStepState extends State<BalanzaStep> {
     );
   }
 
-  Widget _dropdownField(String label, IconData icon, List<String> items,
+  Widget _dropdownField(String label, IconData? icon, List<String> items,
       TextEditingController ctrl, ServiceSessionProvider provider,
       {required bool isDark}) {
     final currentList = List<String>.from(items);
@@ -1098,11 +1307,14 @@ class _BalanzaStepState extends State<BalanzaStep> {
       dropdownColor: isDark ? const Color(0xFF2A2A2A) : Colors.white,
       style: GoogleFonts.inter(
           color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
+      isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
         labelStyle:
             GoogleFonts.inter(color: isDark ? Colors.white70 : Colors.black87),
-        prefixIcon: Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
+        prefixIcon: icon == null
+            ? null
+            : Icon(icon, color: isDark ? Colors.white54 : Colors.black54),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:
@@ -1417,6 +1629,9 @@ class _BalanzaStepState extends State<BalanzaStep> {
                                         const SizedBox(height: 4),
                                         _infoSearchRow('Serie', serie, isDark),
                                         const SizedBox(height: 4),
+                                        _infoSearchRow('Capacidad',
+                                            _capacidadResumen(b), isDark),
+                                        const SizedBox(height: 4),
                                         _infoSearchRow(
                                             'Tipo',
                                             b['tipo_instrumento']?.toString() ??
@@ -1446,6 +1661,17 @@ class _BalanzaStepState extends State<BalanzaStep> {
         );
       }),
     );
+  }
+
+  /// "300 / 600 kg": las capacidades de una balanza del catálogo, de menor
+  /// a mayor.
+  String _capacidadResumen(Map<String, dynamic> b) {
+    final rangos = RangoInstrumento.ordenados(
+        capacidades: [b['cap_max1'], b['cap_max2'], b['cap_max3']]);
+    if (rangos.isEmpty) return 'No especificada';
+    final unidad = b['unidad']?.toString().trim() ?? '';
+    final valores = rangos.map((r) => formatoMedida(r.capacidad)).join(' / ');
+    return unidad.isEmpty ? valores : '$valores $unidad';
   }
 
   Widget _infoSearchRow(String label, String value, bool isDark) {

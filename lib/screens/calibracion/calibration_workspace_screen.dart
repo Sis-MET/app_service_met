@@ -12,6 +12,7 @@ import 'package:service_met/widgets/numeric_keypad.dart';
 import 'package:service_met/theme/app_colors.dart';
 import 'package:service_met/widgets/service_ui/service_options_menu.dart';
 import 'package:service_met/widgets/service_ui/service_steps_drawer.dart';
+import 'package:service_met/widgets/service_ui/balanza_info_button.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
 import 'package:service_met/screens/oportunidades/widgets/opportunity_menu_action.dart';
 import 'package:service_met/screens/rim/rim_flow.dart';
@@ -948,206 +949,51 @@ class _CalibrationWorkspaceScreenState extends State<CalibrationWorkspaceScreen>
 
   void _showBalanzaInfo(BuildContext context, BalanzaInfo b,
       List<EquipoInfo> equipos, bool isDark) {
-    final pesas = equipos.where((e) {
+    bool esPesa(EquipoInfo e) {
       final t = e.tipo?.toLowerCase() ?? '';
       return t.contains('pesa') ||
           t.contains('masa') ||
           t.contains('patron') ||
           t.contains('patr');
-    }).toList();
-    final otros = equipos.where((e) {
-      final t = e.tipo?.toLowerCase() ?? '';
-      return !(t.contains('pesa') ||
-          t.contains('masa') ||
-          t.contains('patron') ||
-          t.contains('patr'));
-    }).toList();
+    }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.75,
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceDark : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.black26,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Text('Información del Instrumento',
-                      style: GoogleFonts.poppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? Colors.white
-                              : AppColors.textPrimaryLight)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  children: [
-                    _infoSectionHeader('Identificación', isDark),
-                    _infoRow('Código Métrica', b.codMetrica ?? '-', isDark),
-                    _infoRow('Tipo', b.tipo ?? '-', isDark),
-                    _infoRow('Categoría', b.categoria ?? '-', isDark),
-                    const Divider(height: 24),
-                    _infoSectionHeader('Fabricante', isDark),
-                    _infoRow('Marca', b.marca ?? '-', isDark),
-                    _infoRow('Modelo', b.modelo ?? '-', isDark),
-                    _infoRow('Serie', b.serie ?? '-', isDark),
-                    const Divider(height: 24),
-                    _infoSectionHeader('Características', isDark),
-                    _infoRow('Tecnología', b.tecnologia ?? '-', isDark),
-                    _infoRow('Clase', b.clase ?? '-', isDark),
-                    _infoRow('Código Interno', b.codInterno ?? '-', isDark),
-                    _infoRow('Unidad', b.unidad ?? '-', isDark),
-                    _infoRow('Ubicación', b.ubicacion ?? '-', isDark),
-                    _infoRow('Rango', b.rango ?? '-', isDark),
-                    _infoRow('N° Celdas', b.nCeldas ?? '-', isDark),
-                    const Divider(height: 24),
-                    _infoSectionHeader('Rangos de Intervalo', isDark),
-                    _infoRow(
-                        'Rango 1',
-                        'Cap.Max: ${b.capMax1 ?? '-'} | d: ${b.d1 ?? '-'} | e: ${b.e1 ?? '-'} | Dec: ${b.dec1 ?? '-'}',
-                        isDark),
-                    _infoRow(
-                        'Rango 2',
-                        'Cap.Max: ${b.capMax2 ?? '-'} | d: ${b.d2 ?? '-'} | e: ${b.e2 ?? '-'} | Dec: ${b.dec2 ?? '-'}',
-                        isDark),
-                    _infoRow(
-                        'Rango 3',
-                        'Cap.Max: ${b.capMax3 ?? '-'} | d: ${b.d3 ?? '-'} | e: ${b.e3 ?? '-'} | Dec: ${b.dec3 ?? '-'}',
-                        isDark),
-                    const Divider(height: 24),
-                    _infoSectionHeader('Equipamiento del Servicio', isDark),
-                    if (pesas.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text('Sin pesas patrón seleccionadas',
-                            style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color:
-                                    isDark ? Colors.white38 : Colors.black38)),
-                      )
-                    else ...[
-                      Text('Pesas Patrón (${pesas.length})',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white70 : Colors.black54)),
-                      const SizedBox(height: 4),
-                      ...pesas.map((e) => Padding(
-                            padding: const EdgeInsets.only(left: 12, bottom: 4),
-                            child: Text(
-                                '${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textPrimaryLight)),
-                          )),
-                    ],
-                    const SizedBox(height: 8),
-                    if (otros.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                            'Sin instrumentos de ambiente seleccionados',
-                            style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color:
-                                    isDark ? Colors.white38 : Colors.black38)),
-                      )
-                    else ...[
-                      Text('Ambiente (${otros.length})',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white70 : Colors.black54)),
-                      const SizedBox(height: 4),
-                      ...otros.map((e) => Padding(
-                            padding: const EdgeInsets.only(left: 12, bottom: 4),
-                            child: Text(
-                                '${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textPrimaryLight)),
-                          )),
-                    ],
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+    String linea(EquipoInfo e) =>
+        '${e.codInstrumento ?? '-'} x${e.cantidad ?? '1'}';
+    String? texto(double? valor) => valor?.toString();
 
-  Widget _infoSectionHeader(String label, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.white : Theme.of(context).colorScheme.primary,
-        ),
+    // La misma ficha que en soporte: rangos de menor a mayor capacidad.
+    showBalanzaInfoSheet(
+      context,
+      ServiceBalanzaInfo(
+        codMetrica: b.codMetrica,
+        tipo: b.tipo,
+        categoria: b.categoria,
+        marca: b.marca,
+        modelo: b.modelo,
+        serie: b.serie,
+        tecnologia: b.tecnologia,
+        clase: b.clase,
+        codInterno: b.codInterno,
+        unidad: b.unidad,
+        ubicacion: b.ubicacion,
+        rango: b.rango,
+        nCeldas: b.nCeldas,
+        capMax1: b.capMax1,
+        d1: texto(b.d1),
+        e1: texto(b.e1),
+        dec1: texto(b.dec1),
+        capMax2: b.capMax2,
+        d2: texto(b.d2),
+        e2: texto(b.e2),
+        dec2: texto(b.dec2),
+        capMax3: b.capMax3,
+        d3: texto(b.d3),
+        e3: texto(b.e3),
+        dec3: texto(b.dec3),
+        pesasPatron: equipos.where(esPesa).map(linea).toList(),
+        ambiente: equipos.where((e) => !esPesa(e)).map(linea).toList(),
       ),
-    );
-  }
-
-  Widget _infoRow(String label, String value, bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white54 : Colors.black54,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-              ),
-            ),
-          ),
-        ],
-      ),
+      isDark,
     );
   }
 

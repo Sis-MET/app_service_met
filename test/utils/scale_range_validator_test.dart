@@ -63,4 +63,45 @@ void main() {
     expect(SuggestionHelper.getDivisionForValue(balanza, 250), 0.001);
     expect(SuggestionHelper.getDecimalPlaces(0.001), 3);
   });
+
+  group('orden visual de los rangos', () {
+    test('el Rango 1 es siempre el de menor capacidad', () {
+      expect(ScaleRangeOrder.displayOrder(['600', '300', '1500']), [1, 0, 2]);
+      expect(ScaleRangeOrder.displayNumbers(['600', '300', '1500']),
+          [2, 1, 3]);
+      // Con coma decimal y valores numéricos.
+      expect(ScaleRangeOrder.displayOrder(['6,5', 3.2, '0']), [1, 0, 2]);
+    });
+
+    test('los rangos sin capacidad van al final, en su orden', () {
+      expect(ScaleRangeOrder.displayOrder(['', '300', '0']), [1, 0, 2]);
+      expect(ScaleRangeOrder.displayOrder([null, '0', '']), [0, 1, 2]);
+      expect(ScaleRangeOrder.displayOrder(['300', '300', '0']), [0, 1, 2]);
+    });
+
+    test('los mensajes nombran el rango como se ve en pantalla', () {
+      const ranges = [
+        ScaleRangeValues(
+          capacity: '600',
+          division: '',
+          verificationDivision: '1',
+          decimals: '0',
+        ),
+        ScaleRangeValues(
+          capacity: '300',
+          division: '0.1',
+          verificationDivision: '1',
+          decimals: '1',
+        ),
+      ];
+      // cap_max1 = 600 se muestra como Rango 2.
+      expect(
+        ScaleRangeValidator.validate(ranges,
+            displayNumbers: ScaleRangeOrder.displayNumbers(['600', '300'])),
+        'Falta la división d (Rango 2).',
+      );
+      expect(ScaleRangeValidator.validate(ranges),
+          'Falta la división d (Rango 1).');
+    });
+  });
 }

@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/theme/app_colors.dart';
+import '../../theme/app_design.dart';
 import '../../theme/app_icons.dart';
+import 'ficha_instrumento.dart';
 
 /// Datos mínimos del instrumento para la ficha de información.
 /// Modelo neutro compartido por Calibración y Soporte.
@@ -86,188 +88,244 @@ class BalanzaInfoButton extends StatelessWidget {
       ),
       child: IconButton(
         icon: const Icon(AppIcons.info, color: Colors.black87, size: 22),
-        onPressed: () => showBalanzaInfoSheet(context, info, isDark),
+        onPressed: () => showBalanzaInfoSheet(context, info, isDark,
+            acento: AppColors.shimmerGold),
       ),
     );
   }
 }
 
-/// Bottom sheet con la ficha completa del instrumento.
+/// Bottom sheet con la ficha completa del instrumento. [acento] es el color
+/// del servicio: verde en calibración, dorado en soporte.
 void showBalanzaInfoSheet(
-    BuildContext context, ServiceBalanzaInfo b, bool isDark) {
+  BuildContext context,
+  ServiceBalanzaInfo b,
+  bool isDark, {
+  Color acento = AppColors.actionPositive,
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    useSafeArea: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) {
-      return Container(
-        height: MediaQuery.of(context).size.height * 0.75,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.surfaceDark : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.black26,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+    builder: (ctx) => FichaInstrumentoSheet(info: b, acento: acento),
+  );
+}
+
+/// Ficha completa del instrumento: encabezado, rangos de menor a mayor
+/// capacidad, otros datos y el equipamiento elegido para el servicio.
+class FichaInstrumentoSheet extends StatelessWidget {
+  const FichaInstrumentoSheet({
+    super.key,
+    required this.info,
+    this.acento = AppColors.actionPositive,
+  });
+
+  final ServiceBalanzaInfo info;
+  final Color acento;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = info;
+    final cs = Theme.of(context).colorScheme;
+    final isDark = cs.brightness == Brightness.dark;
+    final rangos = RangoInstrumento.ordenados(
+      capacidades: [b.capMax1, b.capMax2, b.capMax3],
+      d: [b.d1, b.d2, b.d3],
+      e: [b.e1, b.e2, b.e3],
+      decimales: [b.dec1, b.dec2, b.dec3],
+    );
+
+    return Container(
+      height: MediaQuery.sizeOf(context).height * 0.85,
+      decoration: BoxDecoration(
+        // El fondo de las pantallas de la app, para que las tarjetas resalten.
+        color: isDark ? AppDesign.canvasDark : AppDesign.canvas,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 14),
+              decoration: BoxDecoration(
+                color: cs.onSurface.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Text('Información del Instrumento',
-                style: GoogleFonts.poppins(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppColors.textPrimaryLight)),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                children: [
-                  _infoSectionHeader(ctx, 'Identificación', isDark),
-                  _infoRow('Código Métrica', b.codMetrica ?? '-', isDark),
-                  _infoRow('Tipo', b.tipo ?? '-', isDark),
-                  _infoRow('Categoría', b.categoria ?? '-', isDark),
-                  const Divider(height: 24),
-                  _infoSectionHeader(ctx, 'Fabricante', isDark),
-                  _infoRow('Marca', b.marca ?? '-', isDark),
-                  _infoRow('Modelo', b.modelo ?? '-', isDark),
-                  _infoRow('Serie', b.serie ?? '-', isDark),
-                  const Divider(height: 24),
-                  _infoSectionHeader(ctx, 'Características', isDark),
-                  _infoRow('Tecnología', b.tecnologia ?? '-', isDark),
-                  _infoRow('Clase', b.clase ?? '-', isDark),
-                  _infoRow('Código Interno', b.codInterno ?? '-', isDark),
-                  _infoRow('Unidad', b.unidad ?? '-', isDark),
-                  _infoRow('Ubicación', b.ubicacion ?? '-', isDark),
-                  _infoRow('Rango', b.rango ?? '-', isDark),
-                  _infoRow('N° Celdas', b.nCeldas ?? '-', isDark),
-                  const Divider(height: 24),
-                  _infoSectionHeader(ctx, 'Rangos de Intervalo', isDark),
-                  _infoRow(
-                      'Rango 1',
-                      'Cap.Max: ${b.capMax1 ?? '-'} | d: ${b.d1 ?? '-'} | e: ${b.e1 ?? '-'} | Dec: ${b.dec1 ?? '-'}',
-                      isDark),
-                  _infoRow(
-                      'Rango 2',
-                      'Cap.Max: ${b.capMax2 ?? '-'} | d: ${b.d2 ?? '-'} | e: ${b.e2 ?? '-'} | Dec: ${b.dec2 ?? '-'}',
-                      isDark),
-                  _infoRow(
-                      'Rango 3',
-                      'Cap.Max: ${b.capMax3 ?? '-'} | d: ${b.d3 ?? '-'} | e: ${b.e3 ?? '-'} | Dec: ${b.dec3 ?? '-'}',
-                      isDark),
-                  const Divider(height: 24),
-                  _infoSectionHeader(ctx, 'Equipamiento del Servicio', isDark),
-                  if (b.pesasPatron.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('Sin pesas patrón seleccionadas',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: isDark ? Colors.white38 : Colors.black38)),
-                    )
-                  else ...[
-                    Text('Pesas Patrón (${b.pesasPatron.length})',
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white70 : Colors.black54)),
-                    const SizedBox(height: 4),
-                    ...b.pesasPatron.map((e) => Padding(
-                          padding: const EdgeInsets.only(left: 12, bottom: 4),
-                          child: Text(e,
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimaryLight)),
-                        )),
-                  ],
-                  const SizedBox(height: 8),
-                  if (b.ambiente.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text('Sin instrumentos de ambiente seleccionados',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: isDark ? Colors.white38 : Colors.black38)),
-                    )
-                  else ...[
-                    Text('Ambiente (${b.ambiente.length})',
-                        style: GoogleFonts.inter(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white70 : Colors.black54)),
-                    const SizedBox(height: 4),
-                    ...b.ambiente.map((e) => Padding(
-                          padding: const EdgeInsets.only(left: 12, bottom: 4),
-                          child: Text(e,
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimaryLight)),
-                        )),
-                  ],
-                  const SizedBox(height: 24),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text(
+              'Información del instrumento',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                  20, 0, 20, 24 + MediaQuery.paddingOf(context).bottom),
+              children: [
+                FichaInstrumentoEncabezado(
+                  codMetrica: b.codMetrica,
+                  rangos: rangos,
+                  marca: b.marca,
+                  modelo: b.modelo,
+                  serie: b.serie,
+                  tipo: b.tipo,
+                  categoria: b.categoria,
+                  clase: b.clase,
+                  unidad: b.unidad,
+                  nCeldas: b.nCeldas,
+                  acento: acento,
+                ),
+                if (rangos.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  _Titulo(
+                    'Rangos de pesaje',
+                    detalle:
+                        rangos.length > 1 ? 'De menor a mayor capacidad' : null,
+                  ),
+                  TablaRangos(rangos: rangos, unidad: b.unidad),
                 ],
+                const SizedBox(height: 10),
+                const SizedBox(height: 14),
+                GrupoDatosInstrumento(
+                  titulo: 'Otros datos',
+                  icono: AppIcons.etiqueta,
+                  datos: [
+                    ('Código interno', b.codInterno),
+                    ('Tecnología', b.tecnologia),
+                    ('Ubicación', b.ubicacion),
+                    ('Tipo de rango', b.rango),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const _Titulo('Equipamiento del servicio'),
+                _Equipos(
+                  titulo: 'Pesas patrón',
+                  vacio: 'Sin pesas patrón seleccionadas',
+                  items: b.pesasPatron,
+                ),
+                const SizedBox(height: 12),
+                _Equipos(
+                  titulo: 'Ambiente',
+                  vacio: 'Sin instrumentos de ambiente seleccionados',
+                  items: b.ambiente,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Titulo extends StatelessWidget {
+  const _Titulo(this.texto, {this.detalle});
+
+  final String texto;
+  final String? detalle;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Flexible(
+            child: Text(
+              texto,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
+          ),
+          if (detalle != null) ...[
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                detalle!,
+                style:
+                    GoogleFonts.inter(fontSize: 12, color: cs.onSurfaceVariant),
               ),
             ),
           ],
-        ),
-      );
-    },
-  );
-}
-
-Widget _infoSectionHeader(BuildContext context, String label, bool isDark) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      label,
-      style: GoogleFonts.poppins(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: isDark ? Colors.white : Theme.of(context).colorScheme.primary,
+        ],
       ),
-    ),
-  );
+    );
+  }
 }
 
-Widget _infoRow(String label, String value, bool isDark) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Row(
+class _Equipos extends StatelessWidget {
+  const _Equipos({
+    required this.titulo,
+    required this.vacio,
+    required this.items,
+  });
+
+  final String titulo;
+  final String vacio;
+  final List<String> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 110,
-          child: Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.white54 : Colors.black54,
-            ),
+        Text(
+          items.isEmpty ? titulo : '$titulo (${items.length})',
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: cs.onSurfaceVariant,
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : AppColors.textPrimaryLight,
-            ),
+        const SizedBox(height: 6),
+        if (items.isEmpty)
+          Text(vacio,
+              style: GoogleFonts.inter(
+                  fontSize: 12, color: cs.onSurface.withOpacity(0.45)))
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final item in items)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: cs.outlineVariant),
+                  ),
+                  child: Text(
+                    item,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
       ],
-    ),
-  );
+    );
+  }
 }

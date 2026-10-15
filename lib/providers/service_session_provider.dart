@@ -651,6 +651,10 @@ class ServiceSessionProvider extends ChangeNotifier {
     if (b.serie == null || b.serie!.trim().isEmpty) {
       issues.add((message: 'Falta la Serie.', column: null));
     }
+    // En pantalla los rangos van de menor a mayor capacidad: los mensajes
+    // los nombran igual que allí.
+    final shownNumbers =
+        ScaleRangeOrder.displayNumbers([b.capMax1, b.capMax2, b.capMax3]);
     final rangeError = ScaleRangeValidator.validate([
       ScaleRangeValues(
         capacity: b.capMax1,
@@ -670,7 +674,7 @@ class ServiceSessionProvider extends ChangeNotifier {
         verificationDivision: b.e3,
         decimals: b.dec3,
       ),
-    ]);
+    ], displayNumbers: shownNumbers);
     if (rangeError != null) {
       issues.add((message: rangeError, column: null));
     }
