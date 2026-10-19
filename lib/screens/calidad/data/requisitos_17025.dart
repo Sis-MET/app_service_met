@@ -9,8 +9,8 @@ import '../models/cumplimiento.dart';
 /// evaluación. Las exigencias están parafraseadas; el texto de la norma tiene
 /// derechos de autor.
 final evaluacionCumplimiento = EvaluacionCumplimiento(
-  version: '6.3.5+17',
-  fecha: DateTime(2026, 10, 15),
+  version: '6.4.0+18',
+  fecha: DateTime(2026, 10, 19),
   requisitos: const [
     // ── 7.5 Registros técnicos ────────────────────────────────────────────
     Requisito(
@@ -301,13 +301,14 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       evidencias: [
         'Pruebas automáticas de la app (Flutter) y del servidor (Node).',
         'Historial de versiones con la clase de cada cambio.',
-        'Registro de validación de 6.3.5+17 con el resultado de las pruebas '
-            'automáticas (docs/iso17025/validaciones/VAL-6.3.5+17.md).',
+        'Registros de validación de 6.3.5+17 y 6.4.0+18 con el resultado de '
+            'las pruebas automáticas (docs/iso17025/validaciones/).',
       ],
-      brecha: 'El registro de validación de 6.3.5+17 está en borrador: faltan '
-          'los casos funcionales en un teléfono, la ida y vuelta contra DataMET '
-          'y la autorización del laboratorio. Las versiones anteriores no '
-          'tienen registro.',
+      brecha: 'Los registros de validación de 6.3.5+17 y 6.4.0+18 están en '
+          'borrador: faltan los casos funcionales en un teléfono, la ida y '
+          'vuelta contra DataMET, la migración con datos existentes y la '
+          'autorización del laboratorio. Las versiones anteriores no tienen '
+          'registro.',
       accion: 'Completar y firmar el registro de validación de cada versión '
           'antes de distribuirla.',
       cierre: TipoCierre.ambos,

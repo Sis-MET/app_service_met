@@ -3,29 +3,7 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[
-  'Servidor: la carga de repetibilidad de Mantenimiento preventivo avanzado, '
-      'Mantenimiento preventivo regular y Relevamiento de datos admite '
-      'decimales (525.5 kg); antes el servidor rechazaba esos servicios. '
-      'Requiere el script 015 en DataMET y el esquema del backend '
-      'actualizado; la app no cambia.',
-  'RIM con código único RIM-AA-NNNN (gestión y número), igual para '
-      'calibración, soporte, registro directo y DataMET+. El teléfono recibe '
-      'del servidor talonarios de números y los usa en orden aunque no tenga '
-      'conexión, así el cliente firma con el código definitivo; sin números, '
-      'el formulario lo avisa y no deja emitir. Los RIM ya emitidos '
-      'conservan su código anterior.',
-  'RIM anulado antes de subirse: ahora se sube marcado como anulado, con '
-      'quién, cuándo y por qué, para que su número no quede como un hueco. '
-      'Un RIM ya subido se anula en DataMET+ (Registros RIM).',
-  'Servidor: requiere los scripts 012 y 014 en DataMET (talonarios, '
-      'anulaciones y numeración del RIM) y el backend actualizado antes de '
-      'distribuir la app.',
-  'Servidor: los RIM y la copia de las oportunidades se guardan en DataMET, '
-      'la misma base del backend, y no en una base aparte (servicios_extras '
-      'no llegó a crearse). Los usuarios de la API y de DataMET+ tienen '
-      'denegado modificar y borrar esas tablas.',
-];
+const cambiosSinLiberar = <String>[];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
@@ -35,6 +13,45 @@ const cambiosSinLiberar = <String>[
 /// Redacte para el laboratorio: qué cambia para el técnico y para los
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
+  VersionApp(
+    version: '6.4.0+18',
+    fecha: '2026-10-19',
+    clase: ClaseCambio.critico,
+    resumen: 'RIM con código único RIM-AA-NNNN por talonarios, RIM anulados '
+        'que se suben con su anulación, y los RIM guardados en DataMET.',
+    nuevo: [
+      'RIM con código único RIM-AA-NNNN (gestión y número), igual para '
+          'calibración, soporte, registro directo y DataMET+. El teléfono '
+          'recibe del servidor talonarios de números (al abrir la app, al '
+          'volver la conexión o desde el formulario) y los usa en orden '
+          'aunque no tenga red, así el cliente firma con el código '
+          'definitivo. Sin números, el formulario muestra "Sin números de '
+          'RIM en este teléfono" y no deja emitir. Los RIM ya emitidos '
+          'conservan su código anterior.',
+      'RIM anulado antes de subirse: se sube marcado como anulado, con '
+          'quién, cuándo y por qué, para que su número no quede como un '
+          'hueco. Un RIM ya subido se anula en DataMET+ (Registros RIM), '
+          'donde también se registran su ejecución en Soporte Técnico y su '
+          'entrega al cliente.',
+    ],
+    corregido: [
+      'Soporte técnico (servidor): las cargas de repetibilidad con decimales '
+          '(525.5 kg) de Mantenimiento preventivo avanzado, Mantenimiento '
+          'preventivo regular y Relevamiento de datos ya se aceptan; antes el '
+          'servidor rechazaba esos servicios. La app no cambia; requiere el '
+          'script 015.',
+    ],
+    impactoRegistros: 'Cada RIM nuevo guarda su gestión, su número, el '
+        'talonario del que salió y la instalación de la app; dos RIM no '
+        'pueden compartir número (índice único en el servidor). Los RIM y la '
+        'copia de las oportunidades se guardan en tablas propias dentro de '
+        'DataMET (scripts 012 y 014), y los usuarios de la API y de DataMET+ '
+        'tienen denegado modificarlas o borrarlas. La base local del teléfono '
+        'agrega los talonarios y la numeración del RIM. Antes de distribuir '
+        'la app hay que ejecutar los scripts 012, 014 y 015 en DataMET y '
+        'desplegar el backend: sin ellos la app no recibe talonarios y no '
+        'puede emitir RIM nuevos.',
+  ),
   VersionApp(
     version: '6.3.5+17',
     fecha: '2026-10-15',

@@ -11,9 +11,9 @@ const manualServiceMet = ManualUso(
   control: ControlDocumento(
     codigo: 'PENDIENTE: código asignado por Calidad',
     titulo: 'Manual de uso de ServiceMET',
-    revision: '01 (borrador)',
-    fechaEmision: '2026-10-15',
-    aplicaA: '6.3.5 o posterior',
+    revision: '02 (borrador)',
+    fechaEmision: '2026-10-19',
+    aplicaA: '6.4.0 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
     aprobo: 'PENDIENTE',
@@ -26,6 +26,12 @@ const manualServiceMet = ManualUso(
               'ubicación, ubicación de cada servicio, ficha del instrumento '
               'con los rangos de menor a mayor, Registros de solo lectura con '
               'historial de cambios y balanzas nuevas en la subida (borrador).'),
+      RevisionDocumento(
+          '02',
+          '2026-10-19',
+          'Versión 6.4.0: código único del RIM (RIM-AA-NNNN) con talonarios, '
+              'RIM anulados que se suben con su anulación, y la ejecución y '
+              'la entrega del RIM en DataMET+ (borrador).'),
     ],
   ),
   secciones: [
@@ -625,6 +631,15 @@ const manualServiceMet = ManualUso(
                   'otro desde el servicio. Un RIM ya subido no se anula en la '
                   'app: lo anula un jefe de área o un usuario de nivel 2 o 3 '
                   'en DataMET+, "Registros RIM".'),
+          Paso(
+              'Lo que sigue a la recepción se registra en DataMET+, en la '
+                  'ficha del RIM ("Registros RIM"): la ejecución en Soporte '
+                  'Técnico (ingreso, técnico, fechas y números de '
+                  'cotización, informe y factura) y la entrega al cliente, '
+                  'con las firmas de quien recibe y de quien entrega.',
+              'La app no registra esas etapas y el RIM emitido no cambia: '
+                  'cada etapa queda como un registro aparte, con su '
+                  'historial.'),
         ]),
         Nota(
           TipoNota.importante,
