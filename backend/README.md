@@ -151,6 +151,44 @@ actualiza la restricción sin tocar los datos.
   del token) y `reg_por` (su nombre en `data_users`); `emitido_en` es la hora
   del teléfono al emitir.
 
+#### Numeración del RIM (`RIM-AA-NNNN`)
+
+Desde la versión de ServiceMET que numera el RIM, cada RIM tiene un código
+único para todas las áreas y orígenes: `RIM-{gestión de 2 dígitos}-{número de
+4 dígitos}` (`RIM-26-0042`). El número es único en la gestión. Como la app
+trabaja sin conexión, recibe por adelantado **talonarios** de números libres
+(10 por defecto, `RIM_TALONARIO_SIZE` de 1 a 100) y los usa en orden al
+emitir, aunque no tenga red; así el cliente firma con el código definitivo.
+
+Requiere ejecutar `sql/014_rim_numeracion_y_gestion.sql` **antes** de desplegar
+este backend (complete en el script el login de DataMET+). Crea
+`rim_talonarios`, `rim_talonarios_cierres`, `form_rim_anulaciones`,
+`form_rim_fotos`, el procedimiento `rim_reservar_talonario` (reparte rangos
+sin repetirlos, con un bloqueo exclusivo) y agrega a `form_rim` la gestión, el
+número, el talonario, la instalación y el origen, con un índice único que
+impide que dos RIM compartan número. La API recibe `EXECUTE` sobre el
+procedimiento e `INSERT` en las tablas nuevas, nunca `UPDATE` ni `DELETE`.
+
+- `POST /api/extras/rim/talonarios`: entrega un talonario a la instalación de
+  la app (`requestId`, `installationId`, `year`, `device`, `appVersion`).
+  Repetir el mismo `requestId` devuelve el mismo talonario (`200`). Solo se
+  entregan talonarios de la gestión en curso y, en diciembre, de la siguiente
+  (hora de La Paz).
+- `POST /api/extras/rim/talonarios/:id/cierre`: la app informa que ya no usará
+  el resto del talonario (`reason: fin_gestion`, `lastUsed`). Los números sin
+  RIM de un talonario cerrado se muestran en DataMET+ como no utilizados.
+- Al subir un RIM numerado, la API comprueba que su número pertenezca a un
+  talonario entregado a la misma instalación (`installationId`) y que la
+  gestión coincida con la fecha de emisión; si no, responde `409
+  RIM_NUMBER_NOT_ASSIGNED` o `409 RIM_NUMBER_TAKEN`. Los RIM con el código
+  anterior (`RIM-{planta}-{AA}`) se siguen aceptando, sin número.
+- Un RIM anulado en el teléfono antes de subirse llega con `voided` (quién,
+  cuándo y motivo) y se registra junto con su fila en `form_rim_anulaciones`,
+  para que su número no quede como un hueco.
+
+Sin el script 014, los RIM numerados y los talonarios responden `503
+EXTRAS_NOT_READY` y quedan pendientes en el teléfono.
+
 Cuando `POST /api/bitrix/opportunities` crea (o reconoce) un prospecto, la API
 inserta además su fila en `form_bitrix`. Si esa copia falla, la oportunidad
 responde igual y el servidor lo registra como advertencia; reenviarla vuelve a

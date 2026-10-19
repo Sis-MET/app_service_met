@@ -202,3 +202,65 @@ test('si la copia en form_bitrix falla, la oportunidad igual responde 201', asyn
     assert.ok(warnings.some((warning) => /form_bitrix/.test(warning)));
   });
 });
+
+test('entrega el talonario de RIM con el usuario del token: 201 y luego 200', async () => {
+  const received = [];
+  const extrasService = {
+    async reserveTalonario(body, options) {
+      received.push({ body, options });
+      return { id: 7, year: 2026, from: 41, to: 50, duplicate: received.length > 1 };
+    },
+  };
+  const app = createApp(appConfig(), new Map(), new Map(), { bitrixService: null, extrasService });
+  await withServer(app, async (base) => {
+    assert.equal((await post(base, '/api/extras/rim/talonarios', { auth: null })).status, 401);
+    const noScope = await post(base, '/api/extras/rim/talonarios', { auth: token(['calibracion:upload']) });
+    assert.equal(noScope.status, 403);
+
+    const created = await post(base, '/api/extras/rim/talonarios', { body: { requestId: 'r1' } });
+    assert.equal(created.status, 201);
+    assert.deepEqual(
+      { id: created.body.id, year: created.body.year, from: created.body.from, to: created.body.to },
+      { id: 7, year: 2026, from: 41, to: 50 },
+    );
+    assert.match(created.body.message, /41 a 50/);
+    assert.equal(received[0].options.user, 'tecnico1');
+    assert.equal(received[0].body.requestId, 'r1');
+
+    const again = await post(base, '/api/extras/rim/talonarios', { body: { requestId: 'r1' } });
+    assert.equal(again.status, 200);
+    assert.equal(again.body.duplicate, true);
+  });
+});
+
+test('cierra el talonario de RIM y comunica los errores con código', async () => {
+  const received = [];
+  let failure = null;
+  const extrasService = {
+    async closeTalonario(id, body, options) {
+      if (failure) throw failure;
+      received.push({ id, body, options });
+      return { id: 3, duplicate: false };
+    },
+  };
+  const app = createApp(appConfig(), new Map(), new Map(), { bitrixService: null, extrasService });
+  await silencingWarnings(async () => {
+    await withServer(app, async (base) => {
+      const closed = await post(base, '/api/extras/rim/talonarios/7/cierre', {
+        body: { lastUsed: 47, reason: 'fin_gestion' },
+      });
+      assert.equal(closed.status, 201);
+      assert.deepEqual(closed.body, { id: 3, duplicate: false });
+      assert.equal(received[0].id, '7');
+      assert.equal(received[0].options.user, 'tecnico1');
+
+      failure = new ExtrasError('El talonario no existe o no fue entregado a este teléfono.', {
+        code: 'RIM_TALONARIO_NOT_FOUND',
+        statusCode: 404,
+      });
+      const missing = await post(base, '/api/extras/rim/talonarios/99/cierre', { body: {} });
+      assert.equal(missing.status, 404);
+      assert.equal(missing.body.error, 'RIM_TALONARIO_NOT_FOUND');
+    });
+  });
+});

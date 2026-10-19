@@ -32,6 +32,24 @@ function createExtrasRouter({ service, requireAuth, requireScope, logger = conso
     });
   });
 
+  // Talonario de números de RIM para la instalación de la app que lo pide.
+  // 201 si se entregó uno nuevo; 200 si esa solicitud ya tenía talonario.
+  router.post('/rim/talonarios', async (req, res) => {
+    const talonario = await service.reserveTalonario(req.body, { user: req.auth.sub });
+    const { duplicate, ...data } = talonario;
+    res.status(duplicate ? 200 : 201).json({
+      ...data,
+      duplicate,
+      message: `Talonario ${data.year}: números ${data.from} a ${data.to}.`,
+    });
+  });
+
+  // La app ya no usará el resto del talonario (fin de gestión).
+  router.post('/rim/talonarios/:id/cierre', async (req, res) => {
+    const result = await service.closeTalonario(req.params.id, req.body, { user: req.auth.sub });
+    res.status(result.duplicate ? 200 : 201).json(result);
+  });
+
   // Errores de validación o de configuración: mensaje claro y código estable
   // para la app. Lo demás sigue al manejador general, que oculta los detalles.
   router.use((error, _req, res, next) => {

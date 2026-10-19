@@ -22,6 +22,25 @@ const MAX_INVENTORY_ITEMS = 60;
 const MAX_OTHER_ITEMS = 30;
 
 const SERVICE_TYPES = Object.freeze(['calibracion', 'soporte', 'directo']);
+
+/**
+ * Código del RIM numerado por talonarios: `RIM-{AA}-{NNNN}` ("RIM-26-0042").
+ * AA es la gestión y NNNN el número, único en la gestión para todos los RIM.
+ */
+const RIM_CODE_PATTERN = /^RIM-(\d{2})-(\d{4,5})$/;
+
+/**
+ * Código anterior a la numeración, `RIM-{planta}-{AA}` ("RIM-0103-11-26"):
+ * se acepta para subir los RIM emitidos con versiones anteriores de la app.
+ */
+const LEGACY_RIM_CODE_PATTERN = /^RIM-[0-9A-Za-z][0-9A-Za-z-]{0,48}-\d{2}$/;
+
+/** Bolivia no tiene horario de verano: UTC−4 todo el año. */
+const LA_PAZ_OFFSET_MS = -4 * 60 * 60 * 1000;
+
+/** Motivos con los que la app cierra un talonario que ya no usará. */
+const APP_CLOSURE_REASONS = Object.freeze(['fin_gestion']);
+
 const COMPONENT_STATES = Object.freeze(['present', 'missing', 'na']);
 const DAMAGE_LEVELS = Object.freeze(['excellent', 'good', 'fair', 'poor', 'critical']);
 const CLEANLINESS_LEVELS = Object.freeze(['clean', 'light', 'moderate', 'heavy']);
@@ -60,6 +79,41 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Fecha y hora de [date] en La Paz, en los campos UTC de otra fecha. */
+function laPazParts(date) {
+  const local = new Date(date.getTime() + LA_PAZ_OFFSET_MS);
+  return { year: local.getUTCFullYear(), month: local.getUTCMonth() + 1 };
+}
+
+/**
+ * Gestión y número de un código `RIM-AA-NNNN`, o null si el código no tiene
+ * ese formato (por ejemplo, el código anterior).
+ */
+function parseRimCode(code) {
+  const match = RIM_CODE_PATTERN.exec(String(code ?? '').trim());
+  if (!match) return null;
+  const number = Number(match[2]);
+  if (!Number.isSafeInteger(number) || number < 1) return null;
+  return { year: 2000 + Number(match[1]), number };
+}
+
+/** `RIM-26-0042` para la gestión 2026 y el número 42. */
+function formatRimCode(year, number) {
+  return `RIM-${String(year % 100).padStart(2, '0')}-${String(number).padStart(4, '0')}`;
+}
+
+function isUuid(value) {
+  return UUID_PATTERN.test(String(value ?? '').trim());
+}
+
+function validationError(subject, errors) {
+  return new ExtrasError(`Los datos ${subject} están incompletos o no son válidos.`, {
+    code: 'VALIDATION_ERROR',
+    statusCode: 400,
+    details: errors,
+  });
+}
+
 /**
  * Valida y normaliza un RIM enviado por la app. Devuelve solo lo que se
  * guarda; cualquier clave desconocida se descarta.
@@ -83,6 +137,16 @@ function validateRim(input) {
   if (!UUID_PATTERN.test(uuid)) fail('uuid', 'Identificador de RIM inválido.');
 
   const code = text('code', 60, { required: true, label: 'el código del RIM' });
+  // Numerado por talonario (RIM-AA-NNNN) o, en RIM emitidos antes de la
+  // numeración, el código anterior: este no tiene número ni talonario.
+  const numbering = parseRimCode(code);
+  if (code && !numbering && !LEGACY_RIM_CODE_PATTERN.test(code)) {
+    fail('code', 'El código del RIM no tiene un formato válido.');
+  }
+  const installationId = String(body.installationId ?? '').trim().toLowerCase();
+  if (numbering && !isUuid(installationId)) {
+    fail('installationId', 'Falta la instalación de la app que emitió el RIM.');
+  }
 
   const rawService = isPlainObject(body.service) ? body.service : null;
   const service = {};
@@ -183,6 +247,27 @@ function validateRim(input) {
   const issuedAt = issuedAtText ? new Date(issuedAtText) : null;
   if (!issuedAt || Number.isNaN(issuedAt.getTime())) {
     fail('issuedAt', 'Fecha de emisión inválida.');
+  } else if (numbering
+      && numbering.year !== laPazParts(issuedAt).year
+      && numbering.year !== issuedAt.getUTCFullYear()) {
+    fail('code', 'La gestión del código no coincide con la fecha de emisión.');
+  }
+
+  // RIM anulado en el teléfono antes de subirlo: se sube igual, para que su
+  // número no quede como un hueco, con quién lo anuló, cuándo y por qué.
+  let voided = null;
+  if (body.voided !== undefined && body.voided !== null) {
+    const raw = isPlainObject(body.voided) ? body.voided : {};
+    const by = cleanText(raw.by, 100);
+    const voidReason = cleanText(raw.reason, 1000);
+    const atText = cleanText(raw.at, 40);
+    const at = atText ? new Date(atText) : null;
+    if (!by) fail('voided.by', 'Falta quién anuló el RIM.');
+    if (!voidReason || voidReason.length < 5) {
+      fail('voided.reason', 'Falta el motivo de la anulación.');
+    }
+    if (!at || Number.isNaN(at.getTime())) fail('voided.at', 'Fecha de anulación inválida.');
+    voided = { by: by || '', reason: voidReason || '', at };
   }
 
   /** Firma en PNG, enviada en base64. */
@@ -206,22 +291,22 @@ function validateRim(input) {
     return png;
   };
   const clientSignature = signature('clientSignature', 'del cliente');
-  const metricaSignature = signature('metricaSignature', 'del representante de Métrica');
+  // Un RIM de prueba anterior a la segunda firma solo se acepta anulado.
+  const metricaSignature = voided && !body.metricaSignature
+    ? null
+    : signature('metricaSignature', 'del representante de Métrica');
 
   const createdBy = cleanText(body.createdBy, 100);
   const appVersion = cleanText(body.appVersion, 30);
 
-  if (errors.length) {
-    throw new ExtrasError('Los datos del RIM están incompletos o no son válidos.', {
-      code: 'VALIDATION_ERROR',
-      statusCode: 400,
-      details: errors,
-    });
-  }
+  if (errors.length) throw validationError('del RIM', errors);
 
   return {
     uuid: uuid.toLowerCase(),
     code,
+    numbering,
+    installationId: isUuid(installationId) ? installationId : null,
+    voided,
     service,
     reason,
     inventory,
@@ -248,8 +333,65 @@ function validateRim(input) {
   };
 }
 
+/**
+ * Pedido de un talonario de números de RIM desde la app. Solo se entregan
+ * talonarios de la gestión en curso y, en diciembre, de la siguiente.
+ */
+function validateTalonarioRequest(input, { now = new Date() } = {}) {
+  const errors = [];
+  const fail = (field, message) => errors.push({ field, message });
+  const body = isPlainObject(input) ? input : {};
+
+  const requestId = String(body.requestId ?? '').trim().toLowerCase();
+  if (!isUuid(requestId)) fail('requestId', 'Identificador de solicitud inválido.');
+  const installationId = String(body.installationId ?? '').trim().toLowerCase();
+  if (!isUuid(installationId)) fail('installationId', 'Identificador de instalación inválido.');
+
+  const year = Number(body.year);
+  const today = laPazParts(now);
+  const allowed = today.month === 12 ? [today.year, today.year + 1] : [today.year];
+  if (!Number.isInteger(year) || !allowed.includes(year)) {
+    fail('year', `Solo se entregan talonarios de la gestión ${allowed.join(' o ')}. Revise la fecha del teléfono.`);
+  }
+
+  const device = cleanText(body.device, 120);
+  const appVersion = cleanText(body.appVersion, 30);
+  if (device === null) fail('device', 'Dispositivo inválido.');
+  if (appVersion === null) fail('appVersion', 'Versión inválida.');
+
+  if (errors.length) throw validationError('del talonario', errors);
+  return { requestId, installationId, year, device, appVersion };
+}
+
+/** Cierre de un talonario que la app ya no usará (fin de gestión). */
+function validateTalonarioClosure(id, input) {
+  const errors = [];
+  const fail = (field, message) => errors.push({ field, message });
+  const body = isPlainObject(input) ? input : {};
+
+  const talonarioId = Number(id);
+  if (!Number.isSafeInteger(talonarioId) || talonarioId <= 0) fail('id', 'Talonario inválido.');
+  const installationId = String(body.installationId ?? '').trim().toLowerCase();
+  if (!isUuid(installationId)) fail('installationId', 'Identificador de instalación inválido.');
+  const lastUsed = body.lastUsed === null || body.lastUsed === undefined
+    ? null
+    : Number(body.lastUsed);
+  if (lastUsed !== null && (!Number.isSafeInteger(lastUsed) || lastUsed < 1)) {
+    fail('lastUsed', 'Último número usado inválido.');
+  }
+  const reason = String(body.reason ?? '').trim();
+  if (!APP_CLOSURE_REASONS.includes(reason)) fail('reason', 'Motivo de cierre inválido.');
+
+  if (errors.length) throw validationError('del cierre del talonario', errors);
+  return { talonarioId, installationId, lastUsed, reason };
+}
+
 module.exports = {
   ExtrasError,
   MAX_SIGNATURE_BYTES,
+  formatRimCode,
+  parseRimCode,
   validateRim,
+  validateTalonarioClosure,
+  validateTalonarioRequest,
 };
