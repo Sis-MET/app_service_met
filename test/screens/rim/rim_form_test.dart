@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
 import 'package:service_met/screens/rim/data/rim_catalogo.dart';
 import 'package:service_met/screens/rim/models/rim_documento.dart';
+import 'package:service_met/screens/rim/models/rim_numeracion.dart';
 import 'package:service_met/screens/rim/rim_flow.dart';
 import 'package:service_met/screens/rim/rim_form_screen.dart';
 import 'package:service_met/screens/rim/services/rim_repository.dart';
@@ -17,6 +18,9 @@ import 'package:service_met/theme/app_icons.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+
+  /// Primer número del talonario de MemoryRimStore en la gestión en curso.
+  final codigoEsperado = rimCodigo(gestion: DateTime.now().year, numero: 41);
 
   late MemoryRimStore store;
 
@@ -89,7 +93,7 @@ void main() {
 
     expect(find.text('Recepción de instrumento'), findsOneWidget);
     expect(find.text('Paso 1 de 2 · Estado físico'), findsOneWidget);
-    expect(find.text('RIM-0090-11-26'), findsOneWidget);
+    expect(find.text(codigoEsperado), findsOneWidget);
     expect(find.text('Soporte técnico · Mantenimiento correctivo'),
         findsOneWidget);
     expect(find.text('26-0090-11-S02'), findsOneWidget);
@@ -223,7 +227,11 @@ void main() {
     expect(registro.firmaRepresentante, firmaRepresentanteDePrueba);
 
     final rim = registro.documento;
-    expect(rim.codigo, 'RIM-0090-11-26');
+    expect(rim.codigo, codigoEsperado);
+    expect(rim.instalacion, instalacionDePrueba);
+    // El siguiente RIM tomará el número que sigue del talonario.
+    expect((await store.proximoNumero(gestion: DateTime.now().year))!.numero,
+        42);
     expect(rim.inventario['indicator'], RimEstadoComponente.present);
     expect(rim.inventario['powerCable'], RimEstadoComponente.missing);
     expect(rim.inventario, hasLength(RimCatalogo.componentes.length));
@@ -243,6 +251,44 @@ void main() {
     expect(rim.appVersion, '6.3.3+15');
     expect(rim.service.metricCode, '0090-11-014');
     expect(DateTime.now().difference(rim.emitidoEn).inMinutes, 0);
+  });
+
+  testWidgets('sin números de RIM lo avisa y lo toma al reintentar',
+      (tester) async {
+    store = MemoryRimStore(conTalonario: false);
+    await pump(tester, abridor((_) {}));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('rim-sin-numero')), findsOneWidget);
+    expect(find.text('RIM sin número'), findsOneWidget);
+    // Sin perfil de API no se pudo pedir el talonario: se dice por qué.
+    expect(find.textContaining('perfil de conexión'), findsOneWidget);
+
+    // Llega un talonario (por ejemplo, con la sincronización automática).
+    store.talonariosEnMemoria.add(RimTalonario(
+      id: 3,
+      instalacion: instalacionDePrueba,
+      gestion: DateTime.now().year,
+      desde: 7,
+      hasta: 16,
+      recibidoEn: DateTime.now(),
+    ));
+    await tocar(tester, find.text('Reintentar'));
+    expect(find.byKey(const ValueKey('rim-sin-numero')), findsNothing);
+    expect(find.text(rimCodigo(gestion: DateTime.now().year, numero: 7)),
+        findsOneWidget);
+  });
+
+  testWidgets('avisa cuando quedan pocos números en el teléfono',
+      (tester) async {
+    store = MemoryRimStore(desde: 41, hasta: 42);
+    await pump(tester, abridor((_) {}));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(codigoEsperado), findsOneWidget);
+    expect(find.textContaining('Quedan 2 números de RIM'), findsOneWidget);
   });
 
   testWidgets('cancelar con datos pide confirmación y no guarda nada',

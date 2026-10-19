@@ -55,6 +55,21 @@ class RimUploaded {
   const RimUploaded({required this.n, required this.duplicate});
 }
 
+/// Talonario de números de RIM entregado por `POST /api/extras/rim/talonarios`.
+class RimTalonarioRecibido {
+  final int id;
+  final int gestion;
+  final int desde;
+  final int hasta;
+
+  const RimTalonarioRecibido({
+    required this.id,
+    required this.gestion,
+    required this.desde,
+    required this.hasta,
+  });
+}
+
 /// Sube los RIM a `servicios_extras.form_rim` a través de la API METRICA.
 class RimApi {
   static const uploadTimeout = Duration(seconds: 45);
@@ -82,6 +97,79 @@ class RimApi {
   }
 
   Future<RimUploaded> upload(RimRegistro registro) async {
+    final body = await _post('/api/extras/rim', registro.toUploadJson());
+    final n = (body['n'] as num?)?.toInt();
+    if (n == null || n <= 0) {
+      throw const RimApiException(
+        'El servidor no devolvió el número del RIM.',
+        kind: RimApiErrorKind.unavailable,
+        code: 'INVALID_RESPONSE',
+      );
+    }
+    return RimUploaded(n: n, duplicate: body['duplicate'] == true);
+  }
+
+  /// Pide un talonario de números de RIM para esta instalación. Repetir el
+  /// mismo [requestId] devuelve el mismo talonario.
+  Future<RimTalonarioRecibido> pedirTalonario({
+    required String requestId,
+    required String installationId,
+    required int year,
+    String? device,
+    String? appVersion,
+  }) async {
+    final body = await _post('/api/extras/rim/talonarios', {
+      'requestId': requestId,
+      'installationId': installationId,
+      'year': year,
+      'device': device,
+      'appVersion': appVersion,
+    });
+    int? entero(String key) => (body[key] as num?)?.toInt();
+    final id = entero('id');
+    final gestion = entero('year');
+    final desde = entero('from');
+    final hasta = entero('to');
+    if (id == null ||
+        gestion == null ||
+        desde == null ||
+        hasta == null ||
+        desde < 1 ||
+        hasta < desde) {
+      throw const RimApiException(
+        'El servidor no devolvió un talonario válido.',
+        kind: RimApiErrorKind.unavailable,
+        code: 'INVALID_RESPONSE',
+      );
+    }
+    return RimTalonarioRecibido(
+      id: id,
+      gestion: gestion,
+      desde: desde,
+      hasta: hasta,
+    );
+  }
+
+  /// Informa que esta instalación ya no usará el resto del talonario [id]
+  /// (terminó su gestión). [lastUsed] es el último número que usó.
+  Future<void> cerrarTalonario(
+    int id, {
+    required String installationId,
+    required int? lastUsed,
+  }) async {
+    await _post('/api/extras/rim/talonarios/$id/cierre', {
+      'installationId': installationId,
+      'lastUsed': lastUsed,
+      'reason': 'fin_gestion',
+    });
+  }
+
+  /// POST autenticado con el JWT de la sesión. Devuelve el cuerpo de una
+  /// respuesta 200 o 201; cualquier otra termina en [RimApiException].
+  Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic> payload,
+  ) async {
     final token = await _auth.readValidToken();
     if (token == null) {
       throw const RimApiException(
@@ -94,12 +182,12 @@ class RimApi {
     try {
       response = await _client
           .post(
-            Uri.parse('$baseUrl/api/extras/rim'),
+            Uri.parse('$baseUrl$path'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
             },
-            body: jsonEncode(registro.toUploadJson()),
+            body: jsonEncode(payload),
           )
           .timeout(uploadTimeout);
     } on TimeoutException {
@@ -117,17 +205,7 @@ class RimApi {
     }
 
     final body = _decode(response);
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final n = (body['n'] as num?)?.toInt();
-      if (n == null || n <= 0) {
-        throw const RimApiException(
-          'El servidor no devolvió el número del RIM.',
-          kind: RimApiErrorKind.unavailable,
-          code: 'INVALID_RESPONSE',
-        );
-      }
-      return RimUploaded(n: n, duplicate: body['duplicate'] == true);
-    }
+    if (response.statusCode == 200 || response.statusCode == 201) return body;
     final error = _exception(response.statusCode, body);
     debugPrint('[RIM] ${response.statusCode} ${error.code ?? ''}');
     throw error;
@@ -192,7 +270,7 @@ class RimApi {
         statusCode: statusCode,
       );
     }
-    if (statusCode == 404) {
+    if (statusCode == 404 && (code == null || code == 'NOT_FOUND')) {
       // Una API anterior a esta versión no tiene la ruta de RIM.
       return RimApiException(
         'El servidor todavía no recibe formularios RIM.',
@@ -201,9 +279,11 @@ class RimApi {
         statusCode: statusCode,
       );
     }
+    // 409: el número no es de un talonario de este teléfono, ya lo usa otro
+    // RIM o se agotó la numeración. Reintentar igual no lo resuelve.
     return RimApiException(
       message,
-      kind: statusCode == 400 || statusCode == 422
+      kind: const {400, 404, 409, 422}.contains(statusCode)
           ? RimApiErrorKind.rejected
           : RimApiErrorKind.unavailable,
       code: code,

@@ -17,7 +17,8 @@ import 'services/rim_store.dart';
 import '../../theme/app_icons.dart';
 
 /// RIM emitidos en este teléfono: los pendientes de subir al servidor (se
-/// suben a mano, nunca solos), los ya subidos y los anulados.
+/// suben a mano, nunca solos; los anulados también, para que su número
+/// quede justificado), los ya subidos y los anulados ya registrados.
 class RimListScreen extends StatefulWidget {
   /// Solo para pruebas.
   final RimRepository Function()? repositoryBuilder;
@@ -168,8 +169,10 @@ class _RimListScreenState extends State<RimListScreen> {
   @override
   Widget build(BuildContext context) {
     final porSubir = _items.where((item) => item.canUpload).toList();
-    final subidos = _items.where((item) => item.isSent).toList();
-    final anulados = _items.where((item) => item.anulado).toList();
+    final subidos =
+        _items.where((item) => item.isSent && !item.anulado).toList();
+    final anulados =
+        _items.where((item) => item.isSent && item.anulado).toList();
 
     return PopScope(
       canPop: !_busy,
@@ -310,7 +313,13 @@ class _RimCard extends StatelessWidget {
 
   (String, Color, IconData) get _status {
     if (registro.anulado) {
-      return ('Anulado', AppColors.actionNegative, AppIcons.bloquear);
+      return (
+        registro.isSent
+            ? 'Anulado · N.º ${registro.serverN}'
+            : 'Anulado · por subir',
+        AppColors.actionNegative,
+        AppIcons.bloquear,
+      );
     }
     return switch (registro.estado) {
       RimEstadoSubida.sent => (
@@ -482,7 +491,8 @@ class _AnularDialogState extends State<_AnularDialog> {
         children: [
           const Text(
             'El RIM no se borra: queda en este teléfono marcado como anulado, '
-            'con su motivo, y no se sube al servidor.',
+            'con su motivo, y se sube así al servidor para que su número '
+            'quede justificado. Si corresponde, emita un RIM nuevo.',
           ),
           const SizedBox(height: 14),
           TextField(

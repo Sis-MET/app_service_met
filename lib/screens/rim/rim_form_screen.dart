@@ -13,6 +13,8 @@ import '../oportunidades/models/opportunity_service_context.dart';
 import '../oportunidades/widgets/opportunity_password_prompt.dart';
 import 'data/rim_catalogo.dart';
 import 'models/rim_documento.dart';
+import 'models/rim_numeracion.dart';
+import 'rim_flow.dart' show askRimPassword;
 import 'services/rim_repository.dart';
 import 'widgets/signature_pad.dart';
 import '../../theme/app_icons.dart';
@@ -25,11 +27,19 @@ import '../../theme/app_icons.dart';
 /// recepción, y firman en la pantalla el cliente y el representante de
 /// Métrica. Se abre encima del servicio: el paso actual sigue montado debajo.
 /// Al emitir, el RIM queda guardado en el teléfono y ya no se modifica.
+///
+/// El código (`RIM-AA-NNNN`) es el siguiente número del talonario del
+/// teléfono y se muestra desde el inicio, así el cliente firma con el código
+/// definitivo. Sin números disponibles no se puede emitir: hay que conectarse
+/// para recibir un talonario.
 class RimFormScreen extends StatefulWidget {
   final OpportunityServiceContext serviceContext;
   final RimRepository repository;
   final Future<String?> Function() loggedUser;
   final Future<String?> Function() appVersion;
+
+  /// Pide la contraseña si hace falta un talonario y la sesión venció.
+  final RimPasswordPrompt? onAuthRequired;
 
   /// Solo para pruebas: reemplaza la pantalla de firma.
   final Future<Uint8List?> Function(BuildContext context, RimFirmante firmante)?
@@ -41,6 +51,7 @@ class RimFormScreen extends StatefulWidget {
     required this.repository,
     required this.loggedUser,
     required this.appVersion,
+    this.onAuthRequired,
     this.signatureCapture,
   });
 
@@ -53,14 +64,16 @@ class RimFormScreen extends StatefulWidget {
     return Navigator.of(context).push<RimRegistro>(
       MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => RimFormScreen(
+        builder: (formContext) => RimFormScreen(
           serviceContext: serviceContext,
           repository: RimRepository(
             apiUrl: () => profiles.perfilSeleccionado?.apiUrl,
             loggedUser: loggedServiceMetUser,
+            appVersion: serviceMetAppVersion,
           ),
           loggedUser: loggedServiceMetUser,
           appVersion: serviceMetAppVersion,
+          onAuthRequired: (error) => askRimPassword(formContext, error),
         ),
       ),
     );
@@ -93,11 +106,14 @@ class _RimFormScreenState extends State<RimFormScreen> {
   static const _pasos = ['Estado físico', 'Recepción y firmas'];
 
   late final String _uuid = newOpportunityUuid();
-  late final String _codigo = rimCodigo(
-    plantCode: widget.serviceContext.plantCode,
-    clientCode: widget.serviceContext.clientCode,
-    year: widget.serviceContext.capturedAt.year,
-  );
+
+  /// Número con el que se emitirá; null mientras se busca o si el teléfono
+  /// no tiene números disponibles.
+  RimNumero? _numero;
+  bool _buscandoNumero = true;
+  String? _avisoNumero;
+
+  String get _codigo => _numero?.codigo ?? 'RIM sin número';
 
   final _scroll = [ScrollController(), ScrollController()];
   int _paso = 0;
@@ -153,11 +169,44 @@ class _RimFormScreenState extends State<RimFormScreen> {
   void initState() {
     super.initState();
     _cargarUsuario();
+    _cargarNumero();
   }
 
   Future<void> _cargarUsuario() async {
     final usuario = await widget.loggedUser();
     if (mounted) setState(() => _usuario = usuario);
+  }
+
+  /// Toma el siguiente número del talonario. Si no quedan (o quedan pocos)
+  /// intenta recibir otro talonario; solo pide la contraseña cuando no hay
+  /// ningún número con el cual emitir.
+  Future<void> _cargarNumero() async {
+    if (mounted && !_buscandoNumero) {
+      setState(() {
+        _buscandoNumero = true;
+        _avisoNumero = null;
+      });
+    }
+    RimNumero? numero;
+    String? aviso;
+    try {
+      numero = await widget.repository.proximoNumero();
+      if (numero == null || numero.restantes < rimUmbralTalonario) {
+        final resultado = await widget.repository.asegurarTalonarios(
+          onAuthRequired: numero == null ? widget.onAuthRequired : null,
+        );
+        numero = await widget.repository.proximoNumero();
+        if (numero == null) aviso = resultado.error?.message;
+      }
+    } catch (error) {
+      aviso = '$error';
+    }
+    if (!mounted) return;
+    setState(() {
+      _numero = numero;
+      _buscandoNumero = false;
+      _avisoNumero = aviso;
+    });
   }
 
   @override
@@ -290,7 +339,8 @@ class _RimFormScreenState extends State<RimFormScreen> {
     }
     return RimDocumento(
       uuid: _uuid,
-      codigo: _codigo,
+      codigo: _numero!.codigo,
+      instalacion: _numero!.instalacion,
       service: _service,
       motivo: _motivo.text.trim(),
       inventario: Map.of(_inventario),
@@ -335,6 +385,13 @@ class _RimFormScreenState extends State<RimFormScreen> {
       return;
     }
     if (!_validar(1)) return;
+    if (_numero == null) {
+      setState(() => _errorGeneral = _buscandoNumero
+          ? 'Espere: se está buscando el número del RIM.'
+          : 'Este teléfono no tiene números de RIM disponibles. Conéctese a '
+              'la red de METRICA y toque "Reintentar" en el paso 1.');
+      return;
+    }
 
     final confirmado = await showDialog<bool>(
       context: context,
@@ -371,6 +428,15 @@ class _RimFormScreenState extends State<RimFormScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).pop(registro);
+    } on RimNumeroNoDisponible catch (error) {
+      // El número mostrado ya no es el siguiente: se toma el nuevo y el
+      // técnico vuelve a confirmar.
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _errorGeneral = '$error Revise el código y vuelva a emitir.';
+      });
+      await _cargarNumero();
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -506,6 +572,12 @@ class _RimFormScreenState extends State<RimFormScreen> {
 
   List<Widget> _pasoEstadoFisico(bool isDark) => [
         _ResumenServicio(codigo: _codigo, service: _service),
+        _EstadoNumero(
+          buscando: _buscandoNumero,
+          numero: _numero,
+          aviso: _avisoNumero,
+          onReintentar: _busy ? null : _cargarNumero,
+        ),
         const SizedBox(height: 22),
         const ServiceSectionHeader('Inventario de componentes'),
         Text(
@@ -860,6 +932,100 @@ class _ResumenServicio extends StatelessWidget {
           _FilaLectura('Resolución', service.divisionWithUnit),
           _FilaLectura('Ubicación', service.location),
         ],
+      ),
+    );
+  }
+}
+
+/// Estado del número del RIM bajo el resumen: buscándolo, sin números
+/// disponibles (con "Reintentar") o con pocos números restantes.
+class _EstadoNumero extends StatelessWidget {
+  final bool buscando;
+  final RimNumero? numero;
+  final String? aviso;
+  final VoidCallback? onReintentar;
+
+  const _EstadoNumero({
+    required this.buscando,
+    required this.numero,
+    required this.aviso,
+    required this.onReintentar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final small = Theme.of(context).textTheme.bodySmall;
+    if (buscando) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Text('Buscando el número del RIM…', style: small),
+          ],
+        ),
+      );
+    }
+    final actual = numero;
+    if (actual == null) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Container(
+          key: const ValueKey('rim-sin-numero'),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.accentYellow.withValues(alpha: 0.14),
+            borderRadius: AppDesign.mediumRadius,
+            border: Border.all(
+              color: AppColors.shimmerGold.withValues(alpha: 0.5),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Sin números de RIM en este teléfono',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Cada RIM lleva un número único que el teléfono recibe del '
+                'servidor por adelantado. Conéctese a la red de METRICA y '
+                'toque "Reintentar"; puede seguir llenando mientras tanto.',
+                style: small,
+              ),
+              if (aviso != null) ...[
+                const SizedBox(height: 4),
+                Text(aviso!, style: small),
+              ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: onReintentar,
+                  icon: const Icon(AppIcons.sincronizar),
+                  label: const Text('Reintentar'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (actual.restantes > 2) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Text(
+        actual.restantes == 1
+            ? 'Es el último número de RIM de este teléfono: con conexión se '
+                'recibe otro talonario solo.'
+            : 'Quedan ${actual.restantes} números de RIM en este teléfono: con '
+                'conexión se recibe otro talonario solo.',
+        style: small,
       ),
     );
   }

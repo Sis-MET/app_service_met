@@ -3,20 +3,7 @@ import 'dart:typed_data';
 
 import '../../oportunidades/models/opportunity_service_context.dart';
 import '../data/rim_catalogo.dart';
-
-/// Código visible del RIM, con el mismo formato que el formulario web:
-/// `RIM-{CÓDIGO DE PLANTA}-{GESTIÓN}` ("RIM-0103-11-26"). El código de planta
-/// ya incluye al cliente; sin planta se usa el del cliente.
-///
-/// No es único: dos RIM de la misma planta en el año comparten código. Cada
-/// RIM se identifica por su UUID y por el código métrica del instrumento.
-String rimCodigo({String? plantCode, String? clientCode, required int year}) {
-  final gestion = (year % 100).toString().padLeft(2, '0');
-  final planta = plantCode?.trim() ?? '';
-  if (planta.isNotEmpty) return 'RIM-$planta-$gestion';
-  final cliente = clientCode?.trim() ?? '';
-  return 'RIM-${cliente.isEmpty ? 'XXXX' : cliente}-XX-$gestion';
-}
+import 'rim_numeracion.dart';
 
 /// Componente que el técnico agrega al inventario ("Cable RS232").
 class RimComponenteExtra {
@@ -32,7 +19,14 @@ class RimComponenteExtra {
 /// cliente no se edita; un RIM equivocado se anula y se emite otro.
 class RimDocumento {
   final String uuid;
+
+  /// `RIM-AA-NNNN` (ver `rim_numeracion.dart`). Los RIM emitidos antes de la
+  /// numeración conservan su código anterior, `RIM-{planta}-{AA}`.
   final String codigo;
+
+  /// Instalación de ServiceMET que lo emitió, dueña del talonario de su
+  /// número. Null en los RIM con código anterior.
+  final String? instalacion;
 
   /// Servicio, cliente, planta e instrumento al momento de emitir.
   final OpportunityServiceContext service;
@@ -99,15 +93,20 @@ class RimDocumento {
     this.contactoCargo = '',
     this.contactoTelefono = '',
     this.tecnicoAsignado = '',
+    this.instalacion,
     this.creadoPor,
     this.appVersion,
   });
+
+  /// Gestión y número del código; null si es un código anterior.
+  ({int gestion, int numero})? get numeracion => leerCodigoRim(codigo);
 
   /// Lo que se guarda en `payload` y lo que recibe `POST /api/extras/rim`
   /// (junto con las firmas).
   Map<String, dynamic> toJson() => {
         'uuid': uuid,
         'code': codigo,
+        if (instalacion != null) 'installationId': instalacion,
         'service': service.toJson(),
         'reason': motivo,
         'inventory': {
@@ -155,9 +154,11 @@ class RimDocumento {
       }
     }
 
+    final instalacion = text('installationId');
     return RimDocumento(
       uuid: text('uuid'),
       codigo: text('code'),
+      instalacion: instalacion.isEmpty ? null : instalacion,
       service: OpportunityServiceContext.fromJson(map('service')),
       motivo: text('reason'),
       inventario: inventario,
@@ -221,8 +222,8 @@ class RimRegistro {
   final Uint8List firmaCliente;
 
   /// Firma del representante de Métrica, en PNG. Null solo en un RIM emitido
-  /// con una versión de prueba anterior a esta firma: el servidor no lo
-  /// acepta, así que se anula y se emite otro.
+  /// con una versión de prueba anterior a esta firma: el servidor solo lo
+  /// acepta anulado, así que se anula y se emite otro.
   final Uint8List? firmaRepresentante;
   final RimEstadoSubida estado;
   final int retryCount;
@@ -253,11 +254,12 @@ class RimRegistro {
   String get uuid => documento.uuid;
   bool get isSent => estado == RimEstadoSubida.sent;
 
-  /// Un RIM anulado queda en el teléfono como constancia y no se sube.
-  bool get canUpload => !anulado && !isSent;
+  /// Todo RIM se sube, también el anulado: así su número no queda como un
+  /// hueco en el servidor y la anulación viaja con él.
+  bool get canUpload => !isSent;
 
-  /// Solo se anula lo que todavía no está en el servidor: la API no modifica
-  /// registros ya subidos.
+  /// Solo se anula en el teléfono lo que todavía no está en el servidor; un
+  /// RIM ya subido se anula en DataMET+ (Registros RIM).
   bool get canAnular => !anulado && !isSent;
 
   /// Cuerpo de `POST /api/extras/rim`.
@@ -266,5 +268,11 @@ class RimRegistro {
         'clientSignature': base64Encode(firmaCliente),
         if (firmaRepresentante != null)
           'metricaSignature': base64Encode(firmaRepresentante!),
+        if (anulado)
+          'voided': {
+            'by': anuladoPor,
+            'at': anuladoEn?.toUtc().toIso8601String(),
+            'reason': motivoAnulacion,
+          },
       };
 }

@@ -4,7 +4,9 @@ import 'dart:typed_data';
 import 'package:service_met/screens/oportunidades/models/opportunity_service_context.dart';
 import 'package:service_met/screens/rim/data/rim_catalogo.dart';
 import 'package:service_met/screens/rim/models/rim_documento.dart';
+import 'package:service_met/screens/rim/models/rim_numeracion.dart';
 import 'package:service_met/screens/rim/services/rim_store.dart';
+import 'package:sqflite/sqflite.dart' show DatabaseExecutor;
 
 /// PNG de 1×1 píxel, como firma de prueba.
 final Uint8List firmaDePrueba = base64Decode(
@@ -48,14 +50,20 @@ OpportunityServiceContext servicioDePrueba({
       now: DateTime(2026, 10, 1, 14, 30),
     );
 
+/// Instalación de la app en las pruebas sin SQLite.
+const instalacionDePrueba = '9b2d7c41-5e3a-4f8b-9c6d-1a2b3c4d5e6f';
+
 RimDocumento rimDePrueba({
   String uuid = '3f2a8c1e-7b4d-4e9a-a1c2-5d6e7f8091ab',
   OpportunityServiceContext? service,
   DateTime? emitidoEn,
+  String codigo = 'RIM-26-0041',
+  String? instalacion = instalacionDePrueba,
 }) =>
     RimDocumento(
       uuid: uuid,
-      codigo: 'RIM-0090-11-26',
+      codigo: codigo,
+      instalacion: instalacion,
       service: service ?? servicioDePrueba(),
       motivo: 'El indicador no enciende; no se pudo concluir el mantenimiento.',
       inventario: const {
@@ -89,9 +97,87 @@ RimDocumento rimDePrueba({
       appVersion: '6.3.3+15',
     );
 
-/// Tabla de RIM en memoria, para pruebas de pantalla sin SQLite.
+/// Tabla de RIM en memoria, para pruebas de pantalla sin SQLite. Empieza con
+/// un talonario de la gestión en curso (números [desde] a [hasta]), salvo
+/// que [conTalonario] sea false.
 class MemoryRimStore extends RimStore {
   final List<RimRegistro> registros = [];
+  final List<RimTalonario> talonariosEnMemoria = [];
+
+  MemoryRimStore({bool conTalonario = true, int desde = 41, int hasta = 50}) {
+    if (conTalonario) {
+      talonariosEnMemoria.add(RimTalonario(
+        id: 1,
+        instalacion: instalacionDePrueba,
+        gestion: DateTime.now().year,
+        desde: desde,
+        hasta: hasta,
+        recibidoEn: DateTime(2026, 10, 1),
+      ));
+    }
+  }
+
+  @override
+  Future<String> instalacion([DatabaseExecutor? executor]) async =>
+      instalacionDePrueba;
+
+  @override
+  Future<RimNumero?> proximoNumero({
+    required int gestion,
+    DatabaseExecutor? executor,
+  }) async {
+    RimNumero? siguiente;
+    var restantes = 0;
+    for (final talonario
+        in talonariosEnMemoria.where((item) => item.gestion == gestion)) {
+      final usados = [
+        for (final registro in registros)
+          if (registro.documento.numeracion case final numeracion?)
+            if (numeracion.gestion == gestion &&
+                talonario.contiene(numeracion.numero))
+              numeracion.numero,
+      ];
+      final primero = usados.isEmpty
+          ? talonario.desde
+          : usados.reduce((a, b) => a > b ? a : b) + 1;
+      if (primero > talonario.hasta) continue;
+      restantes += talonario.hasta - primero + 1;
+      siguiente ??= RimNumero(
+        talonarioId: talonario.id,
+        instalacion: instalacionDePrueba,
+        gestion: gestion,
+        numero: primero,
+        restantes: 0,
+      );
+    }
+    final elegido = siguiente;
+    if (elegido == null) return null;
+    return RimNumero(
+      talonarioId: elegido.talonarioId,
+      instalacion: elegido.instalacion,
+      gestion: elegido.gestion,
+      numero: elegido.numero,
+      restantes: restantes,
+    );
+  }
+
+  @override
+  Future<String> solicitudTalonario(int gestion) async =>
+      'c4a1e2f3-6b7d-4e8f-a9b0-1c2d3e4f5a6b';
+
+  @override
+  Future<void> guardarTalonario(
+    RimTalonario talonario, {
+    required String solicitud,
+  }) async {
+    if (talonariosEnMemoria.every((item) => item.id != talonario.id)) {
+      talonariosEnMemoria.add(talonario);
+    }
+  }
+
+  @override
+  Future<List<({RimTalonario talonario, int? ultimoUsado})>>
+      talonariosPorCerrar(int gestion) async => const [];
 
   @override
   Future<RimRegistro> insert(
@@ -101,6 +187,13 @@ class MemoryRimStore extends RimStore {
   ) async {
     if (registros.any((registro) => registro.uuid == documento.uuid)) {
       throw StateError('UNIQUE constraint failed: form_rim.uuid');
+    }
+    final numeracion = documento.numeracion;
+    final siguiente = numeracion == null
+        ? null
+        : await proximoNumero(gestion: numeracion.gestion);
+    if (siguiente == null || siguiente.numero != numeracion!.numero) {
+      throw RimNumeroNoDisponible('Número no disponible: ${documento.codigo}');
     }
     final registro = RimRegistro(
       id: registros.length + 1,
@@ -139,4 +232,42 @@ class MemoryRimStore extends RimStore {
           registro.documento.service.sessionId == sessionId &&
           (codMetrica == null ||
               registro.documento.service.metricCode == codMetrica));
+}
+
+/// Da a [store] (SQLite) un talonario de la [gestion] para su instalación.
+Future<void> darTalonario(
+  RimStore store, {
+  int id = 1,
+  int gestion = 2026,
+  int desde = 41,
+  int hasta = 50,
+}) async {
+  final instalacion = await store.instalacion();
+  await store.guardarTalonario(
+    RimTalonario(
+      id: id,
+      instalacion: instalacion,
+      gestion: gestion,
+      desde: desde,
+      hasta: hasta,
+      recibidoEn: DateTime(2026, 10, 1),
+    ),
+    solicitud: await store.solicitudTalonario(gestion),
+  );
+}
+
+/// RIM de prueba con el siguiente número de [store] en la [gestion].
+Future<RimDocumento> rimSiguiente(
+  RimStore store, {
+  String uuid = '3f2a8c1e-7b4d-4e9a-a1c2-5d6e7f8091ab',
+  DateTime? emitidoEn,
+  int gestion = 2026,
+}) async {
+  final numero = (await store.proximoNumero(gestion: gestion))!;
+  return rimDePrueba(
+    uuid: uuid,
+    emitidoEn: emitidoEn,
+    codigo: numero.codigo,
+    instalacion: numero.instalacion,
+  );
 }

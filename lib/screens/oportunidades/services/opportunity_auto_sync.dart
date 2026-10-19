@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../rim/services/rim_repository.dart';
 import '../widgets/opportunity_password_prompt.dart';
 import 'opportunity_repository.dart';
 
 /// Completa y envía solas las oportunidades pendientes cuando vuelve la
-/// conexión con el servidor.
+/// conexión con el servidor. En la misma pasada renueva los talonarios de
+/// números de RIM del teléfono, para que siempre pueda emitir sin conexión.
 ///
 /// Se dispara al abrir la app, al volver a ella y cuando el teléfono recupera
 /// la red. Que haya red no garantiza llegar al servidor (red interna o VPN):
@@ -29,6 +31,28 @@ class OpportunityAutoSync {
   /// Última pasada que tuvo algo que contar (enviadas, por completar o sin
   /// sesión). Las pantallas la escuchan para avisar y refrescar contadores.
   final ValueNotifier<OpportunitySyncReport?> lastReport = ValueNotifier(null);
+
+  /// Pide un talonario de RIM si quedan pocos números y cierra los de
+  /// gestiones pasadas (nunca pide la contraseña). Reemplazable en pruebas.
+  @visibleForTesting
+  static Future<void> Function(String? Function() apiUrl) rimTalonarios =
+      _rimTalonarios;
+
+  static Future<void> _rimTalonarios(String? Function() apiUrl) async {
+    final repository = RimRepository(
+      apiUrl: apiUrl,
+      loggedUser: loggedServiceMetUser,
+      appVersion: serviceMetAppVersion,
+    );
+    try {
+      final resultado = await repository.asegurarTalonarios();
+      if (resultado.recibidos > 0) {
+        debugPrint('[RIM] talonarios recibidos: ${resultado.recibidos}');
+      }
+    } finally {
+      repository.close();
+    }
+  }
 
   String? Function()? _apiUrl;
   StreamSubscription<List<ConnectivityResult>>? _connectivity;
@@ -84,6 +108,11 @@ class OpportunityAutoSync {
       return null;
     }
     _running = true;
+    try {
+      await rimTalonarios(apiUrl);
+    } catch (error) {
+      debugPrint('[RIM] renovación de talonarios fallida: $error');
+    }
     final repository = OpportunityRepository(
       apiUrl: apiUrl,
       loggedUser: loggedServiceMetUser,

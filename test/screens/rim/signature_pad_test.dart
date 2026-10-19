@@ -73,7 +73,7 @@ void main() {
               context,
               title: 'Firma del cliente',
               signerName: 'Juan Pérez',
-              documentLabel: 'RIM-0090-11-26 · 0090-11-014',
+              documentLabel: 'RIM-26-0041 · 0090-11-014',
             );
             cerrado = true;
           },
@@ -85,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Firma del cliente'), findsOneWidget);
-    expect(find.text('RIM-0090-11-26 · 0090-11-014'), findsOneWidget);
+    expect(find.text('RIM-26-0041 · 0090-11-014'), findsOneWidget);
     expect(find.text('Juan Pérez'), findsOneWidget);
     expect(find.text('Firme aquí con el dedo'), findsOneWidget);
     // Sin barra de título: el lienzo ocupa todo el alto y casi todo el ancho.
@@ -147,7 +147,7 @@ void main() {
             context,
             title: 'Firma del representante de Métrica',
             signerName: 'Tec. Luis Mamani',
-            documentLabel: 'RIM-0090-11-26',
+            documentLabel: 'RIM-26-0041',
           ),
           child: const Text('firmar'),
         ),
@@ -173,7 +173,7 @@ void main() {
       home: SignatureCaptureScreen(
         title: 'Firma del cliente',
         signerName: 'Juan Pérez',
-        documentLabel: 'RIM-0090-11-26',
+        documentLabel: 'RIM-26-0041',
       ),
     ));
     await tester.pumpAndSettle();

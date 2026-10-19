@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../core/network/service_met_http_client.dart';
 import '../models/rim_documento.dart';
+import '../models/rim_numeracion.dart';
 import 'rim_api.dart';
 import 'rim_store.dart';
 
@@ -20,31 +23,173 @@ class RimUploadResult {
   bool get sent => registro.isSent;
 }
 
+/// Resultado de [RimRepository.asegurarTalonarios].
+class RimTalonariosResultado {
+  /// Talonarios recibidos en esta pasada.
+  final int recibidos;
+
+  /// Números libres de la gestión en curso al terminar.
+  final int restantes;
+
+  /// Por qué no se pudo pedir un talonario que hacía falta.
+  final RimApiException? error;
+
+  const RimTalonariosResultado({
+    required this.recibidos,
+    required this.restantes,
+    this.error,
+  });
+}
+
 /// Orquesta la tabla local de RIM y la API METRICA.
 ///
 /// Emitir es solo local: el RIM queda guardado en el teléfono, con las firmas
-/// del cliente y del representante de Métrica, aunque no haya red. La subida al servidor es un paso aparte
-/// que el técnico inicia a mano; reenviar usa el mismo UUID, así que no
-/// duplica el RIM en el servidor.
+/// del cliente y del representante de Métrica, aunque no haya red. Su número
+/// sale de un talonario que el teléfono recibió antes, cuando tuvo conexión
+/// ([asegurarTalonarios]). La subida al servidor es un paso aparte que el
+/// técnico inicia a mano; reenviar usa el mismo UUID, así que no duplica el
+/// RIM en el servidor.
 class RimRepository {
   /// UUIDs que se están subiendo ahora, en cualquier pantalla.
   static final Set<String> _inFlight = {};
 
+  /// Pasada de talonarios en curso, compartida por todas las pantallas.
+  static Future<RimTalonariosResultado>? _talonariosEnCurso;
+
   final RimStore _store;
   final String? Function() _apiUrl;
   final Future<String?> Function() _loggedUser;
+  final Future<String?> Function() _appVersion;
   final RimApi Function(String baseUrl) _apiFactory;
   RimApi? _api;
 
   RimRepository({
     required String? Function() apiUrl,
     required Future<String?> Function() loggedUser,
+    Future<String?> Function()? appVersion,
     RimStore? store,
     RimApi Function(String baseUrl)? apiFactory,
   })  : _apiUrl = apiUrl,
         _loggedUser = loggedUser,
+        _appVersion = appVersion ?? (() async => null),
         _store = store ?? RimStore(),
         _apiFactory = apiFactory ?? RimApi.new;
+
+  /// Siguiente número libre de este teléfono para un RIM emitido [ahora];
+  /// null si no le quedan (hay que conectarse para recibir un talonario).
+  Future<RimNumero?> proximoNumero([DateTime? ahora]) =>
+      _store.proximoNumero(gestion: (ahora ?? DateTime.now()).year);
+
+  /// Pide un talonario si a este teléfono le quedan menos de
+  /// [rimUmbralTalonario] números en la gestión (y, en diciembre, también
+  /// para la siguiente), e informa al servidor los talonarios de gestiones
+  /// pasadas que ya no usará. Nunca lanza por falta de red: lo que no se pudo
+  /// hacer queda en el resultado y se reintenta en la siguiente pasada.
+  Future<RimTalonariosResultado> asegurarTalonarios({
+    RimPasswordPrompt? onAuthRequired,
+    DateTime? ahora,
+  }) {
+    final enCurso = _talonariosEnCurso;
+    if (enCurso != null) return enCurso;
+    final pasada = _asegurarTalonarios(onAuthRequired, ahora ?? DateTime.now());
+    _talonariosEnCurso = pasada;
+    return pasada.whenComplete(() => _talonariosEnCurso = null);
+  }
+
+  Future<RimTalonariosResultado> _asegurarTalonarios(
+    RimPasswordPrompt? onAuthRequired,
+    DateTime ahora,
+  ) async {
+    var recibidos = 0;
+    RimApiException? error;
+    final gestiones = [ahora.year, if (ahora.month == 12) ahora.year + 1];
+    for (final gestion in gestiones) {
+      final actual = await _store.proximoNumero(gestion: gestion);
+      if ((actual?.restantes ?? 0) >= rimUmbralTalonario) continue;
+      try {
+        final instalacion = await _store.instalacion();
+        final solicitud = await _store.solicitudTalonario(gestion);
+        final version = await _versionSegura();
+        final recibido = await _withAuth(
+          (api) => api.pedirTalonario(
+            requestId: solicitud,
+            installationId: instalacion,
+            year: gestion,
+            device: _dispositivo(),
+            appVersion: version,
+          ),
+          onAuthRequired,
+        );
+        await _store.guardarTalonario(
+          RimTalonario(
+            id: recibido.id,
+            instalacion: instalacion,
+            gestion: recibido.gestion,
+            desde: recibido.desde,
+            hasta: recibido.hasta,
+            recibidoEn: DateTime.now(),
+          ),
+          solicitud: solicitud,
+        );
+        recibidos++;
+        debugPrint('[RIM] talonario ${recibido.gestion}: '
+            '${recibido.desde}-${recibido.hasta}');
+      } on RimApiException catch (failure) {
+        error = failure;
+        debugPrint('[RIM] talonario no recibido: ${failure.code ?? failure.kind}');
+        break;
+      }
+    }
+
+    // Talonarios de gestiones pasadas: sus números libres ya no se usarán.
+    if (error == null) {
+      try {
+        final instalacion = await _store.instalacion();
+        for (final pendiente in await _store.talonariosPorCerrar(ahora.year)) {
+          await _withAuth(
+            (api) => api.cerrarTalonario(
+              pendiente.talonario.id,
+              installationId: instalacion,
+              lastUsed: pendiente.ultimoUsado,
+            ),
+            null,
+          );
+          await _store.marcarCierreReportado(pendiente.talonario.id);
+        }
+      } on RimApiException catch (failure) {
+        debugPrint('[RIM] cierre de talonario pendiente: '
+            '${failure.code ?? failure.kind}');
+      }
+    }
+
+    final restantes =
+        (await _store.proximoNumero(gestion: ahora.year))?.restantes ?? 0;
+    return RimTalonariosResultado(
+      recibidos: recibidos,
+      restantes: restantes,
+      error: error,
+    );
+  }
+
+  Future<String?> _versionSegura() async {
+    try {
+      return await _appVersion();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Sistema del teléfono, como referencia del talonario (sin datos
+  /// personales).
+  static String _dispositivo() {
+    try {
+      final texto =
+          '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
+      return texto.length > 120 ? texto.substring(0, 120) : texto;
+    } catch (_) {
+      return '';
+    }
+  }
 
   /// Guarda el RIM firmado en el teléfono. Desde aquí ya no se modifica.
   Future<RimRegistro> emitir(

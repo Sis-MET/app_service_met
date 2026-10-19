@@ -60,7 +60,11 @@ void main() {
 
   setUp(() async {
     database = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
-    store = RimStore(database: database);
+    store = RimStore(
+      database: database,
+      installTime: () async => DateTime.utc(2026, 9, 1, 8),
+    );
+    await darTalonario(store);
     auth = _FakeAuth();
     requests = [];
   });
@@ -77,6 +81,7 @@ void main() {
     return RimRepository(
       apiUrl: () => _apiUrl,
       loggedUser: () async => 'lmamani',
+      appVersion: () async => '6.4.0+18',
       store: store,
       apiFactory: (url) => RimApi(url, client: client, auth: auth),
     );
@@ -92,7 +97,7 @@ void main() {
     final repo = repository((_) async => json(500, {}));
 
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(rim.estado, RimEstadoSubida.pending);
     expect(requests, isEmpty);
@@ -108,7 +113,7 @@ void main() {
     final repo =
         repository((_) async => json(201, {'n': 15, 'duplicate': false}));
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -122,7 +127,9 @@ void main() {
     expect(request.headers['Authorization'], 'Bearer token-valido');
     final body = jsonDecode(request.body) as Map<String, dynamic>;
     expect(body['uuid'], rim.uuid);
-    expect(body['code'], 'RIM-0090-11-26');
+    expect(body['code'], 'RIM-26-0041');
+    expect(body['installationId'], await store.instalacion());
+    expect(body.containsKey('voided'), isFalse);
     expect(base64Decode(body['clientSignature'] as String), firmaDePrueba);
     expect(base64Decode(body['metricaSignature'] as String),
         firmaRepresentanteDePrueba);
@@ -147,7 +154,7 @@ void main() {
       return json(200, {'n': 15, 'duplicate': true});
     });
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final offline = await repo.subir(rim);
     expect(offline.sent, isFalse);
@@ -170,7 +177,7 @@ void main() {
           'message': 'El servidor todavía no tiene lista la base.',
         }));
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -185,7 +192,7 @@ void main() {
           'message': 'Los datos del RIM están incompletos o no son válidos.',
         }));
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim);
 
@@ -203,7 +210,7 @@ void main() {
       return json(201, {'n': 3, 'duplicate': false});
     });
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
     final prompts = <String?>[];
 
     final result = await repo.subir(rim, onAuthRequired: (error) async {
@@ -220,7 +227,7 @@ void main() {
     auth.token = null;
     final repo = repository((_) async => json(201, {'n': 3}));
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     final result = await repo.subir(rim, onAuthRequired: (_) async => null);
 
@@ -230,17 +237,182 @@ void main() {
     expect(requests, isEmpty);
   });
 
-  test('un RIM anulado no se sube', () async {
+  test('un RIM anulado se sube con su anulación y queda registrado', () async {
     final repo = repository((_) async => json(201, {'n': 3}));
     final rim = await repo.emitir(
-        rimDePrueba(), firmaDePrueba, firmaRepresentanteDePrueba);
+        await rimSiguiente(store), firmaDePrueba, firmaRepresentanteDePrueba);
 
     expect(await repo.anular(rim, 'Balanza equivocada.'), isTrue);
     final anulado = (await store.byUuid(rim.uuid))!;
     expect(anulado.anuladoPor, 'lmamani');
 
     final result = await repo.subir(anulado);
-    expect(result.sent, isFalse);
-    expect(requests, isEmpty);
+    expect(result.sent, isTrue);
+    expect(result.registro.anulado, isTrue);
+    final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(body['code'], 'RIM-26-0041');
+    expect(body['voided'], {
+      'by': 'lmamani',
+      'at': anulado.anuladoEn!.toUtc().toIso8601String(),
+      'reason': 'Balanza equivocada.',
+    });
+  });
+
+  group('talonarios', () {
+    late Database vacia;
+    late RimStore sinTalonario;
+
+    setUp(() async {
+      vacia = await databaseFactoryFfi.openDatabase(
+        inMemoryDatabasePath,
+        options: OpenDatabaseOptions(singleInstance: false),
+      );
+      sinTalonario = RimStore(
+        database: vacia,
+        installTime: () async => DateTime.utc(2026, 9, 1, 8),
+      );
+    });
+
+    tearDown(() => vacia.close());
+
+    RimRepository conStore(
+      RimStore rimStore,
+      Future<http.Response> Function(http.Request request) handler,
+    ) {
+      final client = MockClient((request) async {
+        requests.add(request);
+        return handler(request);
+      });
+      return RimRepository(
+        apiUrl: () => _apiUrl,
+        loggedUser: () async => 'lmamani',
+        appVersion: () async => '6.4.0+18',
+        store: rimStore,
+        apiFactory: (url) => RimApi(url, client: client, auth: auth),
+      );
+    }
+
+    test('sin números pide un talonario y emite con el primero', () async {
+      final repo = conStore(sinTalonario, (request) async {
+        expect(request.url.path, '/api/extras/rim/talonarios');
+        return json(201, {'id': 9, 'year': 2026, 'from': 51, 'to': 60});
+      });
+      expect(await repo.proximoNumero(DateTime(2026, 10, 19)), isNull);
+
+      final resultado =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 10, 19));
+
+      expect(resultado.recibidos, 1);
+      expect(resultado.restantes, 10);
+      expect(resultado.error, isNull);
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['installationId'], await sinTalonario.instalacion());
+      expect(body['year'], 2026);
+      expect(body['appVersion'], '6.4.0+18');
+      expect(body['requestId'], isNotEmpty);
+      final numero = (await repo.proximoNumero(DateTime(2026, 10, 19)))!;
+      expect(numero.codigo, 'RIM-26-0051');
+      expect(numero.talonarioId, 9);
+    });
+
+    test('con números suficientes no pide nada', () async {
+      final repo = repository((_) async => json(500, {}));
+      final resultado =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 10, 19));
+      expect(resultado.recibidos, 0);
+      expect(resultado.restantes, 10);
+      expect(requests, isEmpty);
+    });
+
+    test('en diciembre pide también el talonario de la gestión siguiente',
+        () async {
+      final repo = repository((request) async {
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        return json(201, {
+          'id': 20,
+          'year': body['year'],
+          'from': 1,
+          'to': 10,
+        });
+      });
+      final resultado =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 12, 5));
+      expect(resultado.recibidos, 1);
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body['year'], 2027);
+      expect((await repo.proximoNumero(DateTime(2027, 1, 2)))!.codigo,
+          'RIM-27-0001');
+    });
+
+    test('si la respuesta se pierde, repite la misma solicitud', () async {
+      var online = false;
+      final repo = conStore(sinTalonario, (_) async {
+        if (!online) throw const SocketException('sin red');
+        return json(200, {'id': 9, 'year': 2026, 'from': 51, 'to': 60});
+      });
+
+      final sinRed =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 10, 19));
+      expect(sinRed.recibidos, 0);
+      expect(sinRed.error!.kind, RimApiErrorKind.offline);
+      expect(sinRed.restantes, 0);
+
+      online = true;
+      final conRed =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 10, 19));
+      expect(conRed.recibidos, 1);
+      final pedidos = [
+        for (final request in requests)
+          (jsonDecode(request.body) as Map<String, dynamic>)['requestId'],
+      ];
+      expect(pedidos, hasLength(2));
+      expect(pedidos.toSet(), hasLength(1));
+    });
+
+    test('con la sesión vencida solo pide la contraseña si se lo indican',
+        () async {
+      auth.token = null;
+      final repo = conStore(sinTalonario,
+          (_) async => json(201, {'id': 9, 'year': 2026, 'from': 51, 'to': 60}));
+
+      final silencioso =
+          await repo.asegurarTalonarios(ahora: DateTime(2026, 10, 19));
+      expect(silencioso.error!.kind, RimApiErrorKind.authRequired);
+      expect(requests, isEmpty);
+
+      final conPrompt = await repo.asegurarTalonarios(
+        ahora: DateTime(2026, 10, 19),
+        onAuthRequired: (_) async => 'secreta',
+      );
+      expect(conPrompt.recibidos, 1);
+      expect(requests.single.headers['Authorization'], 'Bearer token-renovado');
+    });
+
+    test('informa una vez el cierre de los talonarios de gestiones pasadas',
+        () async {
+      await darTalonario(store, id: 5, gestion: 2025, desde: 1, hasta: 10);
+      for (var i = 1; i <= 3; i++) {
+        await store.insert(
+          await rimSiguiente(store,
+              uuid: '66666666-6666-4666-8666-66666666666$i', gestion: 2025),
+          firmaDePrueba,
+          firmaRepresentanteDePrueba,
+        );
+      }
+      final repo = repository((request) async {
+        expect(request.url.path, '/api/extras/rim/talonarios/5/cierre');
+        return json(201, {'id': 1, 'duplicate': false});
+      });
+
+      await repo.asegurarTalonarios(ahora: DateTime(2026, 1, 10));
+      await repo.asegurarTalonarios(ahora: DateTime(2026, 1, 11));
+
+      final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+      expect(body, {
+        'installationId': await store.instalacion(),
+        'lastUsed': 3,
+        'reason': 'fin_gestion',
+      });
+    });
   });
 }

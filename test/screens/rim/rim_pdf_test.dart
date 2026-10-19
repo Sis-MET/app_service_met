@@ -49,7 +49,7 @@ void main() {
   test('el archivo lleva el código, el instrumento y la fecha de emisión', () {
     expect(
       RimPdf.nombreArchivo(rimDePrueba()),
-      'RIM-0090-11-26_0090-11-014_20261001_1445.pdf',
+      'RIM-26-0041_0090-11-014_20261001_1445.pdf',
     );
   });
 }
