@@ -16,6 +16,7 @@ const historialVersiones = <VersionApp>[
   VersionApp(
     version: '6.4.0+18',
     fecha: '2026-10-19',
+    commit: '8b18cb6',
     clase: ClaseCambio.critico,
     resumen: 'RIM con código único RIM-AA-NNNN por talonarios, RIM anulados '
         'que se suben con su anulación, y los RIM guardados en DataMET.',

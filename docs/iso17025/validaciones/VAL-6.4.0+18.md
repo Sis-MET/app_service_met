@@ -6,7 +6,7 @@ solo puede aportar el laboratorio figura como `[PENDIENTE]`.
 | Campo | Valor |
 |---|---|
 | Versión (pubspec) | 6.4.0+18 (Android: versionCode 18, versionName 6.4.0) |
-| Commit | (`chore: versión 6.4.0+18`) |
+| Commit | 8b18cb6 (`chore: versión 6.4.0+18`) |
 | Versión anterior en uso | 6.3.5+17 (commit 3692570) |
 | Fecha de validación | [PENDIENTE] (pruebas automáticas: 2026-10-19) |
 | Clase del cambio | A (crítico): cambia qué datos se capturan en el RIM, el esquema local y del servidor, la subida y los permisos en la base |
