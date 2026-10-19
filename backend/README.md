@@ -202,6 +202,19 @@ procedimiento e `INSERT` en las tablas nuevas, nunca `UPDATE` ni `DELETE`.
 Sin el script 014, los RIM numerados y los talonarios responden `503
 EXTRAS_NOT_READY` y quedan pendientes en el teléfono.
 
+#### Ejecución y entrega del RIM (DataMET+)
+
+Lo que pasa después de la recepción (sección 6.2, ejecución en Soporte
+Técnico, y 6.3, entrega al cliente con dos firmas) se registra en DataMET+,
+desde la ficha del RIM, sin modificar el RIM. El script
+`sql/016_rim_ejecucion_y_entrega.sql` crea `form_rim_ejecucion` y
+`form_rim_entregas`: cada guardado es una fila nueva que apunta a la vigente
+(`anterior_id`), con usuario, hora del servidor y, si corrige, motivo; dos
+índices únicos filtrados mantienen una sola cadena por RIM. Da `SELECT` e
+`INSERT` solo al login de DataMET+ (complete `@loginDataMetPlus`); esta API
+no recibe permisos ni cambia, y la app tampoco. Ejecútelo antes de desplegar
+la versión de DataMET+ que muestra la ejecución y la entrega.
+
 Cuando `POST /api/bitrix/opportunities` crea (o reconoce) un prospecto, la API
 inserta además su fila en `form_bitrix`. Si esa copia falla, la oportunidad
 responde igual y el servidor lo registra como advertencia; reenviarla vuelve a

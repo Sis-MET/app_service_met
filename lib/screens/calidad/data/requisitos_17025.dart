@@ -166,6 +166,12 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         'El historial se muestra en el detalle del registro ("Historial de '
             'cambios"); lo prueba '
             'test/home/local_service_record_repository_test.dart.',
+        'La ejecución y la entrega de cada RIM se registran en DataMET+ como '
+            'versiones, sin modificar el RIM: cada cambio es una fila nueva '
+            'con usuario y hora del servidor que apunta a la anterior, y '
+            'corregir un dato ya registrado exige motivo; el historial se ve '
+            'en la ficha del RIM (backend/sql/'
+            '016_rim_ejecucion_y_entrega.sql).',
       ],
       brecha: 'El historial vive en la base del teléfono: no viaja a DataMET '
           'con el registro y depende del respaldo del dispositivo.',
@@ -406,6 +412,9 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'borrado: la API y DataMET+ solo consultan, insertan y reservan '
             'talonarios con un procedimiento (backend/sql/'
             '014_rim_numeracion_y_gestion.sql).',
+        'La ejecución y la entrega del RIM tampoco: DataMET+ solo consulta e '
+            'inserta, y la API de ServiceMET no tiene permisos sobre esas '
+            'tablas (backend/sql/016_rim_ejecucion_y_entrega.sql).',
       ],
     ),
     Requisito(
