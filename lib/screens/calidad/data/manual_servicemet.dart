@@ -538,6 +538,21 @@ const manualServiceMet = ManualUso(
                   'la lista" y escriba sus datos: recibe un código '
                   'provisional, como una balanza nueva.'),
         ]),
+        Lista('Número del RIM', [
+          'Cada RIM tiene un código único, RIM-AA-NNNN (por ejemplo '
+              'RIM-26-0042): la gestión y un número que no se repite en '
+              'ningún otro RIM, sea de calibración, de soporte, directo o de '
+              'DataMET+.',
+          'El teléfono recibe del servidor, cuando tiene conexión, un '
+              'talonario de números y los usa en orden aunque no tenga red. '
+              'El código aparece desde que se abre el formulario, así que el '
+              'cliente firma con el código definitivo.',
+          'Si aparece "Sin números de RIM en este teléfono", conéctese a la '
+              'red de METRICA y toque "Reintentar". Puede seguir llenando el '
+              'formulario mientras tanto, pero no emitirlo.',
+          'Los talonarios se renuevan solos al abrir la app o al recuperar '
+              'la conexión. Cancelar un formulario no gasta su número.',
+        ]),
         Pasos('Emitir', [
           Paso(
               'Revise el resumen de "Recepción de instrumento".',
@@ -595,7 +610,8 @@ const manualServiceMet = ManualUso(
         ]),
         Pasos('Subir, consultar y anular', [
           Paso('Abra Servicios › "Recepción de instrumentos (RIM)".',
-              'Los RIM aparecen en "Por subir", "Subidos" y "Anulados".'),
+              'Los RIM aparecen en "Por subir" (también los anulados que '
+                  'faltan subir), "Subidos" y "Anulados".'),
           Paso(
               'Con conexión, toque "Subir" o "Subir todos".',
               'Los RIM nunca se suben solos. Volver a subir no duplica el RIM '
@@ -604,9 +620,11 @@ const manualServiceMet = ManualUso(
               'Se guarda en la carpeta ServiceMET/RIM.'),
           Paso(
               'Si un RIM tiene un error, toque "Anular" y escriba el motivo.',
-              'El RIM no se borra: queda marcado como anulado y no se sube. '
-                  'Emita otro desde el servicio. Un RIM ya subido no se anula '
-                  'en la app: consulte a Calidad.'),
+              'El RIM no se borra: queda marcado como anulado y se sube así, '
+                  'con su motivo, para que su número quede justificado. Emita '
+                  'otro desde el servicio. Un RIM ya subido no se anula en la '
+                  'app: lo anula un jefe de área o un usuario de nivel 2 o 3 '
+                  'en DataMET+, "Registros RIM".'),
         ]),
         Nota(
           TipoNota.importante,

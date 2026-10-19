@@ -207,7 +207,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         'Los RIM (recepción de instrumentos) ya funcionan así: una vez '
             'emitidos no se editan ni se borran; se anulan con motivo, usuario '
             'y fecha, y siguen visibles (lib/screens/rim/services/'
-            'rim_store.dart).',
+            'rim_store.dart). El anulado en el teléfono se sube con su '
+            'anulación, y uno ya subido se anula en DataMET+ agregando una '
+            'fila en form_rim_anulaciones, sin tocar el RIM (backend/sql/'
+            '014_rim_numeracion_y_gestion.sql).',
       ],
       brecha: '"Eliminar registro" lo borra de forma permanente del teléfono, '
           'y un script administrativo borra registros ya subidos sin guardar '
@@ -399,6 +402,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         'La base servicios_extras (RIM y copia de oportunidades) da a la API '
             'solo consulta e inserción (backend/sql/'
             '012_create_servicios_extras.sql).',
+        'La numeración y las anulaciones del RIM tampoco dan modificación ni '
+            'borrado: la API y DataMET+ solo consultan, insertan y reservan '
+            'talonarios con un procedimiento (backend/sql/'
+            '014_rim_numeracion_y_gestion.sql).',
       ],
     ),
     Requisito(

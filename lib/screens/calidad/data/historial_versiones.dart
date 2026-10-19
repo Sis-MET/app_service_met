@@ -9,6 +9,18 @@ const cambiosSinLiberar = <String>[
       'decimales (525.5 kg); antes el servidor rechazaba esos servicios. '
       'Requiere el script 015 en DataMET y el esquema del backend '
       'actualizado; la app no cambia.',
+  'RIM con código único RIM-AA-NNNN (gestión y número), igual para '
+      'calibración, soporte, registro directo y DataMET+. El teléfono recibe '
+      'del servidor talonarios de números y los usa en orden aunque no tenga '
+      'conexión, así el cliente firma con el código definitivo; sin números, '
+      'el formulario lo avisa y no deja emitir. Los RIM ya emitidos '
+      'conservan su código anterior.',
+  'RIM anulado antes de subirse: ahora se sube marcado como anulado, con '
+      'quién, cuándo y por qué, para que su número no quede como un hueco. '
+      'Un RIM ya subido se anula en DataMET+ (Registros RIM).',
+  'Servidor: requiere el script 014 en servicios_extras (talonarios, '
+      'anulaciones y numeración del RIM) y el backend actualizado antes de '
+      'distribuir la app.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
