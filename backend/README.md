@@ -59,6 +59,19 @@ por `codigo_registro`. La app envía la ubicación aparte del registro técnico
 una app anterior sigue subiendo sin coordenadas. Si el backend se despliega
 antes que el script, sube igual sin coordenadas y lo avisa en su consola.
 
+Para registrar cargas de repetibilidad con decimales en Mantenimiento
+preventivo avanzado, Mantenimiento preventivo regular y Relevamiento de datos
+(por ejemplo 525.5 kg), debe ejecutarse una sola vez
+`sql/015_expand_support_repetibilidad_carga.sql` **antes** de desplegar el
+backend con este esquema. Cambia de `int` a `decimal` `repetibilidad1_inicial`
+y `repetibilidad1_final` en `DATA_SERVICIOS_DATOS_MPA_STAC` y
+`DATA_SERVICIOS_DATOS_MPR_STIL` (`decimal(16,6)`), y `repetibilidad1` en
+`DATA_SERVICIOS_DATOS_RVD` (`decimal(15,6)`), la precisión de las indicaciones
+de cada tabla; los demás módulos ya la tenían como decimal. Conserva los
+valores existentes y puede volver a ejecutarse sin efecto. El backend valida
+contra `DataMET_prueba_esquema.md` al arrancar: después del script hay que
+copiar ese archivo al servidor y reiniciar el proceso. La app no cambia.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 

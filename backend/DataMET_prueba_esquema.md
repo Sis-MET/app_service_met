@@ -1229,7 +1229,7 @@ Total de columnas: **381**
 | 89 | `retorno_inicial_12` | decimal | 16,6 | Sí | - |
 | 90 | `repetibilidad_inicial_cantidad_cargas` | int | 10,0 | Sí | - |
 | 91 | `repetibilidad_inicial_cantidad_pruebas` | int | 10,0 | Sí | - |
-| 92 | `repetibilidad1_inicial` | int | 10,0 | Sí | - |
+| 92 | `repetibilidad1_inicial` | decimal | 16,6 | Sí | - |
 | 93 | `indicacion1_inicial_1` | decimal | 16,6 | Sí | - |
 | 94 | `retorno1_inicial_1` | decimal | 16,6 | Sí | - |
 | 95 | `indicacion1_inicial_2` | decimal | 16,6 | Sí | - |
@@ -1328,7 +1328,7 @@ Total de columnas: **381**
 | 188 | `retorno_final_12` | decimal | 16,6 | Sí | - |
 | 189 | `repetibilidad_final_cantidad_cargas` | int | 10,0 | Sí | - |
 | 190 | `repetibilidad_final_cantidad_pruebas` | int | 10,0 | Sí | - |
-| 191 | `repetibilidad1_final` | int | 10,0 | Sí | - |
+| 191 | `repetibilidad1_final` | decimal | 16,6 | Sí | - |
 | 192 | `indicacion1_final_1` | decimal | 16,6 | Sí | - |
 | 193 | `retorno1_final_1` | decimal | 16,6 | Sí | - |
 | 194 | `indicacion1_final_2` | decimal | 16,6 | Sí | - |
@@ -1699,7 +1699,7 @@ Total de columnas: **315**
 | 169 | `posicion_inicial_6` | int | 10,0 | Sí | - |
 | 170 | `indicacion_inicial_6` | decimal | 16,6 | Sí | - |
 | 171 | `retorno_inicial_6` | decimal | 16,6 | Sí | - |
-| 172 | `repetibilidad1_inicial` | int | 10,0 | Sí | - |
+| 172 | `repetibilidad1_inicial` | decimal | 16,6 | Sí | - |
 | 173 | `indicacion1_inicial_1` | decimal | 16,6 | Sí | - |
 | 174 | `retorno1_inicial_1` | decimal | 16,6 | Sí | - |
 | 175 | `indicacion1_inicial_2` | decimal | 16,6 | Sí | - |
@@ -1779,7 +1779,7 @@ Total de columnas: **315**
 | 249 | `posicion_final_6` | int | 10,0 | Sí | - |
 | 250 | `indicacion_final_6` | decimal | 16,6 | Sí | - |
 | 251 | `retorno_final_6` | decimal | 16,6 | Sí | - |
-| 252 | `repetibilidad1_final` | int | 10,0 | Sí | - |
+| 252 | `repetibilidad1_final` | decimal | 16,6 | Sí | - |
 | 253 | `indicacion1_final_1` | decimal | 16,6 | Sí | - |
 | 254 | `retorno1_final_1` | decimal | 16,6 | Sí | - |
 | 255 | `indicacion1_final_2` | decimal | 16,6 | Sí | - |
@@ -1973,7 +1973,7 @@ Total de columnas: **188**
 | 119 | `posicion6` | int | 10,0 | Sí | - |
 | 120 | `indicacion6` | decimal | 15,6 | Sí | - |
 | 121 | `retorno6` | decimal | 15,6 | Sí | - |
-| 122 | `repetibilidad1` | int | 10,0 | Sí | - |
+| 122 | `repetibilidad1` | decimal | 15,6 | Sí | - |
 | 123 | `indicacion1_1` | decimal | 15,6 | Sí | - |
 | 124 | `retorno1_1` | decimal | 15,6 | Sí | - |
 | 125 | `indicacion1_2` | decimal | 15,6 | Sí | - |

@@ -364,6 +364,33 @@ test('normaliza etiquetas legacy de posición cuando SQL Server espera enteros',
   }
 });
 
+test('la carga de repetibilidad admite decimales en todos los módulos', () => {
+  const cases = [
+    ['instalacion', 'repetibilidad1_inicial'],
+    ['mnt_correctivo', 'repetibilidad1_final'],
+    ['mnt_prv_avanzado', 'repetibilidad1_inicial'],
+    ['mnt_prv_avanzado', 'repetibilidad1_final'],
+    ['mnt_prv_regular', 'repetibilidad1_inicial'],
+    ['mnt_prv_regular', 'repetibilidad1_final'],
+    ['relevamiento_de_datos', 'repetibilidad1'],
+    ['verificaciones_internas', 'repetibilidad1_inicial'],
+  ];
+
+  for (const [index, [module, column]] of cases.entries()) {
+    assert.equal(schemas.get(module).get(column)?.type, 'decimal', `${module}.${column}`);
+    const data = {
+      otst: `OTST-REP-${index}`,
+      cod_metrica: `MET-REP-${index}`,
+      estado_servicio:
+        module === 'relevamiento_de_datos' ? 'Balanza Realizada' : 'Completo',
+      [column]: '525.5',
+    };
+    const record = validateSupportRecords([{ module, data }], schemas).records[0];
+    assert.deepEqual(record.errors, [], `${module}.${column}`);
+    assert.equal(record.normalized[column], '525.5', `${module}.${column}`);
+  }
+});
+
 test('comentario_general admite 1000 caracteres en los ocho módulos', () => {
   for (const [index, module] of Object.keys(SUPPORT_MODULES).entries()) {
     const completeData = {

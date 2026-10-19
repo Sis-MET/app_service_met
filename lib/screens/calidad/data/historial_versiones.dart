@@ -3,7 +3,13 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[];
+const cambiosSinLiberar = <String>[
+  'Servidor: la carga de repetibilidad de Mantenimiento preventivo avanzado, '
+      'Mantenimiento preventivo regular y Relevamiento de datos admite '
+      'decimales (525.5 kg); antes el servidor rechazaba esos servicios. '
+      'Requiere el script 015 en DataMET y el esquema del backend '
+      'actualizado; la app no cambia.',
+];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
