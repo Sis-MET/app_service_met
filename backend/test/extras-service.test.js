@@ -90,16 +90,26 @@ function fakeDatabase() {
 }
 
 test('el nombre de la base se valida para no inyectar SQL', () => {
-  assert.equal(readExtrasConfig({}).database, 'servicios_extras');
-  assert.equal(readExtrasConfig({ EXTRAS_DB_NAME: ' extras_prueba ' }).database, 'extras_prueba');
-  assert.throws(() => readExtrasConfig({ EXTRAS_DB_NAME: 'x]; DROP TABLE t;--' }));
+  // La base de los formularios es la del backend: DataMET o DataMET_prueba.
+  assert.equal(readExtrasConfig({ DB_NAME: ' DataMET_prueba ' }).database, 'DataMET_prueba');
+  assert.throws(() => readExtrasConfig({}), /DB_NAME/);
+  assert.throws(() => readExtrasConfig({ DB_NAME: 'x]; DROP TABLE t;--' }));
+  // Una EXTRAS_DB_NAME vieja en el .env se ignora y se avisa.
+  const avisos = [];
+  const config = readExtrasConfig(
+    { DB_NAME: 'DataMET', EXTRAS_DB_NAME: 'servicios_extras' },
+    { warn: (mensaje) => avisos.push(mensaje) },
+  );
+  assert.equal(config.database, 'DataMET');
+  assert.match(avisos[0], /EXTRAS_DB_NAME=servicios_extras se ignora/);
+  assert.equal(readExtrasConfig({ DB_NAME: 'DataMET', EXTRAS_DB_NAME: 'DataMET' }, { warn: () => assert.fail() }).database, 'DataMET');
   assert.throws(() => createExtrasService({ database: 'a b', run: async () => [] }));
 });
 
 test('registra el RIM con el usuario autenticado y solo con INSERT', async () => {
   const db = fakeDatabase();
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     run: db.run,
     resolveUserName: async (user) => (user === 'aquispe' ? 'Ing. Ana Quispe M.' : ''),
   });
@@ -108,7 +118,7 @@ test('registra el RIM con el usuario autenticado y solo con INSERT', async () =>
 
   assert.deepEqual(result, { n: 1, duplicate: false });
   const [call] = db.calls;
-  assert.match(call.text, /INSERT INTO \[servicios_extras\]\.\[dbo\]\.\[form_rim\]/);
+  assert.match(call.text, /INSERT INTO \[DataMET\]\.\[dbo\]\.\[form_rim\]/);
   assert.doesNotMatch(call.text, /UPDATE|DELETE|UPDLOCK/i);
   const values = Object.fromEntries(call.params.map((param) => [param.name, param.value]));
   assert.equal(values.reg_usuario, 'aquispe');
@@ -138,7 +148,7 @@ test('registra el RIM con el usuario autenticado y solo con INSERT', async () =>
 
 test('reenviar el mismo RIM no crea otra fila', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   const first = await service.saveRim(rim(), { user: 'aquispe' });
   const second = await service.saveRim(rim({ reason: 'Otro texto distinto.' }), { user: 'aquispe' });
   assert.deepEqual(second, { n: first.n, duplicate: true });
@@ -150,7 +160,7 @@ test('reenviar el mismo RIM no crea otra fila', async () => {
 test('dos envíos simultáneos del mismo UUID terminan en una sola fila', async () => {
   const calls = [];
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run(text) {
       calls.push(text);
       if (text.includes('INSERT INTO')) {
@@ -166,7 +176,7 @@ test('dos envíos simultáneos del mismo UUID terminan en una sola fila', async 
 test('sin la base o la tabla responde 503 EXTRAS_NOT_READY', async () => {
   for (const number of [208, 229, 911, 916, 4060]) {
     const service = createExtrasService({
-      database: 'servicios_extras',
+      database: 'DataMET',
       async run() {
         throw Object.assign(new Error('Invalid object name'), { number });
       },
@@ -174,7 +184,7 @@ test('sin la base o la tabla responde 503 EXTRAS_NOT_READY', async () => {
     await assert.rejects(service.saveRim(rim(), { user: 'aquispe' }), (error) => {
       assert.equal(error.code, 'EXTRAS_NOT_READY');
       assert.equal(error.statusCode, 503);
-      assert.match(error.message, /012_create_servicios_extras/);
+      assert.match(error.message, /012_create_form_rim_y_form_bitrix/);
       return true;
     });
   }
@@ -182,7 +192,7 @@ test('sin la base o la tabla responde 503 EXTRAS_NOT_READY', async () => {
 
 test('un error desconocido de SQL no se disfraza', async () => {
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run() {
       throw Object.assign(new Error('Deadlock'), { number: 1205 });
     },
@@ -227,7 +237,7 @@ test('rechaza un RIM incompleto indicando cada campo', () => {
 
 test('acepta un RIM emitido fuera de un servicio (registro directo)', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   const directo = rim({
     service: {
       ...rim().service,
@@ -284,7 +294,7 @@ test('descarta claves desconocidas y la descripción de pruebas si no hubo prueb
 
 test('deja constancia en form_bitrix de la oportunidad registrada', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   const opportunity = validateOpportunity({
     uuid: UUID,
     companyId: 120,
@@ -307,7 +317,7 @@ test('deja constancia en form_bitrix de la oportunidad registrada', async () => 
   });
   assert.deepEqual(saved, { n: 1, duplicate: false });
   const [call] = db.calls;
-  assert.match(call.text, /INSERT INTO \[servicios_extras\]\.\[dbo\]\.\[form_bitrix\]/);
+  assert.match(call.text, /INSERT INTO \[DataMET\]\.\[dbo\]\.\[form_bitrix\]/);
   const values = Object.fromEntries(call.params.map((param) => [param.name, param.value]));
   assert.equal(values.bitrix_lead_id, 321);
   assert.equal(values.etapa, 'NEW');
@@ -350,7 +360,7 @@ test('formatea y lee el código RIM-AA-NNNN', () => {
 
 test('un RIM numerado se registra con gestión, número, instalación y su talonario', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   const result = await service.saveRim(rimNumerado(), { user: 'aquispe' });
 
   assert.deepEqual(result, { n: 1, duplicate: false });
@@ -362,7 +372,7 @@ test('un RIM numerado se registra con gestión, número, instalación y su talon
   assert.equal(values.instalacion, INSTALACION);
   assert.equal(values.origen, 'servicemet');
   // El talonario lo resuelve SQL Server: debe ser de esa instalación.
-  assert.match(call.text, /\[servicios_extras\]\.\[dbo\]\.\[rim_talonarios\]/);
+  assert.match(call.text, /\[DataMET\]\.\[dbo\]\.\[rim_talonarios\]/);
   assert.match(call.text, /\[instalacion\] = @instalacion/);
   assert.match(call.text, /THROW 51020/);
   assert.match(call.text, /\[talonario_id\]\) VALUES \(.*@talonario_id\)/s);
@@ -372,7 +382,7 @@ test('un RIM numerado se registra con gestión, número, instalación y su talon
 
 test('el RIM con código anterior se sigue aceptando, sin número ni talonario', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   await service.saveRim(rim(), { user: 'aquispe' });
   const [call] = db.calls;
   const values = paramValues(call);
@@ -411,7 +421,7 @@ test('la gestión del código coincide con la fecha de emisión en hora de La Pa
 
 test('un RIM anulado en el teléfono se registra junto con su anulación', async () => {
   const db = fakeDatabase();
-  const service = createExtrasService({ database: 'servicios_extras', run: db.run });
+  const service = createExtrasService({ database: 'DataMET', run: db.run });
   // RIM de prueba anterior a la segunda firma: solo se acepta anulado.
   await service.saveRim(rimNumerado({
     metricaSignature: undefined,
@@ -424,7 +434,7 @@ test('un RIM anulado en el teléfono se registra junto con su anulación', async
 
   const [call] = db.calls;
   const values = paramValues(call);
-  assert.match(call.text, /INSERT INTO \[servicios_extras\]\.\[dbo\]\.\[form_rim_anulaciones\]/);
+  assert.match(call.text, /INSERT INTO \[DataMET\]\.\[dbo\]\.\[form_rim_anulaciones\]/);
   assert.match(call.text, /BEGIN TRANSACTION[\s\S]*COMMIT TRANSACTION/);
   assert.equal(values.anulacion_por, 'aquispe');
   assert.equal(values.anulacion_motivo, 'Se registró el instrumento equivocado.');
@@ -449,7 +459,7 @@ test('un RIM anulado en el teléfono se registra junto con su anulación', async
 
 test('un número que no es del talonario del teléfono se rechaza con 409', async () => {
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run() {
       throw Object.assign(new Error('El número del RIM no pertenece a un talonario entregado a este teléfono.'), { number: 51020 });
     },
@@ -464,7 +474,7 @@ test('un número que no es del talonario del teléfono se rechaza con 409', asyn
 test('un número ya usado por otro RIM se rechaza con 409 RIM_NUMBER_TAKEN', async () => {
   const calls = [];
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run(text) {
       calls.push(text);
       if (text.includes('INSERT INTO')) {
@@ -484,7 +494,7 @@ test('un número ya usado por otro RIM se rechaza con 409 RIM_NUMBER_TAKEN', asy
 test('sin el script 014 el RIM numerado responde 503 indicando el script', async () => {
   for (const number of [207, 208]) {
     const service = createExtrasService({
-      database: 'servicios_extras',
+      database: 'DataMET',
       async run() {
         throw Object.assign(new Error('Invalid column name gestion'), { number });
       },
@@ -500,7 +510,7 @@ test('sin el script 014 el RIM numerado responde 503 indicando el script', async
 test('entrega un talonario a la instalación con la cantidad configurada', async () => {
   const calls = [];
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     talonarioSize: 10,
     resolveUserName: async () => 'Ing. Ana Quispe M.',
     async run(text, params) {
@@ -521,7 +531,7 @@ test('entrega un talonario a la instalación con la cantidad configurada', async
 
   assert.deepEqual(talonario, { id: 7, year: 2026, from: 41, to: 50, duplicate: false });
   const [call] = calls;
-  assert.match(call.text, /EXEC \[servicios_extras\]\.\[dbo\]\.\[rim_reservar_talonario\]/);
+  assert.match(call.text, /EXEC \[DataMET\]\.\[dbo\]\.\[rim_reservar_talonario\]/);
   assert.match(call.text, /@origen = N'servicemet'/);
   const values = paramValues(call);
   assert.equal(values.cantidad, 10);
@@ -533,7 +543,7 @@ test('entrega un talonario a la instalación con la cantidad configurada', async
 
 test('solo entrega talonarios de la gestión en curso y, en diciembre, de la siguiente', async () => {
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run(_text, params) {
       const values = Object.fromEntries(params.map((param) => [param.name, param.value]));
       return [{ id: 1, gestion: values.gestion, desde: 1, hasta: 10, instalacion: INSTALACION, nuevo: true }];
@@ -554,7 +564,7 @@ test('solo entrega talonarios de la gestión en curso y, en diciembre, de la sig
 
 test('una solicitud de talonario usada desde otra instalación se rechaza', async () => {
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run() {
       return [{ id: 7, gestion: 2026, desde: 41, hasta: 50, instalacion: SOLICITUD, nuevo: false }];
     },
@@ -576,7 +586,7 @@ test('los errores de la numeración llegan con código estable', async () => {
   ];
   for (const [number, code, statusCode] of cases) {
     const service = createExtrasService({
-      database: 'servicios_extras',
+      database: 'DataMET',
       async run() {
         throw Object.assign(new Error(`error ${number}`), { number });
       },
@@ -595,7 +605,7 @@ test('cierra una sola vez el talonario de la instalación al terminar la gestió
   const calls = [];
   let cerrado = false;
   const service = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run(text, params) {
       calls.push({ text, params });
       const inserted = !cerrado;
@@ -608,7 +618,7 @@ test('cierra una sola vez el talonario de la instalación al terminar la gestió
   assert.deepEqual(await service.closeTalonario('7', body, { user: 'aquispe' }), { id: 3, duplicate: true });
 
   const [call] = calls;
-  assert.match(call.text, /INSERT INTO \[servicios_extras\]\.\[dbo\]\.\[rim_talonarios_cierres\]/);
+  assert.match(call.text, /INSERT INTO \[DataMET\]\.\[dbo\]\.\[rim_talonarios_cierres\]/);
   assert.match(call.text, /THROW 51021/);
   assert.doesNotMatch(call.text, /UPDATE|DELETE/i);
   const values = paramValues(call);
@@ -621,7 +631,7 @@ test('cierra una sola vez el talonario de la instalación al terminar la gestió
     (error) => error.code === 'VALIDATION_ERROR',
   );
   const ajeno = createExtrasService({
-    database: 'servicios_extras',
+    database: 'DataMET',
     async run() {
       throw Object.assign(new Error('El talonario no existe o no fue entregado a este teléfono.'), { number: 51021 });
     },
@@ -633,8 +643,8 @@ test('cierra una sola vez el talonario de la instalación al terminar la gestió
 });
 
 test('el tamaño del talonario se configura y se valida', () => {
-  assert.equal(readExtrasConfig({}).talonarioSize, 10);
-  assert.equal(readExtrasConfig({ RIM_TALONARIO_SIZE: '20' }).talonarioSize, 20);
-  assert.throws(() => readExtrasConfig({ RIM_TALONARIO_SIZE: '0' }));
-  assert.throws(() => readExtrasConfig({ RIM_TALONARIO_SIZE: 'diez' }));
+  assert.equal(readExtrasConfig({ DB_NAME: 'DataMET' }).talonarioSize, 10);
+  assert.equal(readExtrasConfig({ DB_NAME: 'DataMET', RIM_TALONARIO_SIZE: '20' }).talonarioSize, 20);
+  assert.throws(() => readExtrasConfig({ DB_NAME: 'DataMET', RIM_TALONARIO_SIZE: '0' }));
+  assert.throws(() => readExtrasConfig({ DB_NAME: 'DataMET', RIM_TALONARIO_SIZE: 'diez' }));
 });

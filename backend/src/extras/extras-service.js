@@ -9,8 +9,6 @@ const {
   validateTalonarioRequest,
 } = require('./extras-validation');
 
-/** Base de los formularios adicionales, en la misma instancia que DataMET. */
-const DEFAULT_EXTRAS_DATABASE = 'servicios_extras';
 const DATABASE_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
 
 /** Números de RIM por talonario que se entregan a la app. */
@@ -20,8 +18,8 @@ const DEFAULT_TALONARIO_SIZE = 10;
 const UNIQUE_VIOLATION = new Set([2601, 2627]);
 
 /**
- * La base, la tabla o el permiso todavía no existen: falta ejecutar
- * sql/012_create_servicios_extras.sql.
+ * La tabla o el permiso todavía no existen: falta ejecutar
+ * sql/012_create_form_rim_y_form_bitrix.sql.
  */
 const NOT_READY = new Set([208, 229, 911, 916, 4060]);
 
@@ -42,10 +40,20 @@ const SQL_ERRORS = Object.freeze({
   51022: { code: 'VALIDATION_ERROR', statusCode: 400 },
 });
 
-function readExtrasConfig(env = process.env) {
-  const database = String(env.EXTRAS_DB_NAME ?? '').trim() || DEFAULT_EXTRAS_DATABASE;
+/**
+ * Los formularios viven en la misma base del backend (DB_NAME): DataMET en
+ * producción y DataMET_prueba en las pruebas. No hay una base aparte:
+ * EXTRAS_DB_NAME ya no se usa y, si quedó en el .env, se ignora con un aviso.
+ */
+function readExtrasConfig(env = process.env, { warn = console.warn } = {}) {
+  const database = String(env.DB_NAME ?? '').trim();
+  if (!database) throw new Error('Falta la variable de entorno DB_NAME');
   if (!DATABASE_NAME_PATTERN.test(database)) {
-    throw new Error('EXTRAS_DB_NAME solo admite letras, números y guion bajo.');
+    throw new Error('DB_NAME solo admite letras, números y guion bajo.');
+  }
+  const anterior = String(env.EXTRAS_DB_NAME ?? '').trim();
+  if (anterior && anterior !== database) {
+    warn(`EXTRAS_DB_NAME=${anterior} se ignora: los RIM y las oportunidades se guardan en DB_NAME (${database}). Quítela del .env.`);
   }
   const sizeText = String(env.RIM_TALONARIO_SIZE ?? '').trim();
   const talonarioSize = sizeText ? Number(sizeText) : DEFAULT_TALONARIO_SIZE;
@@ -288,9 +296,9 @@ function createSqlRunner(config) {
   };
 }
 
-function notReadyError(database, script = '012_create_servicios_extras.sql') {
+function notReadyError(database, script = '012_create_form_rim_y_form_bitrix.sql') {
   return new ExtrasError(
-    `El servidor todavía no tiene lista la base ${database} (falta ejecutar sql/${script}).`,
+    `El servidor todavía no tiene listas las tablas de formularios en ${database} (falta ejecutar sql/${script}).`,
     { code: 'EXTRAS_NOT_READY', statusCode: 503 },
   );
 }
@@ -312,12 +320,12 @@ function requirePositive(value, message) {
 
 /**
  * Guarda los formularios adicionales de ServiceMET (RIM y oportunidades de
- * Bitrix24) en la base `servicios_extras` y entrega los talonarios con los
+ * Bitrix24) en la base del backend (DataMET) y entrega los talonarios con los
  * que la app numera los RIM. Solo inserta: un formulario ya registrado no se
  * modifica.
  *
  * @param {object} options
- * @param {string} options.database Nombre de la base de formularios.
+ * @param {string} options.database Base del backend (DB_NAME).
  * @param {Function} options.run `(texto, parámetros) => filas`.
  * @param {Function} [options.resolveUserName] Nombre del usuario autenticado.
  * @param {number} [options.talonarioSize] Números por talonario.
@@ -482,7 +490,8 @@ function createExtrasService({
 /** Servicio conectado al SQL Server de la API. */
 function defaultExtrasService(config) {
   return createExtrasService({
-    database: config.extras?.database ?? DEFAULT_EXTRAS_DATABASE,
+    // La misma base del backend (DB_NAME).
+    database: config.extras?.database ?? config.database.database,
     talonarioSize: config.extras?.talonarioSize ?? DEFAULT_TALONARIO_SIZE,
     run: createSqlRunner(config),
     resolveUserName: async (user) => resolveRegisteredBy(await getPool(config), user),
@@ -490,7 +499,6 @@ function defaultExtrasService(config) {
 }
 
 module.exports = {
-  DEFAULT_EXTRAS_DATABASE,
   DEFAULT_TALONARIO_SIZE,
   bitrixColumns,
   buildClosureQuery,

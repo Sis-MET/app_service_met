@@ -231,7 +231,7 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
   });
 
   // Formularios adicionales (RIM y copia de las oportunidades de Bitrix24),
-  // en la base servicios_extras.
+  // en la misma base del backend (DataMET).
   const extrasService = options.extrasService !== undefined
     ? options.extrasService
     : defaultExtrasService(config);

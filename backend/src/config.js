@@ -72,7 +72,8 @@ function getConfig() {
     // Opcional: sin webhook la API funciona igual y las rutas de Bitrix
     // responden 503. El webhook nunca se envía a Flutter.
     bitrix: readBitrixConfig(process.env),
-    // Base de los formularios adicionales (RIM y oportunidades de Bitrix24).
+    // Formularios adicionales (RIM y oportunidades de Bitrix24), en la misma
+    // base DB_NAME, y tamaño de los talonarios del RIM.
     extras: readExtrasConfig(process.env),
     database: {
       server: required('DB_HOST'),

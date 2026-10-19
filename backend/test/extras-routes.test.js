@@ -17,7 +17,7 @@ function appConfig() {
     jwtTtlSeconds: 3600,
     database: {},
     bitrix: readBitrixConfig({}),
-    extras: { database: 'servicios_extras' },
+    extras: { database: 'DataMET' },
   };
 }
 
