@@ -57,6 +57,18 @@
 USE [servicios_extras];
 GO
 
+-- El índice único filtrado y el procedimiento exigen estas opciones; sqlcmd
+-- usa QUOTED_IDENTIFIER OFF si no se le pasa -I. Rigen para todos los lotes
+-- de esta conexión.
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
