@@ -1,5 +1,5 @@
 /*
-  Crea la base servicios_extras con los formularios adicionales de ServiceMET:
+  Crea en DataMET las tablas de los formularios adicionales de ServiceMET:
 
     - dbo.form_rim     Recepción de instrumentos de pesaje (RIM), con las
                        firmas del cliente y del representante de Métrica.
@@ -8,40 +8,31 @@
                        número de prospecto asignado.
 
   Son formularios que el técnico llena dentro de una calibración o de un
-  servicio de soporte, o directamente desde la pestaña Servicios, pero que no
-  pertenecen a las tablas de DataMET: por eso viven en una base aparte, en la
-  misma instancia de SQL Server.
+  servicio de soporte, o directamente desde la pestaña Servicios. Viven en la
+  misma base que usa el backend (DB_NAME): DataMET en producción y
+  DataMET_prueba para las pruebas. No se crea ninguna base aparte.
 
-  Ejecutar con una cuenta administradora (crea una base). Puede ejecutarse de
-  nuevo: no recrea lo que ya existe ni duplica permisos. Si las tablas se
-  crearon con una versión anterior de este script, actualiza la restricción
-  de tipo_servicio para admitir los registros directos y agrega la columna
-  de la firma del representante de Métrica.
+  Ejecutar con una cuenta administradora, en cada base que use el backend
+  (para DataMET_prueba, cambie el USE de abajo). Puede ejecutarse de nuevo:
+  no recrea lo que ya existe ni duplica permisos. Si las tablas se crearon
+  con una versión anterior de este script, actualiza la restricción de
+  tipo_servicio para admitir los registros directos y agrega la columna de la
+  firma del representante de Métrica.
 
   Permisos: el login de la API (ServiceMET) recibe SELECT e INSERT sobre las
-  dos tablas. Deliberadamente NO recibe UPDATE, DELETE, ALTER ni CONTROL: un
-  formulario subido no se modifica ni se borra desde la API. Si el login de la
-  API tiene otro nombre, cambie @loginApi más abajo.
+  dos tablas y un DENY de UPDATE y DELETE, para que ningún rol que tenga en
+  DataMET le permita modificar o borrar un formulario subido. Si el login de
+  la API tiene otro nombre, cambie @loginApi más abajo.
 
   Orden de despliegue:
     1. Este script.
-    2. El backend con las rutas /api/extras (EXTRAS_DB_NAME en .env si la
-       base no se llama servicios_extras).
+    2. El backend con las rutas /api/extras.
     3. La versión de ServiceMET que emite RIM.
   Si la app se adelanta, la subida del RIM responde 503 y el RIM queda
   pendiente en el teléfono; no se pierde.
 */
 
-IF DB_ID(N'servicios_extras') IS NULL
-BEGIN
-  CREATE DATABASE [servicios_extras];
-  PRINT N'Base servicios_extras creada.';
-END
-ELSE
-  PRINT N'La base servicios_extras ya existe.';
-GO
-
-USE [servicios_extras];
+USE [DataMET];
 GO
 
 SET NOCOUNT ON;
@@ -260,12 +251,18 @@ DECLARE @usuarioApi sysname = (
   SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginApi)
 );
 
+-- DENY prevalece sobre los permisos que el usuario reciba por un rol de
+-- DataMET (salvo db_owner): un formulario subido no se modifica ni se borra.
 SET @sql = CONCAT(
   N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuarioApi), N';',
-  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_bitrix] TO ', QUOTENAME(@usuarioApi), N';');
+  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_bitrix] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_bitrix] TO ', QUOTENAME(@usuarioApi), N';');
 EXEC sys.sp_executesql @sql;
 
--- Verificación de permisos efectivos usando el propio usuario de la API.
+-- Verificación de permisos efectivos usando el propio usuario de la API:
+-- leer e insertar en 1; actualizar y eliminar en 0. Si actualizar o eliminar
+-- figuran en 1, el usuario es db_owner de DataMET: quítele ese rol.
 SET @sql = CONCAT(N'EXECUTE AS USER = ', QUOTENAME(@usuarioApi, ''''), N';
 SELECT
     permisos.[tabla],

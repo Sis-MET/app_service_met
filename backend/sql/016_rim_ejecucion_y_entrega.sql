@@ -1,5 +1,6 @@
 /*
-  Ejecución (6.2) y entrega (6.3) de cada RIM, en la base servicios_extras.
+  Ejecución (6.2) y entrega (6.3) de cada RIM, en DataMET (la misma base del
+  backend; para las pruebas, DataMET_prueba).
 
   El RIM emitido no se modifica (NB/ISO/IEC 17025, 7.5.2): lo que pasa después
   de la recepción se registra en tablas propias a las que solo se agregan filas.
@@ -34,14 +35,17 @@
   a la vez sobre la misma versión, el segundo INSERT falla y DataMET+ le pide
   recargar. La versión vigente es la única que nadie reemplazó.
 
-  Solo se agrega: ningún login recibe UPDATE ni DELETE.
+  Solo se agrega: ningún login recibe UPDATE ni DELETE, y los dos reciben un
+  DENY de UPDATE y DELETE para que ningún rol que tengan en DataMET se los dé.
     - DataMET+ (@loginDataMetPlus): SELECT e INSERT en las dos tablas.
-    - API de ServiceMET: sin permisos (la app no registra estas etapas).
+    - API de ServiceMET (@loginApi): ningún permiso (la app no registra estas
+      etapas), solo el DENY.
 
-  Requisitos: haber ejecutado 012_create_servicios_extras.sql y
-  014_rim_numeracion_y_gestion.sql. Ejecutar con una cuenta administradora.
-  Puede ejecutarse de nuevo: solo agrega lo que falte y vuelve a otorgar los
-  permisos.
+  Requisitos: haber ejecutado 012_create_form_rim_y_form_bitrix.sql y
+  014_rim_numeracion_y_gestion.sql en la misma base. Ejecutar con una cuenta
+  administradora, en cada base que use el backend (para DataMET_prueba,
+  cambie el USE de abajo). Puede ejecutarse de nuevo: solo agrega lo que
+  falte y vuelve a otorgar los permisos.
 
   Orden de despliegue:
     1. Este script (complete @loginDataMetPlus más abajo).
@@ -50,7 +54,7 @@
   ejecución y entrega avisan que falta este script. La app no cambia.
 */
 
-USE [servicios_extras];
+USE [DataMET];
 GO
 
 -- Los índices únicos filtrados exigen estas opciones; sqlcmd usa
@@ -69,7 +73,7 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
 IF OBJECT_ID(N'dbo.form_rim', N'U') IS NULL
-  THROW 51000, N'No existe dbo.form_rim: ejecute primero 012_create_servicios_extras.sql. No se realizaron cambios.', 1;
+  THROW 51000, N'No existe dbo.form_rim: ejecute primero 012_create_form_rim_y_form_bitrix.sql. No se realizaron cambios.', 1;
 IF OBJECT_ID(N'dbo.form_rim_anulaciones', N'U') IS NULL
   THROW 51000, N'No existe dbo.form_rim_anulaciones: ejecute primero 014_rim_numeracion_y_gestion.sql. No se realizaron cambios.', 1;
 GO
@@ -231,14 +235,33 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes
 COMMIT TRANSACTION;
 GO
 
--- Permisos mínimos. Si el login tiene otro nombre, cámbielo aquí.
+-- Permisos mínimos. Si un login tiene otro nombre, cámbielo aquí.
 SET NOCOUNT ON;
+-- Login de la API de ServiceMET: no usa estas tablas; solo recibe el DENY.
+DECLARE @loginApi sysname = N'ServiceMET';
 -- Login con el que DataMET+ se conecta a SQL Server (DB_USER de su .env).
 -- Vacío: se omiten sus permisos y la ficha del RIM avisará que falta este
 -- script.
 DECLARE @loginDataMetPlus sysname = N'';
 DECLARE @sql nvarchar(max);
 DECLARE @usuario sysname;
+DECLARE @usuarioApi sysname;
+DECLARE @usuarioPlus sysname;
+
+-- DENY prevalece sobre los permisos que un usuario reciba por un rol de
+-- DataMET (salvo db_owner): la ejecución y la entrega no se modifican ni se
+-- borran.
+SET @usuarioApi = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginApi));
+IF @usuarioApi IS NULL
+  PRINT CONCAT(N'El login ', @loginApi, N' no tiene usuario en esta base: no hay nada que restringirle.');
+ELSE
+BEGIN
+  SET @sql = CONCAT(
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_ejecucion] TO ', QUOTENAME(@usuarioApi), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_entregas] TO ', QUOTENAME(@usuarioApi), N';');
+  EXEC sys.sp_executesql @sql;
+  PRINT CONCAT(N'UPDATE y DELETE denegados a ', @usuarioApi, N' (API de ServiceMET).');
+END
 
 IF NULLIF(LTRIM(RTRIM(@loginDataMetPlus)), N'') IS NULL
   PRINT N'AVISO: @loginDataMetPlus está vacío. Complételo con el DB_USER de DataMET+ y ejecute el script de nuevo.';
@@ -256,27 +279,49 @@ BEGIN
     SET @sql = CONCAT(N'CREATE USER ', QUOTENAME(@loginDataMetPlus), N' FOR LOGIN ', QUOTENAME(@loginDataMetPlus), N';');
     EXEC sys.sp_executesql @sql;
   END
-  SET @usuario = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginDataMetPlus));
+  SET @usuarioPlus = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginDataMetPlus));
 
   SET @sql = CONCAT(
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_ejecucion] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_entregas] TO ', QUOTENAME(@usuario), N';');
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_ejecucion] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_entregas] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_ejecucion] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_entregas] TO ', QUOTENAME(@usuarioPlus), N';');
   EXEC sys.sp_executesql @sql;
-  PRINT CONCAT(N'Permisos otorgados a ', @usuario, N' (DataMET+).');
+  PRINT CONCAT(N'Permisos otorgados a ', @usuarioPlus, N' (DataMET+).');
 END
-GO
 
--- Verificación: nadie puede modificar ni borrar la ejecución ni la entrega.
--- Revise que los usuarios de DataMET+ solo tengan SELECT e INSERT y que la
--- API de ServiceMET no figure.
-SELECT
-    dp.[name] AS [usuario],
-    OBJECT_NAME(p.[major_id]) AS [objeto],
-    p.[permission_name] AS [permiso],
-    p.[state_desc] AS [estado]
-FROM sys.database_permissions AS p
-JOIN sys.database_principals AS dp ON dp.[principal_id] = p.[grantee_principal_id]
-WHERE p.[class] = 1
-  AND OBJECT_NAME(p.[major_id]) IN (N'form_rim_ejecucion', N'form_rim_entregas')
-ORDER BY dp.[name], [objeto], [permiso];
+-- Verificación con los permisos efectivos de cada usuario (incluidos sus
+-- roles): DataMET+ lee e inserta; nadie actualiza ni elimina. Si actualizar o
+-- eliminar figuran en 1, el usuario es db_owner de DataMET y el DENY no lo
+-- alcanza: quítele ese rol.
+DECLARE @tablas nvarchar(200) = N'(N''form_rim_ejecucion''), (N''form_rim_entregas'')';
+DECLARE @modificables int;
+DECLARE @usuarios TABLE ([nombre] sysname NOT NULL);
+INSERT INTO @usuarios ([nombre]) SELECT @usuarioApi WHERE @usuarioApi IS NOT NULL;
+INSERT INTO @usuarios ([nombre]) SELECT @usuarioPlus WHERE @usuarioPlus IS NOT NULL;
+
+DECLARE usuarios CURSOR LOCAL FAST_FORWARD FOR SELECT [nombre] FROM @usuarios;
+OPEN usuarios;
+FETCH NEXT FROM usuarios INTO @usuario;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+  SET @sql = CONCAT(N'EXECUTE AS USER = ', QUOTENAME(@usuario, ''''), N';
+SELECT USER_NAME() AS [usuario], t.[tabla],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''SELECT'') AS [puede_leer],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''INSERT'') AS [puede_insertar],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''UPDATE'') AS [puede_actualizar],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''DELETE'') AS [puede_eliminar]
+FROM (VALUES ', @tablas, N') AS t([tabla]);
+SELECT @n = COUNT(*) FROM (VALUES ', @tablas, N') AS t([tabla])
+WHERE HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''UPDATE'') = 1
+   OR HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''DELETE'') = 1;
+REVERT;');
+  EXEC sys.sp_executesql @sql, N'@n int OUTPUT', @n = @modificables OUTPUT;
+  IF @modificables > 0
+    PRINT CONCAT(N'AVISO: ', @usuario, N' todavía puede modificar o borrar la ejecución o la entrega ',
+      N'(es db_owner de la base). Quítele ese rol: estos registros no deben poder modificarse.');
+  FETCH NEXT FROM usuarios INTO @usuario;
+END
+CLOSE usuarios;
+DEALLOCATE usuarios;
 GO

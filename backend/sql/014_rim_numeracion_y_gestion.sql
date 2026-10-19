@@ -1,6 +1,7 @@
 /*
   Numeración única del RIM (RIM-AA-NNNN), anulaciones y RIM registrados desde
-  el formulario web de DataMET+, en la base servicios_extras.
+  el formulario web de DataMET+, en DataMET (la misma base del backend; para
+  las pruebas, DataMET_prueba).
 
   Código del RIM:  RIM-{AA}-{NNNN}   p. ej. RIM-26-0042
     AA    gestión (año de emisión, dos dígitos)
@@ -34,16 +35,19 @@
   su código: es el que figura en el PDF firmado. Quedan con gestión y número
   vacíos y se identifican por su N.º (columna n).
 
-  Solo se agrega: ningún login recibe UPDATE ni DELETE sobre estas tablas.
+  Solo se agrega: ningún login recibe UPDATE ni DELETE sobre estas tablas, y
+  los dos reciben un DENY de UPDATE y DELETE para que ningún rol que tengan
+  en DataMET se los dé.
     - API de ServiceMET (@loginApi): SELECT e INSERT en las tablas nuevas y
       EXECUTE en dbo.rim_reservar_talonario.
     - DataMET+ (@loginDataMetPlus): SELECT en todo; INSERT en form_rim,
       form_rim_fotos, form_rim_anulaciones y rim_talonarios_cierres; EXECUTE
       en dbo.rim_reservar_talonario.
 
-  Requisitos: haber ejecutado 012_create_servicios_extras.sql. Ejecutar con
-  una cuenta administradora. Puede ejecutarse de nuevo: solo agrega lo que
-  falte y vuelve a otorgar los permisos.
+  Requisitos: haber ejecutado 012_create_form_rim_y_form_bitrix.sql en la
+  misma base. Ejecutar con una cuenta administradora, en cada base que use el
+  backend (para DataMET_prueba, cambie el USE de abajo). Puede ejecutarse de
+  nuevo: solo agrega lo que falte y vuelve a otorgar los permisos.
 
   Orden de despliegue:
     1. Este script (complete @loginDataMetPlus más abajo).
@@ -54,7 +58,7 @@
   emitir RIM nuevos (los ya emitidos siguen pendientes y no se pierden).
 */
 
-USE [servicios_extras];
+USE [DataMET];
 GO
 
 -- El índice único filtrado y el procedimiento exigen estas opciones; sqlcmd
@@ -73,7 +77,7 @@ SET NOCOUNT ON;
 SET XACT_ABORT ON;
 
 IF OBJECT_ID(N'dbo.form_rim', N'U') IS NULL
-  THROW 51000, N'No existe dbo.form_rim: ejecute primero 012_create_servicios_extras.sql. No se realizaron cambios.', 1;
+  THROW 51000, N'No existe dbo.form_rim: ejecute primero 012_create_form_rim_y_form_bitrix.sql. No se realizaron cambios.', 1;
 GO
 
 SET NOCOUNT ON;
@@ -304,7 +308,7 @@ BEGIN
 
   DECLARE @bloqueo int;
   EXEC @bloqueo = sys.sp_getapplock
-    @Resource = N'servicios_extras.rim_talonarios',
+    @Resource = N'rim_talonarios',
     @LockMode = N'Exclusive',
     @LockOwner = N'Transaction',
     @LockTimeout = 15000;
@@ -345,6 +349,8 @@ DECLARE @loginApi sysname = N'ServiceMET';
 DECLARE @loginDataMetPlus sysname = N'';
 DECLARE @sql nvarchar(max);
 DECLARE @usuario sysname;
+DECLARE @usuarioApi sysname;
+DECLARE @usuarioPlus sysname;
 
 IF SUSER_ID(@loginApi) IS NULL
 BEGIN
@@ -359,15 +365,22 @@ BEGIN
   SET @sql = CONCAT(N'CREATE USER ', QUOTENAME(@loginApi), N' FOR LOGIN ', QUOTENAME(@loginApi), N';');
   EXEC sys.sp_executesql @sql;
 END
-SET @usuario = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginApi));
+SET @usuarioApi = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginApi));
 
+-- DENY prevalece sobre los permisos que el usuario reciba por un rol de
+-- DataMET (salvo db_owner): un RIM no se modifica ni se borra.
 SET @sql = CONCAT(
-  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuario), N';',
-  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuario), N';',
-  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuario), N';',
-  N'GRANT EXECUTE ON OBJECT::[dbo].[rim_reservar_talonario] TO ', QUOTENAME(@usuario), N';');
+  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuarioApi), N';',
+  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuarioApi), N';',
+  N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuarioApi), N';',
+  N'GRANT EXECUTE ON OBJECT::[dbo].[rim_reservar_talonario] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_fotos] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuarioApi), N';',
+  N'DENY UPDATE, DELETE ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuarioApi), N';');
 EXEC sys.sp_executesql @sql;
-PRINT CONCAT(N'Permisos otorgados a ', @usuario, N' (API de ServiceMET).');
+PRINT CONCAT(N'Permisos otorgados a ', @usuarioApi, N' (API de ServiceMET).');
 
 IF NULLIF(LTRIM(RTRIM(@loginDataMetPlus)), N'') IS NULL
   PRINT N'AVISO: @loginDataMetPlus está vacío. Complételo con el DB_USER de DataMET+ y ejecute el script de nuevo.';
@@ -385,42 +398,56 @@ BEGIN
     SET @sql = CONCAT(N'CREATE USER ', QUOTENAME(@loginDataMetPlus), N' FOR LOGIN ', QUOTENAME(@loginDataMetPlus), N';');
     EXEC sys.sp_executesql @sql;
   END
-  SET @usuario = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginDataMetPlus));
+  SET @usuarioPlus = (SELECT TOP (1) [name] FROM sys.database_principals WHERE [sid] = SUSER_SID(@loginDataMetPlus));
 
   SET @sql = CONCAT(
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_fotos] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT SELECT ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuario), N';',
-    N'GRANT EXECUTE ON OBJECT::[dbo].[rim_reservar_talonario] TO ', QUOTENAME(@usuario), N';');
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_fotos] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT SELECT, INSERT ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT SELECT ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'GRANT EXECUTE ON OBJECT::[dbo].[rim_reservar_talonario] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_fotos] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[form_rim_anulaciones] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[rim_talonarios] TO ', QUOTENAME(@usuarioPlus), N';',
+    N'DENY UPDATE, DELETE ON OBJECT::[dbo].[rim_talonarios_cierres] TO ', QUOTENAME(@usuarioPlus), N';');
   EXEC sys.sp_executesql @sql;
-  PRINT CONCAT(N'Permisos otorgados a ', @usuario, N' (DataMET+).');
+  PRINT CONCAT(N'Permisos otorgados a ', @usuarioPlus, N' (DataMET+).');
 END
-GO
 
--- Verificación: nadie puede modificar ni borrar RIM, anulaciones, fotos ni
--- talonarios. Con la cuenta administradora todo figura en 1; revise las
--- filas de los usuarios de la API y de DataMET+.
-SELECT
-    principales.[name] AS [usuario],
-    tablas.[tabla],
-    HAS_PERMS_BY_NAME(N'dbo.' + tablas.[tabla], N'OBJECT', N'SELECT') AS [puede_leer],
-    HAS_PERMS_BY_NAME(N'dbo.' + tablas.[tabla], N'OBJECT', N'INSERT') AS [puede_insertar]
-FROM (VALUES (N'form_rim'), (N'form_rim_fotos'), (N'form_rim_anulaciones'),
-             (N'rim_talonarios'), (N'rim_talonarios_cierres')) AS tablas([tabla])
-CROSS JOIN (SELECT SUSER_SNAME() AS [name]) AS principales;
+-- Verificación con los permisos efectivos de cada usuario (incluidos sus
+-- roles): leer e insertar en 1 donde corresponde; actualizar y eliminar
+-- siempre en 0. Si figuran en 1, el usuario es db_owner de DataMET y el DENY
+-- no lo alcanza: quítele ese rol.
+DECLARE @tablas nvarchar(400) = N'(N''form_rim''), (N''form_rim_fotos''), (N''form_rim_anulaciones''), (N''rim_talonarios''), (N''rim_talonarios_cierres'')';
+DECLARE @modificables int;
+DECLARE @usuarios TABLE ([nombre] sysname NOT NULL);
+INSERT INTO @usuarios ([nombre]) SELECT @usuarioApi WHERE @usuarioApi IS NOT NULL;
+INSERT INTO @usuarios ([nombre]) SELECT @usuarioPlus WHERE @usuarioPlus IS NOT NULL;
 
-SELECT
-    dp.[name] AS [usuario],
-    OBJECT_NAME(p.[major_id]) AS [objeto],
-    p.[permission_name] AS [permiso],
-    p.[state_desc] AS [estado]
-FROM sys.database_permissions AS p
-JOIN sys.database_principals AS dp ON dp.[principal_id] = p.[grantee_principal_id]
-WHERE p.[class] = 1
-  AND OBJECT_NAME(p.[major_id]) IN (N'form_rim', N'form_rim_fotos', N'form_rim_anulaciones',
-                                    N'rim_talonarios', N'rim_talonarios_cierres',
-                                    N'rim_reservar_talonario')
-ORDER BY dp.[name], [objeto], [permiso];
+DECLARE usuarios CURSOR LOCAL FAST_FORWARD FOR SELECT [nombre] FROM @usuarios;
+OPEN usuarios;
+FETCH NEXT FROM usuarios INTO @usuario;
+WHILE @@FETCH_STATUS = 0
+BEGIN
+  SET @sql = CONCAT(N'EXECUTE AS USER = ', QUOTENAME(@usuario, ''''), N';
+SELECT USER_NAME() AS [usuario], t.[tabla],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''SELECT'') AS [puede_leer],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''INSERT'') AS [puede_insertar],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''UPDATE'') AS [puede_actualizar],
+    HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''DELETE'') AS [puede_eliminar]
+FROM (VALUES ', @tablas, N') AS t([tabla]);
+SELECT @n = COUNT(*) FROM (VALUES ', @tablas, N') AS t([tabla])
+WHERE HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''UPDATE'') = 1
+   OR HAS_PERMS_BY_NAME(N''dbo.'' + t.[tabla], N''OBJECT'', N''DELETE'') = 1;
+REVERT;');
+  EXEC sys.sp_executesql @sql, N'@n int OUTPUT', @n = @modificables OUTPUT;
+  IF @modificables > 0
+    PRINT CONCAT(N'AVISO: ', @usuario, N' todavía puede modificar o borrar registros del RIM ',
+      N'(es db_owner de la base). Quítele ese rol: los RIM no deben poder modificarse.');
+  FETCH NEXT FROM usuarios INTO @usuario;
+END
+CLOSE usuarios;
+DEALLOCATE usuarios;
 GO
