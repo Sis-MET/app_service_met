@@ -18,9 +18,13 @@ const cambiosSinLiberar = <String>[
   'RIM anulado antes de subirse: ahora se sube marcado como anulado, con '
       'quién, cuándo y por qué, para que su número no quede como un hueco. '
       'Un RIM ya subido se anula en DataMET+ (Registros RIM).',
-  'Servidor: requiere el script 014 en servicios_extras (talonarios, '
+  'Servidor: requiere los scripts 012 y 014 en DataMET (talonarios, '
       'anulaciones y numeración del RIM) y el backend actualizado antes de '
       'distribuir la app.',
+  'Servidor: los RIM y la copia de las oportunidades se guardan en DataMET, '
+      'la misma base del backend, y no en una base aparte (servicios_extras '
+      'no llegó a crearse). Los usuarios de la API y de DataMET+ tienen '
+      'denegado modificar y borrar esas tablas.',
 ];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua

@@ -132,11 +132,11 @@ fuentes y campos personalizados sin imprimir el secreto. El código vive en
 `src/bitrix/`: el cliente HTTP (único que conoce el webhook), `BitrixService`,
 el mapeo de campos (`bitrix-mapping.js`) y las rutas.
 
-### Formularios adicionales (`servicios_extras`)
+### Formularios adicionales (RIM y oportunidades)
 
-Los formularios que el técnico llena dentro de un servicio y que no pertenecen
-a las tablas de DataMET se guardan en la base `servicios_extras`, en la misma
-instancia de SQL Server:
+Los formularios que el técnico llena dentro de un servicio se guardan en sus
+propias tablas, **en la misma base del backend** (`DB_NAME`: DataMET en
+producción, DataMET_prueba en las pruebas). No se usa ninguna otra base:
 
 - `dbo.form_rim`: recepción de instrumentos de pesaje (RIM), con el estado
   físico, el inventario, los datos de la recepción y las firmas del cliente
@@ -146,11 +146,13 @@ instancia de SQL Server:
   Bitrix24, con el número de prospecto.
 
 Antes de habilitarlos, un administrador debe ejecutar una sola vez
-`sql/012_create_servicios_extras.sql`: crea la base y las dos tablas, y da al
-login de la API solo `SELECT` e `INSERT`. Si la base tiene otro nombre,
-configure `EXTRAS_DB_NAME` en `.env`. Mientras el script no se ejecute, la
-subida del RIM responde `503 EXTRAS_NOT_READY` y el RIM queda pendiente en el
-teléfono.
+`sql/012_create_form_rim_y_form_bitrix.sql` en DataMET (para DataMET_prueba,
+cambie su `USE`): crea las dos tablas, da al login de la API solo `SELECT` e
+`INSERT` y le deniega `UPDATE` y `DELETE`, para que ningún rol que tenga en
+DataMET le permita modificar un formulario. Mientras el script no se ejecute,
+la subida del RIM responde `503 EXTRAS_NOT_READY` y el RIM queda pendiente en
+el teléfono. La variable `EXTRAS_DB_NAME` ya no existe: si quedó en el `.env`,
+se ignora con un aviso en el log.
 
 Un formulario puede venir de una calibración, de un soporte o de un
 **registro directo** (llenado desde la pestaña Servicios, sin servicio en
@@ -179,8 +181,11 @@ este backend (complete en el script el login de DataMET+). Crea
 `form_rim_fotos`, el procedimiento `rim_reservar_talonario` (reparte rangos
 sin repetirlos, con un bloqueo exclusivo) y agrega a `form_rim` la gestión, el
 número, el talonario, la instalación y el origen, con un índice único que
-impide que dos RIM compartan número. La API recibe `EXECUTE` sobre el
-procedimiento e `INSERT` en las tablas nuevas, nunca `UPDATE` ni `DELETE`.
+impide que dos RIM compartan número. Va en DataMET, como el 012. La API
+recibe `EXECUTE` sobre el procedimiento e `INSERT` en las tablas nuevas, y un
+`DENY` de `UPDATE` y `DELETE` en todas las del RIM, igual que DataMET+; al final
+el script muestra los permisos efectivos de cada usuario y avisa si alguno
+todavía puede modificar (por ejemplo, si es `db_owner`).
 
 - `POST /api/extras/rim/talonarios`: entrega un talonario a la instalación de
   la app (`requestId`, `installationId`, `year`, `device`, `appVersion`).
@@ -210,10 +215,11 @@ desde la ficha del RIM, sin modificar el RIM. El script
 `sql/016_rim_ejecucion_y_entrega.sql` crea `form_rim_ejecucion` y
 `form_rim_entregas`: cada guardado es una fila nueva que apunta a la vigente
 (`anterior_id`), con usuario, hora del servidor y, si corrige, motivo; dos
-índices únicos filtrados mantienen una sola cadena por RIM. Da `SELECT` e
-`INSERT` solo al login de DataMET+ (complete `@loginDataMetPlus`); esta API
-no recibe permisos ni cambia, y la app tampoco. Ejecútelo antes de desplegar
-la versión de DataMET+ que muestra la ejecución y la entrega.
+índices únicos filtrados mantienen una sola cadena por RIM. Va en DataMET.
+Da `SELECT` e `INSERT` solo al login de DataMET+ (complete
+`@loginDataMetPlus`) y deniega `UPDATE` y `DELETE` a DataMET+ y a esta API,
+que no usa esas tablas; la app no cambia. Ejecútelo antes de desplegar la
+versión de DataMET+ que muestra la ejecución y la entrega.
 
 Cuando `POST /api/bitrix/opportunities` crea (o reconoce) un prospecto, la API
 inserta además su fila en `form_bitrix`. Si esa copia falla, la oportunidad

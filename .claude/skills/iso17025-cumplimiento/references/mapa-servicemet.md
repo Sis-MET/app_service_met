@@ -58,17 +58,18 @@ Otros puntos:
 - Informes PDF: `lib/home/utils/pdf_generator.dart`. CSV y exportaciones:
   `lib/utils/service_exporter.dart`, `lib/home/utils/export_helper.dart`.
 - Pruebas: `test/` (Flutter) y `backend/test/` (`node --test`).
-- Formularios adicionales (no son tablas de DataMET; se llenan dentro de un
-  servicio, desde el menu de tres puntos, y se revisan en Servicios):
+- Formularios adicionales (tablas propias dentro de DataMET; se llenan dentro
+  de un servicio, desde el menu de tres puntos, y se revisan en Servicios):
   - RIM, recepcion de instrumentos de pesaje con firmas del cliente y del
     representante de Metrica:
     `lib/screens/rim/`. Local en `servicios_extras.db` > `form_rim`
     (`services/rim_store.dart`): solo insercion, sin edicion ni borrado;
-    anulacion con usuario, fecha y motivo. Servidor: base `servicios_extras`
-    (`backend/sql/012_create_servicios_extras.sql`, `backend/src/extras/`),
-    solo `SELECT` e `INSERT`.
+    anulacion con usuario, fecha y motivo. Servidor: tablas en DataMET, la
+    misma base del backend (`backend/sql/012_create_form_rim_y_form_bitrix.sql`,
+    014 y 016, `backend/src/extras/`), solo `SELECT` e `INSERT` y `DENY` de
+    `UPDATE`/`DELETE`. Ejecucion y entrega del RIM: DataMET+ (script 016).
   - Oportunidades de Bitrix24: `lib/screens/oportunidades/`; copia en
-    `servicios_extras.form_bitrix`.
+    `DataMET.dbo.form_bitrix`.
 - Calidad y normativa (pestaña Otros, `lib/home/tabs/otros_tab.dart`):
   `lib/screens/calidad/`, con el tablero de
   cumplimiento, el manual de uso y el historial de versiones, sus datos en

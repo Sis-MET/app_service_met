@@ -405,16 +405,20 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'ni borra.',
         'El servidor impone fecha, usuario y estado; la app no puede '
             'falsearlos.',
-        'La base servicios_extras (RIM y copia de oportunidades) da a la API '
-            'solo consulta e inserción (backend/sql/'
-            '012_create_servicios_extras.sql).',
+        'Las tablas del RIM y de la copia de oportunidades, en DataMET, dan '
+            'a la API solo consulta e inserción y le deniegan modificar y '
+            'borrar aunque algún rol se lo permita (backend/sql/'
+            '012_create_form_rim_y_form_bitrix.sql).',
         'La numeración y las anulaciones del RIM tampoco dan modificación ni '
             'borrado: la API y DataMET+ solo consultan, insertan y reservan '
             'talonarios con un procedimiento (backend/sql/'
             '014_rim_numeracion_y_gestion.sql).',
         'La ejecución y la entrega del RIM tampoco: DataMET+ solo consulta e '
-            'inserta, y la API de ServiceMET no tiene permisos sobre esas '
-            'tablas (backend/sql/016_rim_ejecucion_y_entrega.sql).',
+            'inserta, la API de ServiceMET no tiene permisos sobre esas '
+            'tablas y a los dos se les deniega modificar y borrar (backend/'
+            'sql/016_rim_ejecucion_y_entrega.sql). Los scripts 014 y 016 '
+            'muestran los permisos efectivos de cada usuario y avisan si '
+            'alguno todavía puede modificar.',
       ],
     ),
     Requisito(

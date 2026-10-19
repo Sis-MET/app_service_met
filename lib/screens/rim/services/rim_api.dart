@@ -70,7 +70,7 @@ class RimTalonarioRecibido {
   });
 }
 
-/// Sube los RIM a `servicios_extras.form_rim` a través de la API METRICA.
+/// Sube los RIM a `form_rim` (en DataMET) a través de la API METRICA.
 class RimApi {
   static const uploadTimeout = Duration(seconds: 45);
   static const authTimeout = Duration(seconds: 20);
