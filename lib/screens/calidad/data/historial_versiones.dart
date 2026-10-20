@@ -3,7 +3,27 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[];
+const cambiosSinLiberar = <String>[
+  'Soporte técnico: al activar u omitir una prueba metrológica con el '
+      'interruptor "Realizar ...", la tarjeta muestra "Activando la prueba…" '
+      'u "Omitiendo la prueba…" y el cambio se guarda en el acto; antes la '
+      'pantalla tardaba en reaccionar, sin aviso, hasta el autoguardado. '
+      'Aplica a los 7 módulos con pruebas metrológicas.',
+  'Soporte técnico: volver a activar la linealidad cuando tenía una sola '
+      'carga (o al reabrir el servicio así) dejaba la pantalla en blanco; '
+      'ahora se abre con la carga registrada. La repetibilidad reabierta con '
+      'un número de lecturas que no está en la lista (por ejemplo 4) muestra '
+      'la opción que las contiene.',
+  'Soporte técnico: una prueba metrológica omitida ya no guarda ni sube sus '
+      'lecturas, y sigue omitida al continuar el servicio; antes, si ya tenía '
+      'datos, volvía activa con ellos y podían subirse (en Relevamiento de '
+      'datos se guardaban siempre). Una prueba aún sin llenar sigue activa '
+      'al continuar. Además, las cargas o lecturas quitadas no dejan su valor '
+      'en el registro, y al continuar vuelven las que siguen a una vacía '
+      '(antes se perdían) y la repetibilidad inicial de Instalación y '
+      'Verificaciones internas vuelve con sus mediciones (antes con 10). '
+      'Aplica a los 7 módulos con pruebas metrológicas.',
+];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).

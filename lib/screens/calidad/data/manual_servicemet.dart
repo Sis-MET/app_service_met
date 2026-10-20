@@ -414,7 +414,12 @@ const manualServiceMet = ManualUso(
           Paso(
               'Registre todas las lecturas de cada prueba que realice.',
               'Excentricidad, repetibilidad y linealidad se exigen completas. '
-                  'Si una prueba no se hizo, desmárquela; no la deje a medias.'),
+                  'Si una prueba no se hizo, desmárquela; no la deje a medias. '
+                  'Al mover el interruptor "Realizar ...", la tarjeta muestra '
+                  '"Activando la prueba…" u "Omitiendo la prueba…" hasta que '
+                  'el cambio queda guardado. Una prueba omitida no guarda ni '
+                  'sube sus lecturas, y sigue omitida al continuar el '
+                  'servicio.'),
           Paso('Use "Todo en buen estado" o "Marcar todo como No aplica" solo '
               'después de revisar cada punto.'),
           Paso('Al terminar, elija "SELECCIONAR OTRA BALANZA" o '
