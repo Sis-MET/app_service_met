@@ -6,6 +6,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 
 class DatabaseHelperVerificaciones {
   static final DatabaseHelperVerificaciones _instance =
@@ -162,6 +163,9 @@ class DatabaseHelperVerificaciones {
   Future<void> upsertRegistroRelevamiento(Map<String, dynamic> registro) async {
     try {
       final db = await database;
+      if (registro.containsKey(PruebasOmitidas.columna)) {
+        await PruebasOmitidas.asegurarColumna(db, 'verificaciones_internas');
+      }
 
       final existing = await db.query(
         'verificaciones_internas',

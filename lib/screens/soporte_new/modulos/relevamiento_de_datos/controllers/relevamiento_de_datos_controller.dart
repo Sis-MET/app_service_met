@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/modulos/relevamiento_de_datos/models/relevamiento_de_datos_model.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 
 class RelevamientoDeDatosController extends BaseSoporteController {
   @override
@@ -192,16 +193,30 @@ class RelevamientoDeDatosController extends BaseSoporteController {
         ),
       ]);
     }
-    final lines = <session.FilaLinealidad>[];
+    // Hasta la última carga escrita, en su lugar: antes se saltaban las
+    // vacías y las siguientes se corrían de lugar.
+    var lastLine = 0;
     for (var i = 1; i <= 12; i++) {
-      final load = row['lin$i']?.toString() ?? '';
-      if (load.isEmpty) continue;
-      lines.add(session.FilaLinealidad(
-          carga: load,
-          indicacion: row['ind$i']?.toString(),
-          retorno: row['retorno_lin$i']?.toString()));
+      if ((row['lin$i']?.toString() ?? '').isNotEmpty ||
+          (row['ind$i']?.toString() ?? '').isNotEmpty) {
+        lastLine = i;
+      }
     }
-    linealidad = session.LinealidadData(filas: lines);
+    linealidad = session.LinealidadData(filas: [
+      for (var i = 1; i <= lastLine; i++)
+        session.FilaLinealidad(
+            carga: row['lin$i']?.toString() ?? '',
+            indicacion: row['ind$i']?.toString(),
+            retorno: row['retorno_lin$i']?.toString()),
+    ]);
+
+    // Lo que el técnico eligió con "Realizar ...", si el registro lo guarda.
+    final realizadas = PruebasOmitidas.leer(row);
+    if (realizadas != null) {
+      excentricidadRealizada = realizadas.excentricidad;
+      repetibilidadRealizada = realizadas.repetibilidad;
+      linealidadRealizada = realizadas.linealidad;
+    }
     notifyListeners();
   }
 
@@ -324,36 +339,85 @@ class RelevamientoDeDatosController extends BaseSoporteController {
       data['${keys[i]}_comentario'] = camposEstado[i].solutionValue;
       data['${keys[i]}_foto'] = camposEstado[i].fotos.join(',');
     }
-    for (var i = 0; i < excentricidad.posiciones.length && i < 12; i++) {
-      final p = excentricidad.posiciones[i];
-      final n = i + 1;
-      if (n <= 6) data['posicion$n'] = p.posicion ?? '';
-      data['indicacion$n'] = p.indicacion ?? '';
-      data['retorno$n'] = p.retorno ?? '';
+    // Primero quedan vacías las casillas de las tres pruebas y luego se
+    // escriben las realizadas: antes una prueba omitida se guardaba (y se
+    // subía) igual, y las filas quitadas dejaban sus valores.
+    _escribirPruebas(
+      data,
+      excentricidad: _excentricidadVacia,
+      repetibilidad: _repetibilidadVacia,
+      linealidad: _linealidadVacia,
+    );
+    _escribirPruebas(
+      data,
+      excentricidad: excentricidadRealizada ? excentricidad : null,
+      repetibilidad: repetibilidadRealizada ? repetibilidad : null,
+      linealidad: linealidadRealizada ? linealidad : null,
+    );
+    data[PruebasOmitidas.columna] = PruebasOmitidas.escribir((
+      excentricidad: excentricidadRealizada,
+      repetibilidad: repetibilidadRealizada,
+      linealidad: linealidadRealizada,
+    ));
+    return data;
+  }
+
+  /// Pruebas con todas sus casillas vacías, para limpiar las columnas. La
+  /// tabla tiene seis posiciones de excentricidad.
+  static final _excentricidadVacia = session.ExcentricidadData(
+      posiciones: List.filled(6, session.PosicionData()));
+  static final _repetibilidadVacia = session.RepetibilidadData(cargas: [
+    session.CargaRepetibilidad(
+      indicaciones: List.filled(10, null),
+      retornos: List.filled(10, null),
+    ),
+  ]);
+  static final _linealidadVacia =
+      session.LinealidadData(filas: List.filled(12, session.FilaLinealidad()));
+
+  /// Las pruebas en las columnas planas; null deja la prueba como está en
+  /// [data].
+  void _escribirPruebas(
+    Map<String, dynamic> data, {
+    session.ExcentricidadData? excentricidad,
+    session.RepetibilidadData? repetibilidad,
+    session.LinealidadData? linealidad,
+  }) {
+    if (excentricidad != null) {
+      for (var i = 0; i < excentricidad.posiciones.length && i < 12; i++) {
+        final p = excentricidad.posiciones[i];
+        final n = i + 1;
+        if (n <= 6) data['posicion$n'] = p.posicion ?? '';
+        data['indicacion$n'] = p.indicacion ?? '';
+        data['retorno$n'] = p.retorno ?? '';
+      }
+      data['tipo_plataforma'] = excentricidad.tipoPlataforma ?? '';
+      data['puntos_ind'] = excentricidad.puntosIndicacion ?? '';
+      data['carga'] = excentricidad.carga ?? '';
     }
-    data['tipo_plataforma'] = excentricidad.tipoPlataforma ?? '';
-    data['puntos_ind'] = excentricidad.puntosIndicacion ?? '';
-    data['carga'] = excentricidad.carga ?? '';
     // El esquema histórico de relevamiento admite una carga y diez lecturas.
-    for (var i = 0; i < repetibilidad.cargas.length && i < 1; i++) {
-      final carga = repetibilidad.cargas[i];
-      final cargaNum = i + 1;
-      data['repetibilidad$cargaNum'] = carga.carga ?? '';
-      for (var j = 0; j < carga.indicaciones.length && j < 10; j++) {
-        final testNum = j + 1;
-        data['indicacion${cargaNum}_$testNum'] = carga.indicaciones[j] ?? '';
-        data['retorno${cargaNum}_$testNum'] =
-            j < carga.retornos.length ? carga.retornos[j] ?? '' : '';
+    if (repetibilidad != null) {
+      for (var i = 0; i < repetibilidad.cargas.length && i < 1; i++) {
+        final carga = repetibilidad.cargas[i];
+        final cargaNum = i + 1;
+        data['repetibilidad$cargaNum'] = carga.carga ?? '';
+        for (var j = 0; j < carga.indicaciones.length && j < 10; j++) {
+          final testNum = j + 1;
+          data['indicacion${cargaNum}_$testNum'] = carga.indicaciones[j] ?? '';
+          data['retorno${cargaNum}_$testNum'] =
+              j < carga.retornos.length ? carga.retornos[j] ?? '' : '';
+        }
       }
     }
-    for (var i = 0; i < linealidad.filas.length && i < 12; i++) {
-      final p = linealidad.filas[i];
-      final n = i + 1;
-      data['lin$n'] = p.carga ?? '';
-      data['ind$n'] = p.indicacion ?? '';
-      data['retorno_lin$n'] = p.retorno ?? '';
+    if (linealidad != null) {
+      for (var i = 0; i < linealidad.filas.length && i < 12; i++) {
+        final p = linealidad.filas[i];
+        final n = i + 1;
+        data['lin$n'] = p.carga ?? '';
+        data['ind$n'] = p.indicacion ?? '';
+        data['retorno_lin$n'] = p.retorno ?? '';
+      }
     }
-    return data;
   }
 
   @override

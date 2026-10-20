@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_ajustes.dart';
 import 'package:service_met/models/service_session.dart' as session;
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 
 import '../models/ajuste_verificaciones_model.dart';
 
@@ -124,12 +125,18 @@ class AjusteVerificacionesController extends BaseSoporteController {
     linealidadInicial = _restoreLinealidad(row, 'inicial');
     linealidadFinal = _restoreLinealidad(row, 'final');
 
-    excentricidadRealizada = _hasExcentricidad(excentricidadInicial) ||
-        _hasExcentricidad(excentricidadFinal);
-    repetibilidadRealizada = repetibilidadInicial.cargas.isNotEmpty ||
-        repetibilidadFinal.cargas.isNotEmpty;
-    linealidadRealizada =
-        linealidadInicial.filas.isNotEmpty || linealidadFinal.filas.isNotEmpty;
+    // Lo que el técnico eligió con "Realizar ...". Un registro anterior a esa
+    // columna no lo dice: cuenta como realizada la prueba con algún dato.
+    final realizadas = PruebasOmitidas.leer(row);
+    excentricidadRealizada = realizadas?.excentricidad ??
+        (_hasExcentricidad(excentricidadInicial) ||
+            _hasExcentricidad(excentricidadFinal));
+    repetibilidadRealizada = realizadas?.repetibilidad ??
+        (repetibilidadInicial.cargas.isNotEmpty ||
+            repetibilidadFinal.cargas.isNotEmpty);
+    linealidadRealizada = realizadas?.linealidad ??
+        (linealidadInicial.filas.isNotEmpty ||
+            linealidadFinal.filas.isNotEmpty);
     notifyListenersSafely();
   }
 
@@ -240,6 +247,11 @@ class AjusteVerificacionesController extends BaseSoporteController {
 
     _clearMetrologyColumns(data, 'inicial');
     _clearMetrologyColumns(data, 'final');
+    data[PruebasOmitidas.columna] = PruebasOmitidas.escribir((
+      excentricidad: excentricidadRealizada,
+      repetibilidad: repetibilidadRealizada,
+      linealidad: linealidadRealizada,
+    ));
     if (excentricidadRealizada) {
       _addExcentricidad(data, excentricidadInicial, 'inicial');
       _addExcentricidad(data, excentricidadFinal, 'final');

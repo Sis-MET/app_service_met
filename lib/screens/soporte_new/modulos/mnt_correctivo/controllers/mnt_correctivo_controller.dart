@@ -11,6 +11,7 @@ import 'package:service_met/screens/soporte_new/controllers/base_soporte_control
 import 'package:service_met/screens/soporte_new/models/base_soporte_model.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
 import 'package:service_met/screens/soporte_new/models/shared_metrology_models.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 import '../models/mnt_correctivo_model.dart';
 
 class MntCorrectivoController extends BaseSoporteController {
@@ -223,20 +224,63 @@ class MntCorrectivoController extends BaseSoporteController {
       'estabilizacion_final': estabilidadFinal,
     };
 
-    if (excentricidadRealizada) {
-      data['tipo_plataforma_final'] = excentricidadFinal.tipoPlataforma ?? '';
-      data['puntos_ind_final'] = excentricidadFinal.puntosIndicacion ?? '';
-      data['carga_exc_final'] = excentricidadFinal.carga ?? '';
-      for (int i = 0; i < excentricidadFinal.posiciones.length && i < 6; i++) {
-        final row = excentricidadFinal.posiciones[i];
+    // Primero quedan vacías las casillas de las tres pruebas: una prueba
+    // omitida, o las filas que el técnico quitó, no dejan valores de antes
+    // que luego se suban.
+    _escribirPruebas(
+      data,
+      excentricidad: _excentricidadVacia,
+      repetibilidad: _repetibilidadVacia,
+      linealidad: _linealidadVacia,
+    );
+    _escribirPruebas(
+      data,
+      excentricidad: excentricidadRealizada ? excentricidadFinal : null,
+      repetibilidad: repetibilidadRealizada ? repetibilidadFinal : null,
+      linealidad: linealidadRealizada ? linealidadFinal : null,
+    );
+    data[PruebasOmitidas.columna] = PruebasOmitidas.escribir((
+      excentricidad: excentricidadRealizada,
+      repetibilidad: repetibilidadRealizada,
+      linealidad: linealidadRealizada,
+    ));
+    return data;
+  }
+
+  /// Pruebas con todas sus casillas vacías, para limpiar las columnas.
+  static final _excentricidadVacia = session.ExcentricidadData(
+      posiciones: List.filled(6, session.PosicionData()));
+  static final _repetibilidadVacia = session.RepetibilidadData(cargas: [
+    session.CargaRepetibilidad(
+      indicaciones: List.filled(10, null),
+      retornos: List.filled(10, null),
+    ),
+  ]);
+  static final _linealidadVacia =
+      session.LinealidadData(filas: List.filled(12, session.FilaLinealidad()));
+
+  /// Las pruebas finales en las columnas planas; null deja la prueba como
+  /// está en [data].
+  void _escribirPruebas(
+    Map<String, dynamic> data, {
+    session.ExcentricidadData? excentricidad,
+    session.RepetibilidadData? repetibilidad,
+    session.LinealidadData? linealidad,
+  }) {
+    if (excentricidad != null) {
+      data['tipo_plataforma_final'] = excentricidad.tipoPlataforma ?? '';
+      data['puntos_ind_final'] = excentricidad.puntosIndicacion ?? '';
+      data['carga_exc_final'] = excentricidad.carga ?? '';
+      for (int i = 0; i < excentricidad.posiciones.length && i < 6; i++) {
+        final row = excentricidad.posiciones[i];
         final number = i + 1;
         data['posicion_final_$number'] = row.posicion ?? '';
         data['indicacion_final_$number'] = row.indicacion ?? '';
         data['retorno_final_$number'] = row.retorno ?? '';
       }
     }
-    if (repetibilidadRealizada && repetibilidadFinal.cargas.isNotEmpty) {
-      final row = repetibilidadFinal.cargas.first;
+    if (repetibilidad != null && repetibilidad.cargas.isNotEmpty) {
+      final row = repetibilidad.cargas.first;
       data['repetibilidad1_final'] = row.carga ?? '';
       for (int i = 0; i < row.indicaciones.length && i < 10; i++) {
         final number = i + 1;
@@ -245,16 +289,15 @@ class MntCorrectivoController extends BaseSoporteController {
             i < row.retornos.length ? row.retornos[i] ?? '' : '';
       }
     }
-    if (linealidadRealizada) {
-      for (int i = 0; i < linealidadFinal.filas.length && i < 12; i++) {
-        final row = linealidadFinal.filas[i];
+    if (linealidad != null) {
+      for (int i = 0; i < linealidad.filas.length && i < 12; i++) {
+        final row = linealidad.filas[i];
         final number = i + 1;
         data['lin_final_$number'] = row.carga ?? '';
         data['ind_final_$number'] = row.indicacion ?? '';
         data['retorno_lin_final_$number'] = row.retorno ?? '';
       }
     }
-    return data;
   }
 
   bool _isServiceComplete() =>
@@ -507,14 +550,22 @@ class MntCorrectivoController extends BaseSoporteController {
 
     final carga = data['repetibilidad1_final']?.toString() ?? '';
     if (carga.isNotEmpty) {
-      final indicaciones = <String?>[];
-      final retornos = <String?>[];
+      // Hasta la última lectura escrita, en su lugar: antes se saltaban las
+      // vacías y las siguientes se corrían de lugar.
+      String texto(String columna) => data[columna]?.toString() ?? '';
+      var ultima = 0;
       for (int i = 1; i <= 10; i++) {
-        final indicacion = data['indicacion1_final_$i']?.toString() ?? '';
-        if (indicacion.isEmpty) continue;
-        indicaciones.add(indicacion);
-        retornos.add(data['retorno1_final_$i']?.toString() ?? '0');
+        if (texto('indicacion1_final_$i').isNotEmpty ||
+            texto('retorno1_final_$i').isNotEmpty) {
+          ultima = i;
+        }
       }
+      final indicaciones = <String?>[
+        for (int i = 1; i <= ultima; i++) texto('indicacion1_final_$i'),
+      ];
+      final retornos = <String?>[
+        for (int i = 1; i <= ultima; i++) texto('retorno1_final_$i'),
+      ];
       repetibilidadFinal = session.RepetibilidadData(cargas: [
         session.CargaRepetibilidad(
           carga: carga,
@@ -524,18 +575,36 @@ class MntCorrectivoController extends BaseSoporteController {
       ]);
     }
 
-    final filas = <session.FilaLinealidad>[];
+    // Hasta la última carga escrita, en su lugar: antes se saltaban las
+    // vacías y las siguientes se corrían de lugar.
+    String texto(String columna) => data[columna]?.toString() ?? '';
+    var ultima = 0;
     for (int i = 1; i <= 12; i++) {
-      final carga = data['lin_final_$i']?.toString() ?? '';
-      if (carga.isEmpty) continue;
-      filas.add(session.FilaLinealidad(
-        carga: carga,
-        indicacion: data['ind_final_$i']?.toString() ?? '',
-        retorno: data['retorno_lin_final_$i']?.toString() ?? '0',
-      ));
+      if (texto('lin_final_$i').isNotEmpty ||
+          texto('ind_final_$i').isNotEmpty) {
+        ultima = i;
+      }
     }
-    if (filas.isNotEmpty) {
-      linealidadFinal = session.LinealidadData(filas: filas);
+    if (ultima > 0) {
+      linealidadFinal = session.LinealidadData(filas: [
+        for (int i = 1; i <= ultima; i++)
+          session.FilaLinealidad(
+            carga: texto('lin_final_$i'),
+            indicacion: texto('ind_final_$i'),
+            retorno: texto('retorno_lin_final_$i').isEmpty
+                ? '0'
+                : texto('retorno_lin_final_$i'),
+          ),
+      ]);
+    }
+
+    // Lo que el técnico eligió con "Realizar ...", si el registro lo guarda:
+    // una prueba omitida no tiene datos y una sin llenar tampoco.
+    final realizadas = PruebasOmitidas.leer(data);
+    if (realizadas != null) {
+      excentricidadRealizada = realizadas.excentricidad;
+      repetibilidadRealizada = realizadas.repetibilidad;
+      linealidadRealizada = realizadas.linealidad;
     }
   }
 

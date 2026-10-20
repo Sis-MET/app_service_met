@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../../core/network/service_met_http_client.dart';
+import '../../screens/soporte_new/utils/pruebas_omitidas.dart';
 import '../../services/ubicacion_servicio.dart';
 import '../models/calibration_upload_models.dart';
 import 'calibration_upload_api_service.dart';
@@ -43,6 +44,8 @@ List<Map<String, dynamic>> buildSupportUploadEnvelopes(
           entry.key.endsWith('_foto') ||
           entry.key == 'estado_servicio_csv' ||
           entry.key == 'nombre_zip' ||
+          // Solo del teléfono: el servidor no tiene esta columna.
+          entry.key == PruebasOmitidas.columna ||
           UbicacionServicio.columnas.contains(entry.key) ||
           legacyFields.contains(entry.key)) {
         continue;

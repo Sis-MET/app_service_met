@@ -5,6 +5,7 @@ import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 
 class DatabaseHelperMntPrvRegularStil {
   static final DatabaseHelperMntPrvRegularStil _instance =
@@ -161,6 +162,9 @@ class DatabaseHelperMntPrvRegularStil {
   Future<void> upsertRegistroRelevamiento(Map<String, dynamic> registro) async {
     try {
       final db = await database;
+      if (registro.containsKey(PruebasOmitidas.columna)) {
+        await PruebasOmitidas.asegurarColumna(db, 'mnt_prv_regular_stil');
+      }
 
       final existing = await db.query(
         'mnt_prv_regular_stil',

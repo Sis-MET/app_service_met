@@ -5,6 +5,7 @@ import 'package:service_met/database/soporte_tecnico/database_helper_mnt_prv_reg
 import 'package:service_met/models/service_session.dart';
 import 'package:service_met/screens/soporte_new/controllers/base_soporte_controller.dart';
 import 'package:service_met/screens/soporte_new/models/campo_estado.dart';
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 import 'package:service_met/screens/soporte_new/modulos/mnt_prv_regular/models/mnt_prv_regular_model.dart';
 
 class MntPrvRegularController extends BaseSoporteController {
@@ -293,6 +294,20 @@ class MntPrvRegularController extends BaseSoporteController {
     data['retorno_cero_final_valoracion'] = retornoCeroFinal;
     data['estabilizacion_final'] = estabilidadFinal;
 
+    // Primero quedan vacías las casillas de las tres pruebas: una prueba
+    // omitida, o las filas que el técnico quitó, no dejan valores de antes
+    // que luego se suban.
+    for (final tipo in const ['inicial', 'final']) {
+      _addExcentricidadData(data, _excentricidadVacia, tipo);
+      _addRepetibilidadData(data, _repetibilidadVacia, tipo);
+      _addLinealidadData(data, _linealidadVacia, tipo);
+    }
+    data[PruebasOmitidas.columna] = PruebasOmitidas.escribir((
+      excentricidad: excentricidadRealizada,
+      repetibilidad: repetibilidadRealizada,
+      linealidad: linealidadRealizada,
+    ));
+
     if (excentricidadRealizada) {
       _addExcentricidadData(data, excentricidadInicial, 'inicial');
       _addExcentricidadData(data, excentricidadFinal, 'final');
@@ -306,6 +321,18 @@ class MntPrvRegularController extends BaseSoporteController {
       _addLinealidadData(data, linealidadFinal, 'final');
     }
   }
+
+  /// Pruebas con todas sus casillas vacías, para limpiar las columnas.
+  static final _excentricidadVacia =
+      ExcentricidadData(posiciones: List.filled(12, PosicionData()));
+  static final _repetibilidadVacia = RepetibilidadData(cargas: [
+    CargaRepetibilidad(
+      indicaciones: List.filled(10, null),
+      retornos: List.filled(10, null),
+    ),
+  ]);
+  static final _linealidadVacia =
+      LinealidadData(filas: List.filled(12, FilaLinealidad()));
 
   void _addExcentricidadData(
       Map<String, dynamic> data, ExcentricidadData exc, String tipo) {
@@ -402,6 +429,15 @@ class MntPrvRegularController extends BaseSoporteController {
     _loadExcentricidadFromDb(data, false);
     _loadRepetibilidadFromDb(data, false);
     _loadLinealidadFromDb(data, false);
+
+    // Lo que el técnico eligió con "Realizar ...", si el registro lo guarda:
+    // una prueba omitida no tiene datos y una sin llenar tampoco.
+    final realizadas = PruebasOmitidas.leer(data);
+    if (realizadas != null) {
+      excentricidadRealizada = realizadas.excentricidad;
+      repetibilidadRealizada = realizadas.repetibilidad;
+      linealidadRealizada = realizadas.linealidad;
+    }
 
     notifyListeners();
   }
@@ -500,15 +536,22 @@ class MntPrvRegularController extends BaseSoporteController {
     final cargaVal = data['repetibilidad1_$tipo']?.toString() ?? '';
     if (cargaVal.isEmpty) return;
 
-    final indicaciones = <String?>[];
-    final retornos = <String?>[];
-    for (int j = 0; j < 10; j++) {
-      final n = j + 1;
-      final ind = data['indicacion1_${tipo}_$n']?.toString() ?? '';
-      if (ind.isEmpty) break;
-      indicaciones.add(ind);
-      retornos.add(data['retorno1_${tipo}_$n']?.toString() ?? '');
+    // Hasta la última lectura escrita, también las vacías de en medio: antes
+    // se cortaba en la primera vacía y las siguientes se perdían al guardar.
+    String texto(String columna) => data[columna]?.toString() ?? '';
+    var ultima = 0;
+    for (int n = 1; n <= 10; n++) {
+      if (texto('indicacion1_${tipo}_$n').isNotEmpty ||
+          texto('retorno1_${tipo}_$n').isNotEmpty) {
+        ultima = n;
+      }
     }
+    final indicaciones = <String?>[
+      for (int n = 1; n <= ultima; n++) texto('indicacion1_${tipo}_$n'),
+    ];
+    final retornos = <String?>[
+      for (int n = 1; n <= ultima; n++) texto('retorno1_${tipo}_$n'),
+    ];
 
     final rep = RepetibilidadData(
       cargas: [
@@ -530,20 +573,27 @@ class MntPrvRegularController extends BaseSoporteController {
 
   void _loadLinealidadFromDb(Map<String, dynamic> data, bool esInicial) {
     final tipo = esInicial ? 'inicial' : 'final';
-    final primeraLin = data['lin_${tipo}_1']?.toString() ?? '';
-    if (primeraLin.isEmpty) return;
+    String texto(String columna) => data[columna]?.toString() ?? '';
 
-    final filas = <FilaLinealidad>[];
-    for (int i = 0; i < 12; i++) {
-      final n = i + 1;
-      final linVal = data['lin_${tipo}_$n']?.toString() ?? '';
-      if (linVal.isEmpty) break;
-      filas.add(FilaLinealidad(
-        carga: linVal,
-        indicacion: data['ind_${tipo}_$n']?.toString() ?? '',
-        retorno: data['retorno_lin_${tipo}_$n']?.toString() ?? '',
-      ));
+    // Hasta la última carga escrita, también las vacías de en medio: antes se
+    // cortaba en la primera vacía y las siguientes se perdían al guardar.
+    var ultima = 0;
+    for (int n = 1; n <= 12; n++) {
+      if (texto('lin_${tipo}_$n').isNotEmpty ||
+          texto('ind_${tipo}_$n').isNotEmpty) {
+        ultima = n;
+      }
     }
+    if (ultima == 0) return;
+
+    final filas = <FilaLinealidad>[
+      for (int n = 1; n <= ultima; n++)
+        FilaLinealidad(
+          carga: texto('lin_${tipo}_$n'),
+          indicacion: texto('ind_${tipo}_$n'),
+          retorno: texto('retorno_lin_${tipo}_$n'),
+        ),
+    ];
 
     final lin = LinealidadData(filas: filas);
 

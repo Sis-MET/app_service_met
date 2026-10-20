@@ -1,4 +1,5 @@
 import 'package:service_met/models/service_session.dart' as session;
+import 'package:service_met/screens/soporte_new/utils/pruebas_omitidas.dart';
 
 /// Las tres pruebas iniciales leídas de la tabla, y si cada una se hizo.
 typedef PruebasIniciales = ({
@@ -52,6 +53,12 @@ abstract final class PruebasInicialesColumnas {
       data['retorno_lin_inicial_$i'] = '';
     }
 
+    data[PruebasOmitidas.columna] = PruebasOmitidas.escribir((
+      excentricidad: excentricidadRealizada,
+      repetibilidad: repetibilidadRealizada,
+      linealidad: linealidadRealizada,
+    ));
+
     if (excentricidadRealizada) {
       data['tipo_plataforma_inicial'] = excentricidad.tipoPlataforma ?? '';
       data['puntos_ind_inicial'] = excentricidad.puntosIndicacion ?? '';
@@ -93,8 +100,9 @@ abstract final class PruebasInicialesColumnas {
     }
   }
 
-  /// Lee las tres pruebas de [row]. Una prueba cuenta como realizada si
-  /// quedó algún dato de ella.
+  /// Lee las tres pruebas de [row]. Si se hizo cada una lo dice
+  /// [PruebasOmitidas]; en un registro anterior a esa columna, una prueba
+  /// cuenta como realizada si quedó algún dato de ella.
   static PruebasIniciales leer(Map<String, dynamic> row) {
     String texto(String column) => row[column]?.toString() ?? '';
 
@@ -118,19 +126,24 @@ abstract final class PruebasInicialesColumnas {
       posiciones: posiciones,
     );
 
+    // Hasta la última lectura escrita: antes volvían siempre las diez y una
+    // prueba de 3 mediciones pedía 7 más para avanzar.
     final cargaRepetibilidad = texto('repetibilidad1_inicial');
-    final indicaciones = <String?>[];
-    final retornos = <String?>[];
-    var tieneRepetibilidad = cargaRepetibilidad.isNotEmpty;
+    var ultimaLectura = 0;
     for (var i = 1; i <= _mediciones; i++) {
-      final indicacion = texto('indicacion1_inicial_$i');
-      final retorno = texto('retorno1_inicial_$i');
-      if (indicacion.isNotEmpty || retorno.isNotEmpty) {
-        tieneRepetibilidad = true;
+      if (texto('indicacion1_inicial_$i').isNotEmpty ||
+          texto('retorno1_inicial_$i').isNotEmpty) {
+        ultimaLectura = i;
       }
-      indicaciones.add(indicacion);
-      retornos.add(retorno);
     }
+    final indicaciones = <String?>[
+      for (var i = 1; i <= ultimaLectura; i++) texto('indicacion1_inicial_$i'),
+    ];
+    final retornos = <String?>[
+      for (var i = 1; i <= ultimaLectura; i++) texto('retorno1_inicial_$i'),
+    ];
+    final tieneRepetibilidad =
+        cargaRepetibilidad.isNotEmpty || ultimaLectura > 0;
 
     final filas = <session.FilaLinealidad>[];
     for (var i = 1; i <= _filas; i++) {
@@ -145,11 +158,13 @@ abstract final class PruebasInicialesColumnas {
       ));
     }
 
+    final realizadas = PruebasOmitidas.leer(row);
     return (
       excentricidad: excentricidad,
-      excentricidadRealizada: posiciones.isNotEmpty ||
-          (excentricidad.tipoPlataforma?.isNotEmpty ?? false) ||
-          (excentricidad.carga?.isNotEmpty ?? false),
+      excentricidadRealizada: realizadas?.excentricidad ??
+          (posiciones.isNotEmpty ||
+              (excentricidad.tipoPlataforma?.isNotEmpty ?? false) ||
+              (excentricidad.carga?.isNotEmpty ?? false)),
       repetibilidad: session.RepetibilidadData(
         cargas: tieneRepetibilidad
             ? [
@@ -161,9 +176,9 @@ abstract final class PruebasInicialesColumnas {
               ]
             : const [],
       ),
-      repetibilidadRealizada: tieneRepetibilidad,
+      repetibilidadRealizada: realizadas?.repetibilidad ?? tieneRepetibilidad,
       linealidad: session.LinealidadData(filas: filas),
-      linealidadRealizada: filas.isNotEmpty,
+      linealidadRealizada: realizadas?.linealidad ?? filas.isNotEmpty,
     );
   }
 }
