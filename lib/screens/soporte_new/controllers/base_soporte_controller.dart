@@ -251,6 +251,17 @@ abstract class BaseSoporteController extends ChangeNotifier
         Timer(const Duration(milliseconds: 1500), () => autoSave());
   }
 
+  /// Activa u omite una prueba metrológica con [aplicar] (el interruptor
+  /// "Realizar ..."). La pantalla la muestra u oculta en el acto y el cambio
+  /// se guarda ya: con [markChanged] solo, nada se redibujaba hasta el
+  /// autoguardado, segundo y medio después. True si quedó guardado.
+  Future<bool> cambiarPrueba(void Function() aplicar) {
+    aplicar();
+    hasUnsavedChanges.value = true;
+    notifyListenersSafely();
+    return guardarAhora();
+  }
+
   Future<void> autoSave() async {
     if (!hasUnsavedChanges.value) return;
     await guardarSesion();

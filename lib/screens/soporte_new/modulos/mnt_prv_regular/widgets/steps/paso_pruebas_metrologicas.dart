@@ -31,9 +31,9 @@ class PasoPruebasMetrologicas extends StatelessWidget {
   final bool excentricidadActiva;
   final bool repetibilidadActiva;
   final bool linealidadActiva;
-  final ValueChanged<bool> onExcentricidadActivaChanged;
-  final ValueChanged<bool> onRepetibilidadActivaChanged;
-  final ValueChanged<bool> onLinealidadActivaChanged;
+  final CambioPrueba onExcentricidadActivaChanged;
+  final CambioPrueba onRepetibilidadActivaChanged;
+  final CambioPrueba onLinealidadActivaChanged;
 
   // Datos (del modo actual)
   final ExcentricidadData excentricidad;

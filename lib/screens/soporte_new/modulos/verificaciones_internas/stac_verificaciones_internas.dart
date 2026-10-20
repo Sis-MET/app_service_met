@@ -459,18 +459,12 @@ class _StacVerificacionesInternasState
             excentricidadActiva: _controller.excentricidadRealizada,
             repetibilidadActiva: _controller.repetibilidadRealizada,
             linealidadActiva: _controller.linealidadRealizada,
-            onExcentricidadActivaChanged: (v) {
-              _controller.excentricidadRealizada = v;
-              _onFieldChanged();
-            },
-            onRepetibilidadActivaChanged: (v) {
-              _controller.repetibilidadRealizada = v;
-              _onFieldChanged();
-            },
-            onLinealidadActivaChanged: (v) {
-              _controller.linealidadRealizada = v;
-              _onFieldChanged();
-            },
+            onExcentricidadActivaChanged: (v) => _controller
+                .cambiarPrueba(() => _controller.excentricidadRealizada = v),
+            onRepetibilidadActivaChanged: (v) => _controller
+                .cambiarPrueba(() => _controller.repetibilidadRealizada = v),
+            onLinealidadActivaChanged: (v) => _controller
+                .cambiarPrueba(() => _controller.linealidadRealizada = v),
             excentricidad: _controller.excentricidadInicial,
             repetibilidad: _controller.repetibilidadInicial,
             linealidad: _controller.linealidadInicial,

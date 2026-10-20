@@ -448,18 +448,12 @@ class _StacAjusteVerificacionesState extends State<StacAjusteVerificaciones> {
       excentricidadActiva: _controller.excentricidadRealizada,
       repetibilidadActiva: _controller.repetibilidadRealizada,
       linealidadActiva: _controller.linealidadRealizada,
-      onExcentricidadActivaChanged: (value) {
-        _controller.excentricidadRealizada = value;
-        _controller.markChanged();
-      },
-      onRepetibilidadActivaChanged: (value) {
-        _controller.repetibilidadRealizada = value;
-        _controller.markChanged();
-      },
-      onLinealidadActivaChanged: (value) {
-        _controller.linealidadRealizada = value;
-        _controller.markChanged();
-      },
+      onExcentricidadActivaChanged: (value) => _controller
+          .cambiarPrueba(() => _controller.excentricidadRealizada = value),
+      onRepetibilidadActivaChanged: (value) => _controller
+          .cambiarPrueba(() => _controller.repetibilidadRealizada = value),
+      onLinealidadActivaChanged: (value) => _controller
+          .cambiarPrueba(() => _controller.linealidadRealizada = value),
       excentricidad: esInicial
           ? _controller.excentricidadInicial
           : _controller.excentricidadFinal,

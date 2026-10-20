@@ -426,18 +426,12 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 excentricidadActiva: _controller.excentricidadRealizada,
                 repetibilidadActiva: _controller.repetibilidadRealizada,
                 linealidadActiva: _controller.linealidadRealizada,
-                onExcentricidadActivaChanged: (v) {
-                  _controller.excentricidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onRepetibilidadActivaChanged: (v) {
-                  _controller.repetibilidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onLinealidadActivaChanged: (v) {
-                  _controller.linealidadRealizada = v;
-                  _controller.markChanged();
-                },
+                onExcentricidadActivaChanged: (v) => _controller.cambiarPrueba(
+                    () => _controller.excentricidadRealizada = v),
+                onRepetibilidadActivaChanged: (v) => _controller.cambiarPrueba(
+                    () => _controller.repetibilidadRealizada = v),
+                onLinealidadActivaChanged: (v) => _controller
+                    .cambiarPrueba(() => _controller.linealidadRealizada = v),
                 excentricidad: _controller.excentricidadInicial,
                 repetibilidad: _controller.repetibilidadInicial,
                 linealidad: _controller.linealidadInicial,
@@ -589,18 +583,12 @@ class _StacMntPrvAvanzadoState extends State<StacMntPrvAvanzado> {
                 excentricidadActiva: _controller.excentricidadRealizada,
                 repetibilidadActiva: _controller.repetibilidadRealizada,
                 linealidadActiva: _controller.linealidadRealizada,
-                onExcentricidadActivaChanged: (v) {
-                  _controller.excentricidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onRepetibilidadActivaChanged: (v) {
-                  _controller.repetibilidadRealizada = v;
-                  _controller.markChanged();
-                },
-                onLinealidadActivaChanged: (v) {
-                  _controller.linealidadRealizada = v;
-                  _controller.markChanged();
-                },
+                onExcentricidadActivaChanged: (v) => _controller.cambiarPrueba(
+                    () => _controller.excentricidadRealizada = v),
+                onRepetibilidadActivaChanged: (v) => _controller.cambiarPrueba(
+                    () => _controller.repetibilidadRealizada = v),
+                onLinealidadActivaChanged: (v) => _controller
+                    .cambiarPrueba(() => _controller.linealidadRealizada = v),
                 excentricidad: _controller.excentricidadFinal,
                 repetibilidad: _controller.repetibilidadFinal,
                 linealidad: _controller.linealidadFinal,

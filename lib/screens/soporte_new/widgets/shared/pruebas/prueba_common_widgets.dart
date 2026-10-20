@@ -4,11 +4,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../theme/app_icons.dart';
 
+/// Activa (true) u omite (false) una prueba; termina cuando el cambio ya
+/// está en pantalla y guardado.
+typedef CambioPrueba = Future<void> Function(bool realizada);
+
 /// Tarjeta con el interruptor "Realizar prueba" que permite al usuario
 /// omitir una prueba metrológica en los módulos de soporte técnico.
-class PruebaSkipCard extends StatelessWidget {
+///
+/// Mientras el cambio se aplica y se guarda, la tarjeta lo dice ("Activando
+/// la prueba…") y el interruptor no admite otro toque.
+class PruebaSkipCard extends StatefulWidget {
   final bool realizada;
-  final ValueChanged<bool> onChanged;
+  final CambioPrueba onChanged;
   final String nombrePrueba;
 
   const PruebaSkipCard({
@@ -18,10 +25,39 @@ class PruebaSkipCard extends StatelessWidget {
     required this.nombrePrueba,
   });
 
+  /// Lo mínimo que se ve el aviso, para que no sea un parpadeo.
+  static const avisoMinimo = Duration(milliseconds: 400);
+
+  @override
+  State<PruebaSkipCard> createState() => _PruebaSkipCardState();
+}
+
+class _PruebaSkipCardState extends State<PruebaSkipCard> {
+  /// A qué valor se está cambiando; null si no hay un cambio en curso.
+  bool? _cambiandoA;
+
+  Future<void> _cambiar(bool realizada) async {
+    if (_cambiandoA != null) return;
+    final reloj = Stopwatch()..start();
+    setState(() => _cambiandoA = realizada);
+    try {
+      // Primero se dibuja el aviso; armar o quitar la prueba toma su tiempo.
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+      await widget.onChanged(realizada);
+      final resto = PruebaSkipCard.avisoMinimo - reloj.elapsed;
+      if (resto > Duration.zero) await Future<void>.delayed(resto);
+    } finally {
+      if (mounted) setState(() => _cambiandoA = null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const activeColor = Color(0xFF46824B);
+    final cambiando = _cambiandoA != null;
+    final realizada = _cambiandoA ?? widget.realizada;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -51,13 +87,24 @@ class PruebaSkipCard extends StatelessWidget {
                   : (isDark ? Colors.white12 : const Color(0xFFF0F2F5)),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              realizada ? AppIcons.laboratorio : AppIcons.noAplica,
-              size: 20,
-              color: realizada
-                  ? activeColor
-                  : (isDark ? Colors.white38 : Colors.black38),
-            ),
+            child: cambiando
+                ? const SizedBox.square(
+                    dimension: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: activeColor,
+                      ),
+                    ),
+                  )
+                : Icon(
+                    realizada ? AppIcons.laboratorio : AppIcons.noAplica,
+                    size: 20,
+                    color: realizada
+                        ? activeColor
+                        : (isDark ? Colors.white38 : Colors.black38),
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -65,7 +112,7 @@ class PruebaSkipCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Realizar $nombrePrueba',
+                  'Realizar ${widget.nombrePrueba}',
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -74,12 +121,19 @@ class PruebaSkipCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  realizada
-                      ? 'La prueba se registrará en el reporte'
-                      : 'Prueba omitida: no se registrará',
+                  cambiando
+                      ? (realizada
+                          ? 'Activando la prueba…'
+                          : 'Omitiendo la prueba…')
+                      : (realizada
+                          ? 'La prueba se registrará en el reporte'
+                          : 'Prueba omitida: no se registrará'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: isDark ? Colors.white54 : Colors.black45,
+                    fontWeight: cambiando ? FontWeight.w600 : null,
+                    color: cambiando
+                        ? activeColor
+                        : (isDark ? Colors.white54 : Colors.black45),
                   ),
                 ),
               ],
@@ -87,7 +141,7 @@ class PruebaSkipCard extends StatelessWidget {
           ),
           Switch(
             value: realizada,
-            onChanged: onChanged,
+            onChanged: cambiando ? null : _cambiar,
             activeColor: Colors.white,
             activeTrackColor: activeColor,
             inactiveThumbColor: isDark ? Colors.white54 : Colors.black45,

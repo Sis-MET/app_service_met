@@ -348,18 +348,14 @@ class _StacInstalacionState extends State<StacInstalacion> {
                 excentricidadActiva: _controller.excentricidadRealizada,
                 repetibilidadActiva: _controller.repetibilidadRealizada,
                 linealidadActiva: _controller.linealidadRealizada,
-                onExcentricidadActivaChanged: (value) {
-                  _controller.excentricidadRealizada = value;
-                  _controller.markChanged();
-                },
-                onRepetibilidadActivaChanged: (value) {
-                  _controller.repetibilidadRealizada = value;
-                  _controller.markChanged();
-                },
-                onLinealidadActivaChanged: (value) {
-                  _controller.linealidadRealizada = value;
-                  _controller.markChanged();
-                },
+                onExcentricidadActivaChanged: (value) =>
+                    _controller.cambiarPrueba(
+                        () => _controller.excentricidadRealizada = value),
+                onRepetibilidadActivaChanged: (value) =>
+                    _controller.cambiarPrueba(
+                        () => _controller.repetibilidadRealizada = value),
+                onLinealidadActivaChanged: (value) => _controller.cambiarPrueba(
+                    () => _controller.linealidadRealizada = value),
                 excentricidad: _controller.excentricidadInicial,
                 repetibilidad: _controller.repetibilidadInicial,
                 linealidad: _controller.linealidadInicial,

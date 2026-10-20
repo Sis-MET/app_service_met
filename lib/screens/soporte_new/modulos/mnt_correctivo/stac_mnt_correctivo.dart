@@ -534,18 +534,12 @@ class _StacMntCorrectivoState extends State<StacMntCorrectivo> {
             excentricidadActiva: _controller.excentricidadRealizada,
             repetibilidadActiva: _controller.repetibilidadRealizada,
             linealidadActiva: _controller.linealidadRealizada,
-            onExcentricidadActivaChanged: (value) {
-              _controller.excentricidadRealizada = value;
-              _onFieldChanged();
-            },
-            onRepetibilidadActivaChanged: (value) {
-              _controller.repetibilidadRealizada = value;
-              _onFieldChanged();
-            },
-            onLinealidadActivaChanged: (value) {
-              _controller.linealidadRealizada = value;
-              _onFieldChanged();
-            },
+            onExcentricidadActivaChanged: (value) => _controller.cambiarPrueba(
+                () => _controller.excentricidadRealizada = value),
+            onRepetibilidadActivaChanged: (value) => _controller.cambiarPrueba(
+                () => _controller.repetibilidadRealizada = value),
+            onLinealidadActivaChanged: (value) => _controller
+                .cambiarPrueba(() => _controller.linealidadRealizada = value),
             excentricidad: _controller.excentricidadFinal,
             repetibilidad: _controller.repetibilidadFinal,
             linealidad: _controller.linealidadFinal,
