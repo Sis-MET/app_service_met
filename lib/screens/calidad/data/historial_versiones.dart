@@ -3,27 +3,7 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[
-  'Soporte técnico: al activar u omitir una prueba metrológica con el '
-      'interruptor "Realizar ...", la tarjeta muestra "Activando la prueba…" '
-      'u "Omitiendo la prueba…" y el cambio se guarda en el acto; antes la '
-      'pantalla tardaba en reaccionar, sin aviso, hasta el autoguardado. '
-      'Aplica a los 7 módulos con pruebas metrológicas.',
-  'Soporte técnico: volver a activar la linealidad cuando tenía una sola '
-      'carga (o al reabrir el servicio así) dejaba la pantalla en blanco; '
-      'ahora se abre con la carga registrada. La repetibilidad reabierta con '
-      'un número de lecturas que no está en la lista (por ejemplo 4) muestra '
-      'la opción que las contiene.',
-  'Soporte técnico: una prueba metrológica omitida ya no guarda ni sube sus '
-      'lecturas, y sigue omitida al continuar el servicio; antes, si ya tenía '
-      'datos, volvía activa con ellos y podían subirse (en Relevamiento de '
-      'datos se guardaban siempre). Una prueba aún sin llenar sigue activa '
-      'al continuar. Además, las cargas o lecturas quitadas no dejan su valor '
-      'en el registro, y al continuar vuelven las que siguen a una vacía '
-      '(antes se perdían) y la repetibilidad inicial de Instalación y '
-      'Verificaciones internas vuelve con sus mediciones (antes con 10). '
-      'Aplica a los 7 módulos con pruebas metrológicas.',
-];
+const cambiosSinLiberar = <String>[];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
@@ -33,6 +13,47 @@ const cambiosSinLiberar = <String>[
 /// Redacte para el laboratorio: qué cambia para el técnico y para los
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
+  VersionApp(
+    version: '6.4.1+19',
+    fecha: '2026-10-20',
+    clase: ClaseCambio.critico,
+    resumen: 'Soporte técnico: el interruptor de las pruebas metrológicas '
+        'avisa y guarda en el acto, una prueba omitida ya no se guarda ni se '
+        'sube, y volver a activar la linealidad ya no deja la pantalla en '
+        'blanco.',
+    nuevo: [
+      'Soporte técnico: al activar u omitir una prueba metrológica con el '
+          'interruptor "Realizar ...", la tarjeta muestra "Activando la '
+          'prueba…" u "Omitiendo la prueba…" y el cambio se guarda en el '
+          'acto; antes la pantalla tardaba en reaccionar, sin aviso, hasta el '
+          'autoguardado. Aplica a los 7 módulos con pruebas metrológicas.',
+    ],
+    corregido: [
+      'Soporte técnico: volver a activar la linealidad cuando tenía una sola '
+          'carga (o al reabrir el servicio así) dejaba la pantalla en blanco; '
+          'ahora se abre con la carga registrada. La repetibilidad reabierta '
+          'con un número de lecturas que no está en la lista (por ejemplo 4) '
+          'muestra la opción que las contiene.',
+      'Soporte técnico: una prueba metrológica omitida ya no guarda ni sube '
+          'sus lecturas, y sigue omitida al continuar el servicio; antes, si '
+          'ya tenía datos, volvía activa con ellos y podían subirse (en '
+          'Relevamiento de datos se guardaban siempre). Una prueba aún sin '
+          'llenar sigue activa al continuar. Además, las cargas o lecturas '
+          'quitadas no dejan su valor en el registro, y al continuar vuelven '
+          'las que siguen a una vacía (antes se perdían) y la repetibilidad '
+          'inicial de Instalación y Verificaciones internas vuelve con sus '
+          'mediciones (antes con 10). Aplica a los 7 módulos con pruebas '
+          'metrológicas.',
+    ],
+    impactoRegistros: 'En los 7 módulos de soporte con pruebas metrológicas, '
+        'una prueba omitida queda vacía en el registro y no llega a DataMET, '
+        'y tampoco las cargas o lecturas que el técnico quitó. La base local '
+        'agrega a cada tabla de soporte la columna pruebas_omitidas, que no '
+        'se sube; un registro guardado con una versión anterior se lee como '
+        'antes. El servidor no cambia. Incluye todo lo de 6.4.0+18: si esa '
+        'versión no se distribuyó, antes de distribuir esta hay que ejecutar '
+        'sus scripts (012, 014 y 015) en DataMET y desplegar el backend.',
+  ),
   VersionApp(
     version: '6.4.0+18',
     fecha: '2026-10-19',

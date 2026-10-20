@@ -11,9 +11,9 @@ const manualServiceMet = ManualUso(
   control: ControlDocumento(
     codigo: 'PENDIENTE: código asignado por Calidad',
     titulo: 'Manual de uso de ServiceMET',
-    revision: '02 (borrador)',
-    fechaEmision: '2026-10-19',
-    aplicaA: '6.4.0 o posterior',
+    revision: '03 (borrador)',
+    fechaEmision: '2026-10-20',
+    aplicaA: '6.4.1 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
     aprobo: 'PENDIENTE',
@@ -32,6 +32,12 @@ const manualServiceMet = ManualUso(
           'Versión 6.4.0: código único del RIM (RIM-AA-NNNN) con talonarios, '
               'RIM anulados que se suben con su anulación, y la ejecución y '
               'la entrega del RIM en DataMET+ (borrador).'),
+      RevisionDocumento(
+          '03',
+          '2026-10-20',
+          'Versión 6.4.1: aviso del interruptor "Realizar ..." de las pruebas '
+              'metrológicas de soporte y la prueba omitida, que no guarda ni '
+              'sube sus lecturas y sigue omitida al continuar (borrador).'),
     ],
   ),
   secciones: [
