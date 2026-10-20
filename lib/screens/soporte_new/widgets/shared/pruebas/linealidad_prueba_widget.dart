@@ -60,7 +60,11 @@ class _LinealidadPruebaWidgetState extends State<LinealidadPruebaWidget> {
     _cargasPatronValidadas = 0;
     if (lin.filas.isNotEmpty) {
       _buildControllers(_initialRowsCount(lin));
-      for (int i = 0; i < _cargaCtrls.length; i++) {
+      // Se muestran al menos dos cargas, pero la prueba puede traer una sola
+      // (la que quedó con "quitar fila" o al reabrir el servicio): la que
+      // falta queda vacía. Leerla fuera de la lista dejaba la pantalla en
+      // blanco al volver a activar la prueba.
+      for (int i = 0; i < _cargaCtrls.length && i < lin.filas.length; i++) {
         _cargaCtrls[i].text = lin.filas[i].carga ?? '';
         _indCtrls[i].text = lin.filas[i].indicacion ?? '';
         _retCtrls[i].text = (lin.filas[i].retorno?.isNotEmpty ?? false)

@@ -56,7 +56,13 @@ class _RepetibilidadPruebaWidgetState extends State<RepetibilidadPruebaWidget> {
     _medicionesCount = null;
     _cargaCtrl.text = rep.cargas.isNotEmpty ? (rep.cargas[0].carga ?? '') : '';
     if (rep.cargas.isNotEmpty) {
-      final nMediciones = rep.cargas[0].indicaciones.length.clamp(3, 10);
+      // La opción de la lista (3, 5 o 10) que alcanza para lo guardado: al
+      // reabrir puede venir, por ejemplo, con 4 lecturas, un número que la
+      // lista no tiene.
+      final guardadas = rep.cargas[0].indicaciones.length;
+      final nMediciones = _medicionesOptions
+          .map(int.parse)
+          .firstWhere((n) => n >= guardadas, orElse: () => 10);
       _medicionesCount = nMediciones.toString();
       _buildControllers(nMediciones);
       for (int j = 0; j < nMediciones; j++) {
