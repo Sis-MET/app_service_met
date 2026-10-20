@@ -16,6 +16,7 @@ const historialVersiones = <VersionApp>[
   VersionApp(
     version: '6.4.1+19',
     fecha: '2026-10-20',
+    commit: '646ec67',
     clase: ClaseCambio.critico,
     resumen: 'Soporte técnico: el interruptor de las pruebas metrológicas '
         'avisa y guarda en el acto, una prueba omitida ya no se guarda ni se '

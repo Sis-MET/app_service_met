@@ -6,7 +6,7 @@ solo puede aportar el laboratorio figura como `[PENDIENTE]`.
 | Campo | Valor |
 |---|---|
 | Versión (pubspec) | 6.4.1+19 (Android: versionCode 19, versionName 6.4.1) |
-| Commit | [se completa al fijar la versión] (`chore: versión 6.4.1+19`) |
+| Commit | 646ec67 (`chore: versión 6.4.1+19`) |
 | Versión anterior registrada | 6.4.0+18 (commit 8b18cb6). [PENDIENTE: indicar si llegó a distribuirse o si los teléfonos pasan de 6.3.5+17 a esta versión] |
 | Fecha de validación | [PENDIENTE] (pruebas automáticas: 2026-10-20) |
 | Clase del cambio | A (crítico): cambia qué se guarda y qué se sube de las pruebas metrológicas de soporte, y el esquema local de las tablas de soporte |
