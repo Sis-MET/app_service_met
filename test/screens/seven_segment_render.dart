@@ -17,6 +17,13 @@ const _segments = {
   '9': 'abcdfg',
   '-': 'g',
   ' ': '',
+  // Letras de los displays de temperatura.
+  'C': 'adef',
+  'F': 'aefg',
+  'E': 'adefg',
+  'H': 'bcefg',
+  'L': 'def',
+  'P': 'abefg',
 };
 
 typedef _Point = (double, double);

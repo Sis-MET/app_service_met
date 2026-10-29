@@ -13,15 +13,37 @@ class OcrWord {
   final Rect box;
 }
 
+/// De dónde salió una lectura.
+enum IndicatorSource {
+  /// El lector propio de displays de 7 segmentos.
+  segmentos,
+
+  /// El OCR de texto de ML Kit.
+  texto,
+}
+
 /// Un número del cuadro que puede ser la lectura del indicador.
 class IndicatorCandidate {
   const IndicatorCandidate({
     required this.value,
     required this.height,
     this.pointAdded = false,
+    this.source = IndicatorSource.texto,
+    this.raw,
+    this.status,
   });
 
-  /// Con punto decimal y signo delante: "12.345", "-0.005".
+  /// Un display que no muestra un valor: "----", "OPEn", "HHHH".
+  const IndicatorCandidate.sinValor(
+    String this.status, {
+    required this.height,
+    this.source = IndicatorSource.texto,
+    this.raw,
+  })  : value = status,
+        pointAdded = false;
+
+  /// Con punto decimal y signo delante: "12.345", "-0.005". En un mensaje
+  /// sin valor, el mensaje.
   final String value;
 
   /// Alto del texto en píxeles. La lectura es lo más grande del display;
@@ -31,6 +53,18 @@ class IndicatorCandidate {
   /// El display no mostró el punto (en los LED de 7 segmentos es un punto
   /// diminuto que el OCR suele perder) y se ubicó según la división d.
   final bool pointAdded;
+
+  final IndicatorSource source;
+
+  /// Lo que se leyó tal cual, antes de corregir confusiones ("4OO.O1").
+  final String? raw;
+
+  /// El mensaje del display cuando no muestra un valor.
+  final String? status;
+
+  bool get isNumber => status == null;
+
+  double? get number => isNumber ? double.tryParse(value) : null;
 }
 
 /// Saca la lectura del indicador del texto que reconoce el OCR.
@@ -76,14 +110,27 @@ abstract final class IndicatorReadingParser {
   /// Lecturas posibles en [lines] (cada una, sus palabras), la más probable
   /// primero. [expectedDecimals] son los decimales que muestra la balanza:
   /// si el OCR perdió el punto, se ubica con ellos.
+  ///
+  /// Con [statuses] (displays de temperatura), un mensaje sin valor que
+  /// ocupe un trozo entero ("----", "OPEn", "Err", "HHHH") también es un
+  /// candidato, por detrás de cualquier número de su mismo alto.
   static List<IndicatorCandidate> candidates(
     List<List<OcrWord>> lines, {
     int? expectedDecimals,
+    bool statuses = false,
   }) {
     final found = <IndicatorCandidate>[];
     for (final line in lines) {
       for (final chunk in _chunks(line)) {
         final text = _normalizeSymbols(chunk.text);
+        if (statuses && _status.hasMatch(text.replaceFirst(_unit, ''))) {
+          found.add(IndicatorCandidate.sinValor(
+            text,
+            height: chunk.height,
+            raw: chunk.text,
+          ));
+          continue;
+        }
         for (final match in _numberRun.allMatches(text)) {
           final value = _readNumber(match.group(0)!, expectedDecimals);
           if (value == null) continue;
@@ -91,18 +138,29 @@ abstract final class IndicatorReadingParser {
             value: value.text,
             height: chunk.height,
             pointAdded: value.pointAdded,
+            raw: match.group(0),
           ));
         }
       }
     }
     found.sort((a, b) {
       final byHeight = b.height.compareTo(a.height);
-      return byHeight != 0
-          ? byHeight
-          : _digits(b.value).compareTo(_digits(a.value));
+      if (byHeight != 0) return byHeight;
+      if (a.isNumber != b.isNumber) return a.isNumber ? -1 : 1;
+      return _digits(b.value).compareTo(_digits(a.value));
     });
     return found;
   }
+
+  /// Mensajes de los indicadores de temperatura cuando no dan un valor:
+  /// sensor abierto o desconectado, fuera de rango, error.
+  static final _status = RegExp(
+    r'^(-{2,}|_{2,}|OPEN|OL|O\.L|0L|ERR\d*|E-?\d{1,2}|H{2,}|L{2,}|E{3,}|SB\.?ER|S\.?ERR|SENS)$',
+    caseSensitive: false,
+  );
+
+  /// La unidad pegada al mensaje ("----°C").
+  static final _unit = RegExp(r'[°º]?[CF]$', caseSensitive: false);
 
   static int _digits(String value) =>
       value.replaceAll(RegExp(r'\D'), '').length;
@@ -174,6 +232,15 @@ abstract final class IndicatorReadingParser {
     SegmentReading reading, {
     int? expectedDecimals,
   }) {
+    final status = reading.status;
+    if (status != null) {
+      return IndicatorCandidate.sinValor(
+        status,
+        height: reading.height,
+        source: IndicatorSource.segmentos,
+        raw: status,
+      );
+    }
     final digits = reading.digits;
     final point = reading.pointAfter;
     final value = _finish(
@@ -188,6 +255,8 @@ abstract final class IndicatorReadingParser {
       value: value.text,
       height: reading.height,
       pointAdded: value.pointAdded,
+      source: IndicatorSource.segmentos,
+      raw: reading.toString(),
     );
   }
 
@@ -288,4 +357,85 @@ abstract final class IndicatorReadingCheck {
 
   static String _format(double d) =>
       d == d.roundToDouble() ? d.toInt().toString() : d.toString();
+}
+
+/// Un aviso sobre una lectura que el técnico debe mirar. La lectura se
+/// guarda igual: el aviso no la corrige.
+class ReadingAlert {
+  const ReadingAlert(this.code, this.message);
+
+  /// Estable, se guarda con la lectura: `decimales`, `fuera_de_rango`,
+  /// `salto`, `punto_ubicado`.
+  final String code;
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Lo que se espera de las lecturas de un canal: sus decimales, el rango
+/// del equipo y cuánto puede cambiar entre dos lecturas seguidas.
+class ReadingExpectations {
+  const ReadingExpectations({
+    this.decimals,
+    this.min,
+    this.max,
+    this.maxJump,
+    this.unit = '',
+  });
+
+  final int? decimals;
+  final double? min;
+  final double? max;
+
+  /// Cambio máximo creíble frente a la lectura anterior. Un salto mayor en
+  /// 30 segundos suele ser una lectura equivocada (un 8 por un 0) o la puerta
+  /// abierta.
+  final double? maxJump;
+  final String unit;
+
+  List<ReadingAlert> check(IndicatorCandidate candidate, {double? previous}) {
+    final value = candidate.number;
+    if (value == null) return const [];
+    final alerts = <ReadingAlert>[];
+    final suffix = unit.isEmpty ? '' : ' $unit';
+    if (candidate.pointAdded) {
+      alerts.add(const ReadingAlert(
+          'punto_ubicado', 'Se ubicó el punto decimal según la resolución.'));
+    }
+    final decimals = this.decimals;
+    if (decimals != null) {
+      final actual = candidate.value.contains('.')
+          ? candidate.value.split('.').last.length
+          : 0;
+      if (actual != decimals) {
+        alerts.add(ReadingAlert(
+          'decimales',
+          decimals == 1
+              ? 'El display muestra 1 decimal.'
+              : 'El display muestra $decimals decimales.',
+        ));
+      }
+    }
+    final min = this.min, max = this.max;
+    if ((min != null && value < min) || (max != null && value > max)) {
+      final range = min != null && max != null
+          ? ' (${_text(min)} a ${_text(max)}$suffix)'
+          : '';
+      alerts.add(
+          ReadingAlert('fuera_de_rango', 'Fuera del rango esperado$range.'));
+    }
+    final jump = maxJump;
+    if (jump != null && previous != null && (value - previous).abs() > jump) {
+      alerts.add(ReadingAlert(
+        'salto',
+        'Cambió ${_text((value - previous).abs())}$suffix desde la lectura anterior.',
+      ));
+    }
+    return alerts;
+  }
+
+  static String _text(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
 }

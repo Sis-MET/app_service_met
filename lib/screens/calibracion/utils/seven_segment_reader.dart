@@ -19,6 +19,7 @@ class SegmentReading {
     required this.pointAfter,
     required this.negative,
     required this.height,
+    this.status,
   });
 
   /// Los dígitos de izquierda a derecha, sin punto: "400001".
@@ -32,8 +33,15 @@ class SegmentReading {
   /// Alto de los dígitos en píxeles.
   final double height;
 
+  /// Lo que muestra el display cuando no da un valor ("HHHH", "LLLL",
+  /// "OPE"): sensor abierto, fuera de rango. Entonces [digits] está vacío.
+  /// Solo con `units`.
+  final String? status;
+
   @override
   String toString() {
+    final status = this.status;
+    if (status != null) return status;
     final point = pointAfter;
     final body = point == null
         ? digits
@@ -52,19 +60,29 @@ class SegmentReading {
 /// calza con un dígito de 7 segmentos, no se lee nada: la letra de imprenta
 /// de otras pantallas queda para el OCR.
 abstract final class SevenSegmentReader {
-  static SegmentReading? read(GrayImage image) {
+  /// [brightInk] limita la búsqueda a dígitos claros (true) u oscuros
+  /// (false); null prueba los dos. Con [units] (displays de temperatura) la
+  /// unidad al final de la fila ("25.0C") se descarta en vez de rechazar la
+  /// lectura, y una fila de letras de 7 segmentos ("HHHH", "LLLL") se
+  /// informa en [SegmentReading.status]: el display no muestra un valor.
+  static SegmentReading? read(
+    GrayImage image, {
+    bool? brightInk,
+    bool units = false,
+  }) {
     if (image.width < 16 || image.height < 16) return null;
     SegmentReading? best;
     // Dígitos claros sobre fondo oscuro (LED, VFD) u oscuros sobre claro
     // (LCD): se prueban los dos.
-    for (final brightInk in const [true, false]) {
-      var pass = _Pass(image, brightInk: brightInk);
+    for (final bright
+        in brightInk == null ? const [true, false] : [brightInk]) {
+      var pass = _Pass(image, brightInk: bright, units: units);
       if (pass.crowded) continue;
       // Con itálica, la parte de arriba de un dígito queda encima de la de
       // abajo del siguiente y se confunden: primero se endereza.
       final tilt = pass.tilt();
       if (tilt != null && tilt.abs() > 0.04) {
-        pass = _Pass(_straighten(image, tilt), brightInk: brightInk);
+        pass = _Pass(_straighten(image, tilt), brightInk: bright, units: units);
       }
       final reading = pass.read();
       if (reading != null && _better(reading, best)) best = reading;
@@ -94,9 +112,12 @@ abstract final class SevenSegmentReader {
   /// rótulo.
   static bool _better(SegmentReading reading, SegmentReading? than) =>
       than == null ||
-      reading.digits.length > than.digits.length ||
-      (reading.digits.length == than.digits.length &&
-          reading.height > than.height);
+      // Un valor siempre gana a un mensaje sin valor.
+      (than.status != null && reading.status == null) ||
+      ((reading.status == null) == (than.status == null) &&
+          (reading.digits.length > than.digits.length ||
+              (reading.digits.length == than.digits.length &&
+                  reading.height > than.height)));
 }
 
 /// Segmentos en bits: a arriba, b arriba a la derecha, c abajo a la
@@ -117,6 +138,19 @@ const _patterns = {
   _a | _b | _c | _d | _e | _f | _g: '8',
   _a | _b | _c | _d | _f | _g: '9',
   _a | _b | _c | _f | _g: '9',
+};
+
+/// Letras de 7 segmentos que muestran los displays de temperatura: la
+/// unidad (C, F) y los mensajes sin valor (HHHH, LLLL, EEEE, OPEn, Err).
+/// Las letras bajas (r, n, o) no ocupan el alto de la fila y no se leen.
+const _letters = {
+  _a | _d | _e | _f: 'C',
+  _a | _e | _f | _g: 'F',
+  _a | _d | _e | _f | _g: 'E',
+  _b | _c | _e | _f | _g: 'H',
+  _d | _e | _f: 'L',
+  _a | _b | _e | _f | _g: 'P',
+  _b | _c | _d | _e | _f: 'U',
 };
 
 /// Inclinaciones que se prueban (desplazamiento horizontal por unidad de
@@ -228,13 +262,14 @@ class _Cell {
 }
 
 class _Pass {
-  _Pass(this.image, {required this.brightInk}) {
+  _Pass(this.image, {required this.brightInk, this.units = false}) {
     _mask();
     _label();
   }
 
   final GrayImage image;
   final bool brightInk;
+  final bool units;
 
   late final Uint8List _ink;
   late final int _margin;
@@ -641,8 +676,9 @@ class _Pass {
           continue;
         }
         final glyph = row[i];
-        final decoded =
-            _decode(_Cell(glyph, top.at(glyph.box.centerX), height, candidate));
+        final decoded = _decode(
+            _Cell(glyph, top.at(glyph.box.centerX), height, candidate),
+            letters: units);
         if (decoded == null) {
           total = double.infinity;
           break;
@@ -656,15 +692,39 @@ class _Pass {
         shear = candidate;
       }
     }
+    if (digits == null) return null;
+    var body = digits;
+    if (units) {
+      // La unidad al final ("25.0C", "77F"), detrás de dos dígitos o más.
+      final withoutUnit = body.replaceFirst(RegExp(r'[CF]$'), '');
+      if (withoutUnit != body && RegExp(r'^\d{2,}$').hasMatch(withoutUnit)) {
+        body = withoutUnit;
+      }
+    }
+    if (!RegExp(r'^\d+$').hasMatch(body)) {
+      // Letras: solo un mensaje del display si son la mayoría ("HHHH",
+      // "0PE" de OPEn). Una mezcla es una lectura dudosa.
+      final letters = body.replaceAll(RegExp(r'\d'), '').length;
+      if (!units || letters * 2 < body.length) return null;
+      return SegmentReading(
+        digits: '',
+        pointAfter: null,
+        negative: false,
+        height: height,
+        status: body.replaceAll('0', 'O'),
+      );
+    }
     // Una fila de puros 1 son trazos verticales cualquiera: bordes,
     // reflejos.
-    if (digits == null || !digits.contains(RegExp('[02-9]'))) return null;
+    if (!body.contains(RegExp('[02-9]'))) return null;
 
     final strokes = [for (final glyph in row) _stroke(glyph)]..sort();
+    final point =
+        _point(row, all, bottom, height, shear, strokes[strokes.length ~/ 2]);
     return SegmentReading(
-      digits: digits,
-      pointAfter:
-          _point(row, all, bottom, height, shear, strokes[strokes.length ~/ 2]),
+      digits: body,
+      // Un punto entre el último dígito y la unidad no es decimal.
+      pointAfter: point != null && point < body.length ? point : null,
       negative: _minus(row, all, top, height),
       height: height,
     );
@@ -897,7 +957,7 @@ class _Pass {
     return upper >= rowsUpper * 0.6 && lower >= rowsLower * 0.6 ? true : null;
   }
 
-  ({String digit, double doubt})? _decode(_Cell cell) {
+  ({String digit, double doubt})? _decode(_Cell cell, {bool letters = false}) {
     // Un dígito que no es 1 ocupa buena parte del ancho de su casilla.
     if (cell.width < cell.height * 0.3) return null;
 
@@ -930,7 +990,7 @@ class _Pass {
       }
       doubt += math.min(value, 1 - value);
     }
-    final digit = _patterns[pattern];
+    final digit = _patterns[pattern] ?? (letters ? _letters[pattern] : null);
     return digit == null ? null : (digit: digit, doubt: doubt);
   }
 

@@ -1,10 +1,11 @@
-import 'dart:io';
+import 'dart:async';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../models/service_session.dart';
 import '../../../theme/app_colors.dart';
@@ -13,12 +14,15 @@ import '../utils/indicator_frame.dart';
 import '../utils/indicator_reading.dart';
 import '../utils/seven_segment_reader.dart';
 import '../../../theme/app_icons.dart';
+import 'camera_frames.dart';
+import 'indicator_camera_view.dart';
 
 /// Lee el display de la balanza con la cámara.
 ///
 /// El reconocimiento corre en el teléfono, sin internet. Solo se lee lo que
-/// queda dentro del recuadro: primero como display de 7 segmentos y, si no
-/// lo es, con el OCR de ML Kit. La lectura se ofrece cuando se repite en
+/// queda dentro del recuadro, que el técnico mueve y ajusta al display (se
+/// recuerda para la próxima vez): primero como display de 7 segmentos y, si
+/// no lo es, con el OCR de ML Kit. La lectura se ofrece cuando se repite en
 /// varios cuadros seguidos: el técnico la compara con el display y la
 /// confirma. Nunca se escribe sola en el campo.
 class IndicatorReaderScreen extends StatefulWidget {
@@ -40,10 +44,33 @@ class IndicatorReaderScreen extends StatefulWidget {
     );
   }
 
-  /// Zona que se lee, en fracciones de la imagen: una franja al centro
-  /// donde se encuadra el display. Lo de fuera (placa, rótulos, otras
+  /// Zona que se lee al comienzo, en fracciones de la imagen: una franja al
+  /// centro donde se encuadra el display. Lo de fuera (placa, rótulos, otras
   /// pantallas) no compite con la lectura.
   static const region = Rect.fromLTRB(0.06, 0.36, 0.94, 0.64);
+
+  /// Dónde se recuerda el recuadro que el técnico ajustó.
+  static const regionKey = 'lector_indicador.region';
+
+  /// El recuadro guardado, o [region] si no hay uno válido.
+  static Rect savedRegion(SharedPreferences prefs) {
+    final values = prefs.getStringList(regionKey);
+    final numbers = values?.map(double.tryParse).toList();
+    if (numbers == null ||
+        numbers.length != 4 ||
+        numbers.any((value) => value == null)) {
+      return region;
+    }
+    final rect =
+        Rect.fromLTRB(numbers[0]!, numbers[1]!, numbers[2]!, numbers[3]!);
+    final valid = rect.left >= 0 &&
+        rect.top >= 0 &&
+        rect.right <= 1 &&
+        rect.bottom <= 1 &&
+        rect.width >= IndicatorCameraView.minWidth &&
+        rect.height >= IndicatorCameraView.minHeight;
+    return valid ? rect : region;
+  }
 
   @override
   State<IndicatorReaderScreen> createState() => _IndicatorReaderScreenState();
@@ -54,14 +81,20 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
   final _recognizer = TextRecognizer();
   final _stability = ReadingStability();
   late final _reader = IndicatorFrameReader(
-    // Un poco de holgura: el cuadro analizado y la vista previa pueden no
-    // coincidir al píxel.
-    region: IndicatorReaderScreen.region.inflate(0.03),
+    region: _analyzed(_region),
     expectedDecimals: IndicatorReadingCheck.expectedDecimals(widget.balanza),
     recognize: _recognize,
   );
 
+  /// El recuadro en pantalla; lo que se analiza tiene un poco de holgura,
+  /// porque el cuadro analizado y la vista previa pueden no coincidir al
+  /// píxel.
+  Rect _region = IndicatorReaderScreen.region;
+  static Rect _analyzed(Rect region) =>
+      region.inflate(0.03).intersect(const Rect.fromLTRB(0, 0, 1, 1));
+
   CameraController? _camera;
+  CameraTuning? _tuning;
   CameraDescription? _description;
   bool _starting = false;
   bool _busy = false;
@@ -74,18 +107,49 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
   /// calentar el teléfono.
   static const _frameGap = Duration(milliseconds: 180);
 
-  static const _deviceRotation = {
-    DeviceOrientation.portraitUp: 0,
-    DeviceOrientation.landscapeLeft: 90,
-    DeviceOrientation.portraitDown: 180,
-    DeviceOrientation.landscapeRight: 270,
-  };
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _loadRegion();
     _start();
+  }
+
+  Future<void> _loadRegion() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = IndicatorReaderScreen.savedRegion(prefs);
+      if (!mounted || saved == _region) return;
+      _setRegion(saved);
+    } catch (_) {
+      // Sin preferencias se usa el recuadro de siempre.
+    }
+  }
+
+  void _setRegion(Rect region) {
+    setState(() {
+      _region = region;
+      _candidate = null;
+    });
+    _stability.add(null);
+    _reader.region = _analyzed(region);
+  }
+
+  Future<void> _saveRegion() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(IndicatorReaderScreen.regionKey, [
+        for (final value in [
+          _region.left,
+          _region.top,
+          _region.right,
+          _region.bottom
+        ])
+          value.toStringAsFixed(4),
+      ]);
+    } catch (_) {
+      // No recordarlo no impide leer.
+    }
   }
 
   @override
@@ -111,27 +175,8 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     _starting = true;
     CameraController? camera;
     try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        throw CameraException('NoCamera', 'El teléfono no tiene cámara.');
-      }
-      final description = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.back,
-        orElse: () => cameras.first,
-      );
-      camera = CameraController(
-        description,
-        ResolutionPreset.high,
-        enableAudio: false,
-        // Los formatos que ML Kit acepta en bytes: NV21 en Android.
-        imageFormatGroup: Platform.isAndroid
-            ? ImageFormatGroup.nv21
-            : ImageFormatGroup.bgra8888,
-      );
-      await camera.initialize();
-      // La app va siempre en vertical: así el recuadro de pantalla y la
-      // imagen que se lee coinciden aunque se gire el teléfono.
-      await camera.lockCaptureOrientation(DeviceOrientation.portraitUp);
+      final (opened, description) = await abrirCamaraLector();
+      camera = opened;
       if (!mounted) {
         await camera.dispose();
         return;
@@ -139,13 +184,16 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
       _camera = camera;
       _description = description;
       _torch = false;
+      final tuning = CameraTuning(camera);
+      _tuning = tuning;
+      unawaited(tuning.load());
       await camera.startImageStream(_onFrame);
       if (mounted) setState(() => _error = null);
     } on CameraException catch (error) {
       // Sin cámara abierta a medias: "Reintentar" empieza de cero.
       _camera = null;
       await camera?.dispose();
-      if (mounted) setState(() => _error = _describe(error));
+      if (mounted) setState(() => _error = describirErrorCamara(error));
     } finally {
       _starting = false;
     }
@@ -154,6 +202,8 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
   Future<void> _stop({bool rebuild = true}) async {
     final camera = _camera;
     _camera = null;
+    _tuning?.dispose();
+    _tuning = null;
     _candidate = null;
     _stability.add(null);
     _reader.reset();
@@ -165,18 +215,6 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
       // Se cierra igual.
     }
     await camera.dispose();
-  }
-
-  String _describe(CameraException error) {
-    switch (error.code) {
-      case 'CameraAccessDenied':
-      case 'CameraAccessDeniedWithoutPrompt':
-      case 'CameraAccessRestricted':
-        return 'ServiceMET no tiene permiso para usar la cámara. '
-            'Actívelo en los ajustes del teléfono.';
-      default:
-        return 'No se pudo abrir la cámara: ${error.description ?? error.code}';
-    }
   }
 
   Future<void> _onFrame(CameraImage image) async {
@@ -192,8 +230,8 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     _busy = true;
     _lastFrame = now;
     try {
-      final rotation = _rotation(camera, description);
-      final frame = rotation == null ? null : _frame(image, rotation);
+      final rotation = rotacionCuadro(camera, description);
+      final frame = rotation == null ? null : cuadroDeCamara(image, rotation);
       if (frame == null) return;
       final best = await _reader.read(frame);
       if (!mounted || !identical(camera, _camera)) return;
@@ -211,64 +249,12 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
     }
   }
 
-  /// Giro de la imagen para que el texto quede derecho, según cómo está el
-  /// sensor montado y cómo se sostiene el teléfono.
-  InputImageRotation? _rotation(
-    CameraController camera,
-    CameraDescription description,
-  ) {
-    final sensor = description.sensorOrientation;
-    if (Platform.isIOS) return InputImageRotationValue.fromRawValue(sensor);
-    final device = _deviceRotation[camera.value.lockedCaptureOrientation ??
-        camera.value.deviceOrientation];
-    if (device == null) return null;
-    final degrees = description.lensDirection == CameraLensDirection.front
-        ? (sensor + device) % 360
-        : (sensor - device + 360) % 360;
-    return InputImageRotationValue.fromRawValue(degrees);
-  }
-
-  CameraFrame? _frame(CameraImage image, InputImageRotation rotation) {
-    final raw = image.format.raw;
-    final format = raw is int ? InputImageFormatValue.fromRawValue(raw) : null;
-    final supported = Platform.isAndroid
-        ? format == InputImageFormat.nv21
-        : format == InputImageFormat.bgra8888;
-    if (!supported || image.planes.length != 1) return null;
-    final plane = image.planes.single;
-    return CameraFrame(
-      bytes: plane.bytes,
-      width: image.width,
-      height: image.height,
-      bytesPerRow: plane.bytesPerRow,
-      rotation: rotation.rawValue,
-      bgra: !Platform.isAndroid,
-    );
-  }
-
   /// El OCR solo ve la franja del recuadro, ya derecha: con el cuadro
   /// entero, en un display VFD encontraba los rótulos de la balanza y no
   /// los dígitos.
   Future<List<List<OcrWord>>> _recognize(GrayImage band) async {
     if (!mounted || _camera == null) return const [];
-    final android = Platform.isAndroid;
-    final recognized = await _recognizer.processImage(InputImage.fromBytes(
-      bytes: android ? grayToNv21(band) : grayToBgra(band),
-      metadata: InputImageMetadata(
-        size: Size(band.width.toDouble(), band.height.toDouble()),
-        rotation: InputImageRotation.rotation0deg,
-        format: android ? InputImageFormat.nv21 : InputImageFormat.bgra8888,
-        bytesPerRow: android ? band.width : band.width * 4,
-      ),
-    ));
-    return [
-      for (final block in recognized.blocks)
-        for (final line in block.lines)
-          [
-            for (final element in line.elements)
-              OcrWord(element.text, element.boundingBox),
-          ],
-    ];
+    return reconocerFranja(_recognizer, band);
   }
 
   /// Enfoca y expone en [point], en fracciones de la imagen: tocar el
@@ -311,6 +297,13 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
         ),
         actions: [
           IconButton(
+            tooltip: 'Ajustes de cámara',
+            onPressed: _tuning == null
+                ? null
+                : () => CameraTuning.showSheet(context, _tuning!),
+            icon: const Icon(AppIcons.ajustes),
+          ),
+          IconButton(
             tooltip: _torch ? 'Apagar linterna' : 'Encender linterna',
             onPressed: camera == null ? null : _toggleTorch,
             icon: Icon(
@@ -330,10 +323,21 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.white),
                       )
-                    : _FullPreview(
+                    : IndicatorCameraView(
                         camera: camera,
-                        stable: stable,
-                        onTap: _focusAt,
+                        hint: 'Encuadre el display dentro del recuadro',
+                        regions: [
+                          CameraRegion(
+                            region: _region,
+                            label: 'Display',
+                            highlighted: stable,
+                          ),
+                        ],
+                        onTapFocus: _focusAt,
+                        onRegionChanged: (_, region) {
+                          _setRegion(region);
+                          _saveRegion();
+                        },
                       ),
           ),
           _ReadingPanel(
@@ -348,120 +352,6 @@ class _IndicatorReaderScreenState extends State<IndicatorReaderScreen>
       ),
     );
   }
-}
-
-/// La cámara a todo el espacio, recortando arriba y abajo, con la franja que
-/// se lee marcada. La franja está en fracciones de la imagen: se lleva a la
-/// pantalla con la misma escala y el mismo recorte que la vista previa, así
-/// coincide con lo que analiza el OCR.
-class _FullPreview extends StatelessWidget {
-  const _FullPreview({
-    required this.camera,
-    required this.stable,
-    required this.onTap,
-  });
-
-  final CameraController camera;
-  final bool stable;
-  final ValueChanged<Offset> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // previewSize viene acostado; la app va en vertical.
-    final preview = camera.value.previewSize!;
-    final image = Size(preview.height, preview.width);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final space = constraints.biggest;
-        final scale = space.width / image.width > space.height / image.height
-            ? space.width / image.width
-            : space.height / image.height;
-        final shown = image * scale;
-        final origin = Offset(
-          (space.width - shown.width) / 2,
-          (space.height - shown.height) / 2,
-        );
-        const region = IndicatorReaderScreen.region;
-        final band = Rect.fromLTRB(
-          origin.dx + region.left * shown.width,
-          origin.dy + region.top * shown.height,
-          origin.dx + region.right * shown.width,
-          origin.dy + region.bottom * shown.height,
-        );
-
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapUp: (details) => onTap(Offset(
-            (details.localPosition.dx - origin.dx) / shown.width,
-            (details.localPosition.dy - origin.dy) / shown.height,
-          )),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ClipRect(
-                child: OverflowBox(
-                  maxWidth: shown.width,
-                  maxHeight: shown.height,
-                  child: SizedBox.fromSize(
-                    size: shown,
-                    child: CameraPreview(camera),
-                  ),
-                ),
-              ),
-              CustomPaint(painter: _RegionPainter(band: band, stable: stable)),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: space.height - band.top + 10,
-                child: Text(
-                  'Encuadre el display dentro del recuadro',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    shadows: const [Shadow(blurRadius: 4)],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Oscurece todo menos la franja que se lee.
-class _RegionPainter extends CustomPainter {
-  const _RegionPainter({required this.band, required this.stable});
-
-  final Rect band;
-  final bool stable;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final hole = RRect.fromRectAndRadius(band, const Radius.circular(14));
-    canvas.drawPath(
-      Path()
-        ..fillType = PathFillType.evenOdd
-        ..addRect(Offset.zero & size)
-        ..addRRect(hole),
-      Paint()..color = Colors.black.withOpacity(0.55),
-    );
-    canvas.drawRRect(
-      hole,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = stable ? AppColors.actionPositive : Colors.white,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RegionPainter oldDelegate) =>
-      oldDelegate.stable != stable || oldDelegate.band != band;
 }
 
 class _ReadingPanel extends StatelessWidget {
