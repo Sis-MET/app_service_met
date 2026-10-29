@@ -16,6 +16,12 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 - [DATA_SERVICIOS_DATOS_MPR_STIL](#data-servicios-datos-mpr-stil) (315 columnas)
 - [DATA_SERVICIOS_DATOS_RVD](#data-servicios-datos-rvd) (188 columnas)
 - [DATA_SERVICIOS_DATOS_VFI](#data-servicios-datos-vfi) (170 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE](#data-servicios-datos-cal-te) (41 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE_PATRONES](#data-servicios-datos-cal-te-patrones) (8 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE_CANALES](#data-servicios-datos-cal-te-canales) (8 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE_PUNTOS](#data-servicios-datos-cal-te-puntos) (12 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS](#data-servicios-datos-cal-te-lecturas) (15 columnas)
+- [DATA_SERVICIOS_DATOS_CAL_TE_CORRECCIONES](#data-servicios-datos-cal-te-correcciones) (11 columnas)
 
 ---
 
@@ -2219,5 +2225,166 @@ Total de columnas: **170**
 | 168 | `inf_bal` | nvarchar | 100 | Sí | - |
 | 169 | `comentario_general` | nvarchar | 1000 | Sí | - |
 | 170 | `recomendacion` | nvarchar | 50 | Sí | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE
+
+Total de columnas: **41**
+
+Cabecera de cada calibración de temperatura (un equipo en una SECA). La crea `backend/sql/017_calibracion_temperatura.sql`; `uuid` y `codigo_registro` son únicos. La API inserta junto con ella una fila en `DATA_SERVICIOS_DATOS` con `tipo_servicio = CAL.TE`. No la valida este archivo: la ruta `POST /api/calibracion/temperatura` tiene su propia validación (`backend/src/temperatura/`).
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `n` | int | 10,0 | No | IDENTITY(1,1) |
+| 2 | `uuid` | uniqueidentifier | - | No | - |
+| 3 | `codigo_registro` | nvarchar | 100 | No | - |
+| 4 | `seca` | nvarchar | 50 | No | - |
+| 5 | `session_id` | nvarchar | 100 | No | - |
+| 6 | `cod_metrica` | nvarchar | 50 | No | - |
+| 7 | `equipo_nuevo` | bit | - | No | 0 |
+| 8 | `codigo_cliente` | nvarchar | 20 | Sí | - |
+| 9 | `cliente` | nvarchar | 255 | Sí | - |
+| 10 | `razon_social` | nvarchar | 255 | Sí | - |
+| 11 | `cod_planta` | nvarchar | 20 | Sí | - |
+| 12 | `planta` | nvarchar | 255 | Sí | - |
+| 13 | `dep` | nvarchar | 100 | Sí | - |
+| 14 | `dir` | nvarchar | 255 | Sí | - |
+| 15 | `tipo_equipo` | nvarchar | 60 | No | - |
+| 16 | `instrumento` | nvarchar | 150 | Sí | - |
+| 17 | `marca` | nvarchar | 100 | Sí | - |
+| 18 | `modelo` | nvarchar | 100 | Sí | - |
+| 19 | `serie` | nvarchar | 100 | Sí | - |
+| 20 | `cod_interno` | nvarchar | 100 | Sí | - |
+| 21 | `ubicacion` | nvarchar | 255 | Sí | - |
+| 22 | `rango_min` | decimal | 9,3 | No | - |
+| 23 | `rango_max` | decimal | 9,3 | No | - |
+| 24 | `unidad` | nvarchar | 5 | No | - |
+| 25 | `resolucion` | decimal | 9,4 | No | - |
+| 26 | `indicador` | nvarchar | 30 | Sí | - |
+| 27 | `temp_amb_inicio` | decimal | 6,2 | Sí | - |
+| 28 | `hr_inicio` | decimal | 6,2 | Sí | - |
+| 29 | `temp_amb_fin` | decimal | 6,2 | Sí | - |
+| 30 | `hr_fin` | decimal | 6,2 | Sí | - |
+| 31 | `fecha_servicio` | date | - | No | - |
+| 32 | `hora_inicio` | datetimeoffset | - | Sí | - |
+| 33 | `hora_fin` | datetimeoffset | - | Sí | - |
+| 34 | `finalizado_en` | datetimeoffset | - | Sí | - |
+| 35 | `personal` | nvarchar | 150 | No | - |
+| 36 | `observaciones` | nvarchar | 2000 | Sí | - |
+| 37 | `registro_sensores` | nvarchar | 255 | Sí | - |
+| 38 | `app_version` | nvarchar | 30 | Sí | - |
+| 39 | `reg_usuario` | nvarchar | 100 | No | - |
+| 40 | `reg_por` | nvarchar | 50 | No | - |
+| 41 | `fecha_reg` | datetime2 | - | No | SYSDATETIME() |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE_PATRONES
+
+Total de columnas: **8**
+
+Patrones (`uso = temperatura`) y termohigrómetro (`uso = ambiente`) de cada calibración. Clave: `servicio_uuid`, `n`.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `servicio_uuid` | uniqueidentifier | - | No | - |
+| 2 | `n` | int | 10,0 | No | - |
+| 3 | `cod_instrumento` | nvarchar | 50 | No | - |
+| 4 | `instrumento` | nvarchar | 150 | Sí | - |
+| 5 | `cert_fecha` | nvarchar | 30 | Sí | - |
+| 6 | `ente_calibrador` | nvarchar | 150 | Sí | - |
+| 7 | `estado` | nvarchar | 50 | Sí | - |
+| 8 | `uso` | nvarchar | 20 | No | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE_CANALES
+
+Total de columnas: **8**
+
+El indicador del equipo (`rol = equipo`, `metodo = camara` o `manual`), que se registra en cada lectura, y los sensores del patrón que van dentro del equipo (`rol = patron`, `metodo = externo`, con su `posicion`): graban en el software de su registrador y no tienen lecturas aquí; `registro_sensores` de la cabecera dice dónde quedaron. Clave: `servicio_uuid`, `n_canal`.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `servicio_uuid` | uniqueidentifier | - | No | - |
+| 2 | `n_canal` | int | 10,0 | No | - |
+| 3 | `nombre` | nvarchar | 60 | No | - |
+| 4 | `rol` | nvarchar | 10 | No | - |
+| 5 | `cod_patron` | nvarchar | 50 | Sí | - |
+| 6 | `posicion` | nvarchar | 100 | Sí | - |
+| 7 | `metodo` | nvarchar | 10 | No | - |
+| 8 | `decimales` | tinyint | 3,0 | No | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE_PUNTOS
+
+Total de columnas: **12**
+
+Cada temperatura medida, con su lapso (`duracion_min`), su intervalo (`intervalo_s`) y la cantidad de lecturas programadas. Clave: `servicio_uuid`, `n_punto`.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `servicio_uuid` | uniqueidentifier | - | No | - |
+| 2 | `n_punto` | int | 10,0 | No | - |
+| 3 | `temperatura_nominal` | decimal | 9,3 | No | - |
+| 4 | `estabilizacion_min` | decimal | 9,2 | Sí | - |
+| 5 | `duracion_min` | decimal | 9,2 | No | - |
+| 6 | `intervalo_s` | int | 10,0 | No | - |
+| 7 | `lecturas_programadas` | int | 10,0 | No | - |
+| 8 | `estado` | nvarchar | 20 | No | - |
+| 9 | `inicio_medicion` | datetimeoffset | - | Sí | - |
+| 10 | `fin_medicion` | datetimeoffset | - | Sí | - |
+| 11 | `motivo_interrupcion` | nvarchar | 500 | Sí | - |
+| 12 | `observaciones` | nvarchar | 1000 | Sí | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS
+
+Total de columnas: **15**
+
+La observación original de cada canal en cada hora programada. `valor_original` es el valor como se tomó; `valor`, el vigente tras una corrección. Clave: `servicio_uuid`, `n_punto`, `n_lectura`, `n_canal`.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `servicio_uuid` | uniqueidentifier | - | No | - |
+| 2 | `n_punto` | int | 10,0 | No | - |
+| 3 | `n_lectura` | int | 10,0 | No | - |
+| 4 | `n_canal` | int | 10,0 | No | - |
+| 5 | `tiempo_programado_s` | int | 10,0 | No | - |
+| 6 | `capturada_en` | datetimeoffset | - | No | - |
+| 7 | `valor` | decimal | 9,3 | Sí | - |
+| 8 | `valor_original` | decimal | 9,3 | Sí | - |
+| 9 | `texto_leido` | nvarchar | 60 | Sí | - |
+| 10 | `origen` | nvarchar | 20 | No | - |
+| 11 | `coincidencia` | decimal | 4,3 | Sí | - |
+| 12 | `cuadros` | smallint | 5,0 | Sí | - |
+| 13 | `alerta` | nvarchar | 100 | Sí | - |
+| 14 | `estado` | nvarchar | 20 | No | - |
+| 15 | `motivo` | nvarchar | 200 | Sí | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CAL_TE_CORRECCIONES
+
+Total de columnas: **11**
+
+Historial de cada cambio de una lectura (corrección, exclusión, restitución) con su motivo, usuario y fecha. Solo se agregan filas.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `id` | int | 10,0 | No | IDENTITY(1,1) |
+| 2 | `servicio_uuid` | uniqueidentifier | - | No | - |
+| 3 | `n_punto` | int | 10,0 | No | - |
+| 4 | `n_lectura` | int | 10,0 | No | - |
+| 5 | `n_canal` | int | 10,0 | No | - |
+| 6 | `tipo` | nvarchar | 20 | No | - |
+| 7 | `valor_anterior` | decimal | 9,3 | Sí | - |
+| 8 | `valor_nuevo` | decimal | 9,3 | Sí | - |
+| 9 | `motivo` | nvarchar | 500 | No | - |
+| 10 | `usuario` | nvarchar | 150 | No | - |
+| 11 | `fecha` | datetimeoffset | - | No | - |
 
 ---
