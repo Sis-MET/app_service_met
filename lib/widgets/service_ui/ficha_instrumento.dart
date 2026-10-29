@@ -141,10 +141,22 @@ class FichaInstrumentoEncabezado extends StatelessWidget {
     this.nCeldas,
     this.esNueva,
     this.acento = AppColors.actionPositive,
+    this.icono = AppIcons.balanza,
+    this.avisoProvisional = 'Código provisional. Registre la balanza en '
+        'DataMET; antes de subir los datos podrá cambiarlo por el código '
+        'definitivo.',
+    this.pie,
   });
 
   final String? codMetrica;
   final List<RangoInstrumento> rangos;
+
+  /// El ícono del instrumento (balanza; termómetro en temperatura).
+  final IconData icono;
+  final String avisoProvisional;
+
+  /// Lo que va al pie en lugar de los rangos de pesaje.
+  final Widget? pie;
   final String? marca;
   final String? modelo;
   final String? serie;
@@ -200,7 +212,7 @@ class FichaInstrumentoEncabezado extends StatelessWidget {
                     color: acento.withOpacity(0.13),
                     borderRadius: AppDesign.smallRadius,
                   ),
-                  child: Icon(AppIcons.balanza, color: acento, size: 20),
+                  child: Icon(icono, color: acento, size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -263,9 +275,7 @@ class FichaInstrumentoEncabezado extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Código provisional. Registre la balanza en DataMET; '
-                      'antes de subir los datos podrá cambiarlo por el '
-                      'código definitivo.',
+                      avisoProvisional,
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         height: 1.35,
@@ -306,13 +316,14 @@ class FichaInstrumentoEncabezado extends StatelessWidget {
           Divider(height: 1, color: divisor),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            child: rangos.isEmpty
-                ? Text(
-                    'Sin capacidades registradas',
-                    style: GoogleFonts.inter(
-                        fontSize: 13, color: cs.onSurfaceVariant),
-                  )
-                : EscalaRangos(rangos: rangos, unidad: unidad),
+            child: pie ??
+                (rangos.isEmpty
+                    ? Text(
+                        'Sin capacidades registradas',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: cs.onSurfaceVariant),
+                      )
+                    : EscalaRangos(rangos: rangos, unidad: unidad)),
           ),
         ],
       ),

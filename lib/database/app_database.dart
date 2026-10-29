@@ -7,6 +7,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../screens/calibracion_temperatura/data/temperatura_store.dart';
 import '../services/ubicacion_servicio.dart';
 import 'calibration_data_normalizer.dart';
 
@@ -405,6 +406,8 @@ class AppDatabase {
           await _createServicioStatusTable(db);
           await _ensureServicioStatusColumns(db);
           await _createCalibrationUploadStatusTable(db);
+          // Calibración de temperatura: sus tablas viven en esta misma base.
+          await TemperaturaStore.crearTablas(db);
           debugPrint('Base de datos abierta correctamente: $path');
         },
       );
@@ -870,6 +873,7 @@ class AppDatabase {
       await _createServicioStatusTable(db);
       await _ensureServicioStatusColumns(db);
       await _createCalibrationUploadStatusTable(db);
+      await TemperaturaStore.crearTablas(db);
       debugPrint('Tabla servicio_status creada exitosamente');
     } catch (e) {
       debugPrint('Error creando tabla: $e');

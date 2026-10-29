@@ -342,6 +342,35 @@ class DatabaseHelperPrecarga {
     return rows.isEmpty ? null : rows.first;
   }
 
+  /// Instrumentos de la planta [prefix] ("0032-11") registrados en DataMET
+  /// que no son balanzas: muflas, hornos, estufas…
+  Future<List<Map<String, dynamic>>> getInstrumentosNoBalanzaPorPrefix(
+    String prefix,
+  ) async {
+    final db = await database;
+    return db.rawQuery('''
+      SELECT i.* FROM inf i
+      WHERE i.cod_metrica LIKE ?
+        AND NOT EXISTS (
+          SELECT 1 FROM balanzas b
+          WHERE b.cod_metrica = i.cod_metrica COLLATE NOCASE
+        )
+      ORDER BY i.cod_metrica
+    ''', ['$prefix-%']);
+  }
+
+  /// La ficha de un instrumento por su código métrica, o null.
+  Future<Map<String, dynamic>?> getInfPorCodigo(String codMetrica) async {
+    final db = await database;
+    final rows = await db.query(
+      'inf',
+      where: 'cod_metrica = ? COLLATE NOCASE',
+      whereArgs: [codMetrica.trim()],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first;
+  }
+
   Future<List<Map<String, dynamic>>> getInf() async {
     final db = await database;
     return await db.query('inf');

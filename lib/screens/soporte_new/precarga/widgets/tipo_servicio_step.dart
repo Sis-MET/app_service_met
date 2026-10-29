@@ -11,11 +11,21 @@ class TipoServicioStep extends StatelessWidget {
   final String? selectedServicio;
   final ValueChanged<String> onServicioSelected;
 
+  /// Encabezado del paso; calibración usa el mismo selector con su texto.
+  final String title;
+  final String subtitle;
+
+  /// Lo que va debajo de las tarjetas (p. ej., acceso a los registros).
+  final Widget? footer;
+
   const TipoServicioStep({
     super.key,
     required this.servicios,
     this.selectedServicio,
     required this.onServicioSelected,
+    this.title = 'Tipo de Servicio',
+    this.subtitle = 'Seleccione la modalidad de soporte técnico a ejecutar',
+    this.footer,
   });
 
   @override
@@ -27,9 +37,9 @@ class TipoServicioStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ServiceStepHeader(
-            title: 'Tipo de Servicio',
-            subtitle: 'Seleccione la modalidad de soporte técnico a ejecutar',
+          ServiceStepHeader(
+            title: title,
+            subtitle: subtitle,
           ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.2),
           const SizedBox(height: 24),
           LayoutBuilder(
@@ -76,6 +86,10 @@ class TipoServicioStep extends StatelessWidget {
               );
             },
           ),
+          if (footer != null) ...[
+            const SizedBox(height: 20),
+            footer!,
+          ],
         ],
       ),
     );

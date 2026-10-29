@@ -5,6 +5,61 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_design.dart';
 import '../../../theme/app_icons.dart';
 
+/// Los textos del selector: las pesas de balanzas o, con otros textos, los
+/// patrones de otra calibración (termómetros, termohigrómetros).
+class PatronSelectorTexts {
+  const PatronSelectorTexts({
+    required this.title,
+    required this.emptyHint,
+    required this.filledHint,
+    required this.sheetTitle,
+    required this.searchHint,
+    required this.chooseLabel,
+    required this.loadingLabel,
+    required this.loadFailed,
+    required this.noMatches,
+    required this.noMatchesHint,
+    required this.emptyCatalog,
+    required this.emptyCatalogHint,
+    required this.defaultType,
+    required this.footer,
+  });
+
+  static const pesas = PatronSelectorTexts(
+    title: 'Patrones utilizados',
+    emptyHint: 'Añade las pesas o juegos que usaste en la calibración.',
+    filledHint: 'Revisa la cantidad utilizada de cada patrón.',
+    sheetTitle: 'Pesas patrón',
+    searchHint: 'Buscar código o tipo de pesa',
+    chooseLabel: 'Seleccionar pesas patrón',
+    loadingLabel: 'Cargando pesas…',
+    loadFailed: 'No se pudo cargar el catálogo de pesas.',
+    noMatches: 'No hay pesas que coincidan',
+    noMatchesHint: 'Prueba con otro código o tipo de pesa.',
+    emptyCatalog: 'No hay pesas en la precarga',
+    emptyCatalogHint: 'Actualiza la precarga para disponer del catálogo.',
+    defaultType: 'Pesa patrón',
+    footer: 'Hasta 5 patrones · La cantidad se indica por separado',
+  );
+
+  final String title;
+  final String emptyHint;
+  final String filledHint;
+  final String sheetTitle;
+  final String searchHint;
+  final String chooseLabel;
+  final String loadingLabel;
+  final String loadFailed;
+  final String noMatches;
+  final String noMatchesHint;
+  final String emptyCatalog;
+  final String emptyCatalogHint;
+
+  /// Tipo que se muestra si el equipo no tiene uno en la precarga.
+  final String defaultType;
+  final String footer;
+}
+
 /// Selección de patrones del servicio. El catálogo se confirma como un conjunto;
 /// cerrar el selector conserva las pesas y cantidades que ya estaban guardadas.
 class PatronWeightsSelector extends StatelessWidget {
@@ -13,20 +68,29 @@ class PatronWeightsSelector extends StatelessWidget {
     required this.catalog,
     required this.selected,
     required this.onChanged,
-    required this.onEditQuantity,
+    this.onEditQuantity,
     this.loading = false,
     this.loadFailed = false,
     this.onRetry,
+    this.texts = PatronSelectorTexts.pesas,
+    this.icon = AppIcons.balanza,
+    this.maxSelection = maxWeights,
   });
 
   static const maxWeights = 5;
   final List<EquipoInfo> catalog;
   final List<EquipoInfo> selected;
   final ValueChanged<List<EquipoInfo>> onChanged;
-  final ValueChanged<EquipoInfo> onEditQuantity;
+
+  /// Sin él no se muestra la cantidad (un termómetro no se cuenta por
+  /// unidades como un juego de pesas).
+  final ValueChanged<EquipoInfo>? onEditQuantity;
   final bool loading;
   final bool loadFailed;
   final VoidCallback? onRetry;
+  final PatronSelectorTexts texts;
+  final IconData icon;
+  final int maxSelection;
 
   Future<void> _choose(BuildContext context) async {
     FocusScope.of(context).unfocus();
@@ -35,7 +99,12 @@ class PatronWeightsSelector extends StatelessWidget {
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _WeightsSheet(catalog: catalog, selected: selected),
+      builder: (_) => _WeightsSheet(
+        catalog: catalog,
+        selected: selected,
+        texts: texts,
+        maxSelection: maxSelection,
+      ),
     );
     if (result != null && context.mounted) onChanged(result);
   }
@@ -52,23 +121,21 @@ class PatronWeightsSelector extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const _WeightIcon(),
+          _WeightIcon(icon: icon),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Patrones utilizados',
+            child: Text(texts.title,
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
                     ?.copyWith(fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 8),
-          _CountPill(count: selected.length),
+          _CountPill(count: selected.length, max: maxSelection),
         ]),
         const SizedBox(height: 10),
         Text(
-          selected.isEmpty
-              ? 'Añade las pesas o juegos que usaste en la calibración.'
-              : 'Revisa la cantidad utilizada de cada patrón.',
+          selected.isEmpty ? texts.emptyHint : texts.filledHint,
           style: TextStyle(color: colors.onSurfaceVariant, height: 1.4),
         ),
         for (final weight in selected) ...[
@@ -98,37 +165,38 @@ class PatronWeightsSelector extends StatelessWidget {
                       icon: const Icon(AppIcons.cerrar, size: 20),
                     ),
                   ]),
-                  Text(weight.tipo ?? 'Pesa patrón',
+                  Text(weight.tipo ?? texts.defaultType,
                       style: TextStyle(color: colors.onSurfaceVariant)),
                   const SizedBox(height: 10),
                   _Certificate(weight: weight),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () => onEditQuantity(weight),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.onSurface,
-                      side: BorderSide(color: colors.outlineVariant),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                  if (onEditQuantity != null) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => onEditQuantity!(weight),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colors.onSurface,
+                        side: BorderSide(color: colors.outlineVariant),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: Row(children: [
+                        const Expanded(child: Text('Cantidad utilizada')),
+                        Text(weight.cantidad ?? '1',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 17)),
+                        const SizedBox(width: 12),
+                        const Icon(AppIcons.editar, size: 18),
+                      ]),
                     ),
-                    child: Row(children: [
-                      const Expanded(child: Text('Cantidad utilizada')),
-                      Text(weight.cantidad ?? '1',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 17)),
-                      const SizedBox(width: 12),
-                      const Icon(AppIcons.editar, size: 18),
-                    ]),
-                  ),
+                  ],
                 ]),
           ),
         ],
         const SizedBox(height: 16),
         if (loadFailed) ...[
-          Text('No se pudo cargar el catálogo de pesas.',
-              style: TextStyle(color: colors.error)),
+          Text(texts.loadFailed, style: TextStyle(color: colors.error)),
           TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(AppIcons.actualizar),
@@ -145,13 +213,13 @@ class PatronWeightsSelector extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : Icon(selected.isEmpty ? AppIcons.agregar : AppIcons.filtros),
             label: Text(loading
-                ? 'Cargando pesas…'
+                ? texts.loadingLabel
                 : selected.isEmpty
-                    ? 'Seleccionar pesas patrón'
+                    ? texts.chooseLabel
                     : 'Cambiar selección'),
           ),
         const SizedBox(height: 8),
-        Text('Hasta 5 patrones · La cantidad se indica por separado',
+        Text(texts.footer,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: colors.onSurfaceVariant)),
       ]),
@@ -160,9 +228,16 @@ class PatronWeightsSelector extends StatelessWidget {
 }
 
 class _WeightsSheet extends StatefulWidget {
-  const _WeightsSheet({required this.catalog, required this.selected});
+  const _WeightsSheet({
+    required this.catalog,
+    required this.selected,
+    required this.texts,
+    required this.maxSelection,
+  });
   final List<EquipoInfo> catalog;
   final List<EquipoInfo> selected;
+  final PatronSelectorTexts texts;
+  final int maxSelection;
 
   @override
   State<_WeightsSheet> createState() => _WeightsSheetState();
@@ -206,7 +281,9 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                 .toLowerCase()
                 .contains(query))
         .toList();
-    final atLimit = _draft.length >= PatronWeightsSelector.maxWeights;
+    final texts = widget.texts;
+    final max = widget.maxSelection;
+    final atLimit = _draft.length >= max;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: keyboard),
@@ -223,12 +300,12 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                   padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
                   child: Row(children: [
                     Expanded(
-                        child: Text('Pesas patrón',
+                        child: Text(texts.sheetTitle,
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(fontWeight: FontWeight.w800))),
-                    _CountPill(count: _draft.length),
+                    _CountPill(count: _draft.length, max: max),
                     IconButton(
                         tooltip: 'Cancelar selección',
                         onPressed: () => Navigator.pop(context),
@@ -255,7 +332,7 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                                 controller: _search,
                                 onChanged: (_) => setState(() {}),
                                 decoration: InputDecoration(
-                                  hintText: 'Buscar código o tipo de pesa',
+                                  hintText: texts.searchHint,
                                   prefixIcon: const Icon(AppIcons.buscar),
                                   suffixIcon: query.isEmpty
                                       ? null
@@ -288,8 +365,8 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                               const SizedBox(height: 8),
                               Text(
                                   atLimit
-                                      ? 'Límite de 5 alcanzado. Quita una para elegir otra.'
-                                      : 'Puedes elegir hasta 5 patrones.',
+                                      ? 'Límite de $max alcanzado. Quita una para elegir otra.'
+                                      : 'Puedes elegir hasta $max patrones.',
                                   style: TextStyle(
                                       fontSize: 12,
                                       color: colors.onSurfaceVariant)),
@@ -305,20 +382,20 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                           const SizedBox(height: 12),
                           Text(
                               query.isNotEmpty
-                                  ? 'No hay pesas que coincidan'
+                                  ? texts.noMatches
                                   : _onlySelected
                                       ? 'Aún no seleccionaste patrones'
-                                      : 'No hay pesas en la precarga',
+                                      : texts.emptyCatalog,
                               textAlign: TextAlign.center,
                               style:
                                   const TextStyle(fontWeight: FontWeight.w700)),
                           const SizedBox(height: 6),
                           Text(
                               query.isNotEmpty
-                                  ? 'Prueba con otro código o tipo de pesa.'
+                                  ? texts.noMatchesHint
                                   : _onlySelected
                                       ? 'Abre «Todas» para añadirlas.'
-                                      : 'Actualiza la precarga para disponer del catálogo.',
+                                      : texts.emptyCatalogHint,
                               textAlign: TextAlign.center,
                               style: TextStyle(color: colors.onSurfaceVariant)),
                         ]),
@@ -387,7 +464,7 @@ class _WeightsSheetState extends State<_WeightsSheet> {
                                                   const SizedBox(height: 4),
                                                   Text(
                                                       weight.tipo ??
-                                                          'Pesa patrón',
+                                                          texts.defaultType,
                                                       style: TextStyle(
                                                           color: colors
                                                               .onSurfaceVariant)),
@@ -440,7 +517,8 @@ class _WeightsSheetState extends State<_WeightsSheet> {
 }
 
 class _WeightIcon extends StatelessWidget {
-  const _WeightIcon();
+  const _WeightIcon({required this.icon});
+  final IconData icon;
   @override
   Widget build(BuildContext context) => Container(
         width: 44,
@@ -448,21 +526,22 @@ class _WeightIcon extends StatelessWidget {
         decoration: BoxDecoration(
             color: AppColors.accentYellow.withOpacity(.15),
             borderRadius: BorderRadius.circular(12)),
-        child: const Icon(AppIcons.balanza, size: 24),
+        child: Icon(icon, size: 24),
       );
 }
 
 class _CountPill extends StatelessWidget {
-  const _CountPill({required this.count});
+  const _CountPill({required this.count, this.max = 5});
   final int count;
+  final int max;
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(20)),
-        child: Text('$count / 5',
-            semanticsLabel: '$count de 5 patrones seleccionados',
+        child: Text('$count / $max',
+            semanticsLabel: '$count de $max patrones seleccionados',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
       );
 }

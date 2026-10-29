@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import '../../models/service_session.dart';
 import '../../repositories/calibration_repository.dart';
 import '../../screens/calibracion/calibration_workspace_screen.dart';
+import '../../screens/calibracion/tipo_calibracion_screen.dart';
+import '../../screens/calibracion_temperatura/data/temperatura_store.dart';
+import '../../screens/calibracion_temperatura/models/temperatura_models.dart';
+import '../../screens/calibracion_temperatura/temperatura_registros_screen.dart';
+import '../../screens/calibracion_temperatura/temperatura_workspace_screen.dart';
 import '../../screens/oportunidades/models/opportunity_service_context.dart';
 import '../../screens/oportunidades/services/opportunity_auto_sync.dart';
 import '../../screens/oportunidades/widgets/opportunities_entry_tile.dart';
@@ -113,7 +118,7 @@ class _ServiciosTabState extends State<ServiciosTab> {
                 title: 'Calibración',
                 eyebrow: 'METROLOGÍA',
                 description:
-                    'Calibración de balanzas, tanques y pesas patrón con seguimiento por etapas.',
+                    'Calibración de balanzas y de equipos de temperatura (muflas, hornos, estufas) con seguimiento por etapas.',
                 actionLabel: 'Iniciar calibración',
                 color: AppColors.actionPositive,
                 onTap: () => _openCalibration(context),
@@ -178,8 +183,113 @@ class _ServiciosTabState extends State<ServiciosTab> {
   }
 
   Future<void> _openCalibration(BuildContext context) async {
-    await _startCalibration(context);
+    var pendientes = 0;
+    try {
+      pendientes = await TemperaturaStore().contarSinSubir();
+    } catch (_) {
+      // Sin el conteo se abre igual.
+    }
+    if (!context.mounted) return;
+    final tipo = await TipoCalibracionScreen.elegir(
+      context,
+      pendientesTemperatura: pendientes,
+      onRegistrosTemperatura: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TemperaturaRegistrosScreen(userName: userName),
+        ),
+      ),
+    );
+    if (!context.mounted || tipo == null) return;
+    switch (tipo) {
+      case TipoCalibracion.balanzas:
+        await _startCalibration(context);
+      case TipoCalibracion.temperatura:
+        await _startTemperatura(context);
+    }
     _refrescarFormularios();
+  }
+
+  /// Calibración de temperatura: si hay una sin terminar, se ofrece
+  /// continuarla; descartarla la deja guardada como descartada.
+  Future<void> _startTemperatura(BuildContext context) async {
+    final store = TemperaturaStore();
+    List<TempServicio> pendientes;
+    try {
+      pendientes = await store.pendientes(userName);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('No se pudieron leer las calibraciones: $error'),
+        ));
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    String? uuid;
+    if (pendientes.isNotEmpty) {
+      final last = pendientes.first;
+      final action = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(AppIcons.pendiente, color: AppColors.warning),
+          title: const Text('Calibración de temperatura pendiente'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Encontramos una calibración que todavía no '
+                  'finalizaste.'),
+              const SizedBox(height: 16),
+              AppPanel(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    _detail('Cliente', last.cliente?.nombre),
+                    _detail('Planta', last.planta?.nombre),
+                    _detail('SECA', last.seca),
+                    _detail('Equipo', last.equipo?.codMetrica),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.pop(dialogContext, 'new'),
+              child: const Text('Descartar y crear otra'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, 'continue'),
+              child: const Text('Continuar'),
+            ),
+          ],
+        ),
+      );
+      if (action == null || !context.mounted) return;
+      if (action == 'continue') {
+        uuid = last.uuid;
+      } else {
+        try {
+          await store.abandonar(last.uuid);
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('No se pudo descartar la calibración pendiente.'),
+            ));
+          }
+          return;
+        }
+      }
+    }
+    if (!context.mounted) return;
+    await Navigator.push(
+      context,
+      RequiereUbicacion.ruta(
+        TemperaturaWorkspaceScreen(userName: userName, uuid: uuid),
+      ),
+    );
   }
 
   Future<void> _startCalibration(BuildContext context) async {

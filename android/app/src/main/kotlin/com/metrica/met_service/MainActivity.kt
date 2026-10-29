@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
+import android.view.WindowManager
 import androidx.annotation.NonNull
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
@@ -28,6 +29,7 @@ class MainActivity : FlutterFragmentActivity() {
     private companion object {
         const val CHANNEL = "bo.metrica.smet/saf"
         const val PERMISOS_CHANNEL = "bo.metrica.smet/permisos"
+        const val PANTALLA_CHANNEL = "bo.metrica.smet/pantalla"
         const val REQUEST_PICK_TREE = 0x5AF0
         const val PERSISTABLE_FLAGS =
             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
@@ -48,6 +50,25 @@ class MainActivity : FlutterFragmentActivity() {
                         ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
                             PackageManager.PERMISSION_GRANTED
                     )
+                    else -> result.notImplemented()
+                }
+            }
+        // Mientras dura una medición programada (calibración de temperatura)
+        // la pantalla no se apaga: con ella se detendría la cámara.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PANTALLA_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "mantenerEncendida" -> {
+                        val encendida = call.argument<Boolean>("encendida") == true
+                        runOnUiThread {
+                            if (encendida) {
+                                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            } else {
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                            }
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
