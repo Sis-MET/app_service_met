@@ -20,6 +20,8 @@ const { createBitrixService } = require('./bitrix/bitrix-service');
 const { BITRIX_SCOPE, createBitrixRouter } = require('./bitrix/bitrix-routes');
 const { defaultExtrasService } = require('./extras/extras-service');
 const { EXTRAS_SCOPE, createExtrasRouter } = require('./extras/extras-routes');
+const { defaultTemperaturaService } = require('./temperatura/temperatura-service');
+const { createTemperaturaRouter } = require('./temperatura/temperatura-routes');
 
 function defaultBitrixService(bitrixConfig) {
   if (!bitrixConfig?.enabled) return null;
@@ -122,6 +124,20 @@ function createApp(config, schema, supportSchemas = new Map(), options = {}) {
       return next(error);
     }
   });
+
+  // Calibración de temperatura (muflas, hornos…): cabecera, patrones,
+  // canales, puntos, lecturas y correcciones en una sola transacción, en las
+  // tablas del script sql/017 de DataMET.
+  const temperaturaService = options.temperaturaService !== undefined
+    ? options.temperaturaService
+    : defaultTemperaturaService(config);
+  if (temperaturaService) {
+    app.use('/api/calibracion/temperatura', createTemperaturaRouter({
+      service: temperaturaService,
+      requireAuth,
+      requireScope,
+    }));
+  }
 
   app.post('/api/calibracion/validar', requireAuth, async (req, res, next) => {
     try {
