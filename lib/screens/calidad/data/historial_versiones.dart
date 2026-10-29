@@ -3,7 +3,26 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[];
+const cambiosSinLiberar = <String>[
+  'Calibración: primero se elige el tipo (balanzas o temperatura), con el '
+      'mismo selector de soporte.',
+  'Nueva calibración de temperatura (muflas, hornos, estufas): mismos pasos '
+      'y diseño que balanzas; patrones solo de temperatura; el indicador del '
+      'equipo (Digital por defecto) se registra en cada lectura y los '
+      'sensores del patrón se anotan con la referencia del software de su '
+      'registrador.',
+  'Lecturas programadas: lapso en minutos e intervalo en segundos; la '
+      'cámara registra una lectura solo con tres cuadros iguales y guarda la '
+      'imagen del display; si no lee, se escribe a mano o queda "sin lectura" '
+      'con motivo.',
+  'Correcciones y exclusiones de lecturas con motivo: el valor original se '
+      'conserva y el historial viaja a DataMET.',
+  'Subida de la calibración de temperatura a DataMET (tablas del script '
+      '017, solo inserción; tipo de servicio CAL.TE en el resumen).',
+  'Lector del indicador: recuadro movible que se recuerda, zoom, exposición '
+      'y bloqueo de la cámara, displays de color, unidad °C/°F y mensajes sin '
+      'valor, y "Verificar lectura".',
+];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).

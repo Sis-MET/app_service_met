@@ -27,6 +27,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'calibración, OTST-MÓDULO-COD_METRICA en soporte).',
         'La API rechaza códigos repetidos dentro del lote y los ya '
             'existentes en DataMET.',
+        'Calibración de temperatura: cada registro tiene un uuid y el código '
+            'SECA-COD_METRICA, únicos en DataMET; sus lecturas se identifican '
+            'por punto, número de lectura y canal '
+            '(backend/sql/017_calibracion_temperatura.sql).',
       ],
     ),
     Requisito(
@@ -41,6 +45,11 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         'La hora de inicio se toma del reloj del teléfono al abrir la '
             'inspección visual.',
         'El servidor guarda su propia fecha al recibir el registro.',
+        'En la calibración de temperatura cada lectura guarda la hora del '
+            'teléfono con milisegundos y su desfase, y cada punto la hora de '
+            'inicio y fin; la hora de fin del servicio se toma del reloj al '
+            'finalizar (lib/screens/calibracion_temperatura/captura/'
+            'captura_programada.dart).',
       ],
       brecha: 'La hora de fin se escribe a mano y no se conserva la hora de '
           'captura de cada prueba.',
@@ -138,6 +147,11 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
         'El técnico ve y puede corregir los valores sugeridos o leídos por '
             'la cámara antes de guardarlos.',
         'Se guardan fotos de la balanza, del entorno y de linealidad.',
+        'En la calibración de temperatura cada lectura de la cámara guarda la '
+            'imagen del display, lo que leyó, la coincidencia de la ráfaga y '
+            'su valor original; una lectura que no se pudo tomar queda «sin '
+            'lectura» con su motivo, nunca con un valor inventado '
+            '(test/screens/temperatura/captura_programada_test.dart).',
       ],
       brecha: 'La lectura del indicador por cámara no guarda la imagen '
           'usada: el valor queda sin su evidencia original.',
@@ -172,6 +186,12 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'corregir un dato ya registrado exige motivo; el historial se ve '
             'en la ficha del RIM (backend/sql/'
             '016_rim_ejecucion_y_entrega.sql).',
+        'Calibración de temperatura: corregir o excluir una lectura exige '
+            'motivo y agrega una fila con valor anterior, nuevo, técnico y '
+            'fecha; la lectura conserva su valor original, un registro '
+            'finalizado ya no se corrige y el historial se sube a DataMET '
+            '(DATA_SERVICIOS_DATOS_CAL_TE_CORRECCIONES; '
+            'test/screens/temperatura/temperatura_store_test.dart).',
       ],
       brecha: 'El historial vive en la base del teléfono: no viaja a DataMET '
           'con el registro y depende del respaldo del dispositivo.',
@@ -542,6 +562,11 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       evidencias: [
         'Hay pruebas automáticas de normalización, validación y lectura del '
             'indicador.',
+        'Los resultados preliminares de temperatura (promedio, desviación, '
+            'variación, uniformidad y error) se comparan con valores '
+            'calculados a mano (test/screens/temperatura/'
+            'captura_programada_test.dart); el número de lecturas de un punto '
+            'se calcula igual en la app y en la API.',
       ],
       brecha: 'Falta identificar cada cálculo metrológico de la app y '
           'contrastarlo con valores de referencia.',
@@ -565,6 +590,9 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'guarda en el resumen dentro de la misma transacción; una '
             'ubicación fuera de rango se descarta sin impedir la subida '
             '(backend/src/location.js, backend/test/location.test.js).',
+        'La calibración de temperatura se valida en la API y se inserta '
+            'completa en una transacción; con el mismo uuid responde que ya '
+            'estaba, sin duplicar (backend/test/temperatura.test.js).',
       ],
     ),
     Requisito(

@@ -11,8 +11,8 @@ const manualServiceMet = ManualUso(
   control: ControlDocumento(
     codigo: 'PENDIENTE: código asignado por Calidad',
     titulo: 'Manual de uso de ServiceMET',
-    revision: '03 (borrador)',
-    fechaEmision: '2026-10-20',
+    revision: '04 (borrador)',
+    fechaEmision: '2026-10-29',
     aplicaA: '6.4.1 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
@@ -38,6 +38,13 @@ const manualServiceMet = ManualUso(
           'Versión 6.4.1: aviso del interruptor "Realizar ..." de las pruebas '
               'metrológicas de soporte y la prueba omitida, que no guarda ni '
               'sube sus lecturas y sigue omitida al continuar (borrador).'),
+      RevisionDocumento(
+          '04',
+          '2026-10-29',
+          'Tipo de calibración (balanzas o temperatura), calibración de '
+              'temperatura con lecturas programadas del indicador, lector con '
+              'recuadro ajustable, ajustes de cámara y "Verificar lectura", y '
+              'subida de la calibración de temperatura (borrador).'),
     ],
   ),
   secciones: [
@@ -281,9 +288,10 @@ const manualServiceMet = ManualUso(
       icono: AppIcons.balanza,
       resumen: 'El asistente paso a paso, de Cliente a Finalizar.',
       bloques: [
-        Parrafo('Abra Servicios y elija Calibración. Si había una calibración '
-            'sin terminar, la app pregunta si desea "Continuar" o "Descartar '
-            'y crear otro". El asistente avanza con el botón inferior '
+        Parrafo('Abra Servicios y elija Calibración. En "Tipo de calibración" '
+            'elija "CALIBRACIÓN DE BALANZAS" y pulse "Continuar". Si había una '
+            'calibración sin terminar, la app pregunta si desea "Continuar" o '
+            '"Descartar y crear otro". El asistente avanza con el botón inferior '
             '("Siguiente", "Confirmar SECA" o "Guardar Datos") y guarda '
             'automáticamente.'),
         Pasos('Pasos del asistente', [
@@ -352,6 +360,86 @@ const manualServiceMet = ManualUso(
       ],
     ),
     SeccionManual(
+      id: 'calibracion-temperatura',
+      grupo: GrupoManual.servicios,
+      titulo: 'Calibración de temperatura',
+      icono: AppIcons.temperatura,
+      resumen: 'Muflas, hornos y estufas: lecturas programadas del indicador.',
+      bloques: [
+        Parrafo(
+            'Abra Servicios, elija Calibración y, en "Tipo de calibración", '
+            '"CALIBRACIÓN DE TEMPERATURA". Si había una sin terminar, la app '
+            'pregunta si desea "Continuar" o "Descartar y crear otra"; la '
+            'descartada queda guardada en el teléfono. El asistente tiene los '
+            'mismos controles que el de balanzas: el panel ≡ con los pasos, el '
+            'botón inferior y ⋮ › "Salir (queda guardado)".'),
+        Pasos('Pasos del asistente', [
+          Paso(
+              'Cliente, Planta y SECA',
+              'Como en balanzas. "Confirmar SECA" fija el cliente y la planta y '
+                  'registra la hora de inicio y la ubicación.'),
+          Paso(
+              'Equipo',
+              'Con "Buscar" elija el equipo de la planta, con "QR" léalo o con '
+                  '"Nuevo" regístrelo con un código provisional. Complete el '
+                  'tipo de equipo, el rango de trabajo, la resolución y el '
+                  'indicador (Digital por defecto) y pulse "Guardar equipo".'),
+          Paso(
+              'Patrones y sensores',
+              'Elija los patrones de temperatura (solo aparecen termómetros, '
+                  'termopares y registradores; nunca pesas) y anote cada sensor '
+                  'que va dentro del equipo con su posición. Los sensores graban '
+                  'en el software de su registrador: escriba en "Registro de los '
+                  'sensores" el archivo o la referencia. El indicador del equipo '
+                  'es lo que se registra en cada lectura, "Con la cámara" o "A '
+                  'mano". Registre el termohigrómetro y el ambiente inicial.'),
+          Paso(
+              'Puntos',
+              'Para cada temperatura indique el lapso de medición en minutos y '
+                  'cada cuántos segundos se captura. La app muestra cuántas '
+                  'lecturas se tomarán y a qué hora termina.'),
+          Paso(
+              'Medición',
+              'Pulse "Preparar e iniciar", encuadre el indicador, pruebe la '
+                  'lectura y pulse "Iniciar medición". Inicie a la vez el '
+                  'registrador de los sensores con el mismo intervalo. Deje el '
+                  'teléfono fijo y la app abierta: la pantalla se mantiene '
+                  'encendida.'),
+          Paso(
+              'Cierre y Resumen',
+              'Registre el ambiente final y las observaciones y pulse '
+                  '"Finalizar". Desde ahí el registro ya no se modifica; en '
+                  'Resumen se exporta el CSV y se sube a DataMET.'),
+        ]),
+        Parrafo('Cada lectura se toma en su hora programada: la cámara lee el '
+            'indicador varias veces y la registra solo si al menos tres '
+            'cuadros coinciden; guarda además una imagen del display. Si no '
+            'puede leerla, el teléfono vibra y la lectura se puede escribir a '
+            'mano hasta la siguiente. Si nadie la escribe, o la app estaba en '
+            'segundo plano, queda "sin lectura" con su motivo: nunca se '
+            'inventa un valor.'),
+        Parrafo('En "Ver lecturas" cada lectura muestra su imagen, el valor, '
+            'la hora y de dónde salió. Mientras el registro está en curso, una '
+            'lectura se puede corregir (mirando la imagen) o excluir de los '
+            'resultados, siempre con motivo; el valor original se conserva.'),
+        Nota(
+          TipoNota.importante,
+          'Los resultados del Resumen son preliminares y solo del indicador. '
+          'El error de indicación y la incertidumbre se calculan con los datos '
+          'de los sensores del patrón, que están en el software del '
+          'registrador.',
+        ),
+        Nota(
+          TipoNota.norma,
+          'Cada lectura guarda la hora del teléfono con milisegundos, lo que '
+          'leyó la cámara y su imagen. Una corrección o exclusión deja el '
+          'valor anterior, el nuevo, el motivo, el técnico y la fecha, y viaja '
+          'a DataMET junto con el registro.',
+          referencia: '7.5.1 · 7.5.2',
+        ),
+      ],
+    ),
+    SeccionManual(
       id: 'lector-indicador',
       grupo: GrupoManual.servicios,
       titulo: 'Leer el indicador con la cámara',
@@ -367,12 +455,23 @@ const manualServiceMet = ManualUso(
           Paso('Toque el campo de la lectura.',
               'Se abre el teclado numérico de la app.'),
           Paso('Pulse "Leer del indicador".'),
-          Paso('Encuadre el display de la balanza.',
-              'En lugares oscuros use "Encender linterna".'),
+          Paso(
+              'Encuadre el display de la balanza.',
+              'El recuadro se mueve arrastrándolo y se agranda o achica desde '
+                  'sus esquinas; la app lo recuerda para la próxima vez. En '
+                  'lugares oscuros use "Encender linterna"; en "Ajustes de '
+                  'cámara" están el zoom, la exposición (bájela si los LED se '
+                  'ven empastados) y "Bloquear enfoque y exposición".'),
           Paso('Compare el valor leído con el indicador.',
               'Si no coincide, pulse "Reintentar" o escríbalo a mano.'),
           Paso('Confirme el valor y continúe con "Siguiente".'),
         ]),
+        Parrafo('En la calibración de temperatura, el lector lee también '
+            'displays de color (rojo o verde, como los controladores de las '
+            'muflas), quita la unidad (°C, °F) y reconoce los mensajes sin '
+            'valor (----, OPEn, HHHH). Si un display no se lee bien, use '
+            '"Verificar lectura": escriba lo que muestra y el lector busca la '
+            'manera de leerlo igual.'),
         Nota(
           TipoNota.importante,
           'La lectura automática es una ayuda. El técnico es responsable de '
@@ -626,7 +725,8 @@ const manualServiceMet = ManualUso(
               'servicio de soporte pendiente.',
         ]),
         Pasos('Subir, consultar y anular', [
-          Paso('Abra Servicios › "Recepción de instrumentos (RIM)".',
+          Paso(
+              'Abra Servicios › "Recepción de instrumentos (RIM)".',
               'Los RIM aparecen en "Por subir" (también los anulados que '
                   'faltan subir), "Subidos" y "Anulados".'),
           Paso(
@@ -776,6 +876,13 @@ const manualServiceMet = ManualUso(
         Parrafo('Con cada servicio se envía la ubicación registrada en el '
             'teléfono, si la tiene. Va al resumen del servicio en DataMET, no '
             'cambia el registro técnico.'),
+        Parrafo('Las calibraciones de temperatura se suben una por una desde '
+            'su Resumen o desde Calibración › "Registros de temperatura", con '
+            '"Subir a DataMET". Se sube el registro completo (equipo, '
+            'patrones, sensores, puntos, lecturas y correcciones) en una sola '
+            'transacción; si se reintenta, DataMET responde que ya estaba. Un '
+            'equipo nuevo se sube después de "Asignar código". Las imágenes '
+            'de las lecturas quedan en el teléfono.'),
         Nota(
           TipoNota.norma,
           'La transferencia se verifica en dos etapas: validación sin inserción '
