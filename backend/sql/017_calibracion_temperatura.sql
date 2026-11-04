@@ -52,8 +52,10 @@
   dé. DataMET+ (@loginDataMetPlus, opcional) recibe solo SELECT y el mismo
   DENY.
 
-  Puede ejecutarse de nuevo: solo crea lo que falte y vuelve a otorgar los
-  permisos. Ejecutar con una cuenta administradora.
+  Puede ejecutarse de nuevo: solo crea lo que falte, vuelve a otorgar los
+  permisos y, si las lecturas se crearon con una versión anterior de este
+  script, amplía su restricción de origen con ocr_aguja (la cámara lee la
+  aguja de un indicador analógico). Ejecutar con una cuenta administradora.
 
   Orden de despliegue:
     1. Este script (en DataMET_prueba para probar; luego en DataMET).
@@ -246,7 +248,7 @@ BEGIN
       FOREIGN KEY ([servicio_uuid], [n_canal])
       REFERENCES [dbo].[DATA_SERVICIOS_DATOS_CAL_TE_CANALES] ([servicio_uuid], [n_canal]),
     CONSTRAINT [CK_CAL_TE_LECTURAS_origen]
-      CHECK ([origen] IN (N'ocr_segmentos', N'ocr_texto', N'manual', N'sin_lectura')),
+      CHECK ([origen] IN (N'ocr_segmentos', N'ocr_texto', N'ocr_aguja', N'manual', N'sin_lectura')),
     CONSTRAINT [CK_CAL_TE_LECTURAS_estado]
       CHECK ([estado] IN (N'valida', N'sin_lectura', N'excluida')),
     CONSTRAINT [CK_CAL_TE_LECTURAS_sin_valor]
@@ -255,6 +257,25 @@ BEGIN
       CHECK ([coincidencia] IS NULL OR ([coincidencia] >= 0 AND [coincidencia] <= 1))
   );
   PRINT N'Tabla dbo.DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS creada.';
+END
+
+-- Origen ocr_aguja (la cámara lee la aguja de un indicador analógico): si
+-- la tabla se creó con una versión anterior de este script, la restricción
+-- se rehace con el valor nuevo. Las filas que ya existen la cumplen.
+IF EXISTS (
+  SELECT 1
+  FROM sys.check_constraints
+  WHERE [name] = N'CK_CAL_TE_LECTURAS_origen'
+    AND [parent_object_id] = OBJECT_ID(N'dbo.DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS')
+    AND CHARINDEX(N'ocr_aguja', [definition]) = 0
+)
+BEGIN
+  ALTER TABLE [dbo].[DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS]
+    DROP CONSTRAINT [CK_CAL_TE_LECTURAS_origen];
+  ALTER TABLE [dbo].[DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS]
+    WITH CHECK ADD CONSTRAINT [CK_CAL_TE_LECTURAS_origen]
+      CHECK ([origen] IN (N'ocr_segmentos', N'ocr_texto', N'ocr_aguja', N'manual', N'sin_lectura'));
+  PRINT N'Restricción CK_CAL_TE_LECTURAS_origen: ahora admite ocr_aguja.';
 END
 
 IF OBJECT_ID(N'dbo.DATA_SERVICIOS_DATOS_CAL_TE_CORRECCIONES', N'U') IS NULL
