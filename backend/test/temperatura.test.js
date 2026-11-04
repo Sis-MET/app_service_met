@@ -115,6 +115,19 @@ test('un registro completo es válido', () => {
   assert.equal(value.header.uuid, UUID);
 });
 
+test('acepta las lecturas de la aguja de un indicador analógico', () => {
+  const body = registro({ indicador: 'Analógico' });
+  for (const lectura of body.lecturas.filter((l) => l.n_canal === 1)) {
+    lectura.origen = 'ocr_aguja';
+    lectura.texto_leido = 'aguja 300.04 · 41.7° · escala 0/600/1200';
+  }
+  const { issues, value } = validateTemperatura(body);
+  assert.deepEqual(issues, []);
+  assert.equal(value.lecturas[0].origen, 'ocr_aguja');
+  body.lecturas[0].origen = 'aguja';
+  assert.match(validateTemperatura(body).issues[0].field, /origen/);
+});
+
 test('los sensores que graban en su software no llevan lecturas', () => {
   const body = registro({ registro_sensores: 'Registrador 12 · archivo M0091.csv' });
   body.canales.push({

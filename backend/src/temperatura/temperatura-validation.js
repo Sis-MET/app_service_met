@@ -197,7 +197,7 @@ const LECTURA = Object.freeze({
   texto_leido: { type: 'string', max: 60 },
   origen: {
     type: 'enum',
-    values: ['ocr_segmentos', 'ocr_texto', 'manual', 'sin_lectura'],
+    values: ['ocr_segmentos', 'ocr_texto', 'ocr_aguja', 'manual', 'sin_lectura'],
     required: true,
   },
   coincidencia: { type: 'number', abs: 10, min: 0 },
