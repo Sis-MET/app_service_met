@@ -6,7 +6,7 @@ solo puede aportar el laboratorio figura como `[PENDIENTE]`.
 | Campo | Valor |
 |---|---|
 | Versión (pubspec) | 6.5.1+20 (Android: versionCode 20, versionName 6.5.1) |
-| Commit | [se completa al fijar la versión] (`chore: versión 6.5.1+20`) |
+| Commit | 94c3cb6 (`chore: versión 6.5.1+20`) |
 | Versión anterior registrada | 6.4.1+19 (commit 646ec67) |
 | Fecha de validación | [PENDIENTE] (pruebas automáticas: 2026-10-29) |
 | Clase del cambio | A (crítico): agrega un registro técnico nuevo (calibración de temperatura) con su captura, su esquema local y del servidor y su subida, y cambia el lector del indicador que usa la calibración de balanzas |

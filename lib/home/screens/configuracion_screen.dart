@@ -18,7 +18,7 @@ class ConfiguracionScreen extends StatefulWidget {
 }
 
 class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
-  String appVersion = '6.5.1';
+  String appVersion = '6.5.2';
   String appName = 'ServiceMET';
   bool syncBackground = true;
   bool notifications = true;

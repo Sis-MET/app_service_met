@@ -14,8 +14,37 @@ const cambiosSinLiberar = <String>[];
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
   VersionApp(
+    version: '6.5.2+21',
+    fecha: '2026-11-04',
+    clase: ClaseCambio.critico,
+    resumen: 'Calibración de temperatura: la cámara también lee los '
+        'indicadores de aguja (termómetros de dial de hornos y muflas).',
+    nuevo: [
+      'Indicadores de aguja: con el indicador "Analógico" la cámara lee la '
+          'aguja. El técnico ajusta el recuadro al dial, pone la cruz en el eje '
+          'y tres marcas sobre la escala ("Inicio de la escala", "Marca '
+          'intermedia", "Fin de la escala") con su valor; la app dibuja en '
+          'amarillo la aguja que ve, redondea a la resolución del indicador y '
+          '"Verificar lectura" compara con lo que ve el técnico. Como en los '
+          'digitales, se registra solo si tres cuadros coinciden; si la aguja '
+          'sale de las marcas, queda "sin lectura" con su motivo.',
+      'Un indicador "Analógico" ya no pasa a "A mano" por defecto: se lee con '
+          'la cámara, y "A mano" sigue disponible en Patrones y sensores.',
+    ],
+    impactoRegistros: 'Las lecturas de aguja tienen el origen nuevo '
+        'ocr_aguja ("Cámara (aguja)") y guardan como lo leído el valor sin '
+        'redondear, el ángulo de la aguja desde la primera marca y los valores '
+        'de las marcas (por ejemplo "aguja 24.24 · 41.7° · escala 0/80/160"), '
+        'para poder rehacer la conversión, además de la imagen del dial en el '
+        'teléfono. El script 017 y la API admiten ese origen: si el 017 ya se '
+        'ejecutó, hay que volver a ejecutarlo (amplía la restricción del '
+        'origen sin tocar filas). Las lecturas de displays digitales, de '
+        'balanzas y de soporte no cambian.',
+  ),
+  VersionApp(
     version: '6.5.1+20',
     fecha: '2026-10-29',
+    commit: '94c3cb6',
     clase: ClaseCambio.critico,
     resumen: 'Calibración de temperatura (muflas, hornos, estufas) con '
         'lecturas programadas del indicador y subida a DataMET, selección del '

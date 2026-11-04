@@ -9,8 +9,8 @@ import '../models/cumplimiento.dart';
 /// evaluación. Las exigencias están parafraseadas; el texto de la norma tiene
 /// derechos de autor.
 final evaluacionCumplimiento = EvaluacionCumplimiento(
-  version: '6.5.1+20',
-  fecha: DateTime(2026, 10, 29),
+  version: '6.5.2+21',
+  fecha: DateTime(2026, 11, 4),
   requisitos: const [
     // ── 7.5 Registros técnicos ────────────────────────────────────────────
     Requisito(
@@ -152,6 +152,11 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'su valor original; una lectura que no se pudo tomar queda «sin '
             'lectura» con su motivo, nunca con un valor inventado '
             '(test/screens/temperatura/captura_programada_test.dart).',
+        'Una lectura de aguja (indicador analógico) guarda además, como lo '
+            'leído, el valor sin redondear, el ángulo desde la primera marca '
+            'y los valores de las marcas con que se convirtió, con origen '
+            'ocr_aguja; sin una aguja clara no hay lectura '
+            '(test/screens/needle_reader_test.dart).',
       ],
       brecha: 'La lectura del indicador por cámara no guarda la imagen '
           'usada: el valor queda sin su evidencia original.',
@@ -321,12 +326,12 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
       evidencias: [
         'Pruebas automáticas de la app (Flutter) y del servidor (Node).',
         'Historial de versiones con la clase de cada cambio.',
-        'Registros de validación de 6.3.5+17, 6.4.0+18, 6.4.1+19 y '
-            '6.5.1+20 con el resultado de las pruebas automáticas '
+        'Registros de validación de 6.3.5+17, 6.4.0+18, 6.4.1+19, '
+            '6.5.1+20 y 6.5.2+21 con el resultado de las pruebas automáticas '
             '(docs/iso17025/validaciones/).',
       ],
-      brecha: 'Los registros de validación de 6.3.5+17, 6.4.0+18, 6.4.1+19 '
-          'y 6.5.1+20 están en borrador: faltan los casos funcionales en un '
+      brecha: 'Los registros de validación de 6.3.5+17, 6.4.0+18, 6.4.1+19, '
+          '6.5.1+20 y 6.5.2+21 están en borrador: faltan los casos funcionales en un '
           'teléfono, la ida y vuelta contra DataMET, la migración con datos '
           'existentes y la autorización del laboratorio. Las versiones '
           'anteriores no tienen registro.',
@@ -567,6 +572,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'calculados a mano (test/screens/temperatura/'
             'captura_programada_test.dart); el número de lecturas de un punto '
             'se calcula igual en la app y en la API.',
+        'La conversión del ángulo de la aguja en valor (interpolación entre '
+            'las marcas, redondeo a la resolución) se prueba con diales de '
+            'valor conocido, con el eje corrido, luz despareja y reflejos '
+            '(test/screens/needle_reader_test.dart).',
       ],
       brecha: 'Falta identificar cada cálculo metrológico de la app y '
           'contrastarlo con valores de referencia.',

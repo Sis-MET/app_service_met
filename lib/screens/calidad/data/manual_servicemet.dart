@@ -11,9 +11,9 @@ const manualServiceMet = ManualUso(
   control: ControlDocumento(
     codigo: 'PENDIENTE: código asignado por Calidad',
     titulo: 'Manual de uso de ServiceMET',
-    revision: '04 (borrador)',
-    fechaEmision: '2026-10-29',
-    aplicaA: '6.5.1 o posterior',
+    revision: '05 (borrador)',
+    fechaEmision: '2026-11-04',
+    aplicaA: '6.5.2 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
     aprobo: 'PENDIENTE',
@@ -46,6 +46,11 @@ const manualServiceMet = ManualUso(
               'indicador, lector con '
               'recuadro ajustable, ajustes de cámara y "Verificar lectura", y '
               'subida de la calibración de temperatura (borrador).'),
+      RevisionDocumento(
+          '05',
+          '2026-11-04',
+          'Versión 6.5.2: lectura de indicadores de aguja con la cámara, con '
+              'la escala que marca el técnico sobre el dial (borrador).'),
     ],
   ),
   secciones: [
@@ -384,7 +389,8 @@ const manualServiceMet = ManualUso(
               'Con "Buscar" elija el equipo de la planta, con "QR" léalo o con '
                   '"Nuevo" regístrelo con un código provisional. Complete el '
                   'tipo de equipo, el rango de trabajo, la resolución y el '
-                  'indicador (Digital por defecto) y pulse "Guardar equipo".'),
+                  'indicador (Digital por defecto; "Analógico" para un dial de '
+                  'aguja) y pulse "Guardar equipo".'),
           Paso(
               'Patrones y sensores',
               'Elija los patrones de temperatura (solo aparecen termómetros, '
@@ -392,8 +398,9 @@ const manualServiceMet = ManualUso(
                   'que va dentro del equipo con su posición. Los sensores graban '
                   'en el software de su registrador: escriba en "Registro de los '
                   'sensores" el archivo o la referencia. El indicador del equipo '
-                  'es lo que se registra en cada lectura, "Con la cámara" o "A '
-                  'mano". Registre el termohigrómetro y el ambiente inicial.'),
+                  'es lo que se registra en cada lectura, "Con la cámara" '
+                  '(también un dial de aguja) o "A mano". Registre el '
+                  'termohigrómetro y el ambiente inicial.'),
           Paso(
               'Puntos',
               'Para cada temperatura indique el lapso de medición en minutos y '
@@ -401,8 +408,9 @@ const manualServiceMet = ManualUso(
                   'lecturas se tomarán y a qué hora termina.'),
           Paso(
               'Medición',
-              'Pulse "Preparar e iniciar", encuadre el indicador, pruebe la '
-                  'lectura y pulse "Iniciar medición". Inicie a la vez el '
+              'Pulse "Preparar e iniciar", encuadre el indicador (en uno de '
+                  'aguja, marque también su escala), pruebe la lectura y pulse '
+                  '"Iniciar medición". Inicie a la vez el '
                   'registrador de los sensores con el mismo intervalo. Deje el '
                   'teléfono fijo y la app abierta: la pantalla se mantiene '
                   'encendida.'),
@@ -445,7 +453,8 @@ const manualServiceMet = ManualUso(
       grupo: GrupoManual.servicios,
       titulo: 'Leer el indicador con la cámara',
       icono: AppIcons.escanearDocumento,
-      resumen: 'Captura asistida de lecturas de displays de 7 segmentos.',
+      resumen: 'Captura asistida de lecturas de displays de 7 segmentos y '
+          'de indicadores de aguja.',
       bloques: [
         Parrafo('Funciona en calibración y en las pruebas metrológicas de '
             'soporte técnico (excentricidad, repetibilidad y linealidad, '
@@ -473,6 +482,38 @@ const manualServiceMet = ManualUso(
             'valor (----, OPEn, HHHH). Si un display no se lee bien, use '
             '"Verificar lectura": escriba lo que muestra y el lector busca la '
             'manera de leerlo igual.'),
+        Parrafo('También se leen los indicadores de aguja (termómetros de '
+            'dial de hornos y muflas). Si el indicador del equipo es '
+            '"Analógico", su recuadro trae la escala del dial: una cruz para el '
+            'eje de la aguja y tres marcas (inicio, medio y fin) con valores '
+            'tomados del rango del equipo.'),
+        Pasos('Preparar un indicador de aguja', [
+          Paso(
+              'Ajuste el recuadro al dial.',
+              'Con el teléfono fijo y de frente al dial, para que la aguja no '
+                  'se vea corrida. Al mover o agrandar el recuadro, la escala '
+                  'lo acompaña.'),
+          Paso('Arrastre la cruz al eje de la aguja.'),
+          Paso(
+              'Ponga cada marca sobre una raya con número.',
+              'Toque la marca para escribir su valor ("Inicio de la escala", '
+                  '"Marca intermedia", "Fin de la escala"); los valores deben '
+                  'subir de una marca a la siguiente. El arco muestra el '
+                  'recorrido de la escala.'),
+          Paso(
+              'Compare la línea amarilla con la aguja.',
+              'Es donde el lector ve la aguja; el recuadro muestra el valor. '
+                  'Con "Verificar lectura" escriba el valor que marca la aguja '
+                  'y la app le dice si coincide con la cámara.'),
+        ]),
+        Parrafo('El valor se redondea a la resolución del indicador del '
+            'equipo. Cada lectura guarda, como lo leído, el valor sin '
+            'redondear, el ángulo de la aguja desde la primera marca y los '
+            'valores de las marcas (por ejemplo "aguja 24.24 · 41.7° · escala '
+            '0/80/160"), además de la imagen del dial; su origen es "Cámara '
+            '(aguja)". Si la aguja apunta fuera de las marcas, la lectura '
+            'queda "sin lectura" con el motivo "La aguja estaba fuera de la '
+            'escala marcada".'),
         Nota(
           TipoNota.importante,
           'La lectura automática es una ayuda. El técnico es responsable de '
