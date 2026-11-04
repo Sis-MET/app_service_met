@@ -18,6 +18,7 @@ import '../../../utils/foto_helper.dart';
 import '../../../widgets/dialogo_permiso.dart';
 import '../../calibracion/utils/indicator_frame.dart';
 import '../../calibracion/utils/indicator_reading.dart';
+import '../../calibracion/utils/needle_reader.dart';
 import '../../calibracion/utils/png_encoder.dart';
 import '../../calibracion/utils/profile_search.dart';
 import '../../calibracion/utils/reading_profile.dart';
@@ -71,6 +72,10 @@ class CapturaTemperaturaScreen extends StatefulWidget {
   static String perfilKey(TempCanal canal, TempServicio servicio) =>
       'lector_temperatura.perfil.${canal.rol == RolCanal.patron ? canal.codPatron ?? canal.nombre : 'equipo:${servicio.equipo?.codMetrica}'}';
 
+  /// Recuadro de inicio para un indicador de aguja: un cuadrado al centro
+  /// (en una imagen vertical 9:16).
+  static const regionDial = Rect.fromLTWH(0.12, 0.29, 0.76, 0.43);
+
   /// Recuadros de inicio para [cantidad] displays: franjas una debajo de
   /// otra, al centro.
   static List<Rect> regionesIniciales(int cantidad) {
@@ -108,6 +113,12 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
   /// Lo que se ve ahora en cada canal de cámara (n → lectura).
   final Map<int, IndicatorCandidate?> _vivo = {};
 
+  /// Dónde ve la aguja el lector en cada indicador analógico (n → lectura).
+  final Map<int, NeedleReading?> _agujas = {};
+
+  /// Canales cuyo recuadro o escala falta guardar.
+  final Set<int> _porGuardar = {};
+
   /// Los últimos cuadros, para «Verificar lectura».
   final List<CameraFrame> _recientes = [];
 
@@ -137,7 +148,14 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
     if (_punto.estado == EstadoPunto.enCurso) _iniciarCaptura();
   }
 
-  /// Los canales de cámara sin recuadro reciben uno de inicio.
+  /// El indicador del equipo cuando es de aguja: se lee con la escala que
+  /// marca el técnico.
+  bool _esAguja(TempCanal canal) =>
+      canal.rol == RolCanal.equipo &&
+      esIndicadorAnalogico(_c.servicio.equipo?.indicador);
+
+  /// Los canales de cámara sin recuadro reciben uno de inicio; un indicador
+  /// de aguja, además, una escala de inicio dentro de su recuadro.
   List<TempCanal> _conRegiones(List<TempCanal> canales) {
     final camara =
         canales.where((c) => c.metodo == MetodoCanal.camara).toList();
@@ -149,11 +167,32 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
         resultado.add(canal);
         continue;
       }
-      resultado.add(
-          canal.region != null ? canal : canal.copyWith(region: iniciales[i]));
+      final aguja = _esAguja(canal);
+      final region = canal.region ??
+          (aguja ? CapturaTemperaturaScreen.regionDial : iniciales[i]);
+      final esDial = canal.perfil?.engine == IndicatorEngine.aguja &&
+          canal.perfil?.dial != null;
+      resultado.add(switch ((aguja, esDial)) {
+        (true, false) => canal.copyWith(
+            region: region, perfil: ReadingProfile.aguja(_dialInicial(region))),
+        // El equipo dejó de ser analógico: vuelve a leerse como display.
+        (false, true) => canal.copyWith(region: region, clearPerfil: true),
+        _ => canal.copyWith(region: region),
+      });
       i++;
     }
     return resultado;
+  }
+
+  /// Una escala de 270° dentro de [region], con los valores del rango del
+  /// equipo; el técnico ajusta las marcas y sus valores.
+  DialScale _dialInicial(Rect region) {
+    final equipo = _c.servicio.equipo;
+    final desde = equipo?.rangoMin ?? 0;
+    final hasta = equipo?.rangoMax != null && equipo!.rangoMax! > desde
+        ? equipo.rangoMax!
+        : desde + 100;
+    return DialScale.inicial(region, desde: desde, hasta: hasta);
   }
 
   List<IndicatorRegion> _regiones() => [
@@ -162,9 +201,12 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
             region: canal.region!
                 .inflate(0.02)
                 .intersect(const Rect.fromLTRB(0, 0, 1, 1)),
-            profile: (canal.perfil ?? ReadingProfile.temperatura)
-                .copyWith(units: true),
+            profile: canal.perfil?.engine == IndicatorEngine.aguja
+                ? canal.perfil!
+                : (canal.perfil ?? ReadingProfile.temperatura)
+                    .copyWith(units: true),
             expectedDecimals: canal.decimales,
+            step: _c.servicio.equipo?.resolucion,
           ),
       ];
 
@@ -214,6 +256,7 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
     WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     _guardarRegiones?.cancel();
+    _guardarLector();
     _captura?.removeListener(_alCambiarCaptura);
     _captura?.dispose();
     PantallaEncendida.mantener(false);
@@ -263,6 +306,7 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
     _tuning?.dispose();
     _tuning = null;
     _vivo.clear();
+    _agujas.clear();
     _reader.reset();
     if (camera == null) return;
     if (rebuild && mounted) setState(() {});
@@ -311,6 +355,7 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
       final camara = _camara;
       for (var i = 0; i < camara.length && i < lecturas.length; i++) {
         _vivo[camara[i].n] = lecturas[i].candidate;
+        _agujas[camara[i].n] = lecturas[i].needle;
       }
       await _captura?.cuadro(lecturas);
       if (mounted) setState(() {});
@@ -338,23 +383,195 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
     } on CameraException catch (_) {}
   }
 
+  /// El recuadro se movió o cambió de tamaño; la escala de un dial lo
+  /// acompaña.
   void _moverRegion(int indice, Rect region) {
     final canal = _camara[indice];
+    final perfil = canal.perfil;
+    final dial = perfil?.engine == IndicatorEngine.aguja ? perfil?.dial : null;
+    _cambiarLector(
+      canal.copyWith(
+        region: region,
+        perfil: dial == null
+            ? null
+            : perfil!.copyWith(dial: dial.mapped(canal.region!, region)),
+      ),
+    );
+  }
+
+  /// El técnico movió el eje o una marca de la escala del dial.
+  void _moverDial(int indice, DialScale dial) {
+    final canal = _camara[indice];
+    final perfil = canal.perfil;
+    if (perfil == null) return;
+    _cambiarLector(canal.copyWith(perfil: perfil.copyWith(dial: dial)));
+  }
+
+  /// El recuadro o la escala de [canal] cambiaron: lo que se estaba leyendo
+  /// se descarta y se guarda al rato (se mueven con el dedo).
+  void _cambiarLector(TempCanal canal) {
     setState(() {
       final i = _canales.indexWhere((c) => c.n == canal.n);
-      _canales[i] = canal.copyWith(region: region);
+      _canales[i] = canal;
       _vivo.remove(canal.n);
+      _agujas.remove(canal.n);
     });
     _reader.regions = _regiones();
+    _porGuardar.add(canal.n);
     _guardarRegiones?.cancel();
-    _guardarRegiones = Timer(const Duration(milliseconds: 600), () {
-      _c.store.guardarLectorCanal(_c.servicio.uuid, canal.n, region: region);
-    });
+    _guardarRegiones =
+        Timer(const Duration(milliseconds: 600), _guardarLector);
+  }
+
+  void _guardarLector() {
+    for (final n in _porGuardar) {
+      final canal = _canales.firstWhere((c) => c.n == n);
+      _c.store.guardarLectorCanal(
+        _c.servicio.uuid,
+        n,
+        region: canal.region,
+        perfil: canal.perfil,
+      );
+    }
+    _porGuardar.clear();
+  }
+
+  /// Cambia el valor de la marca [k] del dial: el valor de la escala donde
+  /// el técnico la puso.
+  Future<void> _editarMarca(int indice, int k) async {
+    final canal = _camara[indice];
+    final dial = canal.perfil?.dial;
+    if (dial == null || _captura != null) return;
+    final marcas = dial.marks;
+    final anterior = k > 0 ? marcas[k - 1].value : null;
+    final siguiente = k < marcas.length - 1 ? marcas[k + 1].value : null;
+    final unidad = _c.servicio.equipo?.unidad ?? '°C';
+    final valor = await _pedirValor(
+      titulo: switch (k) {
+        0 => 'Inicio de la escala',
+        _ when k == marcas.length - 1 => 'Fin de la escala',
+        _ => 'Marca intermedia',
+      },
+      mensaje: 'Valor de la escala donde está esta marca. Póngala sobre una '
+          'raya con número, por ejemplo ${textoNumero(marcas[k].value)}.',
+      etiqueta: 'Valor de la marca',
+      inicial: textoNumero(marcas[k].value),
+      validar: (v) {
+        if (anterior != null && v <= anterior) {
+          return 'Debe ser mayor que ${textoNumero(anterior)} $unidad.';
+        }
+        if (siguiente != null && v >= siguiente) {
+          return 'Debe ser menor que ${textoNumero(siguiente)} $unidad.';
+        }
+        return null;
+      },
+    );
+    if (valor == null || !mounted) return;
+    _moverDial(indice, dial.withMark(k, marcas[k].copyWith(value: valor)));
+  }
+
+  /// Pide un número; [validar] devuelve el error, o null si sirve.
+  Future<double?> _pedirValor({
+    required String titulo,
+    required String mensaje,
+    required String etiqueta,
+    String? inicial,
+    String? Function(double valor)? validar,
+  }) {
+    final unidad = _c.servicio.equipo?.unidad ?? '°C';
+    return showDialog<double>(
+      context: context,
+      builder: (dialogContext) {
+        final texto = TextEditingController(text: inicial);
+        String? error;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void aceptar() {
+              final valor = ProfileSearch.parse(texto.text);
+              final problema = valor == null
+                  ? 'Escriba un número.'
+                  : validar?.call(valor);
+              if (problema != null) {
+                setDialogState(() => error = problema);
+                return;
+              }
+              Navigator.pop(dialogContext, valor);
+            }
+
+            return AlertDialog(
+              title: Text(titulo),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(mensaje),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: texto,
+                    autofocus: true,
+                    keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true, signed: true),
+                    decoration: InputDecoration(
+                      labelText: etiqueta,
+                      suffixText: unidad,
+                      errorText: error,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => aceptar(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: aceptar,
+                  child: const Text('Aceptar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // ── Verificar lectura ─────────────────────────────────────────────────
 
+  /// En un indicador de aguja no hay maneras de leer que probar: se compara
+  /// lo que ve el técnico con lo que lee la cámara.
+  Future<void> _verificarAguja(TempCanal canal) async {
+    final unidad = _c.servicio.equipo?.unidad ?? '°C';
+    final visto = await _pedirValor(
+      titulo: 'Verificar ${canal.nombre}',
+      mensaje: 'Escriba el valor que marca la aguja ahora, mirándola de '
+          'frente.',
+      etiqueta: 'Valor de la aguja',
+    );
+    if (visto == null || !mounted) return;
+    final leido = _vivo[canal.n];
+    final numero = leido?.number;
+    if (leido == null || numero == null) {
+      _mensaje('La cámara todavía no ve la aguja: ajuste el recuadro al '
+          'dial, el centro al eje y las marcas sobre sus valores.');
+      return;
+    }
+    final tolerancia = _c.servicio.equipo?.resolucion ?? 1;
+    if ((numero - visto).abs() <= tolerancia + 1e-9) {
+      _mensaje('Coincide: la cámara lee ${leido.value} $unidad.');
+    } else {
+      _mensaje('La cámara lee ${leido.value} $unidad y usted ve '
+          '${textoNumero(visto)} $unidad. Acerque el centro al eje de la '
+          'aguja y cada marca a su raya de la escala.');
+    }
+  }
+
   Future<void> _verificar(TempCanal canal) async {
+    if (canal.perfil?.engine == IndicatorEngine.aguja) {
+      return _verificarAguja(canal);
+    }
     final frames = List.of(_recientes);
     if (frames.isEmpty) {
       _mensaje('Espere a que la cámara muestre el display.');
@@ -753,9 +970,13 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
                           : IndicatorCameraView(
                               camera: camera,
                               hint: captura == null
-                                  ? (_camara.length == 1
-                                      ? 'Encuadre el indicador del equipo en el recuadro'
-                                      : 'Encuadre cada display en su recuadro')
+                                  ? (_camara.any(_esAguja)
+                                      ? 'Recuadro sobre el dial, la cruz en el '
+                                          'eje de la aguja y cada marca sobre '
+                                          'su valor (tóquela para cambiarlo)'
+                                      : _camara.length == 1
+                                          ? 'Encuadre el indicador del equipo en el recuadro'
+                                          : 'Encuadre cada display en su recuadro')
                                   : null,
                               regions: [
                                 for (final canal in _camara)
@@ -766,10 +987,17 @@ class _CapturaTemperaturaScreenState extends State<CapturaTemperaturaScreen>
                                     value: _vivo[canal.n]?.value,
                                     highlighted: captura?.estadoDe(canal.n) ==
                                         EstadoCanalCaptura.tomada,
+                                    dial: canal.perfil?.engine ==
+                                            IndicatorEngine.aguja
+                                        ? canal.perfil?.dial
+                                        : null,
+                                    needleAngle: _agujas[canal.n]?.angle,
                                   ),
                               ],
                               onTapFocus: _focusAt,
                               onRegionChanged: _moverRegion,
+                              onDialChanged: _moverDial,
+                              onMarkTap: captura == null ? _editarMarca : null,
                             ),
             ),
             _Panel(
@@ -964,12 +1192,16 @@ class _FilaCanal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final aguja = canal.perfil?.engine == IndicatorEngine.aguja &&
+        canal.metodo == MetodoCanal.camara;
+    final fueraDeEscala = aguja && vivo != null && !vivo!.isNumber;
     final valor = estado == null
-        ? vivo?.value
+        ? (fueraDeEscala ? null : vivo?.value)
         : ultima == null
             ? null
             : ultima!.valor == null
-                ? (ultima!.textoLeido ?? 'sin lectura')
+                // Lo leído de una aguja es largo (valor, ángulo y escala).
+                ? (aguja ? 'sin lectura' : ultima!.textoLeido ?? 'sin lectura')
                 : textoNumero(ultima!.valor, decimales: canal.decimales);
     final (icono, colorEstado, texto) = switch (estado) {
       null => (
@@ -977,9 +1209,11 @@ class _FilaCanal extends StatelessWidget {
           Colors.white60,
           canal.metodo == MetodoCanal.manual
               ? 'Manual'
-              : vivo == null
-                  ? 'Buscando el display…'
-                  : 'En vivo'
+              : fueraDeEscala
+                  ? 'La aguja está fuera de la escala marcada'
+                  : vivo == null
+                      ? (aguja ? 'Buscando la aguja…' : 'Buscando el display…')
+                      : 'En vivo'
         ),
       EstadoCanalCaptura.esperando => (
           AppIcons.espera,

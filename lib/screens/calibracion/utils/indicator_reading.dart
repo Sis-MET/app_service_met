@@ -1,6 +1,7 @@
 import 'dart:ui' show Rect;
 
 import '../../../models/service_session.dart';
+import 'needle_reader.dart';
 import 'seven_segment_reader.dart';
 import 'suggestion_helper.dart';
 
@@ -20,6 +21,9 @@ enum IndicatorSource {
 
   /// El OCR de texto de ML Kit.
   texto,
+
+  /// La aguja de un indicador analógico ([NeedleReader]).
+  aguja,
 }
 
 /// Un número del cuadro que puede ser la lectura del indicador.
@@ -259,6 +263,56 @@ abstract final class IndicatorReadingParser {
       raw: reading.toString(),
     );
   }
+
+  /// El mensaje de una aguja que apunta fuera de las marcas de la escala.
+  static const fueraDeEscala = 'Fuera de escala';
+
+  /// La lectura de una aguja, redondeada a [step] (la resolución con que se
+  /// lee el dial) y escrita con [decimals] decimales, como la anotaría el
+  /// técnico. Lo leído ([IndicatorCandidate.raw]) guarda el valor sin
+  /// redondear, el ángulo desde la primera marca y los valores de las marcas,
+  /// para poder rehacer la conversión. Fuera de la escala marcada, un mensaje
+  /// sin valor.
+  static IndicatorCandidate fromNeedle(
+    NeedleReading reading, {
+    double? step,
+    int? decimals,
+  }) {
+    final raw = [
+      'aguja ${reading.value.toStringAsFixed(2)}',
+      '${reading.sweepDegrees.toStringAsFixed(1)}°',
+      if (reading.scale.isNotEmpty)
+        'escala ${reading.scale.map(_shortNumber).join('/')}',
+    ].join(' · ');
+    if (reading.outOfScale) {
+      return IndicatorCandidate.sinValor(
+        fueraDeEscala,
+        height: 0,
+        source: IndicatorSource.aguja,
+        raw: raw,
+      );
+    }
+    var value = reading.value;
+    if (step != null && step > 0) value = (value / step).round() * step;
+    final places =
+        decimals ?? (step == null ? 1 : IndicatorReadingCheck.decimalsOf(step));
+    var text = value.toStringAsFixed(places);
+    // Un cero redondeado desde abajo no lleva signo.
+    if (double.parse(text) == 0) text = text.replaceFirst('-', '');
+    return IndicatorCandidate(
+      value: text,
+      height: 0,
+      source: IndicatorSource.aguja,
+      raw: raw,
+    );
+  }
+
+  static String _shortNumber(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value
+          .toStringAsFixed(3)
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
 
   /// Ubica el punto que el display no mostró y quita los ceros de la
   /// izquierda.

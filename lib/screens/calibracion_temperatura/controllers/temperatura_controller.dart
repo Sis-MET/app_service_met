@@ -388,17 +388,14 @@ class TemperaturaController extends ChangeNotifier {
     actualizar((s) => s.copyWith(equipo: equipo));
   }
 
-  /// Cambia el tipo de indicador; si el indicador ya existe y todavía no
-  /// hay lecturas, ajusta cómo se toma.
+  /// Cambia el tipo de indicador. Todos se leen con la cámara (uno
+  /// analógico, por su aguja); "A mano" se elige en Patrones y sensores.
   Future<void> elegirIndicador(String indicador) async {
     final equipo = _servicio?.equipo;
     // Es un dato del equipo: queda fijo al confirmarlo.
     if (equipo == null || !editable || servicio.equipoConfirmado) return;
     actualizar(
         (s) => s.copyWith(equipo: equipo.copyWith(indicador: indicador)));
-    if (!canalesFijos && canales.any((c) => c.rol == RolCanal.equipo)) {
-      await metodoIndicador(metodoDeIndicador(indicador));
-    }
   }
 
   /// Un equipo que todavía no está en DataMET, con código provisional.
@@ -463,17 +460,15 @@ class TemperaturaController extends ChangeNotifier {
   Future<String?> guardarPuntos(List<TempPunto> lista) =>
       _escribir(() => store.guardarPuntos(servicio.uuid, lista));
 
-  /// Los canales que se leen al empezar: el patrón al centro y el
-  /// indicador del equipo.
   /// El indicador del equipo: lo único que se registra en la app, con la
-  /// cámara si es digital o a mano si es analógico.
+  /// cámara (un display digital o la aguja de uno analógico) o a mano.
   TempCanal indicadorPorDefecto() {
     final equipo = _servicio?.equipo;
     return TempCanal(
       n: 1,
       nombre: 'Indicador del equipo',
       rol: RolCanal.equipo,
-      metodo: metodoDeIndicador(equipo?.indicador),
+      metodo: MetodoCanal.camara,
       decimales: _decimales(equipo?.resolucion) ?? 0,
     );
   }

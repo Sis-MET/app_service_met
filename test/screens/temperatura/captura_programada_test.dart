@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/calibracion/utils/indicator_frame.dart';
 import 'package:service_met/screens/calibracion/utils/indicator_reading.dart';
+import 'package:service_met/screens/calibracion/utils/needle_reader.dart';
 import 'package:service_met/screens/calibracion/utils/seven_segment_reader.dart';
 import 'package:service_met/screens/calibracion_temperatura/captura/captura_programada.dart';
 import 'package:service_met/screens/calibracion_temperatura/models/temperatura_models.dart';
@@ -181,6 +182,55 @@ void main() {
       expect(lectura.estado, EstadoLectura.sinLectura);
       expect(lectura.motivo, MotivoSinLectura.sinValor);
       expect(lectura.textoLeido, '----');
+    });
+
+    test('la aguja se registra con su origen y lo leído sin redondear',
+        () async {
+      await captura.tick();
+      final candidate = IndicatorReadingParser.fromNeedle(
+        const NeedleReading(
+          angle: 0,
+          sweep: 0.7278,
+          value: 24.24,
+          score: 1,
+          outOfScale: false,
+          scale: [0, 80, 160],
+        ),
+        step: 0.5,
+        decimals: 1,
+      );
+      for (var i = 0; i < 3; i++) {
+        await captura.cuadro([RegionReading(band: _band, candidate: candidate)]);
+      }
+      final lectura = guardadas.single;
+      expect(lectura.origen, OrigenLectura.ocrAguja);
+      expect(lectura.valor, 24.0);
+      expect(lectura.textoLeido, 'aguja 24.24 · 41.7° · escala 0/80/160');
+      expect(lectura.alerta, isNull);
+    });
+
+    test('la aguja fuera de la escala queda sin lectura con su motivo',
+        () async {
+      await captura.tick();
+      final fuera = IndicatorReadingParser.fromNeedle(
+        const NeedleReading(
+          angle: 0,
+          sweep: -0.2,
+          value: -11.9,
+          score: 1,
+          outOfScale: true,
+        ),
+        step: 1,
+        decimals: 0,
+      );
+      for (var i = 0; i < 3; i++) {
+        await captura.cuadro([RegionReading(band: _band, candidate: fuera)]);
+      }
+      final lectura = guardadas.single;
+      expect(lectura.estado, EstadoLectura.sinLectura);
+      expect(lectura.valor, isNull);
+      expect(lectura.motivo, MotivoSinLectura.fueraDeEscala);
+      expect(lectura.textoLeido, startsWith('aguja -11.90'));
     });
 
     test('en segundo plano las lecturas vencidas lo dicen', () async {

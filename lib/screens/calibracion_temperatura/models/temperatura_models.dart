@@ -69,15 +69,21 @@ enum MetodoCanal {
 }
 
 /// Tipos de indicador del equipo; casi siempre es uno digital.
-const tiposIndicador = ['Digital', 'Controlador digital (PID)', 'Analógico'];
+const tiposIndicador = [
+  indicadorDigital,
+  'Controlador digital (PID)',
+  indicadorAnalogico,
+];
 
 /// El indicador por defecto.
 const indicadorDigital = 'Digital';
 
-/// Cómo se toma la lectura del indicador según su tipo: uno analógico no lo
-/// lee la cámara.
-MetodoCanal metodoDeIndicador(String? indicador) =>
-    indicador == 'Analógico' ? MetodoCanal.manual : MetodoCanal.camara;
+/// Un indicador de aguja (dial): la cámara lo lee con la escala que marca el
+/// técnico.
+const indicadorAnalogico = 'Analógico';
+
+bool esIndicadorAnalogico(String? indicador) =>
+    indicador == indicadorAnalogico;
 
 enum EstadoPunto {
   pendiente('pendiente', 'Pendiente'),
@@ -100,6 +106,10 @@ enum EstadoPunto {
 enum OrigenLectura {
   ocrSegmentos('ocr_segmentos', 'Cámara (7 segmentos)'),
   ocrTexto('ocr_texto', 'Cámara (texto)'),
+
+  /// La aguja de un indicador analógico, convertida con la escala que marcó
+  /// el técnico.
+  ocrAguja('ocr_aguja', 'Cámara (aguja)'),
   manual('manual', 'Manual'),
   sinLectura('sin_lectura', 'Sin lectura');
 
@@ -134,6 +144,7 @@ enum EstadoLectura {
 abstract final class MotivoSinLectura {
   static const noLegible = 'No se pudo leer el display';
   static const sinValor = 'El display no mostraba un valor';
+  static const fueraDeEscala = 'La aguja estaba fuera de la escala marcada';
   static const segundoPlano =
       'La aplicación estaba en segundo plano o la cámara detenida';
   static const appCerrada = 'La aplicación se cerró durante la medición';

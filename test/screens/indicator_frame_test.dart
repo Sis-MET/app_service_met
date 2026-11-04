@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'dart:typed_data';
-import 'dart:ui' show Rect;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:service_met/screens/calibracion/utils/indicator_frame.dart';
 import 'package:service_met/screens/calibracion/utils/indicator_reading.dart';
+import 'package:service_met/screens/calibracion/utils/needle_reader.dart';
+import 'package:service_met/screens/calibracion/utils/reading_profile.dart';
 import 'package:service_met/screens/calibracion/utils/seven_segment_reader.dart';
 
+import 'dial_render.dart';
 import 'seven_segment_render.dart';
 
 CameraFrame _frame(GrayImage image) => CameraFrame(
@@ -144,5 +147,61 @@ void main() {
     reader.reset();
     expect((await reader.read(blank, now: now))?.value, '999.00');
     expect(ocrCalls, 2);
+  });
+
+  test('lee la aguja de un dial con la escala en fracciones de la imagen',
+      () async {
+    // El dial va dentro de una imagen vertical más grande; el sensor la
+    // entrega acostada (rotación 90), como en Android.
+    const spec = DialSpec(size: 360, scale: 150);
+    final dial = renderDial(spec, value: 117);
+    const width = 480, height = 640, left = 70, top = 150;
+    final upright = Uint8List(width * height)..fillRange(0, width * height, 120);
+    for (var y = 0; y < spec.size; y++) {
+      upright.setRange((top + y) * width + left,
+          (top + y) * width + left + spec.size, dial.pixels, y * spec.size);
+    }
+    // Sensor de 640 × 480: (ux, uy) de la imagen derecha está en
+    // (uy, width - 1 - ux).
+    final sensor = Uint8List(width * height);
+    for (var uy = 0; uy < height; uy++) {
+      for (var ux = 0; ux < width; ux++) {
+        sensor[(width - 1 - ux) * height + uy] = upright[uy * width + ux];
+      }
+    }
+    final frame = CameraFrame(
+      bytes: sensor,
+      width: height,
+      height: width,
+      bytesPerRow: height,
+      rotation: 90,
+    );
+    Offset fraction(Offset p) =>
+        Offset((p.dx + left) / width, (p.dy + top) / height);
+    final scale = DialScale(
+      center: fraction(spec.axis),
+      marks: [
+        for (final v in [0.0, 80.0, 160.0])
+          DialMark(fraction(spec.pointAt(v)), v),
+      ],
+    );
+    final reader = IndicatorFrameReader.multi(
+      regions: [
+        IndicatorRegion(
+          region: Rect.fromLTWH(left / width - 0.02, top / height - 0.02,
+              spec.size / width + 0.04, spec.size / height + 0.04),
+          profile: ReadingProfile.aguja(scale),
+          expectedDecimals: 0,
+          step: 1,
+        ),
+      ],
+      recognize: (_) async => fail('una aguja no pasa por el OCR'),
+    );
+    final readings = await reader.readAll(frame);
+    final reading = readings.single;
+    expect(reading.candidate?.value, '117');
+    expect(reading.candidate?.source, IndicatorSource.aguja);
+    expect(reading.needle?.value, closeTo(117, 0.3));
+    expect(reading.candidate?.raw, endsWith('escala 0/80/160'));
   });
 }

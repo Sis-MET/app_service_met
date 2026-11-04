@@ -1,9 +1,10 @@
 import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
-import 'dart:ui' show Rect;
+import 'dart:ui' show Offset, Rect;
 
 import 'indicator_reading.dart';
+import 'needle_reader.dart';
 import 'reading_profile.dart';
 import 'seven_segment_reader.dart';
 
@@ -36,14 +37,26 @@ class CameraFrame {
       bgra ||
       bytes.length >= bytesPerRow * height + bytesPerRow * (height ~/ 2);
 
+  /// Ancho y alto de la imagen derecha.
+  (int, int) get uprightSize {
+    final turned = rotation == 90 || rotation == 270;
+    return turned ? (height, width) : (width, height);
+  }
+
+  /// La esquina de [crop] en píxeles de la imagen derecha.
+  (int, int) cropOrigin(Rect region) {
+    final (uprightWidth, uprightHeight) = uprightSize;
+    return (
+      (region.left.clamp(0.0, 1.0) * uprightWidth).floor(),
+      (region.top.clamp(0.0, 1.0) * uprightHeight).floor(),
+    );
+  }
+
   /// La franja [region] (fracciones de la imagen derecha), ya derecha y en
   /// grises según [color]. Ancho y alto pares, como pide NV21.
   GrayImage crop(Rect region, {IndicatorColor color = IndicatorColor.luma}) {
-    final turned = rotation == 90 || rotation == 270;
-    final uprightWidth = turned ? height : width;
-    final uprightHeight = turned ? width : height;
-    final left = (region.left.clamp(0.0, 1.0) * uprightWidth).floor();
-    final top = (region.top.clamp(0.0, 1.0) * uprightHeight).floor();
+    final (uprightWidth, uprightHeight) = uprightSize;
+    final (left, top) = cropOrigin(region);
     final right = (region.right.clamp(0.0, 1.0) * uprightWidth).floor();
     final bottom = (region.bottom.clamp(0.0, 1.0) * uprightHeight).floor();
     final w = math.max(0, right - left) & ~1;
@@ -231,6 +244,7 @@ class IndicatorRegion {
     required this.region,
     this.profile = ReadingProfile.automatico,
     this.expectedDecimals,
+    this.step,
   });
 
   /// En fracciones de la imagen derecha.
@@ -241,27 +255,39 @@ class IndicatorRegion {
   /// pierda.
   final int? expectedDecimals;
 
+  /// Con una aguja: la resolución con que se lee el dial (1, 0.5…).
+  final double? step;
+
   IndicatorRegion copyWith({
     Rect? region,
     ReadingProfile? profile,
     int? expectedDecimals,
+    double? step,
   }) =>
       IndicatorRegion(
         region: region ?? this.region,
         profile: profile ?? this.profile,
         expectedDecimals: expectedDecimals ?? this.expectedDecimals,
+        step: step ?? this.step,
       );
 }
 
 /// Lo leído en un recuadro de un cuadro.
 class RegionReading {
-  const RegionReading({required this.candidate, required this.band});
+  const RegionReading({
+    required this.candidate,
+    required this.band,
+    this.needle,
+  });
 
   /// La lectura, si se encontró una.
   final IndicatorCandidate? candidate;
 
   /// El recuadro en grises, tal como se analizó: la evidencia de la lectura.
   final GrayImage band;
+
+  /// Con una aguja: dónde apunta, para dibujarla sobre la cámara.
+  final NeedleReading? needle;
 }
 
 /// Qué se hace con cada cuadro: se recorta cada recuadro, se prueba como
@@ -349,7 +375,21 @@ class IndicatorFrameReader {
     final results = <RegionReading>[];
     for (var i = 0; i < regions.length; i++) {
       final region = regions[i];
-      final (band, segments) = analyzed[i];
+      final (:band, :segments, :needle) = analyzed[i];
+      if (region.profile.engine == IndicatorEngine.aguja) {
+        results.add(RegionReading(
+          band: band,
+          needle: needle,
+          candidate: needle == null
+              ? null
+              : IndicatorReadingParser.fromNeedle(
+                  needle,
+                  step: region.step,
+                  decimals: region.expectedDecimals,
+                ),
+        ));
+        continue;
+      }
       if (segments != null) {
         _segmentsSeen[i] = now;
         results.add(RegionReading(
@@ -392,14 +432,28 @@ class IndicatorFrameReader {
   /// En el isolate: el recuadro en grises y, si el perfil lo permite, la
   /// lectura de 7 segmentos. En automático y con color, si con la
   /// luminancia no aparece un display se prueba con el brillo (LED de
-  /// color).
-  static (GrayImage, SegmentReading?) _analyze(
-    CameraFrame frame,
-    IndicatorRegion region,
-  ) {
+  /// color). Con una aguja, dónde apunta según la escala marcada.
+  static ({GrayImage band, SegmentReading? segments, NeedleReading? needle})
+      _analyze(CameraFrame frame, IndicatorRegion region) {
     final profile = region.profile;
     final band = frame.crop(region.region, color: profile.color);
-    if (profile.engine == IndicatorEngine.texto) return (band, null);
+    if (profile.engine == IndicatorEngine.aguja) {
+      final (width, height) = frame.uprightSize;
+      final (left, top) = frame.cropOrigin(region.region);
+      final geometry = profile.dial?.geometry(
+        width.toDouble(),
+        height.toDouble(),
+        origin: Offset(left.toDouble(), top.toDouble()),
+      );
+      return (
+        band: band,
+        segments: null,
+        needle: geometry == null ? null : NeedleReader.read(band, geometry),
+      );
+    }
+    if (profile.engine == IndicatorEngine.texto) {
+      return (band: band, segments: null, needle: null);
+    }
     final segments = SevenSegmentReader.read(
       band,
       brightInk: profile.brightInk,
@@ -409,7 +463,7 @@ class IndicatorFrameReader {
         profile.engine != IndicatorEngine.auto ||
         profile.color != IndicatorColor.luma ||
         !frame.hasColor) {
-      return (band, segments);
+      return (band: band, segments: segments, needle: null);
     }
     final bright = frame.crop(region.region, color: IndicatorColor.brillo);
     final retry = SevenSegmentReader.read(
@@ -417,6 +471,8 @@ class IndicatorFrameReader {
       brightInk: profile.brightInk,
       units: profile.units,
     );
-    return retry == null ? (band, null) : (bright, retry);
+    return retry == null
+        ? (band: band, segments: null, needle: null)
+        : (band: bright, segments: retry, needle: null);
   }
 }

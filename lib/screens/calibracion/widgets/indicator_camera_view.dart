@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_icons.dart';
+import '../utils/needle_reader.dart';
 
 /// Un recuadro que se dibuja sobre la cámara.
 class CameraRegion {
@@ -14,6 +17,8 @@ class CameraRegion {
     this.value,
     this.editable = true,
     this.highlighted = false,
+    this.dial,
+    this.needleAngle,
   });
 
   /// En fracciones de la imagen derecha, como lo lee el lector.
@@ -27,6 +32,14 @@ class CameraRegion {
 
   /// Lectura estable: el borde se pinta en verde.
   final bool highlighted;
+
+  /// Un indicador de aguja: el eje y las marcas de la escala, que el técnico
+  /// arrastra sobre la imagen.
+  final DialScale? dial;
+
+  /// Dónde ve la aguja el lector (ángulo en la imagen), para comprobarlo a
+  /// ojo.
+  final double? needleAngle;
 }
 
 /// La cámara a todo el espacio, recortando lo que sobre, con los recuadros
@@ -35,6 +48,11 @@ class CameraRegion {
 /// así coinciden con lo que analiza el lector. Los editables se mueven
 /// arrastrándolos y se agrandan o achican desde sus esquinas; tocar fuera de
 /// ellos enfoca ahí.
+///
+/// En un indicador de aguja se ven además el eje (una cruz), las marcas de
+/// la escala con su valor, el arco que recorre la escala y la aguja que ve
+/// el lector. El eje y cada marca se arrastran; tocar una marca permite
+/// cambiar su valor.
 class IndicatorCameraView extends StatelessWidget {
   const IndicatorCameraView({
     super.key,
@@ -42,6 +60,8 @@ class IndicatorCameraView extends StatelessWidget {
     required this.regions,
     required this.onTapFocus,
     this.onRegionChanged,
+    this.onDialChanged,
+    this.onMarkTap,
     this.hint,
   });
 
@@ -49,7 +69,20 @@ class IndicatorCameraView extends StatelessWidget {
   final List<CameraRegion> regions;
   final ValueChanged<Offset> onTapFocus;
   final void Function(int index, Rect region)? onRegionChanged;
+  final void Function(int index, DialScale dial)? onDialChanged;
+  final void Function(int index, int mark)? onMarkTap;
   final String? hint;
+
+  static Offset _clamp(Offset point) =>
+      Offset(point.dx.clamp(0.0, 1.0), point.dy.clamp(0.0, 1.0));
+
+  /// Un valor de la escala sin ceros de más.
+  static String _valor(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value
+          .toStringAsFixed(2)
+          .replaceFirst(RegExp(r'0+$'), '')
+          .replaceFirst(RegExp(r'\.$'), '');
 
   /// Tamaño mínimo de un recuadro, en fracciones de la imagen.
   static const minWidth = 0.12;
@@ -108,7 +141,16 @@ class IndicatorCameraView extends StatelessWidget {
             );
         Offset toImage(Offset delta) =>
             Offset(delta.dx / shown.width, delta.dy / shown.height);
+        Offset toScreenPoint(Offset point) => Offset(
+              origin.dx + point.dx * shown.width,
+              origin.dy + point.dy * shown.height,
+            );
         final boxes = [for (final region in regions) toScreen(region.region)];
+        final dials = [
+          for (final region in regions)
+            region.dial?.geometry(shown.width, shown.height,
+                origin: Offset(-origin.dx, -origin.dy)),
+        ];
         final topmost = boxes.isEmpty
             ? space.height / 2
             : boxes.map((box) => box.top).reduce((a, b) => a < b ? a : b);
@@ -143,6 +185,22 @@ class IndicatorCameraView extends StatelessWidget {
                   ],
                 ),
               ),
+              for (var i = 0; i < regions.length; i++)
+                if (regions[i].dial != null)
+                  IgnorePointer(
+                    child: CustomPaint(
+                      painter: _DialPainter(
+                        center: toScreenPoint(regions[i].dial!.center),
+                        marks: [
+                          for (final mark in regions[i].dial!.marks)
+                            toScreenPoint(mark.position),
+                        ],
+                        geometry: dials[i],
+                        color: regions[i].color,
+                        needleAngle: regions[i].needleAngle,
+                      ),
+                    ),
+                  ),
               if (hint != null)
                 Positioned(
                   left: 16,
@@ -190,12 +248,234 @@ class IndicatorCameraView extends StatelessWidget {
                     ),
                 ],
               ],
+              // Encima de los recuadros: el eje y las marcas de cada dial.
+              for (var i = 0; i < regions.length; i++)
+                if (regions[i].dial case final dial?
+                    when regions[i].editable && onDialChanged != null) ...[
+                  for (var k = 0; k < dial.marks.length; k++)
+                    _DialHandle(
+                      key: ValueKey('dial-mark-$i-$k'),
+                      at: toScreenPoint(dial.marks[k].position),
+                      color: regions[i].color,
+                      label: _valor(dial.marks[k].value),
+                      labelDirection: toScreenPoint(dial.marks[k].position) -
+                          toScreenPoint(dial.center),
+                      onDrag: (delta) => onDialChanged!(
+                        i,
+                        dial.withMark(
+                          k,
+                          dial.marks[k].copyWith(
+                            position: _clamp(
+                                dial.marks[k].position + toImage(delta)),
+                          ),
+                        ),
+                      ),
+                      onTap:
+                          onMarkTap == null ? null : () => onMarkTap!(i, k),
+                    ),
+                  _DialHandle(
+                    key: ValueKey('dial-center-$i'),
+                    at: toScreenPoint(dial.center),
+                    color: regions[i].color,
+                    cross: true,
+                    onDrag: (delta) => onDialChanged!(
+                      i,
+                      dial.withCenter(_clamp(dial.center + toImage(delta))),
+                    ),
+                  ),
+                ],
             ],
           ),
         );
       },
     );
   }
+}
+
+/// La escala de un dial sobre la cámara: el arco que recorre (de la primera
+/// marca a la última, en el sentido en que sube), un rayo a cada marca y la
+/// aguja que ve el lector. Con las marcas desordenadas, los rayos en rojo y
+/// sin arco.
+class _DialPainter extends CustomPainter {
+  const _DialPainter({
+    required this.center,
+    required this.marks,
+    required this.geometry,
+    required this.color,
+    required this.needleAngle,
+  });
+
+  final Offset center;
+  final List<Offset> marks;
+  final DialGeometry? geometry;
+  final Color color;
+  final double? needleAngle;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final g = geometry;
+    final rays = Paint()
+      ..strokeWidth = 1.5
+      ..color = g == null
+          ? AppColors.actionNegative
+          : color.withValues(alpha: 0.6);
+    for (final mark in marks) {
+      canvas.drawLine(center, mark, rays);
+    }
+    if (g == null) return;
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(g.cx, g.cy), radius: g.radius),
+      g.start,
+      g.direction * g.total,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..color = color.withValues(alpha: 0.85),
+    );
+    final angle = needleAngle;
+    if (angle != null) {
+      final tip = Offset(g.cx, g.cy) +
+          Offset(math.cos(angle), math.sin(angle)) * g.radius * 0.95;
+      canvas.drawLine(
+        Offset(g.cx, g.cy),
+        tip,
+        Paint()
+          ..strokeWidth = 3
+          ..strokeCap = StrokeCap.round
+          ..color = AppColors.accentYellow,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DialPainter old) =>
+      old.center != center ||
+      old.needleAngle != needleAngle ||
+      old.color != color ||
+      old.marks.length != marks.length ||
+      !_RegionsPainter._same(old.marks, marks);
+}
+
+/// El eje (una cruz en un anillo) o una marca de la escala (un anillo con su
+/// valor al lado, hacia afuera del dial). Huecos, para ver debajo lo que se
+/// está señalando.
+class _DialHandle extends StatelessWidget {
+  const _DialHandle({
+    super.key,
+    required this.at,
+    required this.color,
+    required this.onDrag,
+    this.onTap,
+    this.label,
+    this.labelDirection = Offset.zero,
+    this.cross = false,
+  });
+
+  final Offset at;
+  final Color color;
+  final ValueChanged<Offset> onDrag;
+  final VoidCallback? onTap;
+  final String? label;
+  final Offset labelDirection;
+  final bool cross;
+
+  static const _size = 40.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final onColor = ThemeData.estimateBrightnessForColor(color) ==
+            Brightness.dark
+        ? Colors.white
+        : AppColors.primary;
+    final direction = labelDirection.distance == 0
+        ? const Offset(0, -1)
+        : labelDirection / labelDirection.distance;
+    final labelAt = at + direction * 26;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        if (label != null)
+          Positioned(
+            left: labelAt.dx - 30,
+            top: labelAt.dy - 11,
+            width: 60,
+            height: 22,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTap,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    label!,
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: onColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          left: at.dx - _size / 2,
+          top: at.dy - _size / 2,
+          width: _size,
+          height: _size,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (details) => onDrag(details.delta),
+            onTap: onTap,
+            child: CustomPaint(
+              painter: _HandlePainter(color: color, cross: cross),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HandlePainter extends CustomPainter {
+  const _HandlePainter({required this.color, required this.cross});
+
+  final Color color;
+  final bool cross;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final halo = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..color = Colors.black54;
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = color;
+    final radius = cross ? 11.0 : 8.0;
+    canvas.drawCircle(c, radius, halo);
+    canvas.drawCircle(c, radius, ring);
+    if (cross) {
+      for (final d in const [Offset(1, 0), Offset(0, 1)]) {
+        canvas.drawLine(c - d * 17, c + d * 17, halo);
+        canvas.drawLine(c - d * 17, c + d * 17, ring);
+      }
+    } else {
+      canvas.drawCircle(c, 1.8, Paint()..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HandlePainter old) =>
+      old.color != color || old.cross != cross;
 }
 
 /// Oscurece todo menos los recuadros y les pinta el borde.

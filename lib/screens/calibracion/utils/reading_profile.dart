@@ -1,3 +1,5 @@
+import 'needle_reader.dart';
+
 /// Cómo se pasa el color del cuadro a grises antes de buscar los dígitos.
 enum IndicatorColor {
   /// La luminancia, como hasta ahora: sirve para LCD y la mayoría de los
@@ -32,7 +34,11 @@ enum IndicatorEngine {
   segmentos,
 
   /// Solo el OCR de texto: pantallas gráficas, matriz de puntos, TFT.
-  texto;
+  texto,
+
+  /// La aguja de un indicador analógico, con la escala que marcó el técnico
+  /// ([ReadingProfile.dial]).
+  aguja;
 
   static IndicatorEngine fromName(Object? name) => IndicatorEngine.values
       .firstWhere((engine) => engine.name == name, orElse: () => auto);
@@ -49,7 +55,17 @@ class ReadingProfile {
     this.scale = 0,
     this.bridge = false,
     this.units = false,
+    this.dial,
   });
+
+  /// Un indicador de aguja leído con la escala [dial].
+  const ReadingProfile.aguja(DialScale this.dial)
+      : engine = IndicatorEngine.aguja,
+        color = IndicatorColor.luma,
+        brightInk = null,
+        scale = 0,
+        bridge = false,
+        units = false;
 
   static const automatico = ReadingProfile();
 
@@ -76,6 +92,9 @@ class ReadingProfile {
   /// informan como tales (displays de temperatura).
   final bool units;
 
+  /// La escala de un indicador de aguja: el eje y las marcas con su valor.
+  final DialScale? dial;
+
   ReadingProfile copyWith({
     IndicatorEngine? engine,
     IndicatorColor? color,
@@ -84,6 +103,7 @@ class ReadingProfile {
     int? scale,
     bool? bridge,
     bool? units,
+    DialScale? dial,
   }) =>
       ReadingProfile(
         engine: engine ?? this.engine,
@@ -92,6 +112,7 @@ class ReadingProfile {
         scale: scale ?? this.scale,
         bridge: bridge ?? this.bridge,
         units: units ?? this.units,
+        dial: dial ?? this.dial,
       );
 
   Map<String, Object?> toJson() => {
@@ -101,6 +122,7 @@ class ReadingProfile {
         'scale': scale,
         'bridge': bridge,
         'units': units,
+        if (dial != null) 'dial': dial!.toJson(),
       };
 
   factory ReadingProfile.fromJson(Map<String, Object?> json) => ReadingProfile(
@@ -110,6 +132,7 @@ class ReadingProfile {
         scale: json['scale'] is int ? json['scale'] as int : 0,
         bridge: json['bridge'] == true,
         units: json['units'] == true,
+        dial: DialScale.fromJson(json['dial']),
       );
 
   /// Los perfiles que «Verificar lectura» prueba, de los más baratos y
@@ -151,6 +174,7 @@ class ReadingProfile {
       IndicatorEngine.auto => 'Automático',
       IndicatorEngine.segmentos => '7 segmentos',
       IndicatorEngine.texto => 'Texto',
+      IndicatorEngine.aguja => 'Aguja',
     };
     final partes = [
       motor,
@@ -171,9 +195,10 @@ class ReadingProfile {
       other.brightInk == brightInk &&
       other.scale == scale &&
       other.bridge == bridge &&
-      other.units == units;
+      other.units == units &&
+      other.dial == dial;
 
   @override
   int get hashCode =>
-      Object.hash(engine, color, brightInk, scale, bridge, units);
+      Object.hash(engine, color, brightInk, scale, bridge, units, dial);
 }

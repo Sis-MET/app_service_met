@@ -142,9 +142,10 @@ void main() {
     ]);
     expect(c.canales[1].posicion, 'Centro');
     expect(c.canales[1].codPatron, 'TM-001');
-    // Un indicador analógico se toma a mano; el técnico también puede
-    // elegirlo para uno digital que la cámara no alcanza.
-    expect(metodoDeIndicador('Analógico'), MetodoCanal.manual);
+    // Todos los indicadores se leen con la cámara (uno analógico, por su
+    // aguja); el técnico puede elegir "A mano" si la cámara no alcanza.
+    expect(esIndicadorAnalogico('Analógico'), isTrue);
+    expect(esIndicadorAnalogico('Digital'), isFalse);
     expect(await c.metodoIndicador(MetodoCanal.manual), isNull);
     expect(c.canales.first.metodo, MetodoCanal.manual);
     expect(await c.metodoIndicador(MetodoCanal.camara), isNull);

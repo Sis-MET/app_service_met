@@ -77,8 +77,9 @@ class CapturaProgramada extends ChangeNotifier {
   final Set<String> _enProceso = {};
   final Map<int, VotoLecturas> _votos = {};
 
-  /// Por canal, si el último intento fue un mensaje sin valor del display.
-  final Map<int, bool> _ultimoFueSinValor = {};
+  /// Por canal, el motivo si el último intento fue un mensaje sin valor (un
+  /// display sin valor o una aguja fuera de la escala).
+  final Map<int, String> _ultimoSinValor = {};
   final Map<int, TempLectura> _ultimas = {};
   final List<TempLectura> _lecturas = [];
   final Map<int, double> _ultimoValor = {};
@@ -196,7 +197,7 @@ class CapturaProgramada extends ChangeNotifier {
       if (n != _actual) {
         _actual = n;
         _votos.clear();
-        _ultimoFueSinValor.clear();
+        _ultimoSinValor.clear();
       }
       if (horario.terminada(ahora, _hechas)) _terminada = true;
     } finally {
@@ -213,10 +214,20 @@ class CapturaProgramada extends ChangeNotifier {
       return MotivoSinLectura.manualSinIngresar;
     }
     if (_enPausa(n)) return MotivoSinLectura.segundoPlano;
-    return _ultimoFueSinValor[canal.n] == true
-        ? MotivoSinLectura.sinValor
-        : MotivoSinLectura.noLegible;
+    return _ultimoSinValor[canal.n] ?? MotivoSinLectura.noLegible;
   }
+
+  static String _motivoSinValor(IndicatorCandidate candidate) =>
+      candidate.source == IndicatorSource.aguja
+          ? MotivoSinLectura.fueraDeEscala
+          : MotivoSinLectura.sinValor;
+
+  static OrigenLectura _origen(IndicatorCandidate candidate) =>
+      switch (candidate.source) {
+        IndicatorSource.segmentos => OrigenLectura.ocrSegmentos,
+        IndicatorSource.texto => OrigenLectura.ocrTexto,
+        IndicatorSource.aguja => OrigenLectura.ocrAguja,
+      };
 
   /// Lo que leyó la cámara en un cuadro, en el orden de [canalesCamara].
   Future<void> cuadro(List<RegionReading> lecturas) async {
@@ -231,8 +242,12 @@ class CapturaProgramada extends ChangeNotifier {
       if (voto.accepted) {
         await _aceptar(n, canal, voto.resultado, lecturas[i].band);
       } else if (voto.done) {
-        final resultado = voto.resultado;
-        _ultimoFueSinValor[canal.n] = resultado.candidate?.isNumber == false;
+        final candidate = voto.resultado.candidate;
+        if (candidate != null && !candidate.isNumber) {
+          _ultimoSinValor[canal.n] = _motivoSinValor(candidate);
+        } else {
+          _ultimoSinValor.remove(canal.n);
+        }
         // Sin acuerdo: otra ráfaga mientras dure la ventana.
         _votos.remove(canal.n);
       }
@@ -253,7 +268,8 @@ class CapturaProgramada extends ChangeNotifier {
       final imagen = await guardarImagen?.call(band, n, canal.n);
       final ahora = _reloj();
       if (!candidate.isNumber) {
-        _ultimoFueSinValor[canal.n] = true;
+        final motivo = _motivoSinValor(candidate);
+        _ultimoSinValor[canal.n] = motivo;
         await _guardar(TempLectura(
           nPunto: punto.n,
           nLectura: n,
@@ -265,7 +281,7 @@ class CapturaProgramada extends ChangeNotifier {
           coincidencia: resultado.coincidencia,
           cuadros: resultado.frames,
           estado: EstadoLectura.sinLectura,
-          motivo: MotivoSinLectura.sinValor,
+          motivo: motivo,
           imagenPath: imagen,
         ));
         return;
@@ -282,9 +298,7 @@ class CapturaProgramada extends ChangeNotifier {
         valor: valor,
         valorOriginal: valor,
         textoLeido: _corto(candidate.raw ?? candidate.value),
-        origen: candidate.source == IndicatorSource.segmentos
-            ? OrigenLectura.ocrSegmentos
-            : OrigenLectura.ocrTexto,
+        origen: _origen(candidate),
         coincidencia: resultado.coincidencia,
         cuadros: resultado.frames,
         alerta: alertas.isEmpty ? null : alertas.map((a) => a.code).join(','),
