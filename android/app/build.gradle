@@ -29,8 +29,8 @@ android {
         applicationId = "bo.metrica.smet"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "6.4.1"
+        versionCode = 20
+        versionName = "6.5.1"
     }
 
     signingConfigs {

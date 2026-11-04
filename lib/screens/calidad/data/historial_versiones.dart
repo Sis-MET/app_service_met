@@ -3,26 +3,7 @@ import '../models/version_app.dart';
 /// Cambios hechos después de la última versión liberada. Al subir la versión
 /// en pubspec.yaml, muévalos a una nueva entrada de [historialVersiones] y
 /// deje esta lista vacía.
-const cambiosSinLiberar = <String>[
-  'Calibración: primero se elige el tipo (balanzas o temperatura), con el '
-      'mismo selector de soporte.',
-  'Nueva calibración de temperatura (muflas, hornos, estufas): mismos pasos '
-      'y diseño que balanzas; patrones solo de temperatura; el indicador del '
-      'equipo (Digital por defecto) se registra en cada lectura y los '
-      'sensores del patrón se anotan con la referencia del software de su '
-      'registrador.',
-  'Lecturas programadas: lapso en minutos e intervalo en segundos; la '
-      'cámara registra una lectura solo con tres cuadros iguales y guarda la '
-      'imagen del display; si no lee, se escribe a mano o queda "sin lectura" '
-      'con motivo.',
-  'Correcciones y exclusiones de lecturas con motivo: el valor original se '
-      'conserva y el historial viaja a DataMET.',
-  'Subida de la calibración de temperatura a DataMET (tablas del script '
-      '017, solo inserción; tipo de servicio CAL.TE en el resumen).',
-  'Lector del indicador: recuadro movible que se recuerda, zoom, exposición '
-      'y bloqueo de la cámara, displays de color, unidad °C/°F y mensajes sin '
-      'valor, y "Verificar lectura".',
-];
+const cambiosSinLiberar = <String>[];
 
 /// Historial de versiones liberadas, de la más reciente a la más antigua
 /// (control de cambios, NB/ISO/IEC 17025 7.11.2).
@@ -32,6 +13,59 @@ const cambiosSinLiberar = <String>[
 /// Redacte para el laboratorio: qué cambia para el técnico y para los
 /// registros, no detalles de programación.
 const historialVersiones = <VersionApp>[
+  VersionApp(
+    version: '6.5.1+20',
+    fecha: '2026-10-29',
+    clase: ClaseCambio.critico,
+    resumen: 'Calibración de temperatura (muflas, hornos, estufas) con '
+        'lecturas programadas del indicador y subida a DataMET, selección del '
+        'tipo de calibración y un lector del indicador más capaz.',
+    nuevo: [
+      'Calibración: al entrar se elige el tipo, "CALIBRACIÓN DE BALANZAS" o '
+          '"CALIBRACIÓN DE TEMPERATURA", con el mismo selector de soporte. '
+          'La calibración de balanzas no cambia.',
+      'Calibración de temperatura: mismos pasos y diseño que balanzas '
+          '(Cliente, Planta, SECA, Equipo, Patrones y sensores, Puntos, '
+          'Medición, Cierre y Resumen). Los patrones son solo equipos de '
+          'temperatura (nunca pesas) y el termohigrómetro va aparte. Se '
+          'registra el indicador del equipo (Digital por defecto, con la '
+          'cámara o a mano); los sensores del patrón graban en el software de '
+          'su registrador y se anotan con su posición y la referencia de ese '
+          'registro.',
+      'Lecturas programadas: para cada punto se configura el lapso en '
+          'minutos y el intervalo en segundos (por ejemplo 45 min cada 30 s, '
+          '91 lecturas). La cámara registra una lectura solo si tres cuadros '
+          'coinciden y guarda la imagen del display; si no lee, se escribe a '
+          'mano hasta la siguiente o queda "sin lectura" con su motivo, nunca '
+          'con un valor inventado. La pantalla se mantiene encendida durante '
+          'la medición.',
+      'Correcciones y exclusiones de lecturas, siempre con motivo: el valor '
+          'original se conserva, cada cambio queda con valor anterior, nuevo, '
+          'técnico y fecha, y un registro finalizado ya no se modifica.',
+      'Subida de la calibración de temperatura a DataMET, completa y en una '
+          'sola transacción, desde su Resumen o desde "Registros de '
+          'temperatura"; el resumen del servicio queda con el tipo CAL.TE. '
+          'Un equipo nuevo se sube después de "Asignar código".',
+      'Lector del indicador (balanzas y temperatura): el recuadro se mueve y '
+          'se cambia de tamaño y la app lo recuerda; "Ajustes de cámara" con '
+          'zoom, exposición y "Bloquear enfoque y exposición". En temperatura '
+          'lee displays de color (rojo o verde), quita la unidad °C/°F, '
+          'reconoce los mensajes sin valor (----, OPEn, HHHH) y ofrece '
+          '"Verificar lectura" para ajustarse a un display difícil.',
+    ],
+    impactoRegistros: 'La calibración de temperatura es un registro técnico '
+        'nuevo: la base local agrega sus tablas (temp_*) dentro de la base de '
+        'calibración, que el respaldo ya incluye, y DataMET agrega seis '
+        'tablas DATA_SERVICIOS_DATOS_CAL_TE* (script 017) en las que la API '
+        'solo puede leer e insertar y DataMET+ solo leer. Cada lectura guarda '
+        'la hora '
+        'del teléfono con milisegundos, lo que leyó la cámara y su imagen '
+        '(las imágenes quedan en el teléfono). Los registros de balanzas y de '
+        'soporte no cambian. Antes de subir calibraciones de temperatura hay '
+        'que ejecutar el script 017 en DataMET y desplegar el backend; sin '
+        'ellos quedan pendientes en el teléfono y el servidor responde que '
+        'falta el script.',
+  ),
   VersionApp(
     version: '6.4.1+19',
     fecha: '2026-10-20',

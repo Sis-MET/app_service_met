@@ -31,7 +31,7 @@ Esta versión incluye todo lo de 6.4.0+18 (ver `VAL-6.4.0+18.md`).
 |---|---|---|---|
 | App | `flutter test` | 507 aprobadas / 0 fallidas (2026-10-20) | Incluye `test/screens/soporte_interruptor_pruebas_test.dart` (aviso del interruptor, flujo de Mnt Preventivo Avanzado, linealidad con una sola carga, repetibilidad con 4 lecturas) y `test/screens/soporte_pruebas_omitidas_test.dart` (con las bases de los 7 módulos: omitir y continuar, la subida sin la columna local ni datos de la prueba omitida, una prueba sin llenar sigue activa, filas vacías en medio y filas quitadas). Sin las correcciones fallan 5 y 19 de ellas. También la consistencia del historial, la matriz y el manual con `pubspec.yaml`. |
 | Backend | `node --test` (en `backend/`) | 115 aprobadas / 0 fallidas (2026-10-20) | Sin cambios desde 6.4.0+18. |
-| Compilación Android (release) | `flutter build appbundle --release` | [resultado de la compilación] | — |
+| Compilación Android (release) | `flutter build appbundle --release` | Compilado sin errores (2026-10-20), desde el commit c4d93f1: `app-release.aab`, 113,2 MB | El manifiesto de release declara `bo.metrica.smet`, versionCode 19 y versionName 6.4.1. Firma con la llave de subida configurada en `android/key.properties`. [PENDIENTE: huella SHA-256 del AAB y certificado de la firma] |
 
 ## Casos funcionales (clase A/B)
 

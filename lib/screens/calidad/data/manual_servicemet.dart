@@ -13,7 +13,7 @@ const manualServiceMet = ManualUso(
     titulo: 'Manual de uso de ServiceMET',
     revision: '04 (borrador)',
     fechaEmision: '2026-10-29',
-    aplicaA: '6.4.1 o posterior',
+    aplicaA: '6.5.1 o posterior',
     elaboro: 'Desarrollo ServiceMET',
     reviso: 'PENDIENTE',
     aprobo: 'PENDIENTE',
@@ -41,8 +41,9 @@ const manualServiceMet = ManualUso(
       RevisionDocumento(
           '04',
           '2026-10-29',
-          'Tipo de calibración (balanzas o temperatura), calibración de '
-              'temperatura con lecturas programadas del indicador, lector con '
+          'Versión 6.5.1: tipo de calibración (balanzas o temperatura), '
+              'calibración de temperatura con lecturas programadas del '
+              'indicador, lector con '
               'recuadro ajustable, ajustes de cámara y "Verificar lectura", y '
               'subida de la calibración de temperatura (borrador).'),
     ],
