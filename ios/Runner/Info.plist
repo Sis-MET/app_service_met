@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Met Service</string>
+	<string>ServiceMET</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -25,7 +25,41 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Requerido por los procedimientos de la empresa.</string>
+	<string>ServiceMET registra la ubicación al guardar un servicio de calibración o soporte técnico para identificar dónde se realizó.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ServiceMET usa la cámara para fotografiar equipos y evidencias de los servicios, escanear códigos QR y leer indicadores de medición.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ServiceMET permite seleccionar imágenes como evidencia de los servicios.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>ServiceMET usa Face ID para que pueda iniciar sesión con su identidad biométrica cuando active esta opción.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>ServiceMET se conecta al servidor interno de Métrica para iniciar sesión, descargar catálogos y sincronizar los servicios mediante la red de la empresa o su VPN.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

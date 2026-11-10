@@ -622,7 +622,7 @@ String nombreArchivo(String nombreBase, FotoItem foto) {
   return '${partes.join('_')}$extension';
 }
 
-/// Abre la hoja de compartir de Android (WhatsApp, correo, Drive, "Guardar
+/// Abre la hoja de compartir del teléfono (WhatsApp, correo, Drive, "Guardar
 /// en Archivos"...).
 Future<void> compartirFotos(
   BuildContext context,
@@ -635,6 +635,7 @@ Future<void> compartirFotos(
     return;
   }
   try {
+    final box = context.findRenderObject() as RenderBox?;
     await SharePlus.instance.share(ShareParams(
       files: [
         for (final foto in fotos)
@@ -645,6 +646,8 @@ Future<void> compartirFotos(
           ),
       ],
       subject: nombreBase.isEmpty ? 'Fotos del servicio' : 'Fotos $nombreBase',
+      sharePositionOrigin:
+          box == null ? null : box.localToGlobal(Offset.zero) & box.size,
     ));
   } catch (e) {
     if (context.mounted) {

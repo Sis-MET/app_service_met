@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:csv/csv.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -706,8 +706,11 @@ class DatabaseHelperMntPrvRegularStil {
       final String fileName =
           'mnt_prv_regular_stil_${DateTime.now().millisecondsSinceEpoch}.csv';
 
-      final params = SaveFileDialogParams(data: bytes, fileName: fileName);
-      final savedPath = await FlutterFileDialog.saveFile(params: params);
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Guardar archivo CSV',
+        bytes: bytes,
+        fileName: fileName,
+      );
 
       if (savedPath != null) {
         debugPrint('Datos exportados a $savedPath');

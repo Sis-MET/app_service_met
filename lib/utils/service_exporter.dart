@@ -52,7 +52,7 @@ class ExportResult {
 /// ```
 ///
 /// Si el técnico todavía no ha elegido una carpeta, recurre al selector
-/// estándar de Android (`ACTION_CREATE_DOCUMENT`) para guardar el archivo
+/// de documentos del sistema para guardar el archivo
 /// suelto. Ambas rutas son locales y funcionan sin conexión.
 class ServiceExporter {
   ServiceExporter._();

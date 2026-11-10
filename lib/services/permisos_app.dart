@@ -80,7 +80,7 @@ class PermisoCamara {
     try {
       return await _canal.invokeMethod<bool>('camaraConcedida') ?? false;
     } on MissingPluginException {
-      // Fuera de Android (iOS, escritorio): el sistema pide el permiso solo.
+      // En escritorio y en las pruebas no se registra el canal nativo.
       return true;
     } catch (_) {
       return false;

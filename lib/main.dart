@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:service_met/database/soporte_tecnico/database_helper_diagnostico_correctivo.dart';
 import 'package:service_met/home/screens/home_screen.dart';
@@ -47,7 +46,6 @@ void main() async {
   try {
     // Inicialización paralela para mejorar velocidad de arranque
     await Future.wait([
-      Firebase.initializeApp(),
       // Bases de datos críticas (opcionalmente podrían no ser críticas para arranque)
       AppDatabase().database,
       DatabaseHelperAjustes().database,
@@ -61,7 +59,6 @@ void main() async {
   } catch (e, stack) {
     debugPrint('Error crítico durante la inicialización: $e');
     debugPrint(stack.toString());
-    // Aquí se podría reportar a Crashlytics si estuviera configurado
   }
 
   // Inicializar Notificaciones. Se programan desde el inicio, que es donde se

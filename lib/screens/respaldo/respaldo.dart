@@ -5,7 +5,6 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -189,11 +188,11 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       final fileName = file.uri.pathSegments.last;
       final Uint8List bytes = await File(file.path).readAsBytes();
 
-      final params = SaveFileDialogParams(
-        data: bytes,
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: 'Guardar respaldo',
+        bytes: bytes,
         fileName: fileName,
       );
-      final savedPath = await FlutterFileDialog.saveFile(params: params);
 
       if (savedPath != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -216,8 +215,11 @@ class _RespaldoScreenState extends State<RespaldoScreen> {
       try {
         final fileName = file.uri.pathSegments.last;
         final Uint8List bytes = await File(file.path).readAsBytes();
-        final params = SaveFileDialogParams(data: bytes, fileName: fileName);
-        final savedPath = await FlutterFileDialog.saveFile(params: params);
+        final savedPath = await FilePicker.saveFile(
+          dialogTitle: 'Guardar respaldo',
+          bytes: bytes,
+          fileName: fileName,
+        );
         if (savedPath != null) successCount++;
       } catch (e) {
         errors.add(file.uri.pathSegments.last);

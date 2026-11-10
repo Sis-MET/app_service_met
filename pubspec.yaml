@@ -42,12 +42,8 @@ dependencies:
   # READ_EXTERNAL_STORAGE en el manifest final. Los documentos exportados se
   # abren con el canal SAF (SafStorage.openDocument).
   share_plus: ^13.3.0
-  flutter_file_dialog: ^3.0.2
   archive: ^4.0.7
   file_picker: ^12.0.0-beta.7
-  firebase_core: ^4.13.0
-  firebase_auth: ^6.5.7
-  cloud_firestore: ^6.8.0
   sqflite: ^2.4.2
   path_provider: ^2.1.5
   connectivity_plus: ^7.3.1
@@ -83,6 +79,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
+  path_provider_platform_interface: ^2.1.2
   flutter_test:
     sdk: flutter
   sqflite_common_ffi: ^2.3.3
@@ -99,6 +96,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # ML Kit y los complementos actuales se integran con CocoaPods en iOS.
+  config:
+    enable-swift-package-manager: false
   assets:
     - images/logo_met.png
     - assets/fonts/LICENSE-lucide.txt

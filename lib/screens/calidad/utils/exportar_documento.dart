@@ -91,6 +91,7 @@ Future<void> exportarPdf(
       case _Destino.guardar:
         await _guardar(context, carpeta, fileName, bytes);
       case _Destino.compartir:
+        final box = context.findRenderObject() as RenderBox?;
         await SharePlus.instance.share(ShareParams(
           files: [
             XFile.fromData(bytes,
@@ -98,6 +99,8 @@ Future<void> exportarPdf(
           ],
           fileNameOverrides: [fileName],
           subject: titulo,
+          sharePositionOrigin:
+              box == null ? null : box.localToGlobal(Offset.zero) & box.size,
         ));
       case _Destino.imprimir:
         await Printing.layoutPdf(

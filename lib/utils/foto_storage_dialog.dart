@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/utils/saf_storage.dart';
@@ -6,9 +7,8 @@ import '../theme/app_icons.dart';
 /// Pide al técnico la carpeta principal de ServiceMET donde exportar la
 /// documentación de los servicios.
 ///
-/// Usa Storage Access Framework: el técnico elige la carpeta una sola vez y
-/// Android conserva el acceso mediante un permiso URI persistente, sin que la
-/// aplicación necesite acceso a todos los archivos del dispositivo.
+/// El técnico elige una carpeta del dispositivo. Android conserva un permiso
+/// URI e iOS un bookmark de Archivos, sin acceso al resto de sus archivos.
 ///
 /// Las fotografías se guardan siempre en el almacenamiento propio de la app
 /// (no requiere permisos ni conexión); esta carpeta es el destino de la
@@ -59,8 +59,9 @@ class FotoStorageDialog {
             _folderPreview(isDark, subDirName: subDirName),
             const SizedBox(height: 16),
             Text(
-              'Sólo se pedirá una vez. Android conserva el acceso a esta '
-              'carpeta; la aplicación no accede al resto de sus archivos.',
+              'El teléfono conserva el acceso a esta carpeta; la aplicación '
+              'no accede al resto de sus archivos. '
+              '${defaultTargetPlatform == TargetPlatform.iOS ? 'Elija una carpeta en «En mi iPhone» o «En mi iPad» para exportar sin conexión.' : 'Sólo se pedirá una vez.'}',
               textAlign: TextAlign.start,
               style: GoogleFonts.inter(
                 fontSize: 12,

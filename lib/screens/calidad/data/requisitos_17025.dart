@@ -533,10 +533,10 @@ final evaluacionCumplimiento = EvaluacionCumplimiento(
             'la API interna (backend/src/bitrix); la app no guarda su '
             'credencial ni le envía registros técnicos.',
       ],
-      brecha: 'Firebase se inicializa al abrir la app; falta confirmar si se '
-          'usa y qué datos envía.',
-      accion: 'Retirar Firebase si no se usa o declararlo como proveedor '
-          'externo.',
+      brecha: 'Falta documentar la evaluación y aprobación de los proveedores '
+          'externos que utiliza el sistema.',
+      accion: 'Registrar los proveedores, los datos que reciben y su '
+          'evaluación. Firebase fue retirado porque la app no lo utilizaba.',
       cierre: TipoCierre.software,
       riesgo: Riesgo.bajo,
     ),

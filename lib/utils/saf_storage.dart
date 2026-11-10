@@ -1,10 +1,9 @@
-import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Carpeta de exportación elegida por el técnico mediante Storage Access
-/// Framework.
+/// Framework en Android o Archivos en iOS.
 class SafTree {
   const SafTree({required this.uri, required this.name});
 
@@ -12,11 +11,11 @@ class SafTree {
   final String name;
 }
 
-/// Puente hacia Storage Access Framework.
+/// Puente hacia Storage Access Framework (Android) y Archivos (iOS).
 ///
 /// Permite escribir la documentación de cada servicio en una carpeta que el
 /// técnico elige una sola vez, conservando el acceso mediante un permiso URI
-/// persistente. No requiere MANAGE_EXTERNAL_STORAGE ni permisos de medios y
+/// persistente o un bookmark de iOS. No requiere permisos de medios y
 /// funciona sin conexión: el selector y la escritura son locales.
 class SafStorage {
   SafStorage._();
@@ -29,7 +28,10 @@ class SafStorage {
   /// Carpeta raíz que ServiceMET crea dentro de la ubicación elegida.
   static const rootFolder = 'ServiceMET';
 
-  static bool get isSupported => Platform.isAndroid;
+  static bool get isSupported =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   /// Pide al técnico que elija la carpeta principal y conserva el permiso.
   ///
@@ -150,7 +152,8 @@ class SafStorage {
   ///
   /// Devuelve `false` si no hay ninguna aplicación capaz de abrirlo; el archivo
   /// ya quedó guardado, así que no se trata como error de exportación.
-  static Future<bool> openDocument(String uri, {String mimeType = '*/*'}) async {
+  static Future<bool> openDocument(String uri,
+      {String mimeType = '*/*'}) async {
     if (!isSupported) return false;
     try {
       final opened = await _channel.invokeMethod<bool>('openDocument', {
@@ -168,7 +171,9 @@ class SafStorage {
   /// intactos.
   static String sanitizeSegment(String value) {
     final cleaned = value.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
-    return cleaned.isEmpty ? 'sin_codigo' : cleaned;
+    return cleaned.isEmpty || cleaned == '.' || cleaned == '..'
+        ? 'sin_codigo'
+        : cleaned;
   }
 }
 
