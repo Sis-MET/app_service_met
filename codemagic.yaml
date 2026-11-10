@@ -1,0 +1,109 @@
+# Ejecutar manualmente: no se consumen minutos con cada push.
+# ios-check no requiere una membresía de Apple y NO genera un instalable.
+workflows:
+  ios-check:
+    name: iOS - comprobar compilacion sin firma
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.44.2
+      xcode: "26.4"
+      cocoapods: default
+    scripts:
+      - name: Obtener dependencias
+        script: flutter pub get --enforce-lockfile
+      - name: Validar configuracion nativa
+        script: |
+          set -e
+          plutil -lint ios/Runner/Info.plist ios/Runner/Runner.entitlements ios/Flutter/AppFrameworkInfo.plist
+          ruby -c ios/Podfile
+      - name: Analizar codigo
+        script: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+      - name: Ejecutar pruebas
+        script: flutter test --no-pub --reporter expanded
+      - name: Compilar para iPhone sin firma
+        script: flutter build ios --release --no-codesign --no-pub
+      - name: Conservar resultado de comprobacion
+        script: |
+          set -e
+          mkdir -p build/ios/artifacts
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app build/ios/artifacts/ServiceMET-ios-sin-firma.app.zip
+    artifacts:
+      - build/ios/artifacts/*.zip
+      - /tmp/xcodebuild_logs/*.log
+      - ios/Podfile.lock
+
+  ios-adhoc:
+    name: iOS - IPA para iPhones registrados
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.44.2
+      xcode: "26.4"
+      cocoapods: default
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: bo.metrica.smet
+    scripts:
+      - name: Obtener dependencias
+        script: flutter pub get --enforce-lockfile
+      - name: Preparar complementos de iOS
+        script: |
+          set -e
+          flutter build ios --config-only --release --no-codesign --no-pub
+          cd ios
+          pod install
+      - name: Aplicar certificados y perfiles
+        script: xcode-project use-profiles
+      - name: Analizar codigo
+        script: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+      - name: Ejecutar pruebas
+        script: flutter test --no-pub --reporter expanded
+      - name: Generar IPA firmado
+        script: |
+          flutter build ipa --release --no-pub \
+            --build-number="$((PROJECT_BUILD_NUMBER + 21))" \
+            --export-options-plist="$HOME/export_options.plist"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive/dSYMs/*.dSYM
+      - /tmp/xcodebuild_logs/*.log
+      - ios/Podfile.lock
+
+  ios-app-store:
+    name: iOS - IPA para TestFlight o App Store
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: 3.44.2
+      xcode: "26.4"
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: bo.metrica.smet
+    scripts:
+      - name: Obtener dependencias
+        script: flutter pub get --enforce-lockfile
+      - name: Preparar complementos de iOS
+        script: |
+          set -e
+          flutter build ios --config-only --release --no-codesign --no-pub
+          cd ios
+          pod install
+      - name: Aplicar certificados y perfiles
+        script: xcode-project use-profiles
+      - name: Analizar codigo
+        script: flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings
+      - name: Ejecutar pruebas
+        script: flutter test --no-pub --reporter expanded
+      - name: Generar IPA para distribucion
+        script: |
+          flutter build ipa --release --no-pub \
+            --build-number="$((PROJECT_BUILD_NUMBER + 21))" \
+            --export-options-plist="$HOME/export_options.plist"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive/dSYMs/*.dSYM
+      - /tmp/xcodebuild_logs/*.log
+      - ios/Podfile.lock
+# No hay publishing: estos flujos no publican ni envían la app a terceros.

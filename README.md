@@ -2,6 +2,15 @@
 
 Proyecto Metrica
 
+## iOS con Codemagic
+
+La configuración está en `codemagic.yaml`. Para empezar sin certificados,
+ejecuta el workflow `ios-check`; para generar un IPA firmado están preparados
+`ios-adhoc` y `ios-app-store`.
+
+Consulta los requisitos, los pasos y la prueba en iPhone en
+[docs/IOS_CODEMAGIC.md](docs/IOS_CODEMAGIC.md).
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.
