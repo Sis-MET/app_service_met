@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service_met/home/models/servicio_model.dart';
 import 'package:service_met/home/screens/fotos_registro_screen.dart';
 import 'package:service_met/home/screens/servicio_detalles_screen.dart';
+import 'package:service_met/home/services/local_service_record_repository.dart';
 import 'package:service_met/theme/app_design.dart';
 import 'package:service_met/widgets/foto_viewer.dart';
 import 'package:service_met/theme/app_icons.dart';
@@ -23,6 +24,9 @@ void main() {
   late List<String> fotos;
 
   setUp(() {
+    // Estas pruebas usan registros en memoria. El historial no debe abrir
+    // SQLite ni depender de los complementos nativos del equipo de CI.
+    LocalServiceRecordRepository.resolverOverride = (_, __) async => null;
     dir = Directory.systemTemp.createTempSync('fotos_test');
     foto1 = '${dir.path}/001.jpg';
     fotos = [
@@ -32,7 +36,10 @@ void main() {
       File(foto).writeAsBytesSync(_png);
     }
   });
-  tearDown(() => dir.deleteSync(recursive: true));
+  tearDown(() {
+    LocalServiceRecordRepository.resolverOverride = null;
+    dir.deleteSync(recursive: true);
+  });
 
   void telefono(WidgetTester tester) {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -205,7 +212,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // "+3" abre todas, por sección.
-    await tester.tap(find.text('+3'));
+    await tester.tap(find.bySemanticsLabel('Ver las 6 fotos'));
     await tester.pumpAndSettle();
     expect(find.byType(FotosRegistroScreen), findsOneWidget);
     expect(find.text('Fotografías'), findsOneWidget);

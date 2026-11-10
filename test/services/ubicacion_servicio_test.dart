@@ -172,8 +172,31 @@ void main() {
       ]);
       expect(ubicaciones, hasLength(2));
       expect(ubicaciones.first!['latitud'], -16.5);
-      expect(ubicaciones.first!['fecha_gps'], '2026-10-15T09:30:00-04:00');
+      final fecha = ubicaciones.first!['fecha_gps'] as String;
+      // La salida usa la zona local del teléfono o del servidor de pruebas.
+      // Debe conservar el instante y un desfase explícito, no exigir UTC-4.
+      expect(DateTime.parse(fecha).toUtc(), DateTime.utc(2026, 10, 15, 13, 30));
+      expect(fecha, matches(RegExp(r'[+-]\d{2}:\d{2}$')));
       expect(ubicaciones.last, isNull);
+    });
+
+    test('calibración: conserva el instante de fechas con distintos desfases',
+        () {
+      final ubicaciones = calibrationUploadLocations([
+        for (final fecha in [
+          '2026-10-15T09:30:00-04:00',
+          '2026-10-15T13:30:00Z',
+          '2026-10-15T19:15:00+05:45',
+        ])
+          {...conUbicacion, 'fecha_gps': fecha},
+      ]);
+      expect(ubicaciones, hasLength(3));
+      for (final ubicacion in ubicaciones) {
+        final fecha = ubicacion!['fecha_gps'] as String;
+        expect(
+            DateTime.parse(fecha).toUtc(), DateTime.utc(2026, 10, 15, 13, 30));
+        expect(fecha, matches(RegExp(r'[+-]\d{2}:\d{2}$')));
+      }
     });
 
     test('soporte: la ubicación va en el sobre, fuera de los datos', () {
