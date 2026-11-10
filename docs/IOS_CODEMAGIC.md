@@ -68,6 +68,40 @@ La configuración YAML se validó con el esquema de Codemagic y se comprobaron l
 estructura del proyecto Xcode, los plist y los tamaños y opacidad de los iconos.
 Esto no sustituye la compilación ni la ejecución nativa en iOS.
 
+## Prueba personal desde Windows con una cuenta Apple gratuita
+
+La compilación nativa de `ios-check` ya terminó correctamente en Codemagic.
+Se importó su `Podfile.lock` al proyecto, verificando que el checksum coincidiera
+con el `Podfile` utilizado.
+
+Para una prueba personal puedes firmar e instalar la app mediante
+[Sideloadly](https://sideloadly.io/) en Windows. Con una cuenta Apple gratuita la
+firma dura siete días; se debe renovar para seguir usando esa instalación.
+Esto permite probar la app antes de configurar los workflows de distribución
+del Apple Developer Program.
+
+El ZIP de la aplicación contiene `Runner.app`. Un IPA para esta ruta contiene
+esa misma aplicación dentro de `Payload/Runner.app/`, conservando sus archivos
+y permisos. Empaquetarlo como IPA no lo firma: Sideloadly realiza la firma y el
+aprovisionamiento al instalarlo.
+
+1. Instala Sideloadly desde su web oficial. Sigue sus instrucciones para los
+   componentes de Apple que necesite Windows para reconocer el dispositivo.
+2. Conecta el iPhone por USB, desbloquéalo y acepta **Confiar en este ordenador**.
+3. Abre en Sideloadly el IPA sin firma preparado a partir del build de Codemagic.
+4. Selecciona el dispositivo, inicia sesión con tu cuenta Apple en Sideloadly y
+   pulsa **Start**.
+5. En el iPhone, si aparece **Desarrollador no fiable**, ve a **Ajustes > General >
+   VPN y gestión de dispositivos** y confía en la cuenta usada para la firma.
+6. En iOS 16 o posterior activa **Ajustes > Privacidad y seguridad > Modo de
+   desarrollador** y completa el reinicio y la confirmación que indique iOS.
+7. Abre ServiceMET y realiza la prueba física descrita más abajo, con acceso a
+   la red interna o a la VPN de la empresa.
+
+Al renovar o actualizar, utiliza la misma cuenta y el mismo Bundle ID para
+actualizar la instalación existente. Consulta los detalles y límites en las
+[preguntas frecuentes de Sideloadly](https://sideloadly.io/faq).
+
 ## Generar un IPA instalable con Apple Developer
 
 Los dos workflows firmados preparados utilizan certificados y perfiles del
