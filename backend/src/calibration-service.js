@@ -14,6 +14,12 @@ const {
   summaryLocationSql,
   summarySupportsLocation,
 } = require('./location');
+const {
+  addSubstitutionValidation,
+  insertSubstitutionSteps,
+  missingTableError,
+  substitutionTableExists,
+} = require('./sustitucion');
 
 const qualifiedTable = `[dbo].[${CALIBRATION_TABLE}]`;
 const qualifiedSummaryTable = `[dbo].[${SERVICE_SUMMARY_TABLE}]`;
@@ -120,8 +126,12 @@ function addRegisteredByErrors(validation, registeredBy) {
   return validation;
 }
 
-async function validateAgainstDatabase(config, schema, records, username) {
-  const validation = validateRecords(records, schema);
+const hasSubstitutionSteps = (records) => records.some(
+  (record) => record.valid && record.sustitucion?.length > 0,
+);
+
+async function validateAgainstDatabase(config, schema, records, username, rawSubstitutions) {
+  const validation = addSubstitutionValidation(validateRecords(records, schema), rawSubstitutions);
   if (validation.records.length === 0) return validation;
   const pool = await getPool(config);
   const [existing, registeredBy] = await Promise.all([
@@ -129,7 +139,12 @@ async function validateAgainstDatabase(config, schema, records, username) {
     resolveRegisteredBy(pool, username),
   ]);
   addDatabaseDuplicates(validation, existing);
-  return addRegisteredByErrors(validation, registeredBy);
+  addRegisteredByErrors(validation, registeredBy);
+  if (hasSubstitutionSteps(validation.records) && !(await substitutionTableExists(pool))) {
+    const error = missingTableError();
+    validation.batchErrors.push({ code: error.code, message: error.message });
+  }
+  return validation;
 }
 
 function inputValue(request, name, definition, value) {
@@ -219,7 +234,7 @@ async function insertSummaryRecord(transaction, record, registeredBy, withLocati
   return assignedN;
 }
 
-async function uploadRecords(config, schema, records, mode, username, rawLocations) {
+async function uploadRecords(config, schema, records, mode, username, rawLocations, rawSubstitutions) {
   if (mode !== 'all' && mode !== 'valid_only') {
     const error = new Error('Modo de subida inválido');
     error.statusCode = 400;
@@ -234,7 +249,10 @@ async function uploadRecords(config, schema, records, mode, username, rawLocatio
     // Serializa todas las cargas realizadas por esta API, incluso si hay varias
     // instancias o varios celulares, sin crear objetos en DataMET_prueba.
     await acquireUploadLock(transaction);
-    const validation = validateRecords(records, schema);
+    const validation = addSubstitutionValidation(
+      validateRecords(records, schema),
+      rawSubstitutions,
+    );
     const existing = await findExistingCodes(
       transaction,
       validation.records.map((record) => record.codigoRegistro),
@@ -250,12 +268,24 @@ async function uploadRecords(config, schema, records, mode, username, rawLocatio
       return { uploaded: [], validation, rejected: true };
     }
 
+    // Sin la tabla de los pasos no se sube: se perderían los datos de las
+    // cargas sustitutivas. El registro queda en el teléfono.
+    if (hasSubstitutionSteps(valid) && !(await substitutionTableExists(transaction))) {
+      throw missingTableError();
+    }
+
     const locations = locationsByIndex(rawLocations, validation.records.length);
     const withLocation = await summarySupportsLocation(transaction);
     const uploaded = [];
     for (const record of valid) {
       record.location = locations[record.index];
       const assignedN = await insertRecord(transaction, schema, record);
+      const pasosSustitucion = await insertSubstitutionSteps(
+        transaction,
+        assignedN,
+        record.codigoRegistro,
+        record.sustitucion ?? [],
+      );
       const summaryN = await insertSummaryRecord(
         transaction,
         record,
@@ -269,6 +299,7 @@ async function uploadRecords(config, schema, records, mode, username, rawLocatio
         summaryN,
         sessionId: record.normalized.session_id ?? null,
         isNewScale: isNewScaleCode(record.codMetrica),
+        pasosSustitucion,
       });
     }
     await transaction.commit();
