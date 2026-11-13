@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:provider/provider.dart';
 import 'package:service_met/models/service_session.dart';
+import 'package:service_met/models/sustitucion_linealidad.dart';
 import 'package:service_met/providers/service_session_provider.dart';
 import 'package:service_met/screens/calibracion/utils/suggestion_helper.dart';
 import 'package:service_met/screens/calibracion/widgets/calibration_number_field.dart';
@@ -54,6 +55,12 @@ class _LinealidadStepState extends State<LinealidadStep> {
   List<TextEditingController> _indCtrls = [];
   List<TextEditingController> _retCtrls = [];
 
+  /// Pasos de sustitución, por fila resultante en orden creciente.
+  List<PasoSustitucion> _pasos = [];
+
+  MetodoSustitucion? get _metodoSustitucion =>
+      MetodoSustitucion.deEtiqueta(_metodoCargasSustitutivas);
+
   @override
   void initState() {
     super.initState();
@@ -98,8 +105,19 @@ class _LinealidadStepState extends State<LinealidadStep> {
       _buildControllers(12);
     }
 
-    if (_cargasValidadas && _cargasPatronValidadas <= 0) {
-      _cargasPatronValidadas = _filledPatronRowsCount();
+    // La validación y los pasos de sustitución: sin ellos, al volver al paso
+    // las cargas sustitutivas parecían cargas de pesas.
+    final sustitucion = lin.sustitucion;
+    if (sustitucion.cargasPatron > 0) {
+      _cargasValidadas = true;
+      _cargasPatronValidadas =
+          sustitucion.cargasPatron.clamp(1, _cargaCtrls.length);
+      _pasos = [
+        for (final paso in sustitucion.pasos)
+          if (paso.fila >= _cargasPatronValidadas &&
+              paso.fila < _cargaCtrls.length)
+            paso,
+      ];
     }
 
     if (mounted) setState(() {});
@@ -169,6 +187,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
         final count = linValues.length;
         setState(() {
           _buildControllers(count);
+          _pasos = [];
           for (int i = 0; i < count; i++) {
             _cargaCtrls[i].text = linValues[i];
             _indCtrls[i].text = linValues[i];
@@ -222,6 +241,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
       _cargaCtrls.removeLast().dispose();
       _indCtrls.removeLast().dispose();
       _retCtrls.removeLast().dispose();
+      _pasos.removeWhere((paso) => paso.fila >= _cargaCtrls.length);
       if (_cargasPatronValidadas > _cargaCtrls.length) {
         _cargasPatronValidadas = _cargaCtrls.length;
       }
@@ -236,11 +256,13 @@ class _LinealidadStepState extends State<LinealidadStep> {
     if (!_cargasValidadas || i < _cargasPatronValidadas) {
       _indCtrls[i].text = _formatValueWithPrecision(val);
     }
+    _recalcularSustitutivas();
     _saveToProvider();
     setState(() {});
   }
 
   void _onIndicacionChanged(int i, String val) {
+    _recalcularSustitutivas();
     _saveToProvider();
     setState(() {});
   }
@@ -250,9 +272,26 @@ class _LinealidadStepState extends State<LinealidadStep> {
     setState(() {});
   }
 
+  /// Para mostrar. Sin redondear a 2 decimales (con d = 0,001 se perdía la
+  /// resolución): hasta 6 y sin ceros de más.
   String _fmt(double v) {
     if (v == v.roundToDouble()) return v.toInt().toString();
-    return v.toStringAsFixed(2);
+    final text = v.toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '');
+    return text == '-0' ? '0' : text;
+  }
+
+  /// Carga calculada, con los decimales de d en ese valor.
+  String _formatCarga(double v) {
+    try {
+      final balanza = context.read<ServiceSessionProvider>().session?.balanza;
+      final d = balanza == null
+          ? 0.0
+          : SuggestionHelper.getDivisionForValue(balanza, v);
+      if (d == 0) return _fmt(v);
+      return v.toStringAsFixed(SuggestionHelper.getDecimalPlaces(d));
+    } catch (_) {
+      return _fmt(v);
+    }
   }
 
   String _formatValueWithPrecision(String value) {
@@ -301,6 +340,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
     setState(() {
       _cargasValidadas = true;
       _cargasPatronValidadas = count;
+      _pasos = [];
     });
     _saveToProvider();
 
@@ -309,8 +349,43 @@ class _LinealidadStepState extends State<LinealidadStep> {
     );
   }
 
-  void _resetValidation() {
+  /// Las cargas sustitutivas dependen de las cargas de pesas validadas: al
+  /// volver a validar se borran, después de confirmarlo.
+  Future<void> _resetValidation() async {
+    if (_pasos.isNotEmpty) {
+      final filas = [for (final paso in _pasos) paso.fila + 1];
+      final cuales = filas.length == 1
+          ? 'la carga ${filas.first}'
+          : 'las cargas ${filas.first} a ${filas.last}';
+      final confirmado = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Volver a validar cargas'),
+          content:
+              Text('Las cargas sustitutivas dependen de las cargas de pesas '
+                  'validadas. Se borrarán $cuales y tendrá que registrarlas de '
+                  'nuevo.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Borrar y validar de nuevo'),
+            ),
+          ],
+        ),
+      );
+      if (confirmado != true || !mounted) return;
+    }
     setState(() {
+      for (final paso in _pasos) {
+        _cargaCtrls[paso.fila].clear();
+        _indCtrls[paso.fila].clear();
+        _retCtrls[paso.fila].text = '0';
+      }
+      _pasos = [];
       _cargasValidadas = false;
       _cargasPatronValidadas = 0;
     });
@@ -431,6 +506,10 @@ class _LinealidadStepState extends State<LinealidadStep> {
           retorno: _retCtrls[i].text.isEmpty ? '0' : _retCtrls[i].text,
         );
       }),
+      sustitucion: SustitucionLinealidad(
+        cargasPatron: _cargasValidadas ? _cargasPatronValidadas : 0,
+        pasos: _pasos,
+      ),
     ));
   }
 
@@ -517,8 +596,25 @@ class _LinealidadStepState extends State<LinealidadStep> {
                                         : const Color(0xFF1A1A1A))),
                           ))
                       .toList(),
-                  onChanged: _onMetodoCargasSustitutivasChanged,
+                  // Con cargas sustitutivas registradas el método no cambia:
+                  // fija cómo se calcularon.
+                  onChanged: _pasos.isEmpty
+                      ? _onMetodoCargasSustitutivasChanged
+                      : null,
                 ).animate(delay: 280.ms).fadeIn(),
+                if (_pasos.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 4),
+                    child: Text(
+                      'Para cambiar el método, pulse «Volver a validar cargas»: '
+                      'se borran las cargas sustitutivas.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 _buildValidationHelp(isDark),
                 const SizedBox(height: 8),
@@ -595,9 +691,16 @@ class _LinealidadStepState extends State<LinealidadStep> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _cargasValidadas
-                  ? 'Cargas patron validadas: $_cargasPatronValidadas. Ya puede agregar cargas sustitutivas usando el asistente.'
-                  : 'Primero registre y revise las cargas de sus pesas patron. Cuando termine, pulse Validar cargas para habilitar el calculo de cargas sustitutivas.',
+              !_cargasValidadas
+                  ? 'Primero registre y revise las cargas de sus pesas patron. Cuando termine, pulse Validar cargas para habilitar el calculo de cargas sustitutivas.'
+                  : switch (_metodoSustitucion) {
+                      null =>
+                        'Cargas patron validadas: $_cargasPatronValidadas. Para usar el asistente, elija el método de cargas sustitutivas: Método 1 o Método 2.',
+                      MetodoSustitucion.metodo1 =>
+                        'Cargas patron validadas: $_cargasPatronValidadas. Método 1: cada carga sustitutiva se parece a la carga anterior, se pesa sola y se suma a la carga de pesas.',
+                      MetodoSustitucion.metodo2 =>
+                        'Cargas patron validadas: $_cargasPatronValidadas. Método 2: cada carga sustitutiva se parece a la carga de pesas, se pesa sola y se suma a la carga anterior.',
+                    },
               style: GoogleFonts.inter(
                 fontSize: 12,
                 height: 1.45,
@@ -657,7 +760,9 @@ class _LinealidadStepState extends State<LinealidadStep> {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _cargasValidadas ? _showCargaSustitutivaSheet : null,
+                onPressed: _cargasValidadas && _metodoSustitucion != null
+                    ? _showCargaSustitutivaSheet
+                    : null,
                 icon: const Icon(AppIcons.calcular, size: 18),
                 label: const Text('Carga sustitutiva'),
               ),
@@ -676,7 +781,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
   }
 
   Widget _buildPuntoRows(int i, bool isDark) {
-    final isSustitutiva = _cargasValidadas && i >= _cargasPatronValidadas;
+    final paso = _pasoDeFila(i);
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -692,7 +797,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                   color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                 ),
               ),
-              if (isSustitutiva) ...[
+              if (paso != null) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding:
@@ -702,7 +807,7 @@ class _LinealidadStepState extends State<LinealidadStep> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Sustitutiva',
+                    'Sustitutiva · ${paso.metodo.codigo}',
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -738,6 +843,19 @@ class _LinealidadStepState extends State<LinealidadStep> {
               Expanded(child: _errorField(i, isDark)),
             ],
           ),
+          if (paso != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, left: 4),
+              child: Text(
+                'Carga sustitutiva sola: ${_fmt(paso.indicacionSustitutiva)} · '
+                'corrige con la Carga ${paso.filaReferencia + 1} · '
+                'se suma a la Carga ${paso.filaBase + 1}',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -775,6 +893,8 @@ class _LinealidadStepState extends State<LinealidadStep> {
           fontSize: 14, color: isDark ? Colors.white : const Color(0xFF1A1A1A)),
       controller: _cargaCtrls[i],
       column: 'lin${i + 1}',
+      // Después de validar, las cargas siguientes las calcula el asistente.
+      enabled: !_cargasValidadas || i < _cargasPatronValidadas,
       onChanged: (val) => _onCargaChanged(i, val),
       decoration: _fieldDecoration(isDark, labelText: 'Carga real'),
     );
@@ -854,37 +974,109 @@ class _LinealidadStepState extends State<LinealidadStep> {
     });
   }
 
+  PasoSustitucion? _pasoDeFila(int fila) {
+    for (final paso in _pasos) {
+      if (paso.fila == fila) return paso;
+    }
+    return null;
+  }
+
+  double? _numero(String text) =>
+      double.tryParse(text.trim().replaceAll(',', '.'));
+
+  List<FilaCarga> _filasVigentes() => [
+        for (int i = 0; i < _cargaCtrls.length; i++)
+          (
+            carga: _numero(_cargaCtrls[i].text),
+            indicacion: _numero(_indCtrls[i].text),
+          ),
+      ];
+
+  /// Rehace, en orden, la carga de cada fila sustitutiva con las cargas e
+  /// indicaciones vigentes: si se corrige una lectura, las cargas que
+  /// dependen de ella cambian con ella.
+  void _recalcularSustitutivas() {
+    for (final paso in _pasos) {
+      final calculo = calcularPaso(paso, _filasVigentes());
+      if (calculo == null) continue;
+      final texto = _formatCarga(calculo.cargaResultante);
+      if (_cargaCtrls[paso.fila].text != texto) {
+        _cargaCtrls[paso.fila].text = texto;
+      }
+    }
+  }
+
+  /// Última fila con carga: la carga anterior de la próxima sustitución.
+  int _ultimaFilaConCarga() {
+    for (int i = _cargaCtrls.length - 1; i >= 0; i--) {
+      if (_numero(_cargaCtrls[i].text) != null) return i;
+    }
+    return -1;
+  }
+
+  /// Cargas de pesas validadas que tienen carga e indicación.
+  List<int> _filasPesas() => [
+        for (int i = 0;
+            i < _cargasPatronValidadas && i < _cargaCtrls.length;
+            i++)
+          if (_numero(_cargaCtrls[i].text) != null &&
+              _numero(_indCtrls[i].text) != null)
+            i,
+      ];
+
+  /// El aviso nuevo reemplaza al anterior: es el que dice qué hacer ahora.
+  void _aviso(String texto) => ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(texto)));
+
+  /// Asistente de una carga sustitutiva. El método elegido fija qué filas se
+  /// usan (ver [filasDelMetodo]); el técnico solo elige, si hay varias, cuál
+  /// es la carga de pesas, y escribe la indicación de la carga sustitutiva.
   void _showCargaSustitutivaSheet() {
+    final metodo = _metodoSustitucion;
     if (!_cargasValidadas || _cargasPatronValidadas <= 0) return;
+    if (metodo == null) {
+      _aviso('Elija el método de cargas sustitutivas: Método 1 o Método 2.');
+      return;
+    }
+    final filasPesas = _filasPesas();
+    if (filasPesas.isEmpty) {
+      _aviso('No hay cargas de pesas validadas con su indicación.');
+      return;
+    }
+    final filaAnterior = _ultimaFilaConCarga();
+    if (filaAnterior < 0) return;
+    if (_numero(_indCtrls[filaAnterior].text) == null) {
+      _aviso('Registre primero la indicación de la Carga ${filaAnterior + 1}.');
+      return;
+    }
+    final filaNueva = filaAnterior + 1;
+    if (filaNueva >= _maxPuntos) {
+      _aviso('Maximo 60 puntos permitidos');
+      return;
+    }
+
+    final filas = _filasVigentes();
+    // La carga de pesas de la sustitución anterior o, si es la primera, la
+    // mayor de las validadas.
+    final ultimo = _pasos.isEmpty ? null : _pasos.last;
+    final pesasAnteriores = ultimo == null
+        ? null
+        : ultimo.metodo == MetodoSustitucion.metodo1
+            ? ultimo.filaBase
+            : ultimo.filaReferencia;
+    int filaPesas =
+        pesasAnteriores != null && filasPesas.contains(pesasAnteriores)
+            ? pesasAnteriores
+            : filasPesas
+                .reduce((a, b) => filas[b].carga! > filas[a].carga! ? b : a);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final balanza = context.read<ServiceSessionProvider>().session?.balanza;
     final indicacionCtrl = TextEditingController();
-    final validatedLoads = _referenceLoads();
-    final baseLoads = _baseLoads();
-    if (validatedLoads.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay cargas patron validas para usar.'),
-        ),
-      );
-      indicacionCtrl.dispose();
-      return;
-    }
-    if (baseLoads.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay cargas base validadas para sumar.'),
-        ),
-      );
-      indicacionCtrl.dispose();
-      return;
-    }
-    int selectedBaseIndex = baseLoads.last.index;
-    int selectedLoadIndex = validatedLoads.last.index;
-    bool referenceSelectedManually = false;
+    final esMetodo1 = metodo == MetodoSustitucion.metodo1;
 
-    showModalBottomSheet<String>(
+    showModalBottomSheet<PasoSustitucion>(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -893,19 +1085,22 @@ class _LinealidadStepState extends State<LinealidadStep> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
-            final indicacion = double.tryParse(indicacionCtrl.text) ?? 0.0;
-            final selectedLoad = validatedLoads.firstWhere(
-              (load) => load.index == selectedLoadIndex,
-              orElse: () => validatedLoads.last,
+            final filasPaso = filasDelMetodo(
+              metodo,
+              filaPesas: filaPesas,
+              filaAnterior: filaAnterior,
             );
-            final selectedBase = baseLoads.firstWhere(
-              (load) => load.index == selectedBaseIndex,
-              orElse: () => baseLoads.last,
-            );
-            final patronCarga = selectedLoad.carga;
-            final patronError = selectedLoad.error;
-            final cargaRealSustitutiva = indicacion - patronError;
-            final acumulado = selectedBase.carga + cargaRealSustitutiva;
+            final referencia = filas[filasPaso.referencia];
+            final base = filas[filasPaso.base];
+            final errorReferencia = referencia.indicacion! - referencia.carga!;
+            final indicacion = _numero(indicacionCtrl.text);
+            final calculo = indicacion == null
+                ? null
+                : calcularSustitucion(
+                    indicacionSustitutiva: indicacion,
+                    referencia: referencia,
+                    base: base,
+                  );
 
             return Padding(
               // Abajo, el teclado del sistema o la barra de navegación: la
@@ -927,10 +1122,13 @@ class _LinealidadStepState extends State<LinealidadStep> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _sheetHandle(isDark),
-                      _sheetTitle('Carga sustitutiva', isDark),
+                      _sheetTitle(
+                          'Carga sustitutiva · ${metodo.etiqueta}', isDark),
                       const SizedBox(height: 8),
                       Text(
-                        'Ingrese la indicacion obtenida con la carga sustitutiva. Elija la carga base que se sumara; el error se toma de la referencia mas cercana a la indicacion.',
+                        esMetodo1
+                            ? 'Pese la carga sustitutiva sola: debe parecerse a la carga anterior. Su indicación se corrige con el error de la carga anterior y el resultado se suma a la carga de pesas.'
+                            : 'Pese la carga sustitutiva sola: debe parecerse a la carga de pesas. Su indicación se corrige con el error de la carga de pesas y el resultado se suma a la carga anterior.',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           height: 1.4,
@@ -938,134 +1136,86 @@ class _LinealidadStepState extends State<LinealidadStep> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      DropdownButtonFormField<int>(
-                        isExpanded: true,
-                        value: selectedBaseIndex,
-                        decoration: _deco('Carga base para sumar', isDark),
-                        dropdownColor:
-                            isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                        selectedItemBuilder: (context) => baseLoads
-                            .map(
-                              (load) => Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Carga ${load.index + 1}: ${_fmt(load.carga)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A1A),
+                      if (filasPesas.length > 1) ...[
+                        DropdownButtonFormField<int>(
+                          isExpanded: true,
+                          value: filaPesas,
+                          decoration: _deco('Carga de pesas', isDark),
+                          dropdownColor:
+                              isDark ? const Color(0xFF2A2A2A) : Colors.white,
+                          items: filasPesas
+                              .map(
+                                (fila) => DropdownMenuItem(
+                                  value: fila,
+                                  child: Text(
+                                    'Carga ${fila + 1}: ${_fmt(filas[fila].carga!)}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1A),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            )
-                            .toList(),
-                        items: baseLoads
-                            .map(
-                              (load) => DropdownMenuItem(
-                                value: load.index,
-                                child: Text(
-                                  'Carga ${load.index + 1}: ${_fmt(load.carga)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A1A),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setSheetState(() => selectedBaseIndex = value);
-                        },
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButtonFormField<int>(
-                        isExpanded: true,
-                        value: selectedLoadIndex,
-                        decoration: _deco(
-                            'Carga de referencia para correccion', isDark),
-                        dropdownColor:
-                            isDark ? const Color(0xFF2A2A2A) : Colors.white,
-                        selectedItemBuilder: (context) => validatedLoads
-                            .map(
-                              (load) => Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  'Carga ${load.index + 1}: ${_fmt(load.carga)} | Err ${_fmt(load.error)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A1A),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        items: validatedLoads
-                            .map(
-                              (load) => DropdownMenuItem(
-                                value: load.index,
-                                child: Text(
-                                  'Carga ${load.index + 1}: ${_fmt(load.carga)} | Ind ${_fmt(load.indicacion)} | Error ${_fmt(load.error)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF1A1A1A),
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setSheetState(() {
-                            selectedLoadIndex = value;
-                            referenceSelectedManually = true;
-                          });
-                        },
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setSheetState(() => filaPesas = value);
+                          },
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      _sheetResult(
+                        'Corrige: Carga ${filasPaso.referencia + 1} = ${_fmt(referencia.carga!)}\n'
+                        '  indicación ${_fmt(referencia.indicacion!)} · error ${_fmt(errorReferencia)}\n'
+                        'Se suma a: Carga ${filasPaso.base + 1} = ${_fmt(base.carga!)}',
+                        isDark,
                       ),
                       const SizedBox(height: 10),
                       _sheetNumberField(
                         controller: indicacionCtrl,
-                        label: 'Indicacion carga sustitutiva',
+                        label: 'Indicación de la carga sustitutiva sola',
                         isDark: isDark,
-                        onChanged: (value) {
-                          final reference = double.tryParse(value);
-                          setSheetState(() {
-                            if (!referenceSelectedManually &&
-                                reference != null) {
-                              selectedLoadIndex = _nearestReferenceLoad(
-                                      reference, validatedLoads)
-                                  .index;
-                            }
-                          });
-                        },
+                        onChanged: (_) => setSheetState(() {}),
                       ),
-                      const SizedBox(height: 14),
-                      _sheetResult(
-                        'Carga base a sumar: ${_fmt(selectedBase.carga)}\n'
-                        'Referencia elegida: ${_fmt(patronCarga)}\n'
-                        'Error referencia: ${_fmt(patronError)}\n'
-                        'Carga real sustitutiva: ${_fmt(cargaRealSustitutiva)}\n'
-                        'Carga acumulada a registrar: ${_fmt(acumulado)}',
-                        isDark,
-                      ),
+                      if (calculo != null) ...[
+                        const SizedBox(height: 14),
+                        _sheetResult(
+                          'Carga real sustitutiva: ${_fmt(indicacion!)} − (${_fmt(errorReferencia)}) = ${_fmt(calculo.cargaSustitutiva)}\n'
+                          'Carga ${filaNueva + 1}: ${_fmt(base.carga!)} + ${_fmt(calculo.cargaSustitutiva)} = ${_formatCarga(calculo.cargaResultante)}',
+                          isDark,
+                        ),
+                      ],
+                      if (calculo != null && calculo.fueraDeRango) ...[
+                        const SizedBox(height: 10),
+                        _sheetWarning(
+                          'La carga sustitutiva se aparta un '
+                          '${((calculo.desvio ?? 0) * 100).round()} % de la '
+                          'Carga ${filasPaso.referencia + 1}: su error ya no '
+                          'representa bien el de la carga sustitutiva. '
+                          '${esMetodo1 ? 'Acérquela a la carga anterior.' : 'Acérquela a la carga de pesas.'}',
+                          isDark,
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: indicacionCtrl.text.trim().isEmpty
+                          onPressed: calculo == null
                               ? null
-                              : () => Navigator.pop(ctx, _fmt(acumulado)),
+                              : () => Navigator.pop(
+                                    ctx,
+                                    PasoSustitucion(
+                                      fila: filaNueva,
+                                      metodo: metodo,
+                                      indicacionSustitutiva: indicacion!,
+                                      filaReferencia: filasPaso.referencia,
+                                      filaBase: filasPaso.base,
+                                      registradoEn: DateTime.now(),
+                                    ),
+                                  ),
                           icon: const Icon(AppIcons.listo),
                           label: const Text('Guardar carga sustitutiva'),
                         ),
@@ -1076,88 +1226,62 @@ class _LinealidadStepState extends State<LinealidadStep> {
           },
         );
       },
-    ).then((selected) {
-      if (selected != null) _appendSustitutiveRow(selected);
+    ).then((paso) {
+      if (paso != null && mounted) _agregarPaso(paso);
     });
   }
 
-  void _appendSustitutiveRow(String carga) {
-    final targetIndex = _firstEmptyRowFrom(_cargasPatronValidadas);
-    if (targetIndex == null && _cargaCtrls.length >= _maxPuntos) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximo 60 puntos permitidos')),
-      );
-      return;
-    }
-
-    final formattedCarga = _formatValueWithPrecision(carga);
+  /// Deja la carga que resulta en su fila, con la indicación vacía: el
+  /// técnico la lee con la carga completa sobre la balanza.
+  void _agregarPaso(PasoSustitucion paso) {
     setState(() {
-      if (targetIndex != null) {
-        _cargaCtrls[targetIndex].text = formattedCarga;
-        _indCtrls[targetIndex].clear();
-        _retCtrls[targetIndex].text = '0';
-      } else {
-        _cargaCtrls.add(TextEditingController(text: formattedCarga));
+      while (_cargaCtrls.length <= paso.fila) {
+        _cargaCtrls.add(TextEditingController());
         _indCtrls.add(TextEditingController());
         _retCtrls.add(TextEditingController(text: '0'));
       }
+      _indCtrls[paso.fila].clear();
+      _retCtrls[paso.fila].text = '0';
+      _pasos = [
+        for (final otro in _pasos)
+          if (otro.fila != paso.fila) otro,
+        paso,
+      ]..sort((a, b) => a.fila.compareTo(b.fila));
+      _recalcularSustitutivas();
     });
     _saveToProvider();
+    _aviso(paso.metodo == MetodoSustitucion.metodo1
+        ? 'Ahora ponga juntas la Carga ${paso.filaBase + 1} de pesas y la carga sustitutiva, y registre la indicación de la Carga ${paso.fila + 1}.'
+        : 'Ahora agregue la carga sustitutiva a la carga anterior y registre la indicación de la Carga ${paso.fila + 1}.');
   }
 
-  int? _firstEmptyRowFrom(int startIndex) {
-    for (int i = startIndex; i < _cargaCtrls.length; i++) {
-      final hasCarga = _cargaCtrls[i].text.trim().isNotEmpty;
-      final hasInd = _indCtrls[i].text.trim().isNotEmpty;
-      if (!hasCarga && !hasInd) return i;
-    }
-    return null;
-  }
-
-  List<_ValidatedLoad> _referenceLoads() {
-    final loads = <_ValidatedLoad>[];
-    for (int i = 0; i < _cargaCtrls.length; i++) {
-      final carga = double.tryParse(_cargaCtrls[i].text);
-      final indicacion = double.tryParse(_indCtrls[i].text);
-      if (carga == null || indicacion == null) continue;
-      loads.add(_ValidatedLoad(
-        index: i,
-        carga: carga,
-        indicacion: indicacion,
-        error: indicacion - carga,
-      ));
-    }
-    return loads;
-  }
-
-  List<_ValidatedLoad> _baseLoads() {
-    final loads = <_ValidatedLoad>[];
-    for (int i = 0; i < _cargaCtrls.length; i++) {
-      final carga = double.tryParse(_cargaCtrls[i].text);
-      final indicacion = double.tryParse(_indCtrls[i].text);
-      if (carga == null) continue;
-      loads.add(_ValidatedLoad(
-        index: i,
-        carga: carga,
-        indicacion: indicacion ?? carga,
-        error: indicacion == null ? 0 : indicacion - carga,
-      ));
-    }
-    return loads;
-  }
-
-  _ValidatedLoad _nearestReferenceLoad(
-    double reference,
-    List<_ValidatedLoad> loads,
-  ) {
-    _ValidatedLoad nearest = loads.first;
-    for (final load in loads.skip(1)) {
-      if ((reference - load.indicacion).abs() <
-          (reference - nearest.indicacion).abs()) {
-        nearest = load;
-      }
-    }
-    return nearest;
+  Widget _sheetWarning(String text, bool isDark) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(isDark ? 0.16 : 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.withOpacity(0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(AppIcons.info, size: 18, color: Colors.orange),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                height: 1.4,
+                color: isDark ? Colors.white70 : Colors.black87,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _sheetHandle(bool isDark) {
@@ -1413,18 +1537,4 @@ class _LinealidadStepState extends State<LinealidadStep> {
       ],
     );
   }
-}
-
-class _ValidatedLoad {
-  final int index;
-  final double carga;
-  final double indicacion;
-  final double error;
-
-  const _ValidatedLoad({
-    required this.index,
-    required this.carga,
-    required this.indicacion,
-    required this.error,
-  });
 }

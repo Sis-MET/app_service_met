@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'sustitucion_linealidad.dart';
+
 class ServiceSession {
   final SessionInfo sessionInfo;
   final ClienteInfo? cliente;
@@ -257,6 +259,8 @@ class ServiceSession {
         },
       if (linealidad != null)
         fotosLinealidadColumn: _fotosToColumn(linealidad!.fotosPaths),
+      if (linealidad != null)
+        SustitucionLinealidad.columna: linealidad!.sustitucion.toColumn(),
       // Condiciones Finales
       if (condicionesFinales?.horaFin != null)
         'hora_fin': condicionesFinales!.horaFin,
@@ -505,6 +509,8 @@ class ServiceSession {
         nota: map['linealidad_comentario'],
         filas: filasLin,
         fotosPaths: _fotosFromColumn(map[fotosLinealidadColumn]),
+        sustitucion: SustitucionLinealidad.fromColumn(
+            map[SustitucionLinealidad.columna]),
       ),
       condicionesFinales: CondicionesFinales(
         horaFin: map['hora_fin'],
@@ -965,12 +971,16 @@ class LinealidadData {
   final List<FilaLinealidad> filas;
   final List<String> fotosPaths;
 
+  /// Cargas de pesas validadas y pasos de sustitución (columna local).
+  final SustitucionLinealidad sustitucion;
+
   LinealidadData({
     this.metodo,
     this.metodoCarga,
     this.nota,
     this.filas = const [],
     this.fotosPaths = const [],
+    this.sustitucion = SustitucionLinealidad.vacia,
   });
 
   LinealidadData copyWith({
@@ -979,6 +989,7 @@ class LinealidadData {
     String? nota,
     List<FilaLinealidad>? filas,
     List<String>? fotosPaths,
+    SustitucionLinealidad? sustitucion,
   }) {
     return LinealidadData(
       metodo: metodo ?? this.metodo,
@@ -986,6 +997,7 @@ class LinealidadData {
       nota: nota ?? this.nota,
       filas: filas ?? this.filas,
       fotosPaths: fotosPaths ?? this.fotosPaths,
+      sustitucion: sustitucion ?? this.sustitucion,
     );
   }
 }

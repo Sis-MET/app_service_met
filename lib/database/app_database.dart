@@ -401,7 +401,7 @@ class AppDatabase {
         version: 1,
         onCreate: _onCreate,
         onOpen: (db) async {
-          await _ensureFotoColumns(db);
+          await _ensureLocalColumns(db);
           await RegistroUbicacion.asegurarColumnas(db, 'registros_calibracion');
           await _createServicioStatusTable(db);
           await _ensureServicioStatusColumns(db);
@@ -861,10 +861,11 @@ class AppDatabase {
         estado_servicio_bal TEXT DEFAULT '',
         tipo_servicio TEXT DEFAULT 'CAL.BL',
         inf_bal TEXT DEFAULT '',
-        -- Rutas locales de las fotos. Al final, como las agrega
-        -- _ensureFotoColumns en las bases que ya existían.
+        -- Columnas locales (fotos y pasos de sustitución). Al final, como
+        -- las agrega _ensureLocalColumns en las bases que ya existían.
         linealidad_foto TEXT DEFAULT '',
-        condiciones_finales_foto TEXT DEFAULT ''
+        condiciones_finales_foto TEXT DEFAULT '',
+        linealidad_sustitucion TEXT DEFAULT ''
       )
       ''');
 
@@ -900,15 +901,21 @@ class AppDatabase {
     ''');
   }
 
-  /// Columnas de las rutas de fotos de linealidad y condiciones finales, que
-  /// las bases anteriores no tienen. `foto_balanza` existe desde siempre.
-  static const _fotoColumns = ['linealidad_foto', 'condiciones_finales_foto'];
+  /// Columnas locales que las bases anteriores no tienen: las rutas de fotos
+  /// de linealidad y condiciones finales (`foto_balanza` existe desde
+  /// siempre) y los pasos de sustitución de linealidad
+  /// (SustitucionLinealidad.columna).
+  static const _localColumns = [
+    'linealidad_foto',
+    'condiciones_finales_foto',
+    'linealidad_sustitucion',
+  ];
 
-  Future<void> _ensureFotoColumns(Database db) async {
+  Future<void> _ensureLocalColumns(Database db) async {
     final columns =
         await db.rawQuery('PRAGMA table_info(registros_calibracion)');
     final names = columns.map((column) => column['name']?.toString()).toSet();
-    for (final column in _fotoColumns) {
+    for (final column in _localColumns) {
       if (!names.contains(column)) {
         await db.execute("ALTER TABLE registros_calibracion "
             "ADD COLUMN $column TEXT DEFAULT ''");

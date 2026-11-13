@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../../core/network/service_met_http_client.dart';
 import '../../database/calibration_data_normalizer.dart';
+import '../../models/sustitucion_linealidad.dart';
 import '../../services/ubicacion_servicio.dart';
 import '../models/calibration_upload_models.dart';
 
@@ -26,6 +27,16 @@ List<Map<String, Object?>?> calibrationUploadLocations(
 ) =>
     records
         .map((record) => UbicacionServicio.deRegistro(record)?.toJson())
+        .toList(growable: false);
+
+/// Pasos de las cargas sustitutivas de linealidad de cada registro, en el
+/// mismo orden que `records` (lista vacía si no tiene). El servidor los guarda
+/// en DATA_SERVICIOS_DATOS_CALIBRACION_SUSTITUCION, junto con el registro.
+List<List<Map<String, Object?>>> calibrationUploadSustituciones(
+  List<Map<String, dynamic>> records,
+) =>
+    records
+        .map(SustitucionLinealidad.pasosParaServidor)
         .toList(growable: false);
 
 class CalibrationUploadApiService {
@@ -123,7 +134,10 @@ class CalibrationUploadApiService {
         .toList(growable: false);
     final response = await _authorizedPost(
       '/api/calibracion/validar',
-      {'records': normalized},
+      {
+        'records': normalized,
+        'sustituciones': calibrationUploadSustituciones(records),
+      },
     );
     final body = _decode(response);
     if (response.statusCode != 200) throw _exception(response.statusCode, body);
@@ -141,6 +155,7 @@ class CalibrationUploadApiService {
       'mode': validOnly ? 'valid_only' : 'all',
       'records': normalized,
       'ubicaciones': calibrationUploadLocations(records),
+      'sustituciones': calibrationUploadSustituciones(records),
     });
     final body = _decode(response);
     if (response.statusCode != 201) throw _exception(response.statusCode, body);

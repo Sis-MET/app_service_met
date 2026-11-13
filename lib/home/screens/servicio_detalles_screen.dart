@@ -48,7 +48,7 @@ class _ServicioDetallesScreenState extends State<ServicioDetallesScreen> {
     final Map<String, dynamic> camposValidos = {};
 
     item.forEach((key, value) {
-      if (!CalibrationDataNormalizer.isLocalFileField(key) &&
+      if (!CalibrationDataNormalizer.isLocalField(key) &&
           value != null &&
           value.toString().isNotEmpty &&
           value.toString() != '0' &&

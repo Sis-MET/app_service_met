@@ -54,7 +54,7 @@ abstract final class CalibrationRecordValidator {
   static List<CalibrationFieldIssue> schemaIssues(Map<String, dynamic> record) {
     final issues = <CalibrationFieldIssue>[];
     for (final entry in record.entries) {
-      if (CalibrationDataNormalizer.isLocalFileField(entry.key)) continue;
+      if (CalibrationDataNormalizer.isLocalField(entry.key)) continue;
       final definition = calibrationServerSchema[entry.key];
       if (definition == null) {
         issues.add(issueFor(CalibrationDataException(

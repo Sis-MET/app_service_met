@@ -50,13 +50,22 @@ class CalibrationDataNormalizer {
   static bool isLocalFileField(String column) =>
       column == 'foto_balanza' || column.endsWith('_foto');
 
+  /// Columnas que solo existen en el teléfono y no son fotos: el guardado
+  /// local las acepta sin el esquema del servidor y la subida las descarta.
+  /// Los pasos de sustitución viajan aparte del registro
+  /// (CalibrationUploadApiService).
+  static const localOnlyFields = {'linealidad_sustitucion'};
+
+  static bool isLocalField(String column) =>
+      isLocalFileField(column) || localOnlyFields.contains(column);
+
   static Map<String, dynamic> normalizeRecord(
     Map<String, dynamic> record, {
     bool rejectUnknownColumns = true,
   }) {
     final normalized = <String, dynamic>{};
     for (final entry in record.entries) {
-      if (isLocalFileField(entry.key)) {
+      if (isLocalField(entry.key)) {
         normalized[entry.key] = entry.value;
         continue;
       }
@@ -90,7 +99,7 @@ class CalibrationDataNormalizer {
       record.entries.where(
         (entry) =>
             !_uploadExcludedFields.contains(entry.key) &&
-            !isLocalFileField(entry.key),
+            !isLocalField(entry.key),
       ),
     );
     final normalized = normalizeRecord(filtered);
