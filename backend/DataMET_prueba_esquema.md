@@ -22,6 +22,7 @@ Referencia de estructura de columnas para las tablas de servicios de calibració
 - [DATA_SERVICIOS_DATOS_CAL_TE_PUNTOS](#data-servicios-datos-cal-te-puntos) (12 columnas)
 - [DATA_SERVICIOS_DATOS_CAL_TE_LECTURAS](#data-servicios-datos-cal-te-lecturas) (15 columnas)
 - [DATA_SERVICIOS_DATOS_CAL_TE_CORRECCIONES](#data-servicios-datos-cal-te-correcciones) (11 columnas)
+- [DATA_SERVICIOS_DATOS_CALIBRACION_SUSTITUCION](#data-servicios-datos-calibracion-sustitucion) (17 columnas)
 
 ---
 
@@ -2386,5 +2387,33 @@ Historial de cada cambio de una lectura (corrección, exclusión, restitución) 
 | 9 | `motivo` | nvarchar | 500 | No | - |
 | 10 | `usuario` | nvarchar | 150 | No | - |
 | 11 | `fecha` | datetimeoffset | - | No | - |
+
+---
+
+## DATA_SERVICIOS_DATOS_CALIBRACION_SUSTITUCION
+
+Total de columnas: **17**
+
+Pasos de las cargas sustitutivas de linealidad: una fila por cada carga `lin{fila}` que se armó con material de sustitución. La crea `backend/sql/018_calibracion_sustitucion.sql`; `(calibracion_n, paso)` y `(calibracion_n, fila)` son únicos y `calibracion_n` es el `n` del registro en `DATA_SERVICIOS_DATOS_CALIBRACION`. La API la llena en la misma transacción que el registro, con `sustituciones` de `POST /api/calibracion/subir`, y la valida `backend/src/sustitucion.js`, no este archivo. `carga_sustitutiva = indicacion_sustitutiva − error_referencia` y `carga_resultante = carga_base + carga_sustitutiva`, como quedó en `lin{fila}`. `metodo`: `M1` (la referencia es la carga anterior y la base, la de pesas) o `M2` (al revés). Solo se agregan filas.
+
+| # | Columna | Tipo | Long./Precisión | Nulo | Default |
+|---|---------|------|------------------|------|---------|
+| 1 | `id` | int | 10,0 | No | IDENTITY(1,1) |
+| 2 | `calibracion_n` | int | 10,0 | No | - |
+| 3 | `codigo_registro` | nvarchar | 100 | No | - |
+| 4 | `paso` | int | 10,0 | No | - |
+| 5 | `fila` | int | 10,0 | No | - |
+| 6 | `metodo` | nvarchar | 2 | No | - |
+| 7 | `indicacion_sustitutiva` | decimal | 18,8 | No | - |
+| 8 | `fila_referencia` | int | 10,0 | No | - |
+| 9 | `carga_referencia` | decimal | 18,8 | No | - |
+| 10 | `indicacion_referencia` | decimal | 18,8 | No | - |
+| 11 | `error_referencia` | decimal | 18,8 | No | - |
+| 12 | `carga_sustitutiva` | decimal | 18,8 | No | - |
+| 13 | `fila_base` | int | 10,0 | No | - |
+| 14 | `carga_base` | decimal | 18,8 | No | - |
+| 15 | `carga_resultante` | decimal | 18,8 | No | - |
+| 16 | `registrado_en` | datetimeoffset | - | Sí | - |
+| 17 | `fecha_reg` | datetime2 | - | No | SYSDATETIME() |
 
 ---

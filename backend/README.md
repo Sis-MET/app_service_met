@@ -72,6 +72,22 @@ valores existentes y puede volver a ejecutarse sin efecto. El backend valida
 contra `DataMET_prueba_esquema.md` al arrancar: después del script hay que
 copiar ese archivo al servidor y reiniciar el proceso. La app no cambia.
 
+Para guardar los pasos de las cargas sustitutivas de linealidad, debe
+ejecutarse una sola vez `sql/018_calibracion_sustitucion.sql` **antes** de
+desplegar el backend, y el backend **antes** de publicar la app que los envía.
+Crea `DATA_SERVICIOS_DATOS_CALIBRACION_SUSTITUCION`, de solo agregar, con una
+fila por cada carga armada con material de sustitución: la indicación de la
+carga sustitutiva sola, la fila cuyo error la corrige y la fila a la que se
+suma, con sus valores al subir. La app los envía aparte del registro, en
+`sustituciones` (un arreglo por registro, en el orden de `records`), y la API
+rechaza un paso que no concuerde con las cargas e indicaciones del registro o
+con el método declarado en `metodo_carga`. Si falta el script, se rechaza
+entera la subida que traiga cargas sustitutivas (503
+`SUBSTITUTION_TABLE_MISSING`) y sus registros quedan en el teléfono; la
+validación previa ya lo avisa en `batchErrors`. Un backend anterior ignora
+`sustituciones`: por eso la app va al final. Para que DataMET+ los lea, ponga
+su login en `@loginDataMetPlus` del script.
+
 El archivo `sql/001_calibration_data_audit.sql` es únicamente de consulta y
 permite conocer los duplicados históricos sin modificar datos.
 
